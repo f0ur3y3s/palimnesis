@@ -72,6 +72,7 @@ class Generation:
     next_segment: dict[str, int] = field(default_factory=dict)
     forwarded: int = 0
     finished: bool = False
+    delivered: bool = False
 
 
 # --- reading -----------------------------------------------------------------

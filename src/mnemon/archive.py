@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import sqlite3
 import time
 
@@ -37,10 +38,17 @@ from .store import Store
 
 log = logging.getLogger(__name__)
 
+CRASH_EXIT_CODE = 77
 BATCH_MAX_AGE_S = 0.025
 BATCH_MAX_BYTES = 16 * 1024
 READ_QUEUE_CHUNKS = 64
 _EOF = object()
+
+
+def crash_point(name: str) -> None:
+    """Deterministic process death for crash-recovery tests (``MNEMON_CRASH_AT``)."""
+    if os.environ.get("MNEMON_CRASH_AT") == name:
+        os._exit(CRASH_EXIT_CODE)
 
 
 def _error_event(code: str, message: str) -> bytes:
@@ -93,6 +101,7 @@ class ArchiveHandler:
             await response(scope, receive, send)
             return
 
+        crash_point("after_accept")
         if plan.replay is not None:
             await self._send_replay(send, plan.replay)
             return
@@ -105,7 +114,9 @@ class ArchiveHandler:
             # if storage allows, never claim success.
             with anyio.CancelScope(shield=True):
                 try:
-                    if gen.finished:
+                    if gen.delivered:
+                        pass
+                    elif gen.finished:
                         await self.store.write(lambda c: ledger.record_delivery(
                             c, plan, "delivery_failed", bytes_forwarded=gen.forwarded))
                     else:
@@ -176,11 +187,11 @@ class ArchiveHandler:
                                                   for k, v in headers], body)
 
         await self.store.write(commit)
+        crash_point("after_prepare")
         await send({"type": "http.response.start", "status": 200, "headers": headers})
         await send({"type": "http.response.body", "body": body, "more_body": False})
         gen.forwarded = len(body)
-        await self.store.write(lambda c: ledger.record_delivery(
-            c, gen.plan, "delivery_completed", bytes_forwarded=gen.forwarded))
+        await self._delivered(gen)
 
     async def _stream(self, send, gen, upstream: httpx.Response) -> None:
         await send({"type": "http.response.start", "status": 200,
@@ -199,6 +210,7 @@ class ArchiveHandler:
         pending: list = []  # events awaiting commit + forward
         held: list = []  # the finish chunk and anything after it, until [DONE]
         state = {"finish": None, "usage": None, "done": False, "error": None}
+        batches = {"n": 0}
         started = None
 
         async def flush(terminal: bool = False) -> None:
@@ -219,6 +231,8 @@ class ArchiveHandler:
                                           usage=state["usage"])
 
             await self.store.write(commit)
+            batches["n"] += 1
+            crash_point(f"after_batch_{batches['n']}")
             if data:
                 await send({"type": "http.response.body", "body": data, "more_body": True})
                 gen.forwarded += len(data)
@@ -282,8 +296,15 @@ class ArchiveHandler:
             finally:
                 tg.cancel_scope.cancel()
         await send({"type": "http.response.body", "body": b"", "more_body": False})
-        await self.store.write(lambda c: ledger.record_delivery(
-            c, gen.plan, "delivery_completed", bytes_forwarded=gen.forwarded))
+        await self._delivered(gen)
+
+    async def _delivered(self, gen: ledger.Generation) -> None:
+        # The server write is complete; a client that disconnects right after
+        # reading everything must not turn this record into a failure.
+        with anyio.CancelScope(shield=True):
+            await self.store.write(lambda c: ledger.record_delivery(
+                c, gen.plan, "delivery_completed", bytes_forwarded=gen.forwarded))
+        gen.delivered = True
 
     @staticmethod
     def _observe(event, state: dict) -> None:
