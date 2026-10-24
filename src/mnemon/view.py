@@ -27,8 +27,9 @@ Invariants:
 - ``I ≤ input_budget`` always, or ``BudgetError``.
 - The watermark and collapse boundaries are monotone and fall on group
   starts: a user message, or an assistant message plus its tool results.
-- System messages and the current user message are never masked. The newest
-  group is masked only when it alone cannot fit (oversized newest output).
+- System messages and the current user message are never masked, and any
+  message kept when a boundary moved stays kept. The newest group is masked
+  only when it alone cannot fit (oversized newest output).
 - A stub replaces content only when it is smaller.
 """
 
@@ -66,6 +67,10 @@ class ViewState:
     watermark_seq: int = 0
     collapse_seq: int = 0
     oversized: frozenset[str] = frozenset()
+    # Messages kept verbatim inside the masked region when a boundary moved
+    # (system, then-current user message). They stay kept, so a persisted
+    # boundary means the same view on every later rebuild.
+    kept: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -144,22 +149,44 @@ class _Builder:
         self._stub_cache[key] = {"message": message, "changed": changed}
         return message, changed
 
+    def is_fixed(self, index: int, state: ViewState) -> bool:
+        return index in self.fixed or self.items[index].occ_id in state.kept
+
+    def keep_fixed(self, state: ViewState) -> ViewState:
+        """Record the fixed messages now inside the masked or collapsed region."""
+        reach = max(self.seq_index(state.watermark_seq) if state.watermark_seq else 0,
+                    self.seq_index(state.collapse_seq) if state.collapse_seq else 0)
+        inside = {self.items[i].occ_id for i in self.fixed if i < reach and self.items[i].occ_id}
+        return replace(state, kept=state.kept | inside)
+
     def apply(self, state: ViewState) -> tuple[list[dict], tuple[tuple[str, str], ...]]:
         watermark = self.seq_index(state.watermark_seq) if state.watermark_seq else 0
         collapse = self.seq_index(state.collapse_seq) if state.collapse_seq else 0
         messages: list[dict] = []
         manifest: list[tuple[str, str]] = []
-        collapsed = [i for i in range(collapse) if i not in self.fixed]
-        if collapsed:
-            first, last = self.items[collapsed[0]], self.items[collapsed[-1]]
+        # Each contiguous run of collapsed items (fixed messages break runs and
+        # stay in place) becomes one span note at the run's position.
+        runs: dict[int, list[int]] = {}
+        run_start = None
+        for i in range(collapse):
+            if self.is_fixed(i, state):
+                run_start = None
+                continue
+            if run_start is None:
+                run_start = i
+            runs.setdefault(run_start, []).append(i)
+        collapsed = {i for run in runs.values() for i in run}
         for i, item in enumerate(self.items):
             if i in collapsed:
-                if i == collapsed[0]:
+                run = runs.get(i)
+                if run is not None:
+                    first, last = self.items[run[0]], self.items[run[-1]]
                     messages.append({"role": "user", "content": span_note(
-                        first.alias, last.alias, len(collapsed))})
+                        first.alias, last.alias, len(run))})
                 manifest.append((item.occ_id, "collapsed"))
                 continue
-            maskable = i not in self.fixed and (i < watermark or item.occ_id in state.oversized)
+            maskable = not self.is_fixed(i, state) and (
+                i < watermark or item.occ_id in state.oversized)
             if maskable:
                 message, changed = self.masked_message(i)
                 messages.append(message)
@@ -230,8 +257,8 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     candidates = [s for s in b.starts if old_w < s <= w_max]
     new_state = state
     if candidates:
-        found = b.search(candidates, lambda i: replace(state, watermark_seq=_seq(b.items, i)),
-                         target)
+        found = b.search(candidates, lambda i: b.keep_fixed(
+            replace(state, watermark_seq=_seq(b.items, i))), target)
         new_state = replace(state, watermark_seq=_seq(b.items, found if found is not None
                                                        else candidates[-1]))
     messages, manifest = b.apply(new_state)
@@ -241,11 +268,10 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     if total > target:
         old_c = b.seq_index(new_state.collapse_seq) if new_state.collapse_seq else 0
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
-        limit = min(w_index, b.last_user if b.last_user is not None else w_index)
-        candidates = [s for s in b.starts if old_c < s <= limit]
+        candidates = [s for s in b.starts if old_c < s <= w_index]
         if candidates:
-            found = b.search(candidates, lambda i: replace(new_state, collapse_seq=_seq(b.items, i)),
-                             target)
+            found = b.search(candidates, lambda i: b.keep_fixed(
+                replace(new_state, collapse_seq=_seq(b.items, i))), target)
             new_state = replace(new_state, collapse_seq=_seq(b.items, found if found is not None
                                                              else candidates[-1]))
             messages, manifest = b.apply(new_state)
@@ -265,6 +291,10 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             total = b.count(messages)
             if total <= budget.input_budget:
                 break
+    if new_state != state:
+        new_state = b.keep_fixed(new_state)
+        messages, manifest = b.apply(new_state)
+        total = b.count(messages)
     if total > budget.input_budget:
         raise BudgetError(
             f"the view needs {total} tokens after masking everything maskable; the input "
@@ -276,4 +306,4 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
 
 def view_state_json(state: ViewState) -> str:
     return json.dumps({"watermark_seq": state.watermark_seq, "collapse_seq": state.collapse_seq,
-                       "oversized": sorted(state.oversized)})
+                       "oversized": sorted(state.oversized), "kept": sorted(state.kept)})

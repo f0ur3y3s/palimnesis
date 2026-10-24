@@ -36,7 +36,9 @@ import httpx
 from . import chat, ledger
 from .errors import error_response
 from .fingerprint import fingerprint_v1, parse_retry_hint
+from .budget import BudgetError
 from .sse import SSEParser
+from .viewengine import VIEW_FORMAT, ViewEngine
 from .store import Store
 
 log = logging.getLogger(__name__)
@@ -67,8 +69,9 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
-                 forward_headers) -> None:
+                 forward_headers, views=None) -> None:
         self.store = store
+        self.views = views  # mnemon.viewengine.ViewEngine, or None for no bounded views
         self.client = client
         self.upstream_base = upstream_base
         self.forward_headers = forward_headers  # filtered client headers for upstream
@@ -86,6 +89,19 @@ class ArchiveHandler:
         except chat.InvalidBody as e:
             await error_response(api_path, 400, "invalid_body", str(e))(scope, receive, send)
             return
+        prepared = None
+        if self.views is not None and await self.views.ready(self.client):
+            try:
+                prepared = await self.views.prepare(req)
+            except BudgetError as e:
+                await error_response(api_path, 400, "context_budget_exceeded", str(e))(
+                    scope, receive, send)
+                return
+            except Exception:
+                # A view defect must not fail the request: archive and forward
+                # unbounded, as when views are disabled (D14.9).
+                log.exception("bounded view preparation failed; forwarding unbounded")
+                prepared = None
         str_headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in headers}
         idem_key = next((v for k, v in str_headers.items() if k.lower() == "idempotency-key"), None)
         fingerprint = fingerprint_v1(ledger.ENDPOINT_CHAT, session, ledger.branch_id_for(session),
@@ -120,6 +136,9 @@ class ArchiveHandler:
             if plan.replay is not None:
                 await self._send_replay(send, plan.replay)
                 return
+            if prepared is not None and not await self._bound(scope, receive, send, req, gen,
+                                                              prepared, api_path):
+                return
             await self._run(scope, receive, send, gen, api_path, headers)
         except BaseException:
             # Cancellation (client disconnect) or an unexpected failure: record it
@@ -134,6 +153,28 @@ class ArchiveHandler:
             raise
         finally:
             self.live.discard(plan.request_id)
+
+    async def _bound(self, scope, receive, send, req, gen, prepared, api_path) -> bool:
+        """Replace the planned body with the bounded view; False if it cannot fit."""
+        plan = gen.plan
+        try:
+            view = await self.views.build(prepared, plan)
+        except BudgetError as e:
+            await self.store.write(lambda c: ledger.finish_attempt(
+                c, gen, "attempt_failed", reason="context_budget_exceeded"))
+            await error_response(api_path, 400, "context_budget_exceeded", str(e))(
+                scope, receive, send)
+            return False
+        except Exception:
+            log.exception("bounded view build failed; forwarding unbounded")
+            return True
+        if view.moved:
+            cause = ViewEngine.cause(plan.view_state, view.state)
+            await self.store.write(lambda c: ledger.record_view(
+                c, plan, view.state, budget=ViewEngine.snapshot(prepared.budget), cause=cause,
+                **VIEW_FORMAT))
+        plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
+        return True
 
     async def _send_replay(self, send, replay: dict) -> None:
         headers = [(k.encode("latin-1"), v.encode("latin-1")) for k, v in replay["headers"]]
@@ -155,6 +196,8 @@ class ArchiveHandler:
         try:
             upstream = await self.client.send(request, stream=True)
         except httpx.TransportError as e:
+            if self.views is not None:
+                self.views.upstream.mark_stale("transport_error")
             await self.store.write(lambda c: ledger.finish_attempt(
                 c, gen, "attempt_failed", reason="upstream_unreachable", error=type(e).__name__))
             await error_response(api_path, 502, "upstream_unreachable",
@@ -188,6 +231,8 @@ class ArchiveHandler:
             await self._upstream_failed(scope, receive, send, gen, api_path, "upstream_reset",
                                         "The upstream failed while sending an error response.")
             return
+        if self.views is not None:
+            self.views.upstream.observe(upstream.status_code, body)
         await self.store.write(lambda c: ledger.finish_attempt(
             c, gen, "attempt_failed", reason="upstream_status", status=upstream.status_code))
         headers = _with_no_retry(_response_headers(upstream))

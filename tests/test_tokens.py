@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemon import pins
+from mnemon import pins, tokens
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBES = ROOT / "eval" / "probes" / "fixtures"
@@ -240,3 +240,12 @@ def test_non_additive_split_falls_back_to_full_counting():
     exchange, prompt_tokens = LIVE_EXCHANGES[0].values
     args = tokens.render_args_from_openai(json.loads((exchange / "request.body").read_bytes()))
     assert t.count_messages(**args) == prompt_tokens
+
+
+def test_lone_surrogates_are_counted_as_replacement_characters_not_an_error():
+    t = tokens.default()
+
+    assert t.count("a\ud83d") == t.count("a�")
+    assert t.count_cached("b\udc00") == t.count("b�")
+    rendered = t.render([{"role": "user", "content": "x\ud83d"}])
+    assert t.count_rendered(rendered) == t.count(rendered.replace("\ud83d", "�"))

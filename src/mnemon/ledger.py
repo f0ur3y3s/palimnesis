@@ -59,6 +59,9 @@ class Plan:
     upstream_body: bytes
     stream: bool
     replay: dict | None = None  # a committed non-streaming response to deliver as is
+    # Upstream messages in order, each with its archived occurrence (mnemon.view).
+    items: list = field(default_factory=list)
+    view_state: Any = None  # the branch's persisted ViewState when planned
 
 
 @dataclass
@@ -114,7 +117,8 @@ def _attempt_events(conn: sqlite3.Connection, generation_id: str) -> set[str]:
 # Attempt events after which a generated turn's flags can no longer change.
 _SETTLED_EVENTS = frozenset({"cancelled", "attempt_failed", "attempt_abandoned",
                              "delivery_completed", "delivery_failed"})
-_OCC_COLUMNS = "occ_id, role, source, view, content_sha256, generation_id, envelope, seq"
+_OCC_COLUMNS = ("occ_id, role, source, view, content_sha256, generation_id, envelope, seq,"
+                " (SELECT alias FROM aliases WHERE target_id = occ_id)")
 
 
 def _archived(conn: sqlite3.Connection, row) -> tuple[Archived, bool]:
@@ -179,6 +183,10 @@ class BranchCache:
                 " ORDER BY seq", (branch_id, max_seq))]
         self._branches[branch_id] = (current, entries)
         return entries
+
+    def addresses(self, branch_id: str) -> dict[str, tuple[int, str | None]]:
+        """occ_id → (seq, alias) for the branch as last loaded."""
+        return {e.row[0]: (e.row[7], e.row[8]) for e in self._branches.get(branch_id, (0, []))[1]}
 
 
 def _entry(conn: sqlite3.Connection, row) -> _Entry:
@@ -355,18 +363,33 @@ def _start_attempt(conn, request_id: str) -> str:
     return attempt_id
 
 
-def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome) -> bytes:
-    """Client message objects with internal occurrences spliced back in and
-    flattened partials split into reasoning and text again (D10.3, D10.9).
+def _addresses(conn, branch_id: str, cache) -> dict[str, tuple[int, str | None]]:
+    if cache is not None:
+        return cache.addresses(branch_id)
+    return {occ: (seq, alias) for occ, seq, alias in conn.execute(
+        "SELECT o.occ_id, o.seq, a.alias FROM occurrences o"
+        " LEFT JOIN aliases a ON a.target_id = o.occ_id WHERE o.branch_id = ?", (branch_id,))}
+
+
+def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
+                   client_occs: list[str] | None = None, branch_id: str | None = None,
+                   cache=None) -> tuple[bytes, list]:
+    """The model view before bounding: client message objects with internal
+    occurrences spliced back in and flattened partials split into reasoning
+    and text again (D10.3, D10.9), plus one ``ViewItem`` per upstream message.
     Positions come from the reconciliation alignment, so superseded partials
     and context versions cannot shift them."""
+    from .view import ViewItem
+
     position = {occ_id: i for i, occ_id in enumerate(outcome.aligned)}
     by_id = {a.occ_id: a for a in archived}
     insertions: dict[int, list[dict]] = {}
+    inserted_occs: dict[int, list[str]] = {}
     aligned_seen = 0
     for item in archived:
         if item.view == "internal":
             insertions.setdefault(aligned_seen, []).append(message_dict(conn, item.occ_id))
+            inserted_occs.setdefault(aligned_seen, []).append(item.occ_id)
         elif item.occ_id in position:
             aligned_seen = position[item.occ_id] + 1
     replacements = {}
@@ -379,7 +402,64 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome) ->
         split["reasoning_content"] = sent[:cut]
         split["content"] = sent[cut:extent] if (sent[cut:extent] or "tool_calls" not in split) else None
         replacements[index] = split
-    return chat.render_upstream(req, insertions, replacements)
+    body = chat.render_upstream(req, insertions, replacements)
+
+    occs = list(outcome.aligned) + list(client_occs or [])
+    addresses = _addresses(conn, branch_id, cache) if branch_id else {}
+    for occ in occs + [o for group in inserted_occs.values() for o in group]:
+        if occ not in addresses:
+            row = conn.execute(
+                "SELECT o.seq, a.alias FROM occurrences o LEFT JOIN aliases a"
+                " ON a.target_id = o.occ_id WHERE o.occ_id = ?", (occ,)).fetchone()
+            if row:
+                addresses[occ] = (row[0], row[1])
+    items = []
+
+    def item(message, occ):
+        seq, alias = addresses.get(occ, (None, None))
+        return ViewItem(message=message, occ_id=occ, seq=seq, alias=alias)
+
+    for i, message in enumerate(req.messages):
+        for occ, extra in zip(inserted_occs.get(i, []), insertions.get(i, [])):
+            items.append(item(extra, occ))
+        items.append(item(replacements.get(i, message.raw_object), occs[i] if i < len(occs) else None))
+    n = len(req.messages)
+    for occ, extra in zip(inserted_occs.get(n, []), insertions.get(n, [])):
+        items.append(item(extra, occ))
+    return body, items
+
+
+def latest_view(conn: sqlite3.Connection, branch_id: str):
+    """(view_id, n, ViewState) of the branch's newest view version, or (None, 0, default)."""
+    from .view import ViewState
+
+    row = conn.execute(
+        "SELECT view_id, n, watermark_seq, collapse_seq, oversized FROM view_versions"
+        " WHERE branch_id = ? ORDER BY n DESC LIMIT 1", (branch_id,)).fetchone()
+    if row is None:
+        return None, 0, ViewState()
+    view_id, n, watermark, collapse, masks = row
+    masks = json.loads(masks)
+    if isinstance(masks, list):  # oversized only
+        masks = {"oversized": masks, "kept": []}
+    return view_id, n, ViewState(watermark, collapse, frozenset(masks["oversized"]),
+                                 frozenset(masks["kept"]))
+
+
+def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: str,
+                stub_format: str, budget: dict, cause: str) -> str:
+    """Persist a new view version for the plan's branch (immutable, numbered)."""
+    _, n, _ = latest_view(conn, plan.branch_id)
+    view_id = new_id("view")
+    conn.execute(
+        "INSERT INTO view_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (view_id, plan.branch_id, n + 1, plan.request_id, policy_version, stub_format,
+         state.watermark_seq, state.collapse_seq,
+         json.dumps({"oversized": sorted(state.oversized), "kept": sorted(state.kept)}),
+         json.dumps(budget), cause, time.time()))
+    _event(conn, plan.request_id, plan.attempt_id, "view_version", view_id=view_id, n=n + 1,
+           cause=cause, watermark_seq=state.watermark_seq, collapse_seq=state.collapse_seq)
+    return view_id
 
 
 # --- accept ------------------------------------------------------------------
@@ -436,16 +516,17 @@ def accept(
             f"({outcome.reason}). Start a new session to continue from edited history.",
         )
     if isinstance(outcome, Prefix):
-        plan = _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome)
+        plan = _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome, cache)
     else:
         plan = _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
-                       archived, outcome)
+                       archived, outcome, cache)
     if live is not None:
         live.add(plan.request_id)
     return plan
 
 
-def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Prefix) -> Plan:
+def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Prefix,
+           cache=None) -> Plan:
     row = conn.execute(
         "SELECT request_id FROM requests WHERE branch_id = ? AND fingerprint = ?"
         " ORDER BY arrived_at DESC LIMIT 1",
@@ -463,8 +544,8 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
     request_id = row[0]
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
-    return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, outcome), req.stream)
+    return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
+                 cache=cache)
 
 
 def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) -> Plan | None:
@@ -502,12 +583,20 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
                         "This Idempotency-Key's request no longer matches the session history.")
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
-    return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, outcome), req.stream)
+    return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
+                 cache=cache)
+
+
+def _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome, *,
+          client_occs=None, cache=None) -> Plan:
+    body, items = _upstream_body(conn, req, archived, outcome, client_occs, branch_id, cache)
+    _, _, state = latest_view(conn, branch_id)
+    return Plan(session_id, branch_id, request_id, attempt_id, body, req.stream,
+                items=items, view_state=state)
 
 
 def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
-            archived, outcome: Extend) -> Plan:
+            archived, outcome: Extend, cache=None) -> Plan:
     first_request = not archived
     new = req.messages[outcome.matched:]
     if not first_request and any(m.role == "assistant" for m in new):
@@ -552,10 +641,12 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
         if not already:
             _event(conn, request_id, None, "partial_superseded", occ_id=occ_id)
     last_user = max((i for i, m in enumerate(req.messages) if m.role == "user"), default=-1)
+    client_occs: list[str] = []
     for offset, message in enumerate(new):
         index = outcome.matched + offset
         source = "client_import" if first_request and message.role in ("assistant", "tool") and index < last_user else "client"
-        _insert_client_message(conn, session_id, branch_id, request_id, message, source)
+        client_occs.append(
+            _insert_client_message(conn, session_id, branch_id, request_id, message, source))
     if idem_key is not None:
         conn.execute("INSERT INTO idempotency_bindings VALUES (?, ?, ?, ?, ?, ?)",
                      (session_id, branch_id, idem_key, request_id, fingerprint, int(req.stream)))
@@ -563,8 +654,8 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
            new=len(new), raw_id=raw_id)
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
-    return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, outcome), req.stream)
+    return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
+                 client_occs=client_occs, cache=cache)
 
 
 # --- generation --------------------------------------------------------------

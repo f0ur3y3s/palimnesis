@@ -240,3 +240,31 @@ def test_random_sessions_never_exceed_the_budget(counter, seed):
         assert view.tokens == counter.count_messages(view.messages, TOOLS)
         assert view.state.watermark_seq >= state.watermark_seq
         state = view.state
+
+
+def test_a_long_agentic_turn_after_one_user_message_collapses_within_budget(counter):
+    # OpenCode: one instruction followed by dozens of tool groups in the same turn.
+    s = Session().system().user("refactor the project")
+    for i in range(30):
+        s.tool_turn(i, _code(i, lines=80))
+    budget = _budget(cap=8000)
+
+    view = _view(counter, s, budget=budget)
+
+    assert view.tokens <= 8000
+    assert view.messages[1] == {"role": "user", "content": "refactor the project"}
+    assert view.messages[2]["content"].startswith("[mnemon s1 span")
+    assert view.messages[-1] == s.items[-1].message or view.messages[-1]["content"].startswith("[mnemon")
+
+
+def test_a_message_kept_verbatim_inside_the_masked_region_stays_kept_on_later_turns(counter):
+    s = Session().system().user("refactor the project")
+    for i in range(30):
+        s.tool_turn(i, _code(i, lines=80))
+    first = _view(counter, s, budget=_budget(cap=8000))
+    s.answer("ok").user("next")
+
+    second = _view(counter, s, state=first.state, budget=_budget(cap=8000))
+
+    assert second.messages[:len(first.messages)] == first.messages or second.moved
+    assert {"role": "user", "content": "refactor the project"} in second.messages

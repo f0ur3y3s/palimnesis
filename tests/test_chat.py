@@ -13,6 +13,7 @@ from mnemon.chat import (
     Unsupported,
     content_sha256,
     parse,
+    render_messages,
     render_upstream,
 )
 
@@ -447,3 +448,25 @@ def test_replacement_index_outside_the_client_messages_is_rejected():
 
     with pytest.raises(ValueError):
         render_upstream(req, replacements={len(req.messages): {"role": "user", "content": "x"}})
+
+
+def test_render_messages_replaces_the_message_list_and_overrides_settings_in_place():
+    body = LIVE_BODIES[2].read_bytes()
+    req = parse(body)
+    shorter = [m.raw_object for m in req.messages[:3]]
+
+    out = render_messages(req, shorter, overrides={"max_completion_tokens": 4096})
+
+    expected = json.loads(body)
+    expected["messages"] = shorter
+    expected["max_completion_tokens"] = 4096
+    assert json.loads(out) == expected
+    assert list(dict(_pairs(out))) == list(dict(_pairs(body)))  # key order kept
+
+
+def test_render_messages_appends_an_absent_override_at_the_end():
+    req = parse(b'{"model":"m","messages":[{"role":"user","content":"hi"}],"stream":true}')
+
+    out = render_messages(req, [{"role": "user", "content": "hi"}], overrides={"max_tokens": 8192})
+
+    assert out == b'{"model":"m","messages":[{"role":"user","content":"hi"}],"stream":true,"max_tokens":8192}'

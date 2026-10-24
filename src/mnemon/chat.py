@@ -393,16 +393,31 @@ def render_upstream(
         messages.extend(insertions.get(i, ()))
         if i < n:
             messages.append(replacements.get(i, req.messages[i].raw_object))
+    return render_messages(req, messages)
+
+
+def render_messages(
+    req: ChatRequest,
+    messages: Sequence[dict[str, Any]],
+    overrides: Mapping[str, Any] | None = None,
+) -> bytes:
+    """A body with the client's top-level fields in their order, ``messages``
+    replaced, and ``overrides`` replacing settings in place (absent ones are
+    appended at the end). Used for bounded views (mnemon.view)."""
+    overrides = dict(overrides or {})
     doc: dict[str, Any] = {}
     for key in req.top_level_order:
         if key == "messages":
-            doc[key] = messages
+            doc[key] = list(messages)
+        elif key in overrides:
+            doc[key] = overrides.pop(key)
         elif key == "stream":
             doc[key] = req.stream
         elif key == "stream_options":
             doc[key] = req.stream_options
         else:
             doc[key] = req.settings[key]
+    doc.update(overrides)
     text = json.dumps(doc, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     # Lone surrogates (valid pairs were joined by the decoder) go back to \u escapes
     # so the body is strict UTF-8 that decodes to the same strings.

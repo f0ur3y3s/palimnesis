@@ -13,3 +13,7 @@ class Settings:
     # Archive database. None means pure passthrough (no archiving).
     db_path: Path | None = None
     synchronous: str = "FULL"
+    # Bounded views (Phase 2): "on" masks over the watermark, "off" only enforces budgets.
+    view: str = "on"
+    # Input budget cap in tokens; None means the default (48,000, D14.3).
+    input_budget: int | None = None

@@ -58,7 +58,7 @@ _UNIQUE_KEYS: dict[str, list[tuple[str, ...]]] = {
     "prepared_responses": [("request_id",)],
     "aliases": [("scope_session_id", "alias"), ("target_id",)],
 }
-IMMUTABLE_TABLES = tuple(_UNIQUE_KEYS)
+IMMUTABLE_TABLES = tuple(_UNIQUE_KEYS)  # view_versions (migration 3) is immutable too
 
 _SCHEMA_V1 = """
 CREATE TABLE sessions (
@@ -225,6 +225,35 @@ def _immutability_triggers() -> str:
     return "\n".join(statements)
 
 
+_VIEW_VERSIONS = """
+CREATE TABLE view_versions (
+    view_id TEXT PRIMARY KEY,
+    branch_id TEXT NOT NULL REFERENCES branches,
+    n INTEGER NOT NULL,
+    request_id TEXT REFERENCES requests,
+    policy_version TEXT NOT NULL,
+    stub_format TEXT NOT NULL,
+    watermark_seq INTEGER NOT NULL,
+    collapse_seq INTEGER NOT NULL,
+    oversized TEXT NOT NULL,
+    budget TEXT NOT NULL,
+    cause TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    UNIQUE (branch_id, n)
+) STRICT;
+""" + "\n".join(
+    f"CREATE TRIGGER view_versions_no_{verb.lower()} BEFORE {verb} ON view_versions "
+    "BEGIN SELECT RAISE(ABORT, 'archive rows are immutable: view_versions'); END;"
+    for verb in ("UPDATE", "DELETE")
+) + """
+CREATE TRIGGER view_versions_no_replace_0 BEFORE INSERT ON view_versions
+WHEN EXISTS (SELECT 1 FROM view_versions WHERE view_id = NEW.view_id)
+BEGIN SELECT RAISE(ABORT, 'archive rows are immutable: view_versions'); END;
+CREATE TRIGGER view_versions_no_replace_1 BEFORE INSERT ON view_versions
+WHEN EXISTS (SELECT 1 FROM view_versions WHERE branch_id = NEW.branch_id AND n = NEW.n)
+BEGIN SELECT RAISE(ABORT, 'archive rows are immutable: view_versions'); END;
+"""
+
 MIGRATIONS: list[str] = [
     _SCHEMA_V1 + _immutability_triggers(),
     # v2: derived full-text index (mnemon.search), filled from existing blocks.
@@ -232,6 +261,8 @@ MIGRATIONS: list[str] = [
     "INSERT INTO fts_blocks (rowid, text) SELECT b.rowid, (SELECT group_concat("
     "CAST(s.bytes AS TEXT), '' ORDER BY s.seq) FROM segments s WHERE s.block_id = b.block_id)"
     " FROM blocks b;",
+    # v3: persisted view decisions (mnemon.view); immutable like the archive.
+    _VIEW_VERSIONS,
 ]
 
 _DENIED_ACTIONS = frozenset(

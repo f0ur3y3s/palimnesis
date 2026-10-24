@@ -213,3 +213,18 @@ async def test_slow_database_work_does_not_block_the_event_loop(store):
     # A blocked loop would tick at most once; ~15 ms Windows timer
     # granularity still allows well over 10 ticks in 0.3 s.
     assert ticks >= 10
+
+
+async def test_view_versions_are_immutable(store):
+    await store.write(_seed)
+
+    def add_view(c):
+        c.execute("INSERT INTO view_versions VALUES ('v1', 'b1', 1, 'r1', 'v1', 's1', 3, 0,"
+                  " '{}', '{}', 'watermark_move', 1.0)")
+
+    await store.write(add_view)
+    for sql in ("UPDATE view_versions SET watermark_seq = 9", "DELETE FROM view_versions",
+                "INSERT OR REPLACE INTO view_versions VALUES ('v1', 'b1', 1, 'r1', 'v1', 's1',"
+                " 9, 0, '{}', '{}', 'x', 1.0)"):
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            await store.write(lambda c, sql=sql: c.execute(sql))

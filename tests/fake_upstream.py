@@ -7,8 +7,8 @@ Tests queue responses with ``respond_json``/``respond_sse`` and then inspect
 ``GET /props`` is static: it answers from the recorded Strata ``props.json`` with the
 mutable ``props_*`` attributes applied, never consumes the response script and is
 counted in ``props_requests`` rather than ``requests``. When ``count_tokens_handler``
-is set, ``POST /v1/messages/count_tokens`` is answered by it (parsed body in, input
-token count out) and recorded in ``count_tokens_requests``; otherwise that route is
+is set (by default an exact local count, like Strata), ``POST /v1/messages/count_tokens``
+is answered by it and recorded in ``count_tokens_requests``; with ``None`` that route is
 scripted like any other.
 """
 
@@ -55,6 +55,13 @@ class _Scripted:
     extra_headers: list[tuple[str, str]] = field(default_factory=list)
 
 
+def _local_count(body: dict) -> int:
+    from mnemon import tokens
+    from mnemon.upstream_facts import anthropic_to_render_args
+
+    return tokens.default().count_messages(**anthropic_to_render_args(body))
+
+
 @dataclass
 class FakeUpstream:
     requests: list[ReceivedRequest] = field(default_factory=list)
@@ -72,8 +79,10 @@ class FakeUpstream:
     props_status: int = 200
     props_delay: float = 0.0
     props_requests: int = 0
-    # Optional POST /v1/messages/count_tokens handler: parsed body -> input_tokens.
-    count_tokens_handler: Callable[[dict], int] | None = None
+    # POST /v1/messages/count_tokens handler: parsed body -> input_tokens. The
+    # default counts exactly with the pinned template, as Strata does, so the
+    # proxy's startup canary passes; None makes the route scripted.
+    count_tokens_handler: Callable[[dict], int] | None = field(default=lambda body: _local_count(body))
     count_tokens_requests: list[dict] = field(default_factory=list)
 
     def respond_json(

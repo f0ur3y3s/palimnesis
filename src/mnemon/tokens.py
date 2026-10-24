@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import threading
 from collections import OrderedDict
 from collections.abc import Iterable, Mapping, Sequence
@@ -175,8 +176,12 @@ class Tokens:
     # -- count ------------------------------------------------------------------
 
     def count(self, text: str) -> int:
-        """Exact token count of ``text`` (no fragment cache)."""
-        return len(self._tokenizer.encode(text, add_special_tokens=False).ids)
+        """Exact token count of ``text`` (no fragment cache).
+
+        Lone surrogates (valid in JSON escapes and archived as WTF-8) cannot be
+        tokenized; they count as U+FFFD. Any difference from the upstream's own
+        count is caught by per-call usage reconciliation."""
+        return len(self._tokenizer.encode(_tokenizable(text), add_special_tokens=False).ids)
 
     def count_cached(self, text: str) -> int:
         """Exact count of any text through the LRU (for repeated previews and sizing)."""
@@ -208,7 +213,7 @@ class Tokens:
         )
 
     def _fragment_count(self, fragment: str) -> int:
-        key = hashlib.sha256(fragment.encode("utf-8")).digest() + self.pin.id.encode()
+        key = hashlib.sha256(fragment.encode("utf-8", "surrogatepass")).digest() + self.pin.id.encode()
         with self._lock:
             hit = self._cache.get(key)
             if hit is not None:
@@ -251,6 +256,13 @@ class Tokens:
         yield self.render(convo, tools)
         yield self.render(convo[1:], None, enable_thinking=False)
         yield self.render(convo[1:2], None, effort="low", add_generation_prompt=False)
+
+
+_LONE_SURROGATE = re.compile("[\\ud800-\\udfff]")
+
+
+def _tokenizable(text: str) -> str:
+    return _LONE_SURROGATE.sub("�", text) if _LONE_SURROGATE.search(text) else text
 
 
 def split_fragments(text: str, split_tokens: Sequence[str] = SPLIT_TOKENS) -> list[str]:
