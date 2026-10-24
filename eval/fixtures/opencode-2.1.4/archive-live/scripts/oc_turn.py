@@ -11,8 +11,10 @@ import subprocess
 import time
 from pathlib import Path
 
-ROOT = Path(r"C:\Users\Daniel\AppData\Local\Temp\claude\C--Users-Daniel-repos-mnemon"
+ROOT = Path(os.environ.get("OC_ROOT") or
+            r"C:\Users\Daniel\AppData\Local\Temp\claude\C--Users-Daniel-repos-mnemon"
             r"\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\scratchpad\opencode-archive")
+KILL_EVENT = "first_data"
 EXE = Path(os.environ["APPDATA"]) / "npm/node_modules/@opencode/cli/bin/opencode.exe"
 
 
@@ -40,7 +42,7 @@ def first_data_events(log: Path):
     if not log.exists():
         return []
     return [r for r in map(json.loads, log.read_text("utf-8").splitlines())
-            if r.get("event") == "first_data"]
+            if r.get("event") == KILL_EVENT]
 
 
 def main():
@@ -48,9 +50,13 @@ def main():
     p.add_argument("--label", required=True)
     p.add_argument("--session")
     p.add_argument("--kill-after-first-data", nargs=2, metavar=("TAPLOG", "DELAY"))
+    p.add_argument("--kill-on", default="first_data",
+                   help="tap event that arms the kill: first_data or first_content")
     p.add_argument("--timeout", type=float, default=900)
     p.add_argument("message")
     a = p.parse_args()
+    global KILL_EVENT
+    KILL_EVENT = a.kill_on
     cmd = [str(EXE), "run", "--standalone", "--auto", "--format", "json"]
     if a.session:
         cmd += ["--session", a.session]

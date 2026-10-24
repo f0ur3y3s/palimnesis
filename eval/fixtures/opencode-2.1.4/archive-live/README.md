@@ -52,3 +52,50 @@ OpenCode config: `../live/config/` with `baseURL` on port 9031. The plugin was u
   - D10.12 (abandoned after crash) does not apply either. The attempt ended `cancelled`, not abandoned, and the request is not an identical resend.
 - **Effect.** Every later request in this OpenCode session gets the same 409, so the session is permanently unusable through Mnemon.
 - **Evidence gap.** D10.4's evidence, "OpenCode never omits a partial once output has streamed", came from server-side stream failures only. It does not hold for a client-side process kill.
+
+# R10: the fix for client interrupts (D13.1) checked live
+
+**When and where.** 2026-10-24, 22:59–23:02 UTC, at `a41809a` (clean tree). The archive DB, the OpenCode home and the scratch root were all fresh, with the same Strata as R9. Results entry: `docs/results.md` R10.
+
+**Files.** The summary is `summary-r10.json`; the R9 `summary.json` is unchanged.
+
+**Scripts.**
+- `scripts/run_proxy.py` now also emits a `first_content` tap event, on the first non-empty `content` delta.
+- `scripts/oc_turn.py` gained `--kill-on first_content` and an `OC_ROOT` override.
+- `scripts/analyze_r10.py` handles several sessions and superseded partials.
+- `--capture-dir` now requires `--passthrough`, so this run keeps the two-proxy topology. The archive instance had no capture directory.
+
+**Session A (`…9YNdus`)**
+
+| Turn | Requests | Result |
+| --- | --- | --- |
+| t1: create and run `hello.py` | 3 | 200 ×3 |
+| t2: 150-word question, process tree killed 2.06 s after the first `data:` | 1 | 200, then `cancelled`. Mnemon had archived 92 reasoning and 60 text characters. |
+| t3: "7 times 8?" | 1 | **200**. A `partial_superseded` event names the cancelled occurrence. Answer: "56". |
+| t4: "9 minus 4?" | 1 | 200, with `partial_superseded` again. Answer: "5". |
+
+**Session B (`…VYgSgz`, variant): interrupt after visible text**
+
+| Turn | Requests | Result |
+| --- | --- | --- |
+| b1: 200-word paragraph, killed 1.0 s after the first non-empty `content` delta | 1 | 200, then `cancelled`. Mnemon had archived 176 reasoning and 153 text characters. |
+| b2: "7 times 8?" | 1 | 200 with `partial_superseded`. The model answered the orphaned b1 question first: 4,345 completion tokens, 99.9 s, 1.03 MB of SSE. |
+| b3: "9 minus 4?" | 1 | 200 with `partial_superseded` |
+
+**What OpenCode sends after a client kill.** In both sessions OpenCode stored the interrupted message with empty parts only: `reasoning: ""`, plus `text: ""` in B. It then **omitted** that message, so the requests read `…, user, user`. No flattened partial and no Continue were ever sent, even after visible text had streamed.
+
+**Checks** (9 of 9 requests, no rejections)
+- `get_raw` equals the client body.
+- The upstream body equals the client body in both the tap and the capture. No split was needed, because no partial was resent.
+- Upstream response bytes equal the bytes the client received.
+- Each archived generated turn equals what was streamed.
+
+**Visible history.** In each session, history minus the superseded partial equals the final request's messages plus the final completed turn. The cancelled partial stays archived as `complete: false, cancelled: true`, at position 8 in A and position 2 in B.
+
+**Events**
+- Completed requests: `accepted_input, attempt_started, delivery_started, turn_complete, delivery_completed`.
+- Interrupted requests: `…, cancelled`.
+- Every request after an interrupt also has `partial_superseded`, written before `accepted_input`. There were 4 in total for 2 partials, because it is re-recorded on each later request.
+- No `active_request_id` was left set.
+
+**TTFB overhead.** 0–15 ms on warm requests, and 32.9 ms on the first request of the process.

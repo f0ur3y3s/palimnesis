@@ -217,3 +217,55 @@ Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/`: its README, `summar
 - D10.4's premise ("OpenCode never omits a partial once output has streamed") was measured only for server-side stream failures. D10.3 and D10.12 do not cover this case: the client sent no flattened Continue, and the attempt is `cancelled`, not abandoned.
 
 The Phase 1 green light for this harness therefore holds for linear use with server-side failures, but not for user interrupts.
+
+## R10 — Client-interrupt fix (D13.1) checked live (Phase 1, 2026-10-24)
+
+**Setup.**
+
+- Commit `a41809a`, clean tree.
+- A fresh archive DB and a fresh isolated OpenCode 2.1.4 home.
+- Strata 0.1.48 and the same model as R9. The same two-proxy topology as R9: archive with an ASGI tap, then `--passthrough --capture-dir`. `--capture-dir` now requires `--passthrough`.
+
+Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/` (README §R10, `summary-r10.json`, `scripts/`).
+
+| Session | Sequence | Statuses |
+| --- | --- | --- |
+| A | Task (3 requests); client kill 2.06 s after the first `data:` (92 reasoning + 60 text characters archived); 2 follow-ups | 200 ×6. Both follow-ups record `partial_superseded`. |
+| B (variant) | Client kill 1.0 s after the first visible `content` (176 + 153 characters archived); 2 follow-ups | 200 ×3, with `partial_superseded` |
+
+**What OpenCode does after a client kill.** OpenCode never persists streamed reasoning or text after a client-side kill. It stored only empty parts, then omitted the message entirely (`…, user, user`), even when visible text had streamed. It sent no flattened partial and no Continue.
+
+**Checks.**
+
+- For 9 of 9 requests:
+  - `get_raw` equals the client body.
+  - The upstream body equals the client body. No splits were needed.
+  - Upstream response bytes equal the client's.
+  - Archived generated turns equal what was streamed.
+- Per session, the visible history minus the superseded partial equals the last request plus the final turn. The partial stays archived as cancelled and incomplete.
+- Events: `cancelled` on each interrupted request; the normal five-event sequence on every other request.
+- TTFB overhead was 0–15 ms on warm requests and 32.9 ms on the first request of the process.
+
+**Observations (not Mnemon defects).**
+
+- **The orphaned question gets answered.** With the partial gone, the model sees two consecutive user turns and answers the interrupted question too. In B this took 4,345 completion tokens and 99.9 s on the shared slot.
+- **Cache reuse after that long turn was low.** The next request reported `cached_tokens` 5026 of a 9406-token prompt, roughly the earlier prompt only. The likely cause is checkpoint-limited reuse after a long generation (contracts §10). This is a cache-auditor item.
+- **`partial_superseded` repeats.** It is re-recorded on every later request in the session (4 events for 2 partials). Each request re-derives the alignment.
+
+No remaining bug was found in this flow.
+
+## R11 — Phase 1 gate (2026-10-24)
+
+| Green light | Result | Evidence |
+| --- | --- | --- |
+| Explicit retries don't duplicate logical events; repeated identical occurrences stay distinct; key conflicts; concurrent keys; non-streaming replay without inference; streaming keys get 409 | pass | `tests/test_archive_lifecycle.py`, `tests/test_review_fixes.py` |
+| Raw requests reconstruct byte-for-byte; growth reported | pass. 10/10 live, 8/8 and 9/9 live archive runs; growth in R6 and R8 (v2 adopted, D12) | `tests/test_rawarchive.py`, R6, R8–R10 |
+| Distinct sessions never merge; mismatched identity, divergence and concurrent conflicts get defined errors | pass | lifecycle tests, contracts §5 table |
+| Every supported block round-trips exactly; aliases survive forced collisions | pass, including lone surrogates (D13.9) | `tests/test_chat.py`, `tests/test_addresses.py`, `tests/test_review_fixes.py` |
+| Database rejects unauthorized archive mutation | pass, including plain connections and `INSERT OR REPLACE` | `tests/test_store.py` (mutation-checked) |
+| Crashes around input commit and response preparation preserve data and mappings | pass at 4 crash points | `tests/test_crash_recovery.py` |
+| Follow-ups reconstruct fixtures with hidden internal events without duplication | pass | `test_followup_upstream_body_contains_hidden_events_once_in_order` |
+| Independent review | REJECT → fixed (D13) → APPROVE WITH CONDITIONS; conditions fixed in `6085692` | D13 |
+| Live OpenCode against Strata in archive mode | pass: linear workflow and restart (R9); client interrupt fixed and verified (R10) | R9, R10 |
+
+The suite has 515 tests. Phase 1 limits are listed in `capabilities.md` "Known limits of the Phase 1 archive". Carried forward: D13's Phase 3 note on internal occurrences of superseded attempts, and the R8 per-request cost growth, which Phase 2 addresses.

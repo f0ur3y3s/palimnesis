@@ -8,6 +8,7 @@ uvicorn shut down cleanly (lifespan shutdown closes the store).
 
 import argparse
 import json
+import re
 import threading
 import time
 from pathlib import Path
@@ -69,6 +70,9 @@ class Tap:
                 if b"data:" in b and "t_first_data" not in rec:
                     rec["t_first_data"] = now
                     self.emit({"name": name, "event": "first_data", "t": now})
+                if "t_first_content" not in rec and re.search(rb'"delta": ?\{"content": ?"[^"]', b):
+                    rec["t_first_content"] = now
+                    self.emit({"name": name, "event": "first_content", "t": now})
                 respbody.extend(b)
             await send(msg)
 

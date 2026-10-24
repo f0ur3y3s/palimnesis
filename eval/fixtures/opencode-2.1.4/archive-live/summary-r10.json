@@ -1,0 +1,538 @@
+{
+ "run": "R10: client-interrupt fix (D13.1) live check, OpenCode 2.1.4 via Mnemon archive mode, live Strata",
+ "date": "2026-10-24 (22:59-23:02 UTC)",
+ "commit": "a41809a, clean tree",
+ "strata": {
+  "build": "Strata 0.1.48",
+  "model": "qwen3.8-flash-next-iq3_xxs",
+  "n_ctx": 65536
+ },
+ "topology": "opencode -> mnemon archive :9031 (ASGI tap, fresh DB) -> mnemon --passthrough :9032 (--capture-dir, tap) -> Strata",
+ "sessions_legend": {
+  "9YNdus": "session A: t1 task, t2 interrupt (kill 2 s after first data), t3, t4 follow-ups",
+  "VYgSgz": "session B: b1 interrupt 1 s after first visible text, b2, b3 follow-ups"
+ },
+ "opencode_stored_partials": {
+  "A": "empty reasoning part only",
+  "B": "empty reasoning part + empty text part; streamed text was never persisted"
+ },
+ "opencode_resend_of_partial": "omitted in both sessions (consecutive user messages); no flattened partial, no Continue",
+ "turns": {
+  "t1": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 19.85
+  },
+  "t2": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8fdbdeb9ffebI6mPcc69YNdus",
+    "<message>"
+   ],
+   "exit_code": 1,
+   "killed": true,
+   "elapsed_s": 2.98,
+   "kill_after_trigger_s": 2.06,
+   "kill_trigger": "first data chunk"
+  },
+  "t3": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8fdbdeb9ffebI6mPcc69YNdus",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 2.88
+  },
+  "t4": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8fdbdeb9ffebI6mPcc69YNdus",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 2.34
+  },
+  "b1": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "<message>"
+   ],
+   "exit_code": 1,
+   "killed": true,
+   "elapsed_s": 4.27,
+   "kill_after_trigger_s": 1.01,
+   "kill_trigger": "first non-empty content delta"
+  },
+  "b2": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8fdb2b42ffe27WAYiWBVYgSgz",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 100.89
+  },
+  "b3": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8fdb2b42ffe27WAYiWBVYgSgz",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 17.46
+  }
+ },
+ "sessions": {
+  "ses_e8fdbdeb9ffebI6mPcc69YNdus": {
+   "visible_occurrences": 13,
+   "superseded_partials": [
+    {
+     "occ": "5aac6d4c",
+     "position": 8,
+     "complete": false,
+     "cancelled": true,
+     "reasoning_chars": 92,
+     "text_chars": 60
+    }
+   ],
+   "final_request_messages": 11,
+   "history_minus_superseded_equals_final_request_plus_last_turn": true
+  },
+  "ses_e8fdb2b42ffe27WAYiWBVYgSgz": {
+   "visible_occurrences": 7,
+   "superseded_partials": [
+    {
+     "occ": "74a4f863",
+     "position": 2,
+     "complete": false,
+     "cancelled": true,
+     "reasoning_chars": 176,
+     "text_chars": 153
+    }
+   ],
+   "final_request_messages": 5,
+   "history_minus_superseded_equals_final_request_plus_last_turn": true
+  }
+ },
+ "rejected": [],
+ "event_totals": {
+  "accepted_input": 9,
+  "attempt_started": 9,
+  "cancelled": 2,
+  "delivery_completed": 7,
+  "delivery_progress": 1977,
+  "delivery_started": 9,
+  "partial_superseded": 4,
+  "turn_complete": 7
+ },
+ "branch_heads": [
+  [
+   "ses_e8fdbdeb9ffebI6mPcc69YNdus/main",
+   null
+  ],
+  [
+   "ses_e8fdb2b42ffe27WAYiWBVYgSgz/main",
+   null
+  ]
+ ],
+ "raw_bodies": {
+  "count": 9,
+  "snapshots": 2,
+  "payload_bytes": 57374,
+  "logical_bytes": 201422
+ },
+ "requests": [
+  {
+   "n": 1,
+   "client": "a-001",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 2,
+   "roles": "su",
+   "req_bytes": 20085,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 11895,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 84,
+    "text": 0
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [],
+   "finish": "tool_calls",
+   "done": true,
+   "usage": {
+    "prompt": 5013,
+    "completion": 70,
+    "cached": 0
+   },
+   "ttfb_client_ms": 131.9,
+   "ttfb_overhead_ms": 32.9,
+   "duration_s": 16.28
+  },
+  {
+   "n": 2,
+   "client": "a-002",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 4,
+   "roles": "suat",
+   "req_bytes": 20510,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 5104,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 20,
+    "text": 0
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [],
+   "finish": "tool_calls",
+   "done": true,
+   "usage": {
+    "prompt": 5104,
+    "completion": 37,
+    "cached": 5082
+   },
+   "ttfb_client_ms": 80.2,
+   "ttfb_overhead_ms": 0.0,
+   "duration_s": 1.14
+  },
+  {
+   "n": 3,
+   "client": "a-003",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 6,
+   "roles": "suatat",
+   "req_bytes": 20819,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 8516,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 53,
+    "text": 71
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [],
+   "finish": "stop",
+   "done": true,
+   "usage": {
+    "prompt": 5157,
+    "completion": 36,
+    "cached": 5140
+   },
+   "ttfb_client_ms": 79.2,
+   "ttfb_overhead_ms": 11.0,
+   "duration_s": 1.21
+  },
+  {
+   "n": 4,
+   "client": "a-004",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 8,
+   "roles": "suatatau",
+   "req_bytes": 21129,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 7814,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 92,
+    "text": 60
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "cancelled"
+   ],
+   "superseded": [],
+   "finish": null,
+   "done": false,
+   "usage": {
+    "prompt": null,
+    "completion": null,
+    "cached": null
+   },
+   "ttfb_client_ms": 80.3,
+   "ttfb_overhead_ms": 12.7,
+   "duration_s": 2.25
+  },
+  {
+   "n": 5,
+   "client": "a-005",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 9,
+   "roles": "suatatauu",
+   "req_bytes": 21225,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 8864,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 80,
+    "text": 16
+   },
+   "event_order": [
+    "partial_superseded",
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [
+    "5aac6d4c"
+   ],
+   "finish": "stop",
+   "done": true,
+   "usage": {
+    "prompt": 5262,
+    "completion": 37,
+    "cached": 5233
+   },
+   "ttfb_client_ms": 78.2,
+   "ttfb_overhead_ms": 7.1,
+   "duration_s": 1.98
+  },
+  {
+   "n": 6,
+   "client": "a-006",
+   "session": "9YNdus",
+   "status": 200,
+   "messages": 11,
+   "roles": "suatatauuau",
+   "req_bytes": 21476,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 6486,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 34,
+    "text": 15
+   },
+   "event_order": [
+    "partial_superseded",
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [
+    "5aac6d4c"
+   ],
+   "finish": "stop",
+   "done": true,
+   "usage": {
+    "prompt": 5329,
+    "completion": 27,
+    "cached": 5300
+   },
+   "ttfb_client_ms": 85.3,
+   "ttfb_overhead_ms": 14.9,
+   "duration_s": 1.22
+  },
+  {
+   "n": 7,
+   "client": "a-007",
+   "session": "VYgSgz",
+   "status": 200,
+   "messages": 2,
+   "roles": "su",
+   "req_bytes": 20092,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 17793,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 176,
+    "text": 153
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "cancelled"
+   ],
+   "superseded": [],
+   "finish": null,
+   "done": false,
+   "usage": {
+    "prompt": null,
+    "completion": null,
+    "cached": null
+   },
+   "ttfb_client_ms": 75.5,
+   "ttfb_overhead_ms": 0.0,
+   "duration_s": 3.5
+  },
+  {
+   "n": 8,
+   "client": "a-008",
+   "session": "VYgSgz",
+   "status": 200,
+   "messages": 3,
+   "roles": "suu",
+   "req_bytes": 20188,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 1029250,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 13990,
+    "text": 1305
+   },
+   "event_order": [
+    "partial_superseded",
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [
+    "74a4f863"
+   ],
+   "finish": "stop",
+   "done": true,
+   "usage": {
+    "prompt": 5031,
+    "completion": 4345,
+    "cached": 5002
+   },
+   "ttfb_client_ms": 72.1,
+   "ttfb_overhead_ms": 7.6,
+   "duration_s": 99.93
+  },
+  {
+   "n": 9,
+   "client": "a-009",
+   "session": "VYgSgz",
+   "status": 200,
+   "messages": 5,
+   "roles": "suuau",
+   "req_bytes": 35898,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_equal": true,
+   "response_bytes": 8408,
+   "generated_equal_streamed": true,
+   "generated_chars": {
+    "reasoning": 69,
+    "text": 10
+   },
+   "event_order": [
+    "partial_superseded",
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "superseded": [
+    "74a4f863"
+   ],
+   "finish": "stop",
+   "done": true,
+   "usage": {
+    "prompt": 9406,
+    "completion": 35,
+    "cached": 5026
+   },
+   "ttfb_client_ms": 104.8,
+   "ttfb_overhead_ms": 7.2,
+   "duration_s": 16.55
+  }
+ ]
+}
