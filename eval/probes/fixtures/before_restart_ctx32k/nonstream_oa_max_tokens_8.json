@@ -1,0 +1,64 @@
+{
+  "case": "oa_max_tokens_8",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "max_tokens": 8,
+    "reasoning_effort": "low"
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:47:35 GMT",
+    "content-type": "application/json",
+    "content-length": "666",
+    "connection": "close"
+  },
+  "body": {
+    "id": "chatcmpl-44c6d237a802445db4b04ea0",
+    "object": "chat.completion",
+    "created": 1792871141,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "reasoning_content": "The user wants me"
+        },
+        "finish_reason": "length"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 56,
+      "completion_tokens": 4,
+      "total_tokens": 60,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 56,
+      "prompt_ms": 1072.1,
+      "prompt_per_token_ms": 19.145,
+      "prompt_per_second": 52.2,
+      "predicted_n": 4,
+      "predicted_ms": 116.5,
+      "predicted_per_token_ms": 23.3,
+      "predicted_per_second": 42.9,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  "wall_s": 113.969,
+  "server_busy_before": true,
+  "queued_before": 0
+}

@@ -1,0 +1,51 @@
+{
+  "case": "an_thinking_disabled",
+  "path": "/v1/messages",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 64,
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:52:28 GMT",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+  },
+  "body": {
+    "id": "msg_cca33ca56e2f43dd8d072b03",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "content": [
+      {
+        "type": "text",
+        "text": "391"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 1,
+      "output_tokens": 4,
+      "cache_creation_input_tokens": 6,
+      "cache_read_input_tokens": 21
+    }
+  },
+  "wall_s": 0.344,
+  "server_busy_before": false,
+  "queued_before": 0,
+  "count_tokens": {
+    "input_tokens": 28
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "case": "oa_reasoning_format_none",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "max_tokens": 256,
+    "reasoning_effort": "low",
+    "reasoning_format": "none"
+  },
+  "status": 503,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:47:49 GMT",
+    "content-type": "application/json",
+    "content-length": "127",
+    "connection": "close"
+  },
+  "body": {
+    "error": {
+      "type": "server_error",
+      "message": "the engine stopped unexpectedly (exit code -15); the next request restarts it"
+    }
+  },
+  "wall_s": 7.75,
+  "server_busy_before": false,
+  "queued_before": 0
+}

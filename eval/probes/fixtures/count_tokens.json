@@ -1,0 +1,145 @@
+{
+  "user_only_default": {
+    "status": 200,
+    "body": {
+      "input_tokens": 54
+    },
+    "ms": 31.0
+  },
+  "user_only_thinking_disabled": {
+    "status": 200,
+    "body": {
+      "input_tokens": 14
+    },
+    "ms": 16.0
+  },
+  "user_only_effort_low": {
+    "status": 200,
+    "body": {
+      "input_tokens": 42
+    },
+    "ms": 31.0
+  },
+  "user_only_effort_medium": {
+    "status": 200,
+    "body": {
+      "input_tokens": 12
+    },
+    "ms": 32.0
+  },
+  "user_only_effort_high": {
+    "status": 200,
+    "body": {
+      "input_tokens": 54
+    },
+    "ms": 15.0
+  },
+  "user_only_reasoning_effort_low_ignored?": {
+    "status": 200,
+    "body": {
+      "input_tokens": 54
+    },
+    "ms": 16.0
+  },
+  "system_plus_user": {
+    "status": 200,
+    "body": {
+      "input_tokens": 59
+    },
+    "ms": 15.0
+  },
+  "prior_turn_text": {
+    "status": 200,
+    "body": {
+      "input_tokens": 73
+    },
+    "ms": 0.0
+  },
+  "prior_turn_thinking": {
+    "status": 200,
+    "body": {
+      "input_tokens": 90
+    },
+    "ms": 16.0
+  },
+  "prior_turn_text_thinking_disabled": {
+    "status": 200,
+    "body": {
+      "input_tokens": 33
+    },
+    "ms": 31.0
+  },
+  "prior_turn_thinking_thinking_disabled": {
+    "status": 200,
+    "body": {
+      "input_tokens": 50
+    },
+    "ms": 16.0
+  },
+  "prior_turn_thinking_preserve_false_kwarg": {
+    "status": 200,
+    "body": {
+      "input_tokens": 90
+    },
+    "ms": 0.0
+  },
+  "prior_turn_openai_reasoning_content_field": {
+    "status": 200,
+    "body": {
+      "input_tokens": 73
+    },
+    "ms": 16.0
+  },
+  "tool_turn_no_think": {
+    "status": 200,
+    "body": {
+      "input_tokens": 351
+    },
+    "ms": 15.0
+  },
+  "tool_turn_think": {
+    "status": 200,
+    "body": {
+      "input_tokens": 368
+    },
+    "ms": 16.0
+  },
+  "tools_only": {
+    "status": 200,
+    "body": {
+      "input_tokens": 300
+    },
+    "ms": 31.0
+  },
+  "openai_style_tools_rejected?": {
+    "status": 400,
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "tools[0] has no name: each tool must be {\"name\": ..., \"input_schema\": {...}}"
+      }
+    },
+    "ms": 0.0
+  },
+  "trailing_assistant_prefill": {
+    "status": 200,
+    "body": {
+      "input_tokens": 64
+    },
+    "ms": 16.0
+  },
+  "filler_1000_words": {
+    "status": 200,
+    "body": {
+      "input_tokens": 2258
+    },
+    "ms": 31.0
+  },
+  "filler_16000_words_over_ctx": {
+    "status": 200,
+    "body": {
+      "input_tokens": 35422
+    },
+    "ms": 78.0
+  }
+}

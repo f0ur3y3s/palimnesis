@@ -1,0 +1,229 @@
+{
+  "exchanges": [
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 58,
+        "replayed": 40
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 48,
+        "replayed": 15
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "stop"
+        ],
+        "replayed": [
+          "stop"
+        ]
+      },
+      "sse_events": {
+        "captured": 20,
+        "replayed": 42
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 32,
+        "replayed": 36
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 3499,
+        "replayed": 55
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 1094,
+        "replayed": 458
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 62,
+        "replayed": 64
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 282,
+        "replayed": 178
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "tool_calls"
+        ],
+        "replayed": [
+          "tool_calls"
+        ]
+      },
+      "sse_events": {
+        "captured": 41,
+        "replayed": 90
+      }
+    },
+    {
+      "path": "/v1/chat/completions",
+      "captured_complete": true,
+      "status": {
+        "captured": 200,
+        "replayed": 200
+      },
+      "status_match": true,
+      "byte_identical": false,
+      "finish": {
+        "captured": [
+          "stop"
+        ],
+        "replayed": [
+          "stop"
+        ]
+      },
+      "sse_events": {
+        "captured": 211,
+        "replayed": 138
+      }
+    }
+  ],
+  "summary": {
+    "exchanges": 10,
+    "status_match": 10,
+    "byte_identical": 0
+  }
+}

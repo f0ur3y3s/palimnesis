@@ -1,0 +1,134 @@
+{
+  "GET": {
+    "/health": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"status\": \"ok\", \"max_context\": 65536, \"model\": \"qwen3.8-flash-next-iq3_xxs\", \"images\": false, \"api_key\": false, \"image_generation\": false, \"loaded\": true, \"service\": \"strata\"}"
+    },
+    "/api/health": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"status\": \"ok\", \"max_context\": 65536, \"model\": \"qwen3.8-flash-next-iq3_xxs\", \"images\": false, \"api_key\": false, \"image_generation\": false, \"loaded\": true, \"service\": \"strata\"}"
+    },
+    "/props": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"default_generation_settings\": {\"n_ctx\": 65536, \"params\": {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 20, \"n_predict\": -1}}, \"total_slots\": 1, \"model_alias\": \"qwen3.8-flash-next-iq3_xxs\", \"chat_temp"
+    },
+    "/v1/models": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"object\": \"list\", \"data\": [{\"id\": \"qwen3.8-flash-next-iq3_xxs\", \"object\": \"model\", \"status\": {\"value\": \"loaded\"}, \"meta\": {\"n_ctx\": 65536}, \"architecture\": {\"input_modalities\": [\"text\"], \"output_moda"
+    },
+    "/models": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"object\": \"list\", \"data\": [{\"id\": \"qwen3.8-flash-next-iq3_xxs\", \"object\": \"model\", \"status\": {\"value\": \"loaded\"}, \"meta\": {\"n_ctx\": 65536}, \"architecture\": {\"input_modalities\": [\"text\"], \"output_moda"
+    },
+    "/slots": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "[{\"id\": 0, \"n_ctx\": 65536, \"is_processing\": false, \"n_prompt_tokens\": 53}]"
+    },
+    "/status": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"busy\": false, \"queued\": 0, \"phase\": \"thinking\", \"prompt_tokens\": 53, \"generated\": 1, \"max_tokens\": 1, \"reasoning_recoveries\": 0, \"thinking_budget\": null}"
+    },
+    "/v1/status": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"service\": \"strata\", \"model\": \"qwen3.8-flash-next-iq3_xxs\", \"loaded\": true, \"auto_load\": true, \"structured_output\": {\"formats\": [\"json_object\", \"json_schema\"], \"method\": \"prompt_and_validate\", \"const"
+    },
+    "/metrics": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"engine\": {\"model\": \"qwen3.8-flash-next-iq3_xxs\", \"max_context\": 65536, \"images\": false, \"version\": \"0.1.48\", \"logit_bias\": 1, \"context\": 65536, \"kv\": \"int8\", \"kv_resident\": 0, \"expert_slots\": 2838, "
+    },
+    "/metrics/prometheus": {
+      "status": 200,
+      "content_type": "text/plain; version=0.0.4; charset=utf-8",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "# HELP llamacpp:prompt_tokens_total Prompt tokens read\n# TYPE llamacpp:prompt_tokens_total counter\nllamacpp:prompt_tokens_total 53\n# HELP llamacpp:prompt_tokens_cached_total Prompt tokens the conversa"
+    },
+    "/version": {
+      "status": 404,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/mcp": {
+      "status": 200,
+      "content_type": "application/json",
+      "server": "BaseHTTP/0.6 Python/3.12.15",
+      "body_head": "{\"servers\": [], \"tools\": 0}"
+    }
+  },
+  "POST {}": {
+    "/v1/chat/completions": {
+      "status": 400,
+      "body": "{\"error\": {\"type\": \"invalid_request_error\", \"message\": \"No messages provided.\"}}"
+    },
+    "/v1/completions": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/completion": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/v1/messages": {
+      "status": 400,
+      "body": "{\"error\": {\"type\": \"invalid_request_error\", \"message\": \"No messages provided.\"}}"
+    },
+    "/v1/messages/count_tokens": {
+      "status": 400,
+      "body": "{\"error\": {\"type\": \"invalid_request_error\", \"message\": \"No messages provided.\"}}"
+    },
+    "/v1/responses": {
+      "status": 400,
+      "body": "{\"error\": {\"message\": \"input is required: a string or an array of input items\", \"type\": \"invalid_request_error\", \"param\": \"input\", \"code\": \"missing_required_parameter\"}}"
+    },
+    "/v1/responses/input_tokens": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"this server keeps no responses (stateless); send the whole conversation to POST /v1/responses\", \"type\": \"invalid_request_error\", \"param\": null, \"code\": \"not_found\"}}"
+    },
+    "/tokenize": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/detokenize": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/apply-template": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/v1/tokenize": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/api/tokenize": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/v1/embeddings": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    },
+    "/infill": {
+      "status": 404,
+      "body": "{\"error\": {\"message\": \"not found\"}}"
+    }
+  }
+}

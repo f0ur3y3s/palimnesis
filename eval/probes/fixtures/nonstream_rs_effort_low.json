@@ -1,0 +1,94 @@
+{
+  "case": "rs_effort_low",
+  "path": "/v1/responses",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "input": "What is 17 * 23? Reply with just the number.",
+    "max_output_tokens": 256,
+    "reasoning": {
+      "effort": "low"
+    }
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:52:33 GMT",
+    "content-type": "application/json",
+    "content-length": "1255",
+    "connection": "close"
+  },
+  "body": {
+    "id": "resp_67be4277556e45c39c0fe9290b494500",
+    "object": "response",
+    "created_at": 1792871552,
+    "status": "completed",
+    "background": false,
+    "error": null,
+    "incomplete_details": null,
+    "instructions": null,
+    "max_output_tokens": 256,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "output": [
+      {
+        "id": "rs_8d1f33ac6bfa49a3b89a5b4fc2e1e3cf",
+        "type": "reasoning",
+        "status": "completed",
+        "summary": [],
+        "content": [
+          {
+            "type": "reasoning_text",
+            "text": "The user wants the product of 17 and 23, and wants just the number as a reply.\n\n17 * 23 = 17 * 20 + 17 * 3 = 340 + 51 = 391\n"
+          }
+        ]
+      },
+      {
+        "id": "msg_f6e80dc480d44aa593cdaeb0e2990bf3",
+        "type": "message",
+        "status": "completed",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "391",
+            "annotations": [],
+            "logprobs": []
+          }
+        ]
+      }
+    ],
+    "parallel_tool_calls": true,
+    "previous_response_id": null,
+    "reasoning": {
+      "effort": "low",
+      "summary": null
+    },
+    "store": false,
+    "temperature": null,
+    "text": {
+      "format": {
+        "type": "text"
+      }
+    },
+    "tool_choice": "auto",
+    "tools": [],
+    "top_p": null,
+    "truncation": "disabled",
+    "usage": {
+      "input_tokens": 56,
+      "input_tokens_details": {
+        "cached_tokens": 51
+      },
+      "output_tokens": 66,
+      "output_tokens_details": {
+        "reasoning_tokens": 61
+      },
+      "total_tokens": 122
+    },
+    "user": null,
+    "metadata": {},
+    "completed_at": 1792871553
+  },
+  "wall_s": 1.531,
+  "server_busy_before": false,
+  "queued_before": 0
+}

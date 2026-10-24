@@ -1,0 +1,26 @@
+{
+  "session": "ses_e906e5405ffeVfiX2TzyrOhErb",
+  "started_ns": 1792873385451151700,
+  "method": "POST",
+  "path": "/v1/chat/completions",
+  "query": "",
+  "headers": {
+    "authorization": "<redacted>",
+    "content-type": "application/json",
+    "user-agent": "opencode/latest/2.1.4/cli",
+    "b3": "6f87da2fb74db32fc48475f4f1b736a2-de20cb4a6c43de9d-1-03c3da1349371c52",
+    "traceparent": "00-6f87da2fb74db32fc48475f4f1b736a2-de20cb4a6c43de9d-01",
+    "x-mnemon-kind": "primary",
+    "x-opencode-client": "cli",
+    "x-opencode-project": "eec8a971e2fd19d6ef1cb04fec00379b4969b3ab",
+    "x-opencode-session": "ses_e906e5405ffeVfiX2TzyrOhErb",
+    "x-opencode-session-id": "ses_e906e5405ffeVfiX2TzyrOhErb",
+    "x-session-affinity": "ses_e906e5405ffeVfiX2TzyrOhErb",
+    "x-session-id": "ses_e906e5405ffeVfiX2TzyrOhErb",
+    "connection": "keep-alive",
+    "accept": "*/*",
+    "host": "127.0.0.1:9011",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "content-length": "44982"
+  }
+}

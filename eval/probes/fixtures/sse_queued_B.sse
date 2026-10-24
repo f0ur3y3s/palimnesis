@@ -1,0 +1,28 @@
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.12.15
+Date: Sat, 24 Oct 2026 20:08:06 GMT
+Content-Type: text/event-stream
+Cache-Control: no-cache
+X-Accel-Buffering: no
+Connection: close
+
+data: {"id": "chatcmpl-488c0a6df51b4dbf9c3be0a4", "object": "chat.completion.chunk", "created": 1792872486, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": null}]}
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+data: {"id": "chatcmpl-488c0a6df51b4dbf9c3be0a4", "object": "chat.completion.chunk", "created": 1792872486, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "B"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-488c0a6df51b4dbf9c3be0a4", "object": "chat.completion.chunk", "created": 1792872486, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "EE"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-488c0a6df51b4dbf9c3be0a4", "object": "chat.completion.chunk", "created": 1792872486, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 20, "completion_tokens": 3, "total_tokens": 23, "prompt_tokens_details": {"cached_tokens": 0}}, "timings": {"cache_n": 0, "prompt_n": 20, "prompt_ms": 687.0, "prompt_per_token_ms": 34.35, "prompt_per_second": 29.1, "predicted_n": 3, "predicted_ms": 140.3, "predicted_per_token_ms": 46.767, "predicted_per_second": 21.4, "draft_n": 3, "draft_n_accepted": 3}}
+
+data: [DONE]
+

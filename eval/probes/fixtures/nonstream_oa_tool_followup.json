@@ -1,0 +1,103 @@
+{
+  "case": "oa_tool_followup",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 64,
+    "reasoning_effort": "none",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get the current weather for a city.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ]
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the weather in Paris? Use the tool."
+      },
+      {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": "I should call the tool.",
+        "tool_calls": [
+          {
+            "id": "call_1",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_1",
+        "content": "Sunny, 20C"
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:52:25 GMT",
+    "content-type": "application/json",
+    "content-length": "699",
+    "connection": "close"
+  },
+  "body": {
+    "id": "chatcmpl-0d9cb6e0358b4aecaa863ee4",
+    "object": "chat.completion",
+    "created": 1792871543,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The weather in Paris is **sunny with a temperature of 20°C**. 🌞"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 330,
+      "completion_tokens": 21,
+      "total_tokens": 351,
+      "prompt_tokens_details": {
+        "cached_tokens": 266
+      }
+    },
+    "timings": {
+      "cache_n": 266,
+      "prompt_n": 64,
+      "prompt_ms": 1256.6,
+      "prompt_per_token_ms": 19.634,
+      "prompt_per_second": 50.9,
+      "predicted_n": 21,
+      "predicted_ms": 603.6,
+      "predicted_per_token_ms": 28.743,
+      "predicted_per_second": 34.8,
+      "draft_n": 21,
+      "draft_n_accepted": 16
+    }
+  },
+  "wall_s": 1.891,
+  "server_busy_before": false,
+  "queued_before": 0
+}

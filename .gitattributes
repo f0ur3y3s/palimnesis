@@ -1,0 +1,9 @@
+# Source and docs: LF everywhere.
+* text=auto eol=lf
+
+# Byte-exact protocol captures: never normalize line endings.
+eval/fixtures/** -text
+eval/probes/fixtures/** -text
+*.sse -text
+*.raw -text
+*.body -text

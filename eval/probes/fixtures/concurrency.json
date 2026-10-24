@@ -1,0 +1,1823 @@
+{
+  "status_before": {
+    "busy": true,
+    "queued": 1,
+    "phase": "reading the prompt",
+    "prompt_tokens": 308,
+    "generated": 0,
+    "max_tokens": 1000,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null,
+    "tool": null,
+    "tail": "",
+    "elapsed_s": 3.2
+  },
+  "part1": {
+    "requests": {
+      "A": {
+        "sent_at_s": 0.0,
+        "arrivals": [
+          [
+            0.0,
+            193,
+            "HTTP/1.0 200 OK\r\nServer: BaseHTTP/0.6 Python/3.12.15\r\nDate: Sat, 24 Oct 2026 20:"
+          ],
+          [
+            0.047,
+            245,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            10.0,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            20.0,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            29.985,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            31.86,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            32.032,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            32.079,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.157,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.219,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.282,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.329,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.391,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.469,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.516,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.563,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.625,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.672,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.735,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.782,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.829,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.875,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.938,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            32.985,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.047,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.094,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.172,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.235,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.266,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.375,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.422,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.469,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.563,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.625,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.672,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.75,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.797,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.844,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.938,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            33.985,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.032,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.094,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.157,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.204,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.297,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.329,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.375,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.422,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.469,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.547,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.594,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.657,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.704,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.75,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.797,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.844,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.938,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            34.985,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.032,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.079,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.157,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.204,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.25,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.297,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.36,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.407,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.454,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.5,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.547,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.594,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.641,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.688,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.735,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.797,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.844,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.891,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            35.938,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.0,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.063,
+            1460,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.063,
+            115,
+            "odel\": \"qwen3.8-flash-next-iq3_xxs\", \"choices\": [{\"index\": 0, \"delta\": {\"content"
+          ],
+          [
+            36.125,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.172,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.219,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.266,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.313,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.36,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.407,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.454,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.5,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.563,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.61,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.657,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.719,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.766,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.813,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.86,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.907,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            36.954,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.0,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.047,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.094,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.157,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.219,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.266,
+            1460,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.266,
+            115,
+            "odel\": \"qwen3.8-flash-next-iq3_xxs\", \"choices\": [{\"index\": 0, \"delta\": {\"content"
+          ],
+          [
+            37.313,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.36,
+            1460,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.36,
+            115,
+            "odel\": \"qwen3.8-flash-next-iq3_xxs\", \"choices\": [{\"index\": 0, \"delta\": {\"content"
+          ],
+          [
+            37.422,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.469,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.516,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.563,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.61,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.672,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.719,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.766,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.829,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.86,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.922,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            37.985,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.032,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.079,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.125,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.172,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.219,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.266,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.329,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.375,
+            675,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.422,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.469,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.516,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.579,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.625,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.672,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.719,
+            900,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.782,
+            225,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            38.782,
+            848,
+            "data: {\"id\": \"chatcmpl-7952c2d330a348d3858ee9db\", \"object\": \"chat.completion.chu"
+          ]
+        ],
+        "done_at_s": 38.782,
+        "status_line": "HTTP/1.0 200 OK"
+      },
+      "B": {
+        "sent_at_s": 0.313,
+        "arrivals": [
+          [
+            0.313,
+            193,
+            "HTTP/1.0 200 OK\r\nServer: BaseHTTP/0.6 Python/3.12.15\r\nDate: Sat, 24 Oct 2026 20:"
+          ],
+          [
+            0.36,
+            245,
+            "data: {\"id\": \"chatcmpl-488c0a6df51b4dbf9c3be0a4\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            10.313,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            20.313,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            30.313,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            39.266,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            39.469,
+            14,
+            ": keep-alive\n\n"
+          ],
+          [
+            39.516,
+            225,
+            "data: {\"id\": \"chatcmpl-488c0a6df51b4dbf9c3be0a4\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            39.61,
+            226,
+            "data: {\"id\": \"chatcmpl-488c0a6df51b4dbf9c3be0a4\", \"object\": \"chat.completion.chu"
+          ],
+          [
+            39.61,
+            612,
+            "data: {\"id\": \"chatcmpl-488c0a6df51b4dbf9c3be0a4\", \"object\": \"chat.completion.chu"
+          ]
+        ],
+        "done_at_s": 39.61,
+        "status_line": "HTTP/1.0 200 OK"
+      }
+    },
+    "status_samples": [
+      [
+        0.31,
+        true,
+        2,
+        1000,
+        0
+      ],
+      [
+        0.58,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        0.86,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        1.14,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        1.41,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        1.69,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        1.97,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        2.25,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        2.53,
+        true,
+        3,
+        1000,
+        0
+      ],
+      [
+        2.81,
+        true,
+        3,
+        1000,
+        1
+      ],
+      [
+        3.08,
+        true,
+        3,
+        1000,
+        8
+      ],
+      [
+        3.34,
+        true,
+        3,
+        1000,
+        21
+      ],
+      [
+        3.64,
+        true,
+        3,
+        1000,
+        27
+      ],
+      [
+        3.92,
+        true,
+        3,
+        1000,
+        35
+      ],
+      [
+        4.2,
+        true,
+        3,
+        1000,
+        42
+      ],
+      [
+        4.47,
+        true,
+        3,
+        1000,
+        49
+      ],
+      [
+        4.73,
+        true,
+        3,
+        1000,
+        54
+      ],
+      [
+        5.0,
+        true,
+        3,
+        1000,
+        63
+      ],
+      [
+        5.27,
+        true,
+        3,
+        1000,
+        72
+      ],
+      [
+        5.55,
+        true,
+        3,
+        1000,
+        80
+      ],
+      [
+        5.8,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        6.08,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        6.36,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        6.66,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        6.94,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        7.22,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        7.48,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        7.77,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        8.05,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        8.31,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        8.59,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        8.88,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        9.16,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        9.42,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        9.7,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        9.97,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        10.23,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        10.5,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        10.77,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        11.06,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        11.34,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        11.64,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        11.92,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        12.2,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        12.48,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        12.77,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        13.05,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        13.33,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        13.59,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        13.89,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        14.17,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        14.44,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        14.72,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        15.0,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        15.27,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        15.53,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        15.81,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        16.09,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        16.38,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        16.64,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        16.92,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        17.2,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        17.48,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        17.75,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        18.03,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        18.3,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        18.59,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        18.86,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        19.16,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        19.44,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        19.7,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        19.98,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        20.27,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        20.53,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        20.81,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        21.09,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        21.36,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        21.64,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        21.94,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        22.2,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        22.48,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        22.77,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        23.03,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        23.31,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        23.59,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        23.86,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        24.12,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        24.41,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        24.7,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        24.95,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        25.23,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        25.52,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        25.8,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        26.06,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        26.34,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        26.61,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        26.89,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        27.17,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        27.45,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        27.73,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        28.02,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        28.3,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        28.56,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        28.83,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        29.09,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        29.36,
+        true,
+        2,
+        58755,
+        0
+      ],
+      [
+        29.64,
+        true,
+        2,
+        58755,
+        1
+      ],
+      [
+        29.89,
+        true,
+        2,
+        58755,
+        8
+      ],
+      [
+        30.17,
+        true,
+        2,
+        58755,
+        18
+      ],
+      [
+        30.45,
+        true,
+        2,
+        58755,
+        28
+      ],
+      [
+        30.72,
+        true,
+        2,
+        58755,
+        37
+      ],
+      [
+        31.0,
+        true,
+        2,
+        58755,
+        49
+      ],
+      [
+        31.27,
+        true,
+        1,
+        400,
+        0
+      ],
+      [
+        31.53,
+        true,
+        2,
+        400,
+        0
+      ],
+      [
+        31.81,
+        true,
+        2,
+        400,
+        0
+      ],
+      [
+        32.08,
+        true,
+        2,
+        400,
+        1
+      ],
+      [
+        32.36,
+        true,
+        2,
+        400,
+        9
+      ],
+      [
+        32.64,
+        true,
+        2,
+        400,
+        21
+      ],
+      [
+        32.92,
+        true,
+        2,
+        400,
+        29
+      ],
+      [
+        33.19,
+        true,
+        2,
+        400,
+        41
+      ],
+      [
+        33.48,
+        true,
+        2,
+        400,
+        53
+      ],
+      [
+        33.75,
+        true,
+        2,
+        400,
+        65
+      ],
+      [
+        34.03,
+        true,
+        2,
+        400,
+        73
+      ],
+      [
+        34.3,
+        true,
+        2,
+        400,
+        89
+      ],
+      [
+        34.58,
+        true,
+        2,
+        400,
+        101
+      ],
+      [
+        34.88,
+        true,
+        2,
+        400,
+        117
+      ],
+      [
+        35.16,
+        true,
+        2,
+        400,
+        133
+      ],
+      [
+        35.44,
+        true,
+        2,
+        400,
+        149
+      ],
+      [
+        35.73,
+        true,
+        2,
+        400,
+        165
+      ],
+      [
+        36.02,
+        true,
+        2,
+        400,
+        185
+      ],
+      [
+        36.3,
+        true,
+        2,
+        400,
+        201
+      ],
+      [
+        36.56,
+        true,
+        2,
+        400,
+        217
+      ],
+      [
+        36.83,
+        true,
+        2,
+        400,
+        237
+      ],
+      [
+        37.09,
+        true,
+        2,
+        400,
+        257
+      ],
+      [
+        37.38,
+        true,
+        2,
+        400,
+        277
+      ],
+      [
+        37.66,
+        true,
+        2,
+        400,
+        293
+      ],
+      [
+        37.94,
+        true,
+        2,
+        400,
+        313
+      ],
+      [
+        38.22,
+        true,
+        2,
+        400,
+        333
+      ],
+      [
+        38.5,
+        true,
+        2,
+        400,
+        353
+      ],
+      [
+        38.8,
+        true,
+        1,
+        8,
+        0
+      ],
+      [
+        39.06,
+        true,
+        1,
+        8,
+        0
+      ],
+      [
+        39.34,
+        true,
+        1,
+        8,
+        0
+      ],
+      [
+        39.62,
+        true,
+        0,
+        65212,
+        0
+      ]
+    ]
+  },
+  "part2": {
+    "queued_while_C_waiting": 2,
+    "queued_after_C_disconnect": 2,
+    "status_3s_after_A2": {
+      "busy": true,
+      "queued": 0,
+      "prompt_tokens": 262,
+      "max_tokens": 65266
+    },
+    "recent_requests": [
+      {
+        "id": "cc7915a491ef",
+        "time": 1792872536.1995656,
+        "duration_s": 6.1,
+        "finish": "stop",
+        "prompt_tokens": 28,
+        "output_tokens": 372
+      },
+      {
+        "id": "615df5e6c32b",
+        "time": 1792872526.2896562,
+        "duration_s": 9.9,
+        "finish": "stop",
+        "prompt_tokens": 316,
+        "output_tokens": 212
+      },
+      {
+        "id": "18a0101ba5f6",
+        "time": 1792872525.4607182,
+        "duration_s": 0.8,
+        "finish": "stop",
+        "prompt_tokens": 20,
+        "output_tokens": 3
+      },
+      {
+        "id": "35241023a967",
+        "time": 1792872517.7889297,
+        "duration_s": 7.7,
+        "finish": "stop",
+        "prompt_tokens": 28,
+        "output_tokens": 372
+      },
+      {
+        "id": "485d5d8cc299",
+        "time": 1792872492.2741125,
+        "duration_s": 25.5,
+        "finish": "stop",
+        "prompt_tokens": 6773,
+        "output_tokens": 55
+      }
+    ]
+  }
+}

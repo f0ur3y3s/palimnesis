@@ -1,0 +1,47 @@
+{
+  "oa_prior_reasoning[-]": {
+    "local_tokens": 55,
+    "usage_prompt_tokens": 55,
+    "match": true
+  },
+  "oa_prior_reasoning_preserve_false[-]": {
+    "local_tokens": 55,
+    "usage_prompt_tokens": 55,
+    "match": true
+  },
+  "oa_prior_no_reasoning[-]": {
+    "local_tokens": 38,
+    "usage_prompt_tokens": 38,
+    "match": true
+  },
+  "oa_effort_none[-]": {
+    "local_tokens": 28,
+    "usage_prompt_tokens": 28,
+    "match": true
+  },
+  "oa_default_think_low[-]": {
+    "local_tokens": 56,
+    "usage_prompt_tokens": 56,
+    "match": true
+  },
+  "oa_tool_call[wrapped]": {
+    "local_tokens": 282,
+    "usage_prompt_tokens": 273,
+    "match": false
+  },
+  "oa_tool_call[bare]": {
+    "local_tokens": 273,
+    "usage_prompt_tokens": 273,
+    "match": true
+  },
+  "oa_tool_followup[wrapped]": {
+    "local_tokens": 339,
+    "usage_prompt_tokens": 330,
+    "match": false
+  },
+  "oa_tool_followup[bare]": {
+    "local_tokens": 330,
+    "usage_prompt_tokens": 330,
+    "match": true
+  }
+}

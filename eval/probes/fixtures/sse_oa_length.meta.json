@@ -1,0 +1,73 @@
+{
+  "case": "oa_length",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "max_tokens": 8,
+    "stream": true,
+    "reasoning_effort": "low"
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:53:07 GMT",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+  },
+  "chunk_arrivals_s_bytes": [
+    [
+      0.062,
+      245
+    ],
+    [
+      0.218,
+      14
+    ],
+    [
+      0.265,
+      237
+    ],
+    [
+      0.312,
+      718
+    ],
+    [
+      0.421,
+      238
+    ],
+    [
+      0.468,
+      241
+    ],
+    [
+      0.515,
+      238
+    ],
+    [
+      0.546,
+      848
+    ]
+  ],
+  "events_summary": [
+    "- | {\"delta\": {\"role\": \"assistant\", \"content\": \"\"}, \"finish_reason\": null}",
+    ": keep-alive",
+    "- | {\"delta\": {\"reasoning_content\": \"The\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" user\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" wants\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" just\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" the\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" number\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" for\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"reasoning_content\": \" \"}, \"finish_reason\": null}",
+    "- | {\"delta\": {}, \"finish_reason\": \"length\", \"usage\": {\"prompt_tokens\": 56, \"completion_tokens\": 8, \"total_tokens\": 64, \"prompt_tokens_details\": {\"cached_tokens\": 51}}, \"timings\": \"...\"}",
+    "- | [DONE]"
+  ]
+}

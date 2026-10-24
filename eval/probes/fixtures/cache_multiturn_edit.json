@@ -1,0 +1,65 @@
+[
+  {
+    "step": "grow_turn_1",
+    "prompt_tokens": 1050,
+    "cached_tokens": 0,
+    "prompt_n": 1050,
+    "prompt_ms": 11150.7
+  },
+  {
+    "step": "grow_turn_2",
+    "prompt_tokens": 1880,
+    "cached_tokens": 1043,
+    "prompt_n": 837,
+    "prompt_ms": 2626.0
+  },
+  {
+    "step": "grow_turn_3",
+    "prompt_tokens": 2663,
+    "cached_tokens": 1886,
+    "prompt_n": 777,
+    "prompt_ms": 2374.8
+  },
+  {
+    "step": "grow_turn_4",
+    "prompt_tokens": 3441,
+    "cached_tokens": 2669,
+    "prompt_n": 772,
+    "prompt_ms": 2358.6
+  },
+  {
+    "step": "append_turn_5",
+    "prompt_tokens": 3459,
+    "cached_tokens": 3447,
+    "prompt_n": 12,
+    "prompt_ms": 218.5
+  },
+  {
+    "step": "repeat_turn_5",
+    "prompt_tokens": 3459,
+    "cached_tokens": 3452,
+    "prompt_n": 7,
+    "prompt_ms": 475.0
+  },
+  {
+    "step": "edit_turn_2_masked",
+    "prompt_tokens": 2663,
+    "cached_tokens": 1043,
+    "prompt_n": 1620,
+    "prompt_ms": 11793.2
+  },
+  {
+    "step": "edit_turn_4_masked",
+    "prompt_tokens": 2707,
+    "cached_tokens": 2656,
+    "prompt_n": 51,
+    "prompt_ms": 1065.6
+  },
+  {
+    "step": "back_to_original_turn_5",
+    "prompt_tokens": 3459,
+    "cached_tokens": 3452,
+    "prompt_n": 7,
+    "prompt_ms": 473.3
+  }
+]

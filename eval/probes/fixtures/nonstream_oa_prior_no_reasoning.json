@@ -1,0 +1,71 @@
+{
+  "case": "oa_prior_no_reasoning",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 4,
+    "reasoning_effort": "none",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Q1"
+      },
+      {
+        "role": "assistant",
+        "content": "Answer one."
+      },
+      {
+        "role": "user",
+        "content": "Reply with the single word OK."
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:52:27 GMT",
+    "content-type": "application/json",
+    "content-length": "620",
+    "connection": "close"
+  },
+  "body": {
+    "id": "chatcmpl-837298d5d6954e3986e65609",
+    "object": "chat.completion",
+    "created": 1792871546,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "OK"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 38,
+      "completion_tokens": 2,
+      "total_tokens": 40,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 38,
+      "prompt_ms": 687.8,
+      "prompt_per_token_ms": 18.1,
+      "prompt_per_second": 55.2,
+      "predicted_n": 2,
+      "predicted_ms": 105.9,
+      "predicted_per_token_ms": 52.95,
+      "predicted_per_second": 18.9,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  "wall_s": 0.812,
+  "server_busy_before": false,
+  "queued_before": 0
+}

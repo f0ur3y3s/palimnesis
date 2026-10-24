@@ -1,0 +1,129 @@
+{
+  "case": "oa_tool_parallel",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 256,
+    "stream": true,
+    "reasoning_effort": "none",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get the current weather for a city.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ]
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "In a single response, emit two get_weather tool calls in parallel: one for Paris and one for Oslo. Do not write any text."
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:53:42 GMT",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+  },
+  "chunk_arrivals_s_bytes": [
+    [
+      0.125,
+      245
+    ],
+    [
+      3.078,
+      14
+    ],
+    [
+      3.25,
+      14
+    ],
+    [
+      3.406,
+      352
+    ],
+    [
+      3.453,
+      271
+    ],
+    [
+      3.515,
+      551
+    ],
+    [
+      3.578,
+      275
+    ],
+    [
+      3.718,
+      272
+    ],
+    [
+      3.765,
+      271
+    ],
+    [
+      3.875,
+      352
+    ],
+    [
+      3.922,
+      271
+    ],
+    [
+      4.047,
+      279
+    ],
+    [
+      4.093,
+      544
+    ],
+    [
+      4.14,
+      272
+    ],
+    [
+      4.281,
+      1171
+    ]
+  ],
+  "events_summary": [
+    "- | {\"delta\": {\"role\": \"assistant\", \"content\": \"\"}, \"finish_reason\": null}",
+    ": keep-alive",
+    ": keep-alive",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"id\": \"call_a0a5506f08504237bf0b596d\", \"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"arguments\": \"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"{\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"\\\"city\\\":\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"\\\"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"Paris\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"\\\"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 0, \"function\": {\"arguments\": \"}\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"id\": \"call_622871e974a14a048eb68b82\", \"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"arguments\": \"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"{\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"\\\"city\\\":\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"\\\"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"Os\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"lo\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"\\\"\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"tool_calls\": [{\"index\": 1, \"function\": {\"arguments\": \"}\"}}]}, \"finish_reason\": null}",
+    "- | {\"delta\": {}, \"finish_reason\": \"tool_calls\", \"usage\": {\"prompt_tokens\": 290, \"completion_tokens\": 53, \"total_tokens\": 343, \"prompt_tokens_details\": {\"cached_tokens\": 0}}, \"timings\": \"...\"}",
+    "- | [DONE]"
+  ]
+}

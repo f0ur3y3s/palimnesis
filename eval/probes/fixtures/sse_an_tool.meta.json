@@ -1,0 +1,100 @@
+{
+  "case": "an_tool",
+  "path": "/v1/messages",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the weather in Paris and in Oslo? Use the tool for each city."
+      }
+    ],
+    "max_tokens": 256,
+    "stream": true,
+    "thinking": {
+      "type": "disabled"
+    },
+    "tools": [
+      {
+        "name": "get_weather",
+        "description": "Get the current weather for a city.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:53:09 GMT",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+  },
+  "chunk_arrivals_s_bytes": [
+    [
+      0.094,
+      295
+    ],
+    [
+      0.266,
+      14
+    ],
+    [
+      0.422,
+      192
+    ],
+    [
+      0.485,
+      138
+    ],
+    [
+      0.532,
+      146
+    ],
+    [
+      0.578,
+      139
+    ],
+    [
+      0.625,
+      142
+    ],
+    [
+      0.75,
+      139
+    ],
+    [
+      0.813,
+      138
+    ],
+    [
+      0.844,
+      360
+    ]
+  ],
+  "events_summary": [
+    "message_start | {\"type\": \"message_start\", \"message\": {\"id\": \"msg_3675129b4534438f8c9293b4\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"qwen3.8-flash-next-iq3_xxs\", \"content\": [], \"stop_reason\": null, \"stop_sequence\": null, \"usage\": {\"input_tokens\": 279, \"output_tokens\": 0}}}",
+    ": keep-alive",
+    "content_block_start | {\"type\": \"content_block_start\", \"index\": 0, \"content_block\": {\"type\": \"tool_use\", \"id\": \"call_ad521d2a8cd04e65aca23683\", \"name\": \"get_weather\", \"input\": {}}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"{\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"city\\\":\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"Paris\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"}\"}}",
+    "content_block_stop | {\"type\": \"content_block_stop\", \"index\": 0}",
+    "message_delta | {\"type\": \"message_delta\", \"delta\": {\"stop_reason\": \"tool_use\", \"stop_sequence\": null}, \"usage\": {\"input_tokens\": 1, \"cache_creation_input_tokens\": 6, \"cache_read_input_tokens\": 272, \"output_tokens\": 26}}",
+    "message_stop | {\"type\": \"message_stop\"}"
+  ]
+}

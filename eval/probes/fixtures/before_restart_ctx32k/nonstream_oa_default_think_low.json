@@ -1,0 +1,64 @@
+{
+  "case": "oa_default_think_low",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "max_tokens": 256,
+    "reasoning_effort": "low"
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:44:11 GMT",
+    "content-type": "application/json",
+    "content-length": "775",
+    "connection": "close"
+  },
+  "body": {
+    "id": "chatcmpl-0995a896f90f4a01a5b74d0d",
+    "object": "chat.completion",
+    "created": 1792870986,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "391",
+          "reasoning_content": "The user wants me to calculate 17 * 23 and reply with just the number.\n\n17 * 23 = 17 * 20 + 17 * 3 = 340 + 51 = 391\n"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 56,
+      "completion_tokens": 63,
+      "total_tokens": 119,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 56,
+      "prompt_ms": 1086.7,
+      "prompt_per_token_ms": 19.405,
+      "prompt_per_second": 51.5,
+      "predicted_n": 63,
+      "predicted_ms": 1375.5,
+      "predicted_per_token_ms": 21.833,
+      "predicted_per_second": 45.8,
+      "draft_n": 46,
+      "draft_n_accepted": 46
+    }
+  },
+  "wall_s": 65.296,
+  "server_busy_before": true,
+  "queued_before": 0
+}

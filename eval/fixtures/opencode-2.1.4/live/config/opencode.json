@@ -1,0 +1,26 @@
+{
+  "model": "mnemon/qwen3.8-flash-next-iq3_xxs",
+  "update": "disable",
+  "share": "disabled",
+  "compaction": { "auto": false },
+  "agents": { "title": { "disabled": true } },
+  "permissions": [{ "action": "subagent", "resource": "*", "effect": "deny" }],
+  "providers": {
+    "mnemon": {
+      "name": "Mnemon",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:9011/s/static-fallback/v1",
+        "apiKey": "mnemon-local-dummy"
+      },
+      "compatibility": { "reasoningField": "reasoning_content" },
+      "models": {
+        "qwen3.8-flash-next-iq3_xxs": {
+          "name": "Qwen3.8 Flash Next (Strata via Mnemon)",
+          "capabilities": { "tools": true, "reasoning": { "supported": true } },
+          "limit": { "context": 1000000, "output": 8192 }
+        }
+      }
+    }
+  }
+}

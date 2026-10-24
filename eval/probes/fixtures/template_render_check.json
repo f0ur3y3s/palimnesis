@@ -1,0 +1,52 @@
+{
+  "user_default": {
+    "local_tokens": 54,
+    "server_count_tokens": 54,
+    "match": true
+  },
+  "user_thinking_disabled": {
+    "local_tokens": 14,
+    "server_count_tokens": 14,
+    "match": true
+  },
+  "user_effort_low": {
+    "local_tokens": 42,
+    "server_count_tokens": 42,
+    "match": true
+  },
+  "user_effort_medium": {
+    "local_tokens": 12,
+    "server_count_tokens": 12,
+    "match": true
+  },
+  "system_user": {
+    "local_tokens": 59,
+    "server_count_tokens": 59,
+    "match": true
+  },
+  "prior_text": {
+    "local_tokens": 73,
+    "server_count_tokens": 73,
+    "match": true
+  },
+  "prior_thinking": {
+    "local_tokens": 90,
+    "server_count_tokens": 90,
+    "match": true
+  },
+  "prior_thinking_preserve_false_LOCAL_ONLY": {
+    "local_tokens": 69,
+    "server_count_tokens": null,
+    "match": null
+  },
+  "tools_only": {
+    "local_tokens": 300,
+    "server_count_tokens": 300,
+    "match": true
+  },
+  "tool_turn_think": {
+    "local_tokens": 368,
+    "server_count_tokens": 368,
+    "match": true
+  }
+}

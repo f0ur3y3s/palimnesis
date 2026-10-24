@@ -1,0 +1,52 @@
+{
+  "case": "oa_plain",
+  "path": "/v1/chat/completions",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is 17 * 23? Reply with just the number."
+      }
+    ],
+    "max_tokens": 64,
+    "stream": true,
+    "reasoning_effort": "none"
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:53:01 GMT",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+  },
+  "chunk_arrivals_s_bytes": [
+    [
+      0.156,
+      245
+    ],
+    [
+      0.328,
+      14
+    ],
+    [
+      0.375,
+      225
+    ],
+    [
+      0.437,
+      1063
+    ]
+  ],
+  "events_summary": [
+    "- | {\"delta\": {\"role\": \"assistant\", \"content\": \"\"}, \"finish_reason\": null}",
+    ": keep-alive",
+    "- | {\"delta\": {\"content\": \"3\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"content\": \"9\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {\"content\": \"1\"}, \"finish_reason\": null}",
+    "- | {\"delta\": {}, \"finish_reason\": \"stop\", \"usage\": {\"prompt_tokens\": 28, \"completion_tokens\": 4, \"total_tokens\": 32, \"prompt_tokens_details\": {\"cached_tokens\": 21}}, \"timings\": \"...\"}",
+    "- | [DONE]"
+  ]
+}

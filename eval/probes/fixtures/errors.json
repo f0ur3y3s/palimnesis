@@ -1,0 +1,615 @@
+{
+  "bad_json_chat": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": "{\"model\": \"x\", \"messages\": [ {\"role\": ",
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "Expecting value: line 1 column 39 (char 38)"
+      }
+    },
+    "wall_s": 0.03
+  },
+  "bad_json_messages": {
+    "n_ctx": 65536,
+    "path": "/v1/messages",
+    "request": "{\"model\": \"x\", \"messages\": [ {\"role\": ",
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "Expecting value: line 1 column 39 (char 38)"
+      }
+    },
+    "wall_s": 0.05
+  },
+  "bad_json_responses": {
+    "n_ctx": 65536,
+    "path": "/v1/responses",
+    "request": "{\"model\": \"x\", \"input\": ",
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "message": "Expecting value: line 1 column 25 (char 24)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": null
+      }
+    },
+    "wall_s": 0.02
+  },
+  "not_object_chat": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": "[1,2,3]",
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "send a JSON object"
+      }
+    },
+    "wall_s": 0.02
+  },
+  "bad_role_chat": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 8,
+      "messages": [
+        {
+          "role": "wizard",
+          "content": "hi"
+        }
+      ]
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "Unexpected message role."
+      }
+    },
+    "wall_s": 0.02
+  },
+  "messages_missing_max_tokens": {
+    "n_ctx": 65536,
+    "path": "/v1/messages",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        }
+      ],
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "msg_a73f12046fd04e30b5385cf4",
+      "type": "message",
+      "role": "assistant",
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "content": [
+        {
+          "type": "text",
+          "text": "OK"
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "usage": {
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "cache_creation_input_tokens": 18,
+        "cache_read_input_tokens": 0
+      }
+    },
+    "wall_s": 0.91
+  },
+  "overflow_count_tokens": {
+    "n_ctx": 65536,
+    "path": "/v1/messages/count_tokens",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "messages": "<236217 chars>"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "input_tokens": 70515
+    },
+    "wall_s": 0.12
+  },
+  "overflow_chat": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 16,
+      "reasoning_effort": "none",
+      "messages": "<236217 chars>"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "request exceeds the context window: prompt (70475 tokens) leaves no room to answer in the context (65536); requests are never truncated"
+      }
+    },
+    "wall_s": 0.19
+  },
+  "overflow_chat_stream": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 16,
+      "reasoning_effort": "none",
+      "stream": true,
+      "messages": "<236217 chars>"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "request exceeds the context window: prompt (70475 tokens) leaves no room to answer in the context (65536); requests are never truncated"
+      }
+    },
+    "wall_s": 0.09
+  },
+  "overflow_messages": {
+    "n_ctx": 65536,
+    "path": "/v1/messages",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 16,
+      "thinking": {
+        "type": "disabled"
+      },
+      "messages": "<236217 chars>"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "type": "invalid_request_error",
+        "message": "request exceeds the context window: prompt (70475 tokens) leaves no room to answer in the context (65536); requests are never truncated"
+      }
+    },
+    "wall_s": 0.08
+  },
+  "overflow_responses": {
+    "n_ctx": 65536,
+    "path": "/v1/responses",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_output_tokens": 16,
+      "reasoning": {
+        "effort": "none"
+      },
+      "input": "<236217 chars>"
+    },
+    "status": 400,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "message": "request exceeds the context window: prompt (70475 tokens) leaves no room to answer in the context (65536); requests are never truncated",
+        "type": "invalid_request_error",
+        "param": "input",
+        "code": "context_length_exceeded"
+      }
+    },
+    "wall_s": 0.09
+  },
+  "oversize_max_tokens_small_prompt": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 1000000,
+      "reasoning_effort": "none",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        }
+      ]
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-9144a0298db940f686221b81",
+      "object": "chat.completion",
+      "created": 1792871721,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 19,
+        "completion_tokens": 2,
+        "total_tokens": 21,
+        "prompt_tokens_details": {
+          "cached_tokens": 12
+        }
+      },
+      "timings": {
+        "cache_n": 12,
+        "prompt_n": 7,
+        "prompt_ms": 259.4,
+        "prompt_per_token_ms": 37.057,
+        "prompt_per_second": 27.0,
+        "predicted_n": 2,
+        "predicted_ms": 78.0,
+        "predicted_per_token_ms": 39.0,
+        "predicted_per_second": 25.6,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    },
+    "wall_s": 0.36
+  },
+  "oversize_max_tokens_fit_false": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 1000000,
+      "reasoning_effort": "none",
+      "fit_max_tokens": false,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        }
+      ]
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-69d0279f6f1443b19753c496",
+      "object": "chat.completion",
+      "created": 1792871721,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 19,
+        "completion_tokens": 2,
+        "total_tokens": 21,
+        "prompt_tokens_details": {
+          "cached_tokens": 12
+        }
+      },
+      "timings": {
+        "cache_n": 12,
+        "prompt_n": 7,
+        "prompt_ms": 199.8,
+        "prompt_per_token_ms": 28.543,
+        "prompt_per_second": 35.0,
+        "predicted_n": 2,
+        "predicted_ms": 91.7,
+        "predicted_per_token_ms": 45.85,
+        "predicted_per_second": 21.8,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    },
+    "wall_s": 0.33
+  },
+  "oversize_max_tokens_messages": {
+    "n_ctx": 65536,
+    "path": "/v1/messages",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 1000000,
+      "thinking": {
+        "type": "disabled"
+      },
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        }
+      ]
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "msg_97ae97cd92d746edb8159b09",
+      "type": "message",
+      "role": "assistant",
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "content": [
+        {
+          "type": "text",
+          "text": "OK"
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "usage": {
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "cache_creation_input_tokens": 6,
+        "cache_read_input_tokens": 12
+      }
+    },
+    "wall_s": 0.3
+  },
+  "negative_max_tokens": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": -5,
+      "reasoning_effort": "none",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        }
+      ]
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-fbc661157831404b9881bc2e",
+      "object": "chat.completion",
+      "created": 1792871722,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 19,
+        "completion_tokens": 2,
+        "total_tokens": 21,
+        "prompt_tokens_details": {
+          "cached_tokens": 12
+        }
+      },
+      "timings": {
+        "cache_n": 12,
+        "prompt_n": 7,
+        "prompt_ms": 198.3,
+        "prompt_per_token_ms": 28.329,
+        "prompt_per_second": 35.3,
+        "predicted_n": 2,
+        "predicted_ms": 85.9,
+        "predicted_per_token_ms": 42.95,
+        "predicted_per_second": 23.3,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    },
+    "wall_s": 0.33
+  },
+  "string_tool_args_not_json": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 8,
+      "reasoning_effort": "none",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Reply with the single word OK."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "c1",
+              "type": "function",
+              "function": {
+                "name": "f",
+                "arguments": "not json"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "c1",
+          "content": "x"
+        }
+      ]
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-9cfbd0000ed24855a2dc72f7",
+      "object": "chat.completion",
+      "created": 1792871722,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 63,
+        "completion_tokens": 2,
+        "total_tokens": 65,
+        "prompt_tokens_details": {
+          "cached_tokens": 12
+        }
+      },
+      "timings": {
+        "cache_n": 12,
+        "prompt_n": 51,
+        "prompt_ms": 806.7,
+        "prompt_per_token_ms": 15.818,
+        "prompt_per_second": 63.2,
+        "predicted_n": 2,
+        "predicted_ms": 68.0,
+        "predicted_per_token_ms": 34.0,
+        "predicted_per_second": 29.4,
+        "draft_n": 3,
+        "draft_n_accepted": 2
+      }
+    },
+    "wall_s": 0.92
+  },
+  "unknown_route": {
+    "n_ctx": 65536,
+    "path": "/v1/nonexistent",
+    "request": {
+      "x": 1
+    },
+    "status": 404,
+    "content_type": "application/json",
+    "body": {
+      "error": {
+        "message": "not found"
+      }
+    },
+    "wall_s": 0.02
+  },
+  "near_fit_false": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 50536,
+      "reasoning_effort": "none",
+      "fit_max_tokens": false,
+      "messages": "<66620 chars>"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-65cf6a4b69b84c2fa3494df3",
+      "object": "chat.completion",
+      "created": 1792871739,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 19865,
+        "completion_tokens": 2,
+        "total_tokens": 19867,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 19865,
+        "prompt_ms": 45612.1,
+        "prompt_per_token_ms": 2.296,
+        "prompt_per_second": 435.5,
+        "predicted_n": 2,
+        "predicted_ms": 78.3,
+        "predicted_per_token_ms": 39.15,
+        "predicted_per_second": 25.5,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    },
+    "wall_s": 45.75
+  },
+  "near_fit_default": {
+    "n_ctx": 65536,
+    "path": "/v1/chat/completions",
+    "request": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_tokens": 50536,
+      "reasoning_effort": "none",
+      "messages": "<66620 chars>"
+    },
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "id": "chatcmpl-9cde3610fa1b416798e28443",
+      "object": "chat.completion",
+      "created": 1792871785,
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 19865,
+        "completion_tokens": 2,
+        "total_tokens": 19867,
+        "prompt_tokens_details": {
+          "cached_tokens": 19858
+        }
+      },
+      "timings": {
+        "cache_n": 19858,
+        "prompt_n": 7,
+        "prompt_ms": 438.8,
+        "prompt_per_token_ms": 62.686,
+        "prompt_per_second": 16.0,
+        "predicted_n": 2,
+        "predicted_ms": 62.0,
+        "predicted_per_token_ms": 31.0,
+        "predicted_per_second": 32.3,
+        "draft_n": 3,
+        "draft_n_accepted": 3
+      }
+    },
+    "wall_s": 0.53
+  }
+}

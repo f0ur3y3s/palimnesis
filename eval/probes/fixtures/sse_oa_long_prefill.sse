@@ -1,0 +1,22 @@
+data: {"id": "chatcmpl-b631305a86ca4f1382718996", "object": "chat.completion.chunk", "created": 1792872021, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": null}]}
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+: keep-alive
+
+data: {"id": "chatcmpl-b631305a86ca4f1382718996", "object": "chat.completion.chunk", "created": 1792872021, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "OK"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-b631305a86ca4f1382718996", "object": "chat.completion.chunk", "created": 1792872021, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 20110, "completion_tokens": 2, "total_tokens": 20112, "prompt_tokens_details": {"cached_tokens": 0}}, "timings": {"cache_n": 0, "prompt_n": 20110, "prompt_ms": 44042.0, "prompt_per_token_ms": 2.19, "prompt_per_second": 456.6, "predicted_n": 2, "predicted_ms": 108.6, "predicted_per_token_ms": 54.3, "predicted_per_second": 18.4, "draft_n": 3, "draft_n_accepted": 3}}
+
+data: [DONE]
+

@@ -1,0 +1,125 @@
+{
+  "case": "an_tool_parallel",
+  "path": "/v1/messages",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 256,
+    "stream": true,
+    "thinking": {
+      "type": "disabled"
+    },
+    "tools": [
+      {
+        "name": "get_weather",
+        "description": "Get the current weather for a city.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "In a single response, emit two get_weather tool calls in parallel: one for Paris and one for Oslo. Do not write any text."
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:53:46 GMT",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+  },
+  "chunk_arrivals_s_bytes": [
+    [
+      0.094,
+      295
+    ],
+    [
+      0.234,
+      14
+    ],
+    [
+      0.391,
+      192
+    ],
+    [
+      0.437,
+      138
+    ],
+    [
+      0.484,
+      285
+    ],
+    [
+      0.531,
+      142
+    ],
+    [
+      0.656,
+      139
+    ],
+    [
+      0.719,
+      138
+    ],
+    [
+      0.797,
+      76
+    ],
+    [
+      0.844,
+      330
+    ],
+    [
+      0.953,
+      146
+    ],
+    [
+      1.0,
+      278
+    ],
+    [
+      1.047,
+      139
+    ],
+    [
+      1.172,
+      637
+    ]
+  ],
+  "events_summary": [
+    "message_start | {\"type\": \"message_start\", \"message\": {\"id\": \"msg_961cf14c5c9045db848a6bbe\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"qwen3.8-flash-next-iq3_xxs\", \"content\": [], \"stop_reason\": null, \"stop_sequence\": null, \"usage\": {\"input_tokens\": 290, \"output_tokens\": 0}}}",
+    ": keep-alive",
+    "content_block_start | {\"type\": \"content_block_start\", \"index\": 0, \"content_block\": {\"type\": \"tool_use\", \"id\": \"call_3399a188ace741eb9042337d\", \"name\": \"get_weather\", \"input\": {}}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"{\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"city\\\":\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"Paris\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"}\"}}",
+    "content_block_stop | {\"type\": \"content_block_stop\", \"index\": 0}",
+    "content_block_start | {\"type\": \"content_block_start\", \"index\": 1, \"content_block\": {\"type\": \"tool_use\", \"id\": \"call_5cf12dbe7bca4e48a0303fb4\", \"name\": \"get_weather\", \"input\": {}}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"{\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"city\\\":\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"Os\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"lo\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"\\\"\"}}",
+    "content_block_delta | {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"}\"}}",
+    "content_block_stop | {\"type\": \"content_block_stop\", \"index\": 1}",
+    "message_delta | {\"type\": \"message_delta\", \"delta\": {\"stop_reason\": \"tool_use\", \"stop_sequence\": null}, \"usage\": {\"input_tokens\": 1, \"cache_creation_input_tokens\": 6, \"cache_read_input_tokens\": 283, \"output_tokens\": 53}}",
+    "message_stop | {\"type\": \"message_stop\"}"
+  ]
+}

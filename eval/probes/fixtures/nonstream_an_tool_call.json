@@ -1,0 +1,76 @@
+{
+  "case": "an_tool_call",
+  "path": "/v1/messages",
+  "request": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "max_tokens": 256,
+    "thinking": {
+      "type": "disabled"
+    },
+    "tools": [
+      {
+        "name": "get_weather",
+        "description": "Get the current weather for a city.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the weather in Paris? Use the tool."
+      }
+    ]
+  },
+  "status": 200,
+  "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "date": "Sat, 24 Oct 2026 19:52:32 GMT",
+    "content-type": "application/json",
+    "content-length": "487",
+    "connection": "close"
+  },
+  "body": {
+    "id": "msg_be8d32c094414d19adae8095",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "content": [
+      {
+        "type": "text",
+        "text": "I'll check the current weather in Paris for you."
+      },
+      {
+        "type": "tool_use",
+        "id": "call_61ee5a0bca524bbb9d02b4ee",
+        "name": "get_weather",
+        "input": {
+          "city": "Paris"
+        }
+      }
+    ],
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 1,
+      "output_tokens": 38,
+      "cache_creation_input_tokens": 6,
+      "cache_read_input_tokens": 266
+    }
+  },
+  "wall_s": 1.203,
+  "server_busy_before": false,
+  "queued_before": 0,
+  "count_tokens": {
+    "input_tokens": 273
+  }
+}
