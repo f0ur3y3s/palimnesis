@@ -178,6 +178,10 @@ class Tokens:
         """Exact token count of ``text`` (no fragment cache)."""
         return len(self._tokenizer.encode(text, add_special_tokens=False).ids)
 
+    def count_cached(self, text: str) -> int:
+        """Exact count of any text through the LRU (for repeated previews and sizing)."""
+        return self._fragment_count(text)
+
     def count_rendered(self, text: str) -> int:
         """Count a render through the fragment cache (full count if additivity failed)."""
         if not self.fragments_ok:
