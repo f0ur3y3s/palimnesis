@@ -168,3 +168,37 @@ def test_crash_after_prepared_response_replays_it_by_key_without_inference(upstr
     assert keyed.status_code == 200 and keyed.content == answer
     assert keyless.status_code == 409 and keyless.json()["error"]["code"] == "ambiguous_retry"
     assert len(fake.requests) == 1
+
+
+def test_crash_after_the_terminal_commit_before_forwarding_accepts_the_continue(upstream, tmp_path):
+    # Review item 5: the turn is complete in the archive but the client only
+    # received the first two batches, so OpenCode sends a flattened Continue.
+    fake, upstream_url = upstream
+    db = tmp_path / "archive.db"
+    body = json.dumps({"model": "m", "stream": True,
+                       "messages": [{"role": "user", "content": "q"}]}).encode()
+    fake.respond_sse([
+        b'data: {"choices":[{"index":0,"delta":{"reasoning_content":"think "}}]}\n\n',
+        (0.3, b'data: {"choices":[{"index":0,"delta":{"content":"answer"}}]}\n\n'),
+        (0.3, b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
+              b"data: [DONE]\n\n"),
+    ])
+    with mnemon_process(upstream_url, db, crash_at="after_batch_3") as (url, proc):
+        with pytest.raises(httpx.TransportError):
+            _post(url, body)
+        assert proc.wait(timeout=10) == 77
+
+    cont = json.dumps({"model": "m", "stream": True, "messages": [
+        {"role": "user", "content": "q"},
+        {"role": "assistant", "content": "think answer", "reasoning_content": ""},
+        {"role": "user", "content": "The previous response was interrupted. Continue from "
+                                    "where you left off without repeating completed content."},
+    ]}).encode()
+    with mnemon_process(upstream_url, db) as (url, _):
+        fake.respond_sse([b'data: {"choices":[{"index":0,"delta":{"content":"."},"finish_reason":"stop"}]}\n\n',
+                          b"data: [DONE]\n\n"])
+        r = _post(url, cont)
+
+    assert r.status_code == 200, r.content[:300]
+    sent = json.loads(fake.requests[-1].body)["messages"][1]
+    assert (sent["reasoning_content"], sent["content"]) == ("think ", "answer")

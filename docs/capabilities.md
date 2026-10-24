@@ -77,6 +77,7 @@ These are the limits of the first usable release. They are rejected or documente
 - **Interrupted turns are never resumed automatically.**
   - After a crash or a failed stream, a resend that repeats an already-answered request gets `409 ambiguous_retry`.
   - OpenCode's own resend of a flattened partial is accepted (D10.3).
+  - A reply interrupted from the client side may be dropped by the next request (D13.1).
 - **Idempotent replay** covers completed non-streaming results only. Repeated streaming keys get `409 streaming_replay_unsupported` (Ph8).
 - **No bounded view yet** (Ph2). The upstream receives the client's full history, and `n_ctx` limits are the harness's and upstream's own.
 - **Archive growth is unbounded.** There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.

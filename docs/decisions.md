@@ -56,7 +56,10 @@ Resolved from `docs/plans/phase1.md` §Decisions. The user chose items 1–3 and
 1. **Divergence:** `409 history_divergence` with `x-should-retry: false`. The message gives the message index and says to start a new session. It includes no content.
 2. **Conflicting concurrent request:** `409 session_busy` with `x-should-retry: false`.
 3. **Continue-after-partial resend:** accepted as an extension. The flattened text maps back to the archived partial and the acknowledged extent is recorded. The upstream view renders reasoning and text split at that extent.
-4. **Resend omitting an incomplete partial:** divergence. *Amended after the slice-0 probe (`docs/probes/opencode_partials.md`):* OpenCode 2.1.4 never omits a partial once output has streamed, so the proposed superseded-partial rule had no evidence and is not implemented. A resend ending at the failed user message is a retry (`Prefix`), handled by D10.12.
+4. **Resend omitting an incomplete partial:** *Amended twice; current rule in D13.1.*
+   - The slice-0 probe showed OpenCode never omits a partial after a *server-side* failure, so the omission was first made divergence.
+   - The live run (R9) then showed OpenCode *does* omit a reply interrupted from the *client* side, which bricked the session.
+   - D13.1 restores the user's original choice, superseded-partial acceptance, for client-cancelled attempts only.
 5. **Leading system message changes** (OpenCode's date and `<env>`): recorded as an immutable context version, an allowed invalidation cause. Edits to user, assistant or tool history remain divergence.
 6. **First request with prior turns:** imported with `source=client_import`.
 7. **Raw delta format:** v1 (prefix plus suffix) and v2 (prefix, middle and suffix length) are both implemented. Adopt v2 only if it saves ≥ 25% raw bytes on the live replay plus a synthetic 200-turn replay.
@@ -94,3 +97,24 @@ Loosening any of these is a capability change: add a test and a `capabilities.md
 2. **The stream relay flushes when its read queue drains**, not on a 25 ms age timer, still capped at 16 KiB per batch. On Windows the timer's 15.6 ms granularity made each paced token wait ~34 ms, while a FULL commit takes ~1 ms at p95. Paced tokens now commit and forward individually; bursts coalesce. Commit-before-forward is unchanged. Rejected: shortening the timer, because granularity makes any sub-16 ms age unreliable on Windows.
 3. **Consecutive parts of one block in a batch are merged into one segment row**, cutting segment rows ~16× on recorded-shape streams. Under paced decoding each token is still its own batch and segment; that is the price of commit-before-forward and is reported, not hidden.
 4. **`put_raw` reuses recently written or verified bodies** (64-entry cache, used only when the row's SHA-256 matches) instead of rebuilding the parent chain per insert.
+
+## D13 — Phase 1 review and live-run fixes
+
+From the independent review (REJECT, 7 confirmed findings) and the live archive run (R9). Every fix has a regression test (`tests/test_review_fixes.py`, `tests/test_transcript.py`, `tests/test_crash_recovery.py`).
+
+1. **Client-cancelled partials may be omitted (R9).** A partial whose attempt ended `cancelled` (client disconnect) may be absent from the resend. It stays archived, is recorded as `partial_superseded`, and alignment continues past it. That includes a later answer sitting where the partial was. Server-failed partials still must be resent flattened (probe rules); omitting one is divergence. A keyless retry may reuse a request whose only output the client cancelled.
+2. **Reconciliation reports its alignment.** The ledger addresses archived occurrences through `aligned` (client message → occurrence), not by position, for context versions, partial acknowledgements and upstream splicing.
+3. **A complete turn whose delivery never completed may come back flattened.** A crash after the final commit, before forwarding, leaves the client holding a prefix; D10.3's partial rule applies.
+4. **Stale retries are history divergence.** A keyless or keyed retry matching an older request is rejected with `409 history_divergence` once other turns follow that request. Previously its answer was appended after the later turns.
+5. **An upstream error event is terminal.** Nothing after it, not even `[DONE]` in the same read, is relayed or can mark the turn complete.
+6. **Every relay failure after the 200 ends with an error event**, including malformed but valid-JSON chunks. At most 32 events may follow the finish chunk.
+7. **The accept transaction is shielded from client cancellation**, so its outcome is always cleaned up. `ledger.interrupt` records a disconnect after any queued terminal write and never adds a second terminal event.
+8. **Failure codes.**
+   - A non-streaming response that cannot be archived gets `502 upstream_failed`, `x-should-retry: false`.
+   - Input-commit failures offer a retry (`503`, `retry-after: 2`) only for transient `sqlite3.OperationalError`.
+9. **Encoding.** Generated blocks are tagged WTF-8, since lone `\uD83D` escapes occur in streamed text. The FTS index stores a `?`-replaced copy. The archive upstream request asks for `accept-encoding: identity`.
+10. **Migration and capture.**
+    - Migration 2 backfills the full-text index from existing blocks.
+    - `--capture-dir` requires `--passthrough` instead of being silently ignored in archive mode.
+
+Not changed: an FTS rowid can shift under `VACUUM`. Mnemon never runs `VACUUM`, and `search.rebuild` restores the index if a user does.

@@ -100,12 +100,15 @@ def _blocks(conn: sqlite3.Connection, occ_id: str) -> list[tuple[str, dict, str]
     ]
 
 
-def _complete(conn: sqlite3.Connection, generation_id: str) -> bool:
-    return conn.execute(
-        "SELECT 1 FROM events e JOIN generations g ON e.attempt_id = g.attempt_id"
-        " WHERE g.generation_id = ? AND e.kind = 'turn_complete'",
-        (generation_id,),
-    ).fetchone() is not None
+def _attempt_events(conn: sqlite3.Connection, generation_id: str) -> set[str]:
+    return {
+        kind
+        for (kind,) in conn.execute(
+            "SELECT e.kind FROM events e JOIN generations g ON e.attempt_id = g.attempt_id"
+            " WHERE g.generation_id = ?",
+            (generation_id,),
+        )
+    }
 
 
 def _archived(conn: sqlite3.Connection, row) -> Archived:
@@ -121,8 +124,11 @@ def _archived(conn: sqlite3.Connection, row) -> Archived:
             reasoning += content
         elif kind == "tool_call":
             calls.append({"id": meta["id"], "name": meta["name"], "arguments": content})
+    kinds = _attempt_events(conn, generation_id)
     return Archived.generated(occ_id, text=text, reasoning=reasoning, tool_calls=tuple(calls),
-                              complete=_complete(conn, generation_id), view=view)
+                              complete="turn_complete" in kinds, view=view,
+                              cancelled="cancelled" in kinds,
+                              delivered="delivery_completed" in kinds)
 
 
 def load_archived(conn: sqlite3.Connection, branch_id: str) -> list[Archived]:
@@ -249,11 +255,32 @@ def _set_active(conn, branch_id: str, request_id: str | None) -> None:
 
 
 def _attempt_has_output(conn, request_id: str) -> bool:
+    """Whether any attempt produced output the client did not cancel."""
     return conn.execute(
         "SELECT 1 FROM generations g JOIN attempts a ON g.attempt_id = a.attempt_id"
-        " WHERE a.request_id = ?",
+        " WHERE a.request_id = ? AND NOT EXISTS (SELECT 1 FROM events e"
+        " WHERE e.attempt_id = a.attempt_id AND e.kind = 'cancelled')",
         (request_id,),
     ).fetchone() is not None
+
+
+def _superseded_by_later_turns(conn, branch_id: str, request_id: str) -> bool:
+    """Whether occurrences from other requests follow this request's input."""
+    last = conn.execute(
+        "SELECT max(seq) FROM occurrences WHERE branch_id = ? AND request_id = ?"
+        " AND source != 'generated'",
+        (branch_id, request_id),
+    ).fetchone()[0]
+    if last is None:
+        return False
+    return conn.execute(
+        "SELECT 1 FROM occurrences WHERE branch_id = ? AND seq > ? AND request_id IS NOT ?",
+        (branch_id, last, request_id),
+    ).fetchone() is not None
+
+
+_STALE = ("This request repeats an earlier one, but the session has moved on since. "
+          "Start a new session to continue from earlier history.")
 
 
 def _request_completed(conn, request_id: str) -> bool:
@@ -272,21 +299,23 @@ def _start_attempt(conn, request_id: str) -> str:
     return attempt_id
 
 
-def _upstream_body(conn, req: ChatRequest, archived: list[Archived],
-                   partials: tuple[tuple[int, int], ...]) -> bytes:
+def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome) -> bytes:
     """Client message objects with internal occurrences spliced back in and
-    flattened partials split into reasoning and text again (D10.3, D10.9)."""
+    flattened partials split into reasoning and text again (D10.3, D10.9).
+    Positions come from the reconciliation alignment, so superseded partials
+    and context versions cannot shift them."""
+    position = {occ_id: i for i, occ_id in enumerate(outcome.aligned)}
+    by_id = {a.occ_id: a for a in archived}
     insertions: dict[int, list[dict]] = {}
-    visible_seen = 0
+    aligned_seen = 0
     for item in archived:
         if item.view == "internal":
-            insertions.setdefault(visible_seen, []).append(message_dict(conn, item.occ_id))
-        else:
-            visible_seen += 1
-    visible = [a for a in archived if a.view != "internal"]
+            insertions.setdefault(aligned_seen, []).append(message_dict(conn, item.occ_id))
+        elif item.occ_id in position:
+            aligned_seen = position[item.occ_id] + 1
     replacements = {}
-    for index, extent in partials:
-        past = visible[index]
+    for index, extent in outcome.partials:
+        past = by_id[outcome.aligned[index]]
         sent = past.reasoning + past.text
         cut = min(extent, len(past.reasoning))
         original = req.messages[index].raw_object
@@ -365,7 +394,9 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
         " ORDER BY arrived_at DESC LIMIT 1",
         (branch_id, fingerprint),
     ).fetchone()
-    if row is None or _attempt_has_output(conn, row[0]):
+    if row is None or _superseded_by_later_turns(conn, branch_id, row[0]):
+        raise Rejection(409, "history_divergence", _STALE)
+    if _attempt_has_output(conn, row[0]):
         raise Rejection(
             409, "ambiguous_retry",
             "This request repeats one this session already answered (fully or partly), but "
@@ -376,7 +407,7 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
     return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, outcome.partials), req.stream)
+                _upstream_body(conn, req, archived, outcome), req.stream)
 
 
 def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key) -> Plan | None:
@@ -402,14 +433,20 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key) -> Plan | No
         ).fetchone()
         return Plan(session_id, branch_id, request_id, "", b"", False,
                     replay={"status": status, "headers": json.loads(headers), "body": body})
+    if _superseded_by_later_turns(conn, branch_id, request_id):
+        raise Rejection(409, "history_divergence", _STALE)
     if _attempt_has_output(conn, request_id):
         raise Rejection(409, "ambiguous_retry",
                         "This keyed request produced partial output before failing.")
+    archived = load_archived(conn, branch_id)
+    outcome = reconcile(req.messages, archived)
+    if not isinstance(outcome, Prefix):
+        raise Rejection(409, "idempotency_conflict",
+                        "This Idempotency-Key's request no longer matches the session history.")
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
-    archived = load_archived(conn, branch_id)
     return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, ()), req.stream)
+                _upstream_body(conn, req, archived, outcome), req.stream)
 
 
 def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
@@ -441,16 +478,18 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
          json.dumps({"schema_key": schema_key, "top_level_order": list(req.top_level_order)}),
          time.time()),
     )
-    visible = [a for a in archived if a.view != "internal"]
     for index in outcome.context_changed:
+        previous_occ = outcome.aligned[index]
         occ_id = _insert_client_message(conn, session_id, branch_id, request_id,
                                         req.messages[index], "client",
-                                        {"supersedes": visible[index].occ_id})
+                                        {"supersedes": previous_occ})
         _event(conn, request_id, None, "context_version", position=index, occ_id=occ_id,
-               supersedes=visible[index].occ_id)
+               supersedes=previous_occ)
     for index, extent in outcome.partials:
         _event(conn, request_id, None, "partial_acknowledged",
-               occ_id=visible[index].occ_id, extent=extent)
+               occ_id=outcome.aligned[index], extent=extent)
+    for occ_id in outcome.superseded:
+        _event(conn, request_id, None, "partial_superseded", occ_id=occ_id)
     last_user = max((i for i, m in enumerate(req.messages) if m.role == "user"), default=-1)
     for offset, message in enumerate(new):
         index = outcome.matched + offset
@@ -464,7 +503,7 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
     return Plan(session_id, branch_id, request_id, attempt_id,
-                _upstream_body(conn, req, archived, outcome.partials), req.stream)
+                _upstream_body(conn, req, archived, outcome), req.stream)
 
 
 # --- generation --------------------------------------------------------------
@@ -525,7 +564,9 @@ def commit_batch(conn: sqlite3.Connection, gen: Generation, parts: list[tuple],
             if kind == "tool_call" and not (meta.get("id") and meta.get("name")):
                 raise ValueError("tool call delta without id and name at its start")
             block_meta = {"id": meta["id"], "name": meta["name"]} if kind == "tool_call" else {}
-            block_id = _insert_block(conn, gen.occ_id, len(gen.blocks), kind, "utf-8", block_meta, None)
+            # Generated text can carry lone surrogates (JSON \ud83d escapes split by
+            # tokenization); WTF-8 is a superset of UTF-8, so tag every generated block.
+            block_id = _insert_block(conn, gen.occ_id, len(gen.blocks), kind, "wtf-8", block_meta, None)
             gen.blocks[key] = block_id
             gen.next_segment[block_id] = 0
         elif kind == "tool_call" and meta.get("name"):
@@ -556,6 +597,21 @@ def finish_attempt(conn: sqlite3.Connection, gen: Generation, kind: str, **paylo
     if gen.occ_id is not None:
         search.index_occurrence(conn, gen.occ_id)
     gen.finished = True
+
+
+def interrupt(conn: sqlite3.Connection, gen: Generation) -> None:
+    """Record a client disconnect or unexpected failure. Runs on the single
+    writer, after any terminal write already queued, so it never adds a
+    second terminal event."""
+    terminal = conn.execute(
+        "SELECT 1 FROM events WHERE attempt_id = ? AND kind IN (%s)"
+        % ",".join("?" * len(TERMINAL_EVENTS)),
+        (gen.plan.attempt_id, *TERMINAL_EVENTS),
+    ).fetchone()
+    if terminal:
+        record_delivery(conn, gen.plan, "delivery_failed", bytes_forwarded=gen.forwarded)
+    else:
+        finish_attempt(conn, gen, "cancelled", forwarded=gen.forwarded)
 
 
 def prepare_response(conn: sqlite3.Connection, gen: Generation, status: int,

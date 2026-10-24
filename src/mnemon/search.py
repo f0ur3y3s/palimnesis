@@ -30,10 +30,11 @@ def index_occurrence(conn: sqlite3.Connection, occ_id: str) -> None:
         "SELECT rowid, block_id, encoding FROM blocks WHERE occ_id = ?", (occ_id,)
     ).fetchall():
         conn.execute("DELETE FROM fts_blocks WHERE rowid = ?", (rowid,))
-        conn.execute(
-            "INSERT INTO fts_blocks (rowid, text) VALUES (?, ?)",
-            (rowid, _block_text(conn, block_id, encoding)),
-        )
+        # SQLite stores valid UTF-8 only; lone surrogates (WTF-8 blocks) are
+        # indexed as "?". The archive itself keeps the exact bytes.
+        text = _block_text(conn, block_id, encoding)
+        text = text.encode("utf-8", "replace").decode("utf-8")
+        conn.execute("INSERT INTO fts_blocks (rowid, text) VALUES (?, ?)", (rowid, text))
 
 
 def clear(conn: sqlite3.Connection) -> None:

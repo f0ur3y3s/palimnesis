@@ -48,7 +48,8 @@ All of the above are **[enforced]**.
   - Client messages match by content hash.
   - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments.
   - A changed system message before the first non-system message is a new context version, not a divergence.
-  - A flattened partial matches with its acknowledged extent.
+  - A flattened partial matches with its acknowledged extent, and so does a complete turn whose delivery never completed.
+  - A partial the client cancelled may be omitted; it is superseded (D13.1).
   **[enforced]**
 
 ## 5. Client timeouts and retries
@@ -161,7 +162,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 **[enforced]**
 
-- Raw exchange capture writes only when `--capture-dir` is set.
+- Raw exchange capture writes only when `--capture-dir` is set, and only in `--passthrough` mode. Archive mode refuses the flag because it stores exact request bodies itself.
 - Credentials are redacted: `authorization`, `proxy-authorization`, `x-api-key`, `api-key`, `cookie`.
 - Exchanges cut short by disconnect are recorded as `complete: false`.
 - Capture fails open: a write error is logged and the relay continues unchanged.

@@ -167,3 +167,53 @@ End to end, 50 turns in archive mode (now v2):
 TTFB (p50) is 8.2 ms over the first 10 turns and 16.0 ms over the last 10, against R6's 10.9 and 19.4 ms. It still grows because `accept` reloads the whole branch on every request. That is a Phase 2 scaling item (bounded view and catalog), not addressed here.
 
 The raw-delta comparison reproduces R6 exactly. v2 meets D10.7 and is the default (D12).
+
+## R9 — OpenCode 2.1.4 live through archive mode, with restart and client interrupt (Phase 1 live check, 2026-10-24)
+
+**Setup.**
+
+- Commit `98be1e0`, clean tree. Its `src/` is identical to `845ae90`.
+- Strata 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536, cold cache at request 1.
+- OpenCode 2.1.4 with the isolated `live/config` setup, `--standalone`, `PWD` set to a throwaway repo, stdin at EOF.
+- Hardware as R6. Archive `synchronous=FULL`, v2 deltas.
+- Topology: OpenCode → Mnemon archive (an ASGI tap around `create_app`, under the CLI's uvicorn config) → a Mnemon `--passthrough` instance with `--capture-dir` → Strata. A second instance was needed because `--capture-dir` writes nothing in archive mode.
+
+Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/`: its README, `summary.json` and the scripts.
+
+| Turn | Requests | Status |
+| --- | --- | --- |
+| 1: create and run `hello.py` (2+3) | 3 | 200 ×3 |
+| clean proxy stop, restart on the same `--db` | — | 0 attempts abandoned |
+| 2: `--session`, add `print(2 * 3)`, run | 4 | 200 ×4 |
+| 3: `--session`, client process tree killed 2.06 s after the first `data:` | 1 | 200, `cancelled` with 8,840 bytes forwarded; Strata idle at the first poll |
+| 4: `--session`, short question | 1 | **409 `history_divergence`** ("archived partial assistant turn was omitted"), no retry, `opencode run` exit 1 |
+
+**Byte-level and archive checks.**
+
+- `get_raw` equals the client body for 8 of 8 accepted requests. Storage is 1 snapshot plus 7 v2 deltas: 22.5 KB stored for 170.8 KB logical.
+- Upstream request bodies equal client bodies for 8 of 8. No partial was accepted, so there was no split.
+- Upstream response bytes equal client-received bytes for 8 of 8.
+- Archived generated turns equal the streamed reasoning, text and tool calls for 8 of 8, including the 143-character reasoning-only partial.
+- The visible history is 17 occurrences: the final accepted request's 16 messages, all matching, plus the incomplete turn. There was 1 session and 0 context versions.
+
+**Events.**
+
+- Requests 1–7 each recorded `accepted_input, attempt_started, delivery_started, turn_complete, delivery_completed`.
+- Request 8 recorded `…, delivery_started, cancelled`.
+- There was no `attempt_abandoned`, and none was expected after a clean stop.
+- Restart reloading worked: the first turn-2 request reconciled as an extension.
+- Strata cache: `cached_tokens` = 5178 of 5230 after the restart.
+
+**TTFB.** Proxy overhead is measured to the first `data:` chunk, archive tap minus upstream tap, and includes one passthrough hop.
+
+- Warm requests: 1.5–8.0 ms (n = 6).
+- First request in each proxy process: 31.4 and 35.0 ms. This is time spent before the upstream request arrives, so it is acceptance plus a new upstream connection.
+- Client TTFB: 62–112 ms.
+
+**Finding (lifecycle gap).** A client-side kill makes the session permanently unusable.
+
+- OpenCode persisted the interrupted assistant as a single empty reasoning part. On the next run it omitted the message entirely, so the request had two consecutive `user` messages.
+- Mnemon archived the 143-character partial. `reconcile` (`src/mnemon/transcript.py:180`) rejects the omission per D10.4, and every later request in the session gets the same 409.
+- D10.4's premise ("OpenCode never omits a partial once output has streamed") was measured only for server-side stream failures. D10.3 and D10.12 do not cover this case: the client sent no flattened Continue, and the attempt is `cancelled`, not abandoned.
+
+The Phase 1 green light for this harness therefore holds for linear use with server-side failures, but not for user interrupts.

@@ -291,3 +291,77 @@ def test_completed_turn_still_requires_exact_text():
     result = reconcile(client(SYS, U1, _partial_msg("Hello wor"), U2), archive)
 
     assert isinstance(result, Divergence) and result.index == 2
+
+
+# --- Client-cancelled partials (live R9) and undelivered complete turns (review #5) ---
+
+CANCELLED = Archived.generated("occ-cancelled", text="", reasoning="Let me", tool_calls=(),
+                               complete=False, cancelled=True)
+
+
+def test_partial_the_client_cancelled_may_be_omitted_and_is_superseded():
+    archive = _archive(SYS, U1, CANCELLED)
+
+    result = reconcile(client(SYS, U1, U2), archive)
+
+    assert isinstance(result, Extend) and result.matched == 2
+    assert result.superseded == ("occ-cancelled",)
+    assert result.aligned == tuple(a.occ_id for a in archive[:2])
+
+
+def test_a_cancelled_partial_resent_flattened_still_matches_as_a_partial():
+    archive = _archive(SYS, U1, CANCELLED)
+
+    result = reconcile(client(SYS, U1, _partial_msg("Let me"), U2), archive)
+
+    assert result == Extend(3, partials=((2, 6),))
+    assert result.aligned == tuple(a.occ_id for a in archive)
+    assert result.superseded == ()
+
+
+def test_history_continues_after_a_superseded_partial():
+    archive = _archive(SYS, U1, CANCELLED, U2, generated(text="answer"))
+    msgs = client(SYS, U1, U2, {"role": "assistant", "content": "answer"}, U1)
+
+    result = reconcile(msgs, archive)
+
+    assert isinstance(result, Extend) and result.matched == 4
+    assert result.aligned == (archive[0].occ_id, archive[1].occ_id, archive[3].occ_id, "occ-gen")
+
+
+def test_a_server_failed_partial_still_may_not_be_omitted():
+    archive = _archive(SYS, U1, PARTIAL)  # failed upstream, not cancelled by the client
+
+    assert isinstance(reconcile(client(SYS, U1, U2), archive), Divergence)
+
+
+def test_complete_turn_never_fully_delivered_accepts_the_flattened_continue():
+    undelivered = Archived.generated("occ-u", text="answer", reasoning="think ", tool_calls=(),
+                                     complete=True, delivered=False)
+    archive = _archive(SYS, U1, undelivered)
+
+    result = reconcile(client(SYS, U1, _partial_msg("think answer", reasoning_content=""), U2), archive)
+
+    assert isinstance(result, Extend) and result.partials == ((2, 12),)
+
+
+def test_complete_undelivered_turn_resent_whole_still_matches_exactly():
+    undelivered = Archived.generated("occ-u", text="answer", reasoning="think ", tool_calls=(),
+                                     complete=True, delivered=False)
+    archive = _archive(SYS, U1, undelivered)
+    whole = {"role": "assistant", "content": "answer", "reasoning_content": "think "}
+
+    result = reconcile(client(SYS, U1, whole, U2), archive)
+
+    assert isinstance(result, Extend) and result.partials == ()
+
+
+def test_answer_from_a_retry_after_a_cancelled_partial_aligns_past_the_partial():
+    archive = _archive(SYS, U1, CANCELLED, generated(text="full answer"))
+    msgs = client(SYS, U1, {"role": "assistant", "content": "full answer"}, U2)
+
+    result = reconcile(msgs, archive)
+
+    assert isinstance(result, Extend) and result.matched == 3
+    assert result.superseded == ("occ-cancelled",)
+    assert result.aligned[-1] == "occ-gen"

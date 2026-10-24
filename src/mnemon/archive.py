@@ -42,6 +42,8 @@ from .store import Store
 log = logging.getLogger(__name__)
 
 CRASH_EXIT_CODE = 77
+# Only [DONE] (and perhaps a keepalive) may follow the finish chunk.
+MAX_EVENTS_AFTER_FINISH = 32
 BATCH_MAX_BYTES = 16 * 1024
 READ_QUEUE_CHUNKS = 64
 _EOF = object()
@@ -88,46 +90,46 @@ class ArchiveHandler:
         fingerprint = fingerprint_v1(ledger.ENDPOINT_CHAT, session, ledger.branch_id_for(session),
                                      json.loads(body))
         try:
-            plan = await self.store.write(lambda c: ledger.accept(
-                c, session_id=session, association=association, req=req,
-                fingerprint=fingerprint, retry_hint=parse_retry_hint(str_headers),
-                idem_key=idem_key, live=self.live))
+            # Shielded: once the accept transaction is submitted it commits even if
+            # the client leaves, so its outcome must be observed and cleaned up here.
+            with anyio.CancelScope(shield=True):
+                plan = await self.store.write(lambda c: ledger.accept(
+                    c, session_id=session, association=association, req=req,
+                    fingerprint=fingerprint, retry_hint=parse_retry_hint(str_headers),
+                    idem_key=idem_key, live=self.live))
         except ledger.Rejection as e:
             await error_response(api_path, e.status, e.code, e.message, retry=e.retry)(
                 scope, receive, send)
             return
-        except Exception:
+        except Exception as e:
             log.exception("archive write failed before acceptance")
+            # Only a transient database condition is worth a client retry.
+            transient = isinstance(e, sqlite3.OperationalError)
             response = error_response(api_path, 503, "archive_unavailable",
                                       "Mnemon could not archive the request.", type_="api_error",
-                                      retry=True)
-            response.headers["retry-after"] = "2"
+                                      retry=transient)
+            if transient:
+                response.headers["retry-after"] = "2"
             await response(scope, receive, send)
-            return
-
-        crash_point("after_accept")
-        if plan.replay is not None:
-            await self._send_replay(send, plan.replay)
             return
 
         gen = ledger.Generation(plan)
         try:
+            crash_point("after_accept")
+            if plan.replay is not None:
+                await self._send_replay(send, plan.replay)
+                return
             await self._run(scope, receive, send, gen, api_path, headers)
         except BaseException:
             # Cancellation (client disconnect) or an unexpected failure: record it
-            # if storage allows, never claim success.
-            with anyio.CancelScope(shield=True):
-                try:
-                    if gen.delivered:
-                        pass
-                    elif gen.finished:
-                        await self.store.write(lambda c: ledger.record_delivery(
-                            c, plan, "delivery_failed", bytes_forwarded=gen.forwarded))
-                    else:
-                        await self.store.write(lambda c: ledger.finish_attempt(
-                            c, gen, "cancelled", forwarded=gen.forwarded))
-                except Exception:
-                    log.exception("could not record the interrupted attempt")
+            # if storage allows, never claim success. ledger.interrupt runs after
+            # any terminal write already queued, so it never adds a second one.
+            if plan.replay is None and not gen.delivered:
+                with anyio.CancelScope(shield=True):
+                    try:
+                        await self.store.write(lambda c: ledger.interrupt(c, gen))
+                    except Exception:
+                        log.exception("could not record the interrupted attempt")
             raise
         finally:
             self.live.discard(plan.request_id)
@@ -143,8 +145,12 @@ class ArchiveHandler:
         query = scope.get("query_string", b"")
         if query:
             target += b"?" + query
+        upstream_headers = [(k, v) for k, v in self.forward_headers(headers)
+                            if k.lower() != b"accept-encoding"]
+        # The relay parses what it archives, so ask for an uncompressed body.
+        upstream_headers.append((b"accept-encoding", b"identity"))
         request = httpx.Request("POST", self.upstream_base.copy_with(raw_path=target),
-                                headers=self.forward_headers(headers), content=plan.upstream_body)
+                                headers=upstream_headers, content=plan.upstream_body)
         try:
             upstream = await self.client.send(request, stream=True)
         except httpx.TransportError as e:
@@ -215,7 +221,14 @@ class ArchiveHandler:
             ledger.prepare_response(c, gen, 200, [(k.decode("latin-1"), v.decode("latin-1"))
                                                   for k, v in headers], body)
 
-        await self.store.write(commit)
+        try:
+            await self.store.write(commit)
+        except Exception as e:
+            log.warning("non-streaming response could not be archived: %s", e)
+            await self._upstream_failed(
+                scope, receive, send, gen, api_path, "archive_failed",
+                "Mnemon could not archive the upstream response.")
+            return
         crash_point("after_prepare")
         await send({"type": "http.response.start", "status": 200, "headers": headers})
         await send({"type": "http.response.body", "body": body, "more_body": False})
@@ -284,11 +297,18 @@ class ArchiveHandler:
                         break
                     for event in parser.feed(item):
                         self._observe(event, state)
+                        if state["error"]:
+                            # Nothing after an upstream error event is relayed;
+                            # a later [DONE] must not turn the failure into success.
+                            pending.append(event)
+                            outcome = "upstream_error_event"
+                            break
                         (held if state["finish"] or held else pending).append(event)
+                        if len(held) > MAX_EVENTS_AFTER_FINISH:
+                            raise ValueError("too many events after the finish chunk")
                         if state["done"]:
                             outcome = "done"
-                        elif state["error"]:
-                            outcome = "upstream_error_event"
+                            break
                     if outcome is None and sum(len(e.raw) for e in pending) >= BATCH_MAX_BYTES:
                         await flush()
                 if outcome == "done":
@@ -303,7 +323,7 @@ class ArchiveHandler:
                                          "The upstream stream ended before completing.")
                     await send({"type": "http.response.body", "body": error, "more_body": True})
                     gen.forwarded += len(error)
-            except (ValueError, OSError, RuntimeError, sqlite3.Error) as e:
+            except Exception as e:
                 # A batch could not be parsed or committed: forward nothing more.
                 log.warning("stream relay stopped: %s", e)
                 try:
@@ -335,6 +355,8 @@ class ArchiveHandler:
             state["done"] = True
             return
         chunk = json.loads(event.data)
+        if not isinstance(chunk, dict):
+            raise ValueError("stream chunk is not a JSON object")
         if "error" in chunk:
             state["error"] = chunk["error"]
             return

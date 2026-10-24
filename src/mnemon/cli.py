@@ -48,6 +48,12 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
 
 
 def _settings(args: argparse.Namespace) -> Settings:
+    if args.capture_dir and not args.passthrough:
+        # Archive mode stores exact request bodies and generated content itself;
+        # raw exchange capture is a passthrough diagnostic.
+        print("error: --capture-dir requires --passthrough (archive mode already stores "
+              "exact request bodies)", file=sys.stderr)
+        raise SystemExit(2)
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
                     db_path=db_path, synchronous=args.synchronous)

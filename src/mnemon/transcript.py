@@ -26,14 +26,21 @@ from OpenCode flattened (``docs/probes/opencode_partials.md``):
 - a partial tool call keeps its streamed id and name, with arguments
   replaced by ``"{}"``.
 
-Such a message matches with acknowledged extent ``k`` (D10.3). A resend that
-omits an archived partial was never observed and is divergence.
+Such a message matches with acknowledged extent ``k`` (D10.3). The same
+applies to a complete turn whose delivery never completed: a crash after
+its final commit leaves the client holding only a prefix.
+
+A partial may be *omitted* only when the client itself cancelled that
+attempt. OpenCode drops a reply interrupted from the client side
+(results R9). Such a partial stays archived but is superseded, and the
+resend aligns past it (D10.4). A server-failed partial that is omitted is
+divergence, because OpenCode always resends those.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .chat import Message, content_sha256
 
@@ -49,6 +56,8 @@ class Archived:
     reasoning: str = ""
     tool_calls: tuple[dict, ...] = ()
     complete: bool = True
+    cancelled: bool = False  # the client disconnected from this attempt
+    delivered: bool = True  # the full response was written to the client
 
     @classmethod
     def from_client(cls, occ_id: str, message: Message, source: str = "client") -> "Archived":
@@ -64,9 +73,12 @@ class Archived:
         tool_calls: tuple[dict, ...],
         complete: bool,
         view: str = "both",
+        cancelled: bool = False,
+        delivered: bool = True,
     ) -> "Archived":
         return cls(occ_id, "assistant", "generated", view=view, text=text,
-                   reasoning=reasoning, tool_calls=tool_calls, complete=complete)
+                   reasoning=reasoning, tool_calls=tool_calls, complete=complete,
+                   cancelled=cancelled, delivered=delivered)
 
 
 @dataclass(frozen=True)
@@ -74,12 +86,16 @@ class Extend:
     """Client messages [0, matched) are archived; the rest are new.
 
     ``partials`` lists (position, acknowledged extent) for incomplete
-    generated turns the client resent flattened.
+    generated turns the client resent flattened. ``aligned[i]`` is the
+    archived occurrence client message ``i`` matched; ``superseded`` lists
+    client-cancelled partials the resend omitted.
     """
 
     matched: int
     context_changed: tuple[int, ...] = ()
     partials: tuple[tuple[int, int], ...] = ()
+    aligned: tuple[str, ...] = field(default=(), compare=False)
+    superseded: tuple[str, ...] = field(default=(), compare=False)
 
 
 @dataclass(frozen=True)
@@ -89,6 +105,8 @@ class Prefix:
     matched: int
     context_changed: tuple[int, ...] = ()
     partials: tuple[tuple[int, int], ...] = ()
+    aligned: tuple[str, ...] = field(default=(), compare=False)
+    superseded: tuple[str, ...] = field(default=(), compare=False)
 
 
 @dataclass(frozen=True)
@@ -148,6 +166,8 @@ def _matches_partial(message: Message, archived: Archived) -> tuple[str | None, 
 
 def _matches_generated(message: Message, archived: Archived) -> str | None:
     """None if ``message`` is the client's copy of a complete ``archived`` turn."""
+    if message.role != "assistant":
+        return "a generated assistant turn was replaced by another role"
     if (_block_text(message, "text") or "") != archived.text:
         return "assistant text differs from what was generated"
     reasoning = _block_text(message, "reasoning")
@@ -172,24 +192,39 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
     visible = [a for a in archived if a.view != "internal"]
     context_changed: list[int] = []
     partials: list[tuple[int, int]] = []
+    aligned: list[str] = []
+    superseded: list[str] = []
     leading_system = True
-    for i, (message, past) in enumerate(zip(messages, visible)):
+    i = j = 0
+    while i < len(messages) and j < len(visible):
+        message, past = messages[i], visible[j]
         leading_system = leading_system and message.role == "system" and past.role == "system"
-        if past.source == "generated" and not past.complete:
+        unfinished = past.source == "generated" and (not past.complete or not past.delivered)
+        if unfinished:
             if message.role != "assistant":
+                if past.cancelled and not past.complete:
+                    superseded.append(past.occ_id)
+                    j += 1
+                    continue
                 return Divergence(i, "the archived partial assistant turn was omitted")
-            reason, extent = _matches_partial(message, past)
-            if reason is None:
+            if not (past.complete and _matches_generated(message, past) is None):
+                reason, extent = _matches_partial(message, past)
+                if reason is not None:
+                    if past.cancelled and not past.complete:
+                        # e.g. the answer from a retry that followed the cancel
+                        superseded.append(past.occ_id)
+                        j += 1
+                        continue
+                    return Divergence(i, reason)
                 partials.append((i, extent))
-                continue
-            return Divergence(i, reason)
-        reason = _mismatch(message, past)
-        if reason is None:
-            continue
-        if leading_system:
-            context_changed.append(i)
-            continue
-        return Divergence(i, reason)
-    matched = min(len(messages), len(visible))
-    outcome = Prefix if len(messages) <= len(visible) else Extend
-    return outcome(matched, tuple(context_changed), tuple(partials))
+        else:
+            reason = _mismatch(message, past)
+            if reason is not None:
+                if not leading_system:
+                    return Divergence(i, reason)
+                context_changed.append(i)
+        aligned.append(past.occ_id)
+        i += 1
+        j += 1
+    outcome = Extend if i < len(messages) else Prefix
+    return outcome(i, tuple(context_changed), tuple(partials), tuple(aligned), tuple(superseded))

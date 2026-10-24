@@ -80,3 +80,14 @@ def test_normal_synchronous_must_be_requested_explicitly(tmp_path):
                         "--synchronous", "NORMAL"])
 
     assert s.synchronous == "NORMAL"
+
+
+def test_capture_dir_requires_passthrough_instead_of_being_ignored(tmp_path):
+    out = subprocess.run(
+        [sys.executable, "-m", "mnemon", "serve", "--upstream", "http://u:8080",
+         "--db", str(tmp_path / "a.db"), "--capture-dir", str(tmp_path / "c")],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    assert out.returncode == 2
+    assert "--capture-dir" in out.stderr and "--passthrough" in out.stderr

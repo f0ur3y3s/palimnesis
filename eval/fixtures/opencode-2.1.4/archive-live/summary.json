@@ -1,0 +1,723 @@
+{
+ "run": "Phase 1 live check: OpenCode 2.1.4 through Mnemon archive mode, live Strata",
+ "date": "2026-10-24 (22:43-22:45 UTC)",
+ "commit": "98be1e0 (src identical to 845ae90), clean tree",
+ "strata": {
+  "build": "Strata 0.1.48",
+  "model": "qwen3.8-flash-next-iq3_xxs",
+  "n_ctx": 65536,
+  "cache": "cold at request 1"
+ },
+ "harness": "opencode v2.1.4, run --standalone --auto --format json, isolated config (see README)",
+ "topology": "opencode -> mnemon archive (127.0.0.1:9031, tap) -> mnemon passthrough (127.0.0.1:9032, --capture-dir, tap) -> Strata",
+ "proxy_restart": "clean stop (uvicorn should_exit) after request 3, restarted on the same --db before turn 2",
+ "turns": {
+  "turn1": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 20.72
+  },
+  "turn2": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8feace49ffeZdigljAjYVKwkx",
+    "<message>"
+   ],
+   "exit_code": 0,
+   "killed": false,
+   "elapsed_s": 8.24
+  },
+  "turn3": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8feace49ffeZdigljAjYVKwkx",
+    "<message>"
+   ],
+   "exit_code": 1,
+   "killed": true,
+   "elapsed_s": 3.0,
+   "kill_after_first_data_s": 2.06
+  },
+  "turn4": {
+   "command": [
+    "opencode.exe",
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e8feace49ffeZdigljAjYVKwkx",
+    "<message>"
+   ],
+   "exit_code": 1,
+   "killed": false,
+   "elapsed_s": 0.96
+  }
+ },
+ "strata_status_after_client_kill": {
+  "busy": false,
+  "queued": 0,
+  "first_poll": "under 1 s after the kill"
+ },
+ "opencode_stored_turn3_assistant": "one reasoning part with text \"\" (nothing streamed was persisted); omitted from the turn-4 request",
+ "session": "ses_e8feace49ffeZdigljAjYVKwkx",
+ "sessions": 1,
+ "archived_requests": 8,
+ "rejected": [
+  {
+   "client": "run2-006",
+   "status": 409,
+   "code": "history_divergence",
+   "message": "Message 16 does not match this session's archived history (the archived partial assistant turn was omitted). Start a new session to continue from edited history.",
+   "x_should_retry": "false",
+   "messages": 17,
+   "roles_tail": [
+    "tool",
+    "assistant",
+    "user",
+    "user"
+   ]
+  }
+ ],
+ "generated_equal_streamed": [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true
+ ],
+ "event_totals": {
+  "accepted_input": 8,
+  "attempt_started": 8,
+  "cancelled": 1,
+  "delivery_completed": 7,
+  "delivery_progress": 167,
+  "delivery_started": 8,
+  "turn_complete": 7
+ },
+ "context_versions": 0,
+ "branch_heads": [
+  [
+   null,
+   16
+  ]
+ ],
+ "raw_bodies": {
+  "count": 8,
+  "snapshots": 1,
+  "payload_bytes": 22548,
+  "logical_bytes": 170802,
+  "max_depth": 7
+ },
+ "raw_formats": [
+  {
+   "raw_id": 1,
+   "format": 0,
+   "depth": 0,
+   "payload": 20073,
+   "total_len": 20073
+  },
+  {
+   "raw_id": 2,
+   "format": 2,
+   "depth": 1,
+   "payload": 446,
+   "total_len": 20519
+  },
+  {
+   "raw_id": 3,
+   "format": 2,
+   "depth": 2,
+   "payload": 310,
+   "total_len": 20829
+  },
+  {
+   "raw_id": 4,
+   "format": 2,
+   "depth": 3,
+   "payload": 328,
+   "total_len": 21157
+  },
+  {
+   "raw_id": 5,
+   "format": 2,
+   "depth": 4,
+   "payload": 363,
+   "total_len": 21520
+  },
+  {
+   "raw_id": 6,
+   "format": 2,
+   "depth": 5,
+   "payload": 401,
+   "total_len": 21921
+  },
+  {
+   "raw_id": 7,
+   "format": 2,
+   "depth": 6,
+   "payload": 314,
+   "total_len": 22235
+  },
+  {
+   "raw_id": 8,
+   "format": 2,
+   "depth": 7,
+   "payload": 313,
+   "total_len": 22548
+  }
+ ],
+ "db_bytes": 274432,
+ "archive_capture_dir_exists": false,
+ "visible_history": {
+  "length": 17,
+  "final_request_messages": 16,
+  "all_match": true,
+  "positions": [
+   {
+    "i": 0,
+    "role": "system",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 1,
+    "role": "user",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 2,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 3,
+    "role": "tool",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 4,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 5,
+    "role": "tool",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 6,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 7,
+    "role": "user",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 8,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 9,
+    "role": "tool",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 10,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 11,
+    "role": "tool",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 12,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 13,
+    "role": "tool",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 14,
+    "role": "assistant",
+    "source": "generated",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 15,
+    "role": "user",
+    "source": "client",
+    "complete": true,
+    "match": true
+   },
+   {
+    "i": 16,
+    "role": "assistant",
+    "source": "generated",
+    "complete": false,
+    "match_last_stream": true,
+    "reasoning_chars": 143,
+    "text_chars": 0
+   }
+  ]
+ },
+ "requests": [
+  {
+   "n": 1,
+   "client": "run1-001",
+   "upstream": "back-001",
+   "status": 200,
+   "messages": 2,
+   "last_role": "user",
+   "req_bytes": 20073,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 11916,
+   "response_bytes_upstream": 11916,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 34,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "tool_calls",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 4,
+   "usage": {
+    "prompt_tokens": 5004,
+    "completion_tokens": 70,
+    "cached_tokens": 0
+   },
+   "tool_calls": [
+    "write"
+   ],
+   "ttfb_client_ms": 112.0,
+   "ttfb_upstream_ms": 80.6,
+   "headers_client_ms": 63.9,
+   "headers_upstream_ms": 32.5,
+   "accept_to_upstream_ms": 31.4,
+   "duration_s": 16.78,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 31.4,
+   "turn": 1
+  },
+  {
+   "n": 2,
+   "client": "run1-002",
+   "upstream": "back-002",
+   "status": 200,
+   "messages": 4,
+   "last_role": "tool",
+   "req_bytes": 20519,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 4871,
+   "response_bytes_upstream": 4871,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 15,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "tool_calls",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5095,
+    "completion_tokens": 36,
+    "cached_tokens": 5073
+   },
+   "tool_calls": [
+    "shell"
+   ],
+   "ttfb_client_ms": 65.4,
+   "ttfb_upstream_ms": 63.9,
+   "headers_client_ms": 17.4,
+   "headers_upstream_ms": 15.8,
+   "accept_to_upstream_ms": 1.6,
+   "duration_s": 1.4,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 1.5,
+   "turn": 1
+  },
+  {
+   "n": 3,
+   "client": "run1-003",
+   "upstream": "back-003",
+   "status": 200,
+   "messages": 6,
+   "last_role": "tool",
+   "req_bytes": 20829,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 7308,
+   "response_bytes_upstream": 7308,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 17,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "stop",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5147,
+    "completion_tokens": 31,
+    "cached_tokens": 5130
+   },
+   "tool_calls": [],
+   "ttfb_client_ms": 61.6,
+   "ttfb_upstream_ms": 53.6,
+   "headers_client_ms": 16.3,
+   "headers_upstream_ms": 12.1,
+   "accept_to_upstream_ms": 4.1,
+   "duration_s": 1.21,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 8.0,
+   "turn": 1
+  },
+  {
+   "n": 4,
+   "client": "run2-001",
+   "upstream": "back-004",
+   "status": 200,
+   "messages": 8,
+   "last_role": "user",
+   "req_bytes": 21157,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 6253,
+   "response_bytes_upstream": 6253,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 19,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "tool_calls",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5230,
+    "completion_tokens": 40,
+    "cached_tokens": 5178
+   },
+   "tool_calls": [
+    "read"
+   ],
+   "ttfb_client_ms": 107.0,
+   "ttfb_upstream_ms": 72.0,
+   "headers_client_ms": 50.3,
+   "headers_upstream_ms": 15.3,
+   "accept_to_upstream_ms": 35.0,
+   "duration_s": 2.24,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 35.0,
+   "turn": 2
+  },
+  {
+   "n": 5,
+   "client": "run2-002",
+   "upstream": "back-005",
+   "status": 200,
+   "messages": 10,
+   "last_role": "tool",
+   "req_bytes": 21520,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 11723,
+   "response_bytes_upstream": 11723,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 24,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "tool_calls",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5305,
+    "completion_tokens": 78,
+    "cached_tokens": 5272
+   },
+   "tool_calls": [
+    "edit"
+   ],
+   "ttfb_client_ms": 63.6,
+   "ttfb_upstream_ms": 57.6,
+   "headers_client_ms": 11.8,
+   "headers_upstream_ms": 5.8,
+   "accept_to_upstream_ms": 6.0,
+   "duration_s": 2.24,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 6.0,
+   "turn": 2
+  },
+  {
+   "n": 6,
+   "client": "run2-003",
+   "upstream": "back-006",
+   "status": 200,
+   "messages": 12,
+   "last_role": "tool",
+   "req_bytes": 21921,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 4636,
+   "response_bytes_upstream": 4636,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 13,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "tool_calls",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5405,
+    "completion_tokens": 35,
+    "cached_tokens": 5382
+   },
+   "tool_calls": [
+    "shell"
+   ],
+   "ttfb_client_ms": 65.1,
+   "ttfb_upstream_ms": 63.5,
+   "headers_client_ms": 1.6,
+   "headers_upstream_ms": 0.0,
+   "accept_to_upstream_ms": 1.6,
+   "duration_s": 1.09,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 1.6,
+   "turn": 2
+  },
+  {
+   "n": 7,
+   "client": "run2-004",
+   "upstream": "back-007",
+   "status": 200,
+   "messages": 14,
+   "last_role": "tool",
+   "req_bytes": 22235,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 9387,
+   "response_bytes_upstream": 9387,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 23,
+    "turn_complete": 1,
+    "delivery_completed": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "turn_complete",
+    "delivery_completed"
+   ],
+   "finish": "stop",
+   "done": true,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": {
+    "prompt_tokens": 5458,
+    "completion_tokens": 45,
+    "cached_tokens": 5441
+   },
+   "tool_calls": [],
+   "ttfb_client_ms": 70.6,
+   "ttfb_upstream_ms": 64.0,
+   "headers_client_ms": 22.7,
+   "headers_upstream_ms": 16.1,
+   "accept_to_upstream_ms": 6.6,
+   "duration_s": 1.54,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 6.6,
+   "turn": 2
+  },
+  {
+   "n": 8,
+   "client": "run2-005",
+   "upstream": "back-008",
+   "status": 200,
+   "messages": 16,
+   "last_role": "user",
+   "req_bytes": 22548,
+   "raw_archive_equal": true,
+   "upstream_body_equal": true,
+   "upstream_capture_equal": true,
+   "response_bytes_client": 8840,
+   "response_bytes_upstream": 8840,
+   "response_equal": true,
+   "events": {
+    "accepted_input": 1,
+    "attempt_started": 1,
+    "delivery_started": 1,
+    "delivery_progress": 22,
+    "cancelled": 1
+   },
+   "event_order": [
+    "accepted_input",
+    "attempt_started",
+    "delivery_started",
+    "cancelled"
+   ],
+   "finish": null,
+   "done": false,
+   "stream_errors": [],
+   "keepalive_comments": 2,
+   "usage": null,
+   "tool_calls": [],
+   "ttfb_client_ms": 71.1,
+   "ttfb_upstream_ms": 65.4,
+   "headers_client_ms": 25.7,
+   "headers_upstream_ms": 20.0,
+   "accept_to_upstream_ms": 5.6,
+   "duration_s": 2.25,
+   "x_should_retry": "false",
+   "ttfb_overhead_ms": 5.7,
+   "turn": 3
+  }
+ ]
+}

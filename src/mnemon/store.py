@@ -227,8 +227,11 @@ def _immutability_triggers() -> str:
 
 MIGRATIONS: list[str] = [
     _SCHEMA_V1 + _immutability_triggers(),
-    # v2: derived full-text index (mnemon.search); populated on first rebuild.
-    "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);",
+    # v2: derived full-text index (mnemon.search), filled from existing blocks.
+    "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);\n"
+    "INSERT INTO fts_blocks (rowid, text) SELECT b.rowid, (SELECT group_concat("
+    "CAST(s.bytes AS TEXT), '' ORDER BY s.seq) FROM segments s WHERE s.block_id = b.block_id)"
+    " FROM blocks b;",
 ]
 
 _DENIED_ACTIONS = frozenset(
