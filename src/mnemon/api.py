@@ -13,10 +13,13 @@ import logging
 import anyio
 import httpx
 
+from . import ledger
+from .archive import ArchiveHandler
 from .capture import CaptureRecorder
 from .config import Settings
 from .errors import error_response
 from .sessions import SessionError, resolve_session
+from .store import Store
 
 log = logging.getLogger(__name__)
 
@@ -86,6 +89,8 @@ class Proxy:
             CaptureRecorder(settings.capture_dir) if settings.capture_dir else None
         )
         self.client: httpx.AsyncClient | None = None
+        self.store: Store | None = None
+        self.archive: ArchiveHandler | None = None
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] == "lifespan":
@@ -98,9 +103,20 @@ class Proxy:
             message = await receive()
             if message["type"] == "lifespan.startup":
                 self.client = httpx.AsyncClient(timeout=None)
+                if self.settings.db_path is not None:
+                    self.store = Store.open(self.settings.db_path, self.settings.synchronous)
+                    abandoned = await self.store.write(ledger.recover)
+                    if abandoned:
+                        log.warning("marked %d interrupted attempt(s) abandoned", abandoned)
+                    self.archive = ArchiveHandler(
+                        self.store, self.client, self.upstream_base,
+                        lambda headers: _filter_headers(headers, drop=_REQUEST_ONLY),
+                    )
                 await send({"type": "lifespan.startup.complete"})
             elif message["type"] == "lifespan.shutdown":
                 await self.client.aclose()
+                if self.store is not None:
+                    self.store.close()
                 await send({"type": "lifespan.shutdown.complete"})
                 return
 
@@ -137,10 +153,31 @@ class Proxy:
                 tg.cancel_scope.cancel()
 
             tg.start_soon(cancel_on_disconnect)
-            await self._relay(
-                scope, receive, send, session, upstream_path, headers, bytes(body)
-            )
+            if self.archive is not None and scope["method"] == "POST":
+                await self._archive_route(
+                    scope, receive, send, session, path_session, api_path, headers, bytes(body)
+                )
+            else:
+                await self._relay(
+                    scope, receive, send, session, upstream_path, headers, bytes(body)
+                )
             tg.cancel_scope.cancel()
+
+    async def _archive_route(
+        self, scope, receive, send, session, path_session, api_path, headers, body
+    ) -> None:
+        if api_path != ledger.ENDPOINT_CHAT:
+            response = error_response(
+                api_path, 400, "unsupported_feature",
+                f"POST {api_path} is not supported in archive mode; run with "
+                "--passthrough to relay it unarchived.",
+            )
+            await response(scope, receive, send)
+            return
+        await self.archive(
+            scope, receive, send, session=session, api_path=api_path, headers=headers,
+            body=body, association="path" if path_session is not None else "header",
+        )
 
     async def _relay(
         self, scope, receive, send, session, upstream_path, headers, body

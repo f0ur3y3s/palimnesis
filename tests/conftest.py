@@ -35,6 +35,12 @@ def capturing_stack(tmp_path) -> Iterator[Stack]:
 
 
 @pytest.fixture
+def archive_stack(tmp_path) -> Iterator[Stack]:
+    with _stack(db_path=tmp_path / "archive.db") as s:
+        yield s
+
+
+@pytest.fixture
 def stack_with_broken_capture(tmp_path) -> Iterator[Stack]:
     """Capture directory path is occupied by a file, so every write fails."""
     blocker = tmp_path / "captures"

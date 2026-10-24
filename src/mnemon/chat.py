@@ -366,25 +366,33 @@ def _escape_surrogate(m: re.Match[str]) -> str:
 
 
 def render_upstream(
-    req: ChatRequest, insertions: Mapping[int, Sequence[dict[str, Any]]] | None = None
+    req: ChatRequest,
+    insertions: Mapping[int, Sequence[dict[str, Any]]] | None = None,
+    replacements: Mapping[int, dict[str, Any]] | None = None,
 ) -> bytes:
-    """The upstream body: ``req.raw`` unchanged when nothing is inserted.
+    """The upstream body: ``req.raw`` unchanged when nothing is spliced.
 
     ``insertions[i]`` are message objects placed before client message ``i``
-    (``i == len(req.messages)`` appends). The re-serialized body keeps the client's
-    top-level key order and every client message object as parsed; it is
-    JSON-equal to the client's body plus the insertions, not byte-equal."""
-    if not insertions or not any(insertions.values()):
+    (``i == len(req.messages)`` appends); ``replacements[i]`` substitutes client
+    message ``i``. The re-serialized body keeps the client's top-level key order
+    and every other client message object as parsed; it is JSON-equal to the
+    client's body with the splices applied, not byte-equal."""
+    insertions = insertions or {}
+    replacements = replacements or {}
+    if not any(insertions.values()) and not replacements:
         return req.raw
     n = len(req.messages)
     for i in insertions:
         if not 0 <= i <= n:
             raise ValueError(f"insertion index {i} outside 0..{n}")
+    for i in replacements:
+        if not 0 <= i < n:
+            raise ValueError(f"replacement index {i} outside 0..{n - 1}")
     messages: list[dict[str, Any]] = []
     for i in range(n + 1):
         messages.extend(insertions.get(i, ()))
         if i < n:
-            messages.append(req.messages[i].raw_object)
+            messages.append(replacements.get(i, req.messages[i].raw_object))
     doc: dict[str, Any] = {}
     for key in req.top_level_order:
         if key == "messages":

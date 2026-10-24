@@ -428,3 +428,22 @@ def test_unsupported_feature_rejected_with_field_path(case):
     assert e.value.field == field_path
 
 
+
+
+def test_replacements_substitute_client_messages_in_place():
+    body = LIVE_BODIES[2].read_bytes()
+    client = json.loads(body)
+    split = {"role": "assistant", "content": "text part", "reasoning_content": "reasoning "}
+
+    out = render_upstream(parse(body), {6: [HIDDEN_RESULT]}, replacements={2: split})
+
+    expected = dict(client)
+    expected["messages"] = client["messages"][:2] + [split] + client["messages"][3:] + [HIDDEN_RESULT]
+    assert json.loads(out) == expected
+
+
+def test_replacement_index_outside_the_client_messages_is_rejected():
+    req = parse(LIVE_BODIES[0].read_bytes())
+
+    with pytest.raises(ValueError):
+        render_upstream(req, replacements={len(req.messages): {"role": "user", "content": "x"}})

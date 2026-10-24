@@ -12,8 +12,9 @@ Matching rules:
 - Generated assistant occurrences match semantically, because the client
   re-serializes what it received. Text must be equal, with null, empty and
   absent content all equal to ``""``. Reasoning may be omitted, but if
-  present it must be equal. Tool calls must match by (id, name, arguments)
-  exactly.
+  present it must be equal. Tool calls must match by id and name exactly;
+  arguments match when the strings are equal or both parse to equal JSON
+  values (OpenCode resends ``JSON.stringify`` of the parsed arguments).
 - A changed system message before the first non-system message is a new
   context version (D10.5), not divergence. OpenCode embeds the date there.
 
@@ -31,6 +32,7 @@ omits an archived partial was never observed and is divergence.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from .chat import Message, content_sha256
@@ -102,6 +104,23 @@ def _block_text(message: Message, kind: str) -> str | None:
     return None
 
 
+def _same_arguments(sent: str, resent: str) -> bool:
+    if sent == resent:
+        return True
+    try:
+        return json.loads(sent) == json.loads(resent)
+    except ValueError:
+        return False
+
+
+def _same_calls(resent: tuple[dict, ...], archived: tuple[dict, ...]) -> bool:
+    return len(resent) == len(archived) and all(
+        r["id"] == a["id"] and r["name"] == a["name"]
+        and _same_arguments(a["arguments"], r["arguments"])
+        for r, a in zip(resent, archived)
+    )
+
+
 def _tool_calls(message: Message) -> tuple[dict, ...]:
     return tuple(
         {"id": b.tool_call_id, "name": b.name, "arguments": b.text}
@@ -134,7 +153,7 @@ def _matches_generated(message: Message, archived: Archived) -> str | None:
     reasoning = _block_text(message, "reasoning")
     if reasoning is not None and reasoning != archived.reasoning:
         return "assistant reasoning differs from what was generated"
-    if _tool_calls(message) != tuple(archived.tool_calls):
+    if not _same_calls(_tool_calls(message), tuple(archived.tool_calls)):
         return "assistant tool calls differ from what was generated"
     return None
 

@@ -113,7 +113,28 @@ def test_changed_reasoning_diverges_but_omitted_reasoning_does_not():
 def test_changed_tool_call_arguments_diverge():
     archive = _archive(SYS, U1, generated(tool_calls=[CALL]))
     a = json.loads(json.dumps(A1))
-    a["tool_calls"][0]["function"]["arguments"] = '{"path": "hello.py"}'
+    a["tool_calls"][0]["function"]["arguments"] = '{"path":"hello2.py"}'
+
+    result = reconcile(client(SYS, U1, a, T1), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_tool_arguments_reserialized_by_the_client_still_match():
+    # OpenCode parses streamed arguments and resends JSON.stringify output
+    # (eval/fixtures/opencode-2.1.4/live exchange 4 → request 5).
+    streamed = {"id": "call_1", "name": "write", "arguments": '{"path": "hello.py", "n": [1, 2]}'}
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[streamed]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = '{"path":"hello.py","n":[1,2]}'
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+def test_non_json_tool_arguments_must_match_exactly():
+    archive = _archive(SYS, U1, generated(tool_calls=[dict(CALL, arguments="not json")]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = "not  json"
 
     result = reconcile(client(SYS, U1, a, T1), archive)
 

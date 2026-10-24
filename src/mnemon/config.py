@@ -10,3 +10,6 @@ class Settings:
     upstream_base_url: str
     # Opt-in raw exchange capture (contains conversation bodies).
     capture_dir: Path | None = None
+    # Archive database. None means pure passthrough (no archiving).
+    db_path: Path | None = None
+    synchronous: str = "FULL"
