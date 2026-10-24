@@ -158,3 +158,23 @@ v1 keeps the plan's scope: one Strata instance. No upstream-profile abstraction 
 - **Measured behavior:** error shapes, output-limit clamping, cancellation and slot release, keepalive cadence, reasoning carryover.
 
 Rejected for v1: adding the profile seam during Phase 2. It is cheap but outside the v1 scope, and the user chose to defer it.
+
+## D16 — Stub, chunk and catalog details (Phase 2 slices 6, 8, 11)
+
+Choices made while implementing `mnemon.stubs`, `mnemon.catalog` and `mnemon.affordances` that the plan left open.
+
+1. **Stub s1 layout.**
+   - A header, a head preview and a tail preview cut at safe character boundaries (snapped to whole lines when a line break falls inside a preview), then the closing hint `[archived exactly; not shown]`.
+   - Text that fits within both preview caps is shown whole with no marker; empty text gets the header alone.
+   - Reasoning stubs use 64/32-token caps.
+2. **Arm D of the Phase 3 matrix gets its own format.** The matrix describes arm D's stub as "alias and size only", but s1 has previews. Arm D will use a header-only format `s0`, registered before Phase 3 runs. s1 is unchanged.
+3. **Chunks.**
+   - `sha256` covers the whole text, not the chunk.
+   - Offsets count code points.
+   - If not even one whole character fits the budget, the cut falls mid-character. The result is still exact on reassembly but is flagged; `ValueError` if not one code point fits.
+4. **Catalog cursors.**
+   - A cursor must sit on a page boundary, match the page size and belong to the branch.
+   - Pages read at most p+1 rows through the `(branch_id, seq)` index.
+   - `page(k)` relies on per-branch seqs being dense from 1 and raises if that breaks.
+   - "Superseded" covers replaced context versions as well as `partial_superseded` partials.
+5. **Masking must pay.** Texts within the preview caps (about 65–288 tokens) produce stubs no smaller than the original. The watermark logic stubs an item only when the stub is smaller.
