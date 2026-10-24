@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+
 import httpx
 
 from mnemon.capture import load_exchanges
@@ -99,3 +101,30 @@ def test_capture_failure_never_breaks_the_relayed_response(stack_with_broken_cap
 
     assert r.status_code == 200
     assert body == b"".join(SSE)
+
+
+def test_nothing_is_written_to_disk_without_a_capture_dir(stack, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    stack.upstream.respond_sse(SSE)
+
+    with httpx.stream("POST", f"{stack.proxy_url}/s/sess-1/v1/chat/completions", content=b"{}") as r:
+        r.read()
+
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_response_write_failure_never_breaks_the_relayed_response(capturing_stack):
+    s = capturing_stack
+    s.upstream.respond_sse([b"data: 1\n\n", (0.5, b"data: 2\n\n"), b"data: [DONE]\n\n"])
+
+    with httpx.stream("POST", f"{s.proxy_url}/s/sess-1/v1/chat/completions", content=b"{}") as r:
+        chunks = r.iter_raw()
+        first = next(chunks)
+        # Replace the exchange folder with a file so the response write fails.
+        [folder] = (s.settings.capture_dir / "sess-1").iterdir()
+        shutil.rmtree(folder)
+        folder.write_text("blocker")
+        rest = b"".join(chunks)
+
+    assert r.status_code == 200
+    assert first + rest == b"data: 1\n\ndata: 2\n\ndata: [DONE]\n\n"

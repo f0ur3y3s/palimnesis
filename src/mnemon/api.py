@@ -105,6 +105,11 @@ class Proxy:
                 return
 
     async def _http(self, scope, receive, send) -> None:
+        if self.client is None:
+            raise RuntimeError(
+                "Proxy has no upstream client: run it under a server with ASGI "
+                "lifespan enabled (see mnemon.server.uvicorn_config)."
+            )
         raw_path = scope.get("raw_path") or scope["path"].encode("latin-1")
         path_session, upstream_path = split_session_prefix(raw_path)
         api_path = upstream_path.decode("latin-1")

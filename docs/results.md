@@ -62,3 +62,16 @@ Carried into Phase 1:
 - Add a test that no capture is written without `--capture-dir`, and cover capture fail-open on the response-write path.
 - `Proxy` assumes lifespan startup created the HTTP client; fail clearly if it runs without lifespan.
 - Measured cancellation-to-slot-release through the proxy against live Strata (direct numbers: `docs/probes/strata.md` §9).
+
+## R5 — Cancellation to slot release through the proxy, live Strata (Phase 1 carry-over, 2026-10-24)
+
+`MNEMON_PROXY=http://127.0.0.1:9078 python eval/probes/p09_cancel.py <mode> <ms> <n>` against `mnemon serve` (post-`phase-0` working tree) and Strata 0.1.48, `n_ctx` 65536, no queue at cancel. Only the cancelled request goes through the proxy; `/status` polling and the follow-up go direct. Records are appended to `eval/probes/fixtures/cancel_trials.jsonl` with `via_proxy`.
+
+| Mode | Cancel after | Release via proxy (s) | Direct, `strata.md` §9 (s) |
+| --- | --- | --- | --- |
+| Decode, stream | 2 s | 0.156, 0.094 | 0.047–0.079 |
+| Decode, non-stream (client leaves before response headers) | 2 s | 0.469, 0.281 | 0.23–0.50 |
+| Prefill, stream (~19.9K tokens) | 3 s | 14.27 | 5.9–15.0 |
+| Prefill, non-stream (~20.0K tokens) | 3 s | 12.72 | 10.6–10.8 |
+
+The proxy adds at most about 0.1 s to slot release. Non-streaming cancellation, the Phase 0 review's finding #1, frees the slot live. Prefill release is still bounded by Strata's 8192-token chunk boundary, not by the proxy. n = 1–2 per mode: indicative, not a distribution.

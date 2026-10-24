@@ -10,11 +10,15 @@ tiny_ttfb_s includes that request and only release_s is meaningful (queued_at_ca
 Modes: prefill-stream, decode-stream, prefill-nonstream, decode-nonstream.
 Usage: python p09_cancel.py <mode> <cancel_after_ms> [trials]   or   python p09_cancel.py baseline [n]
 Appends results to fixtures/cancel_trials.jsonl.
+
+Set MNEMON_PROXY=http://127.0.0.1:<port> to send the cancelled request through a Mnemon proxy
+(session "cancel-probe"); /status polling and the tiny follow-up still go to Strata directly.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import socket
 import sys
 import time
@@ -27,6 +31,7 @@ from strata_common import BASE, FIXTURES, MODEL, filler, recent_requests, save_b
 U = urlparse(BASE)
 HOST, PORT = U.hostname, U.port or 80
 LOG = FIXTURES / "cancel_trials.jsonl"
+PROXY = os.environ.get("MNEMON_PROXY")
 PREFILL_WORDS = 9000  # ~20K tokens per count_tokens
 
 
@@ -41,10 +46,14 @@ def body_for(mode: str, seed: int) -> dict:
                                                      "by single spaces, no other text."}]}
 
 
-def raw_post(path: str, body: dict) -> socket.socket:
+def raw_post(path: str, body: dict, via_proxy: bool = False) -> socket.socket:
     data = json.dumps(body).encode()
-    s = socket.create_connection((HOST, PORT), timeout=600)
-    s.sendall((f"POST {path} HTTP/1.1\r\nHost: {HOST}:{PORT}\r\nContent-Type: application/json\r\n"
+    host, port = HOST, PORT
+    if via_proxy and PROXY:
+        p = urlparse(PROXY)
+        host, port, path = p.hostname, p.port or 80, "/s/cancel-probe" + path
+    s = socket.create_connection((host, port), timeout=600)
+    s.sendall((f"POST {path} HTTP/1.1\r\nHost: {host}:{port}\r\nContent-Type: application/json\r\n"
                f"Content-Length: {len(data)}\r\nConnection: close\r\n\r\n").encode() + data)
     return s
 
@@ -92,7 +101,7 @@ def wait_until(pred, timeout: float, poll: float = 0.025):
 
 def trial(mode: str, cancel_ms: int, seed: int) -> dict:
     body = body_for(mode, seed)
-    s = raw_post("/v1/chat/completions", body)
+    s = raw_post("/v1/chat/completions", body, via_proxy=True)
     s.settimeout(0.2)
     t_send = time.monotonic()
     received = bytearray()
@@ -146,7 +155,7 @@ def trial(mode: str, cancel_ms: int, seed: int) -> dict:
     queued = st_before.get("queued", 0)
     ttfb, total, timings = tiny_ttfb()
     ttfb_from_close = time.monotonic() - t_close - (total - ttfb)
-    rec = {"mode": mode, "cancel_after_ms": cancel_ms, "seed": seed, "queue_wait_s": round(t_active - t_send, 2),
+    rec = {"mode": mode, "via_proxy": PROXY, "cancel_after_ms": cancel_ms, "seed": seed, "queue_wait_s": round(t_active - t_send, 2),
            "state_at_cancel": {k: st_before.get(k) for k in ("phase", "prompt_tokens", "generated", "queued")},
            "bytes_received": len(received), "arrivals_s_bytes": arrivals, "first_byte_s": first_byte_s and round(first_byte_s, 3),
            "received_head": bytes(received[:600]).decode("utf-8", "replace"),

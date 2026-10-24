@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 
 import httpx
@@ -279,3 +280,32 @@ def test_repeated_session_headers_that_disagree_are_rejected(stack):
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "session_mismatch"
     assert stack.upstream.requests == []
+
+
+async def test_proxy_refuses_requests_without_lifespan_startup():
+    from mnemon.api import create_app
+    from mnemon.config import Settings
+
+    app = create_app(Settings(upstream_base_url="http://127.0.0.1:1"))
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/s/sess-1/v1/models",
+        "raw_path": b"/s/sess-1/v1/models",
+        "query_string": b"",
+        "headers": [],
+    }
+
+    messages = [{"type": "http.request", "body": b"", "more_body": False}]
+
+    async def receive():
+        # Like a server: the body, then block until the client leaves.
+        if messages:
+            return messages.pop()
+        await asyncio.Event().wait()
+
+    async def send(message):
+        pass
+
+    with pytest.raises(RuntimeError, match="lifespan"):
+        await app(scope, receive, send)
