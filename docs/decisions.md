@@ -117,4 +117,10 @@ From the independent review (REJECT, 7 confirmed findings) and the live archive 
     - Migration 2 backfills the full-text index from existing blocks.
     - `--capture-dir` requires `--passthrough` instead of being silently ignored in archive mode.
 
+Follow-ups from the re-review, fixed:
+- Alignment prefers a complete answer that follows a cancelled partial over reading the client message as that partial flattened.
+- `partial_superseded` is recorded once per partial.
+
+**Carried to Phase 3:** internal occurrences that belong to a superseded (cancelled) attempt must not be spliced into the upstream body. Phase 1 creates no internal occurrences.
+
 Not changed: an FTS rowid can shift under `VACUUM`. Mnemon never runs `VACUUM`, and `search.rebuild` restores the index if a user does.

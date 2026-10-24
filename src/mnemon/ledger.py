@@ -489,7 +489,11 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
         _event(conn, request_id, None, "partial_acknowledged",
                occ_id=outcome.aligned[index], extent=extent)
     for occ_id in outcome.superseded:
-        _event(conn, request_id, None, "partial_superseded", occ_id=occ_id)
+        already = conn.execute(
+            "SELECT 1 FROM events WHERE kind = 'partial_superseded'"
+            " AND json_extract(payload, '$.occ_id') = ?", (occ_id,)).fetchone()
+        if not already:
+            _event(conn, request_id, None, "partial_superseded", occ_id=occ_id)
     last_user = max((i for i, m in enumerate(req.messages) if m.role == "user"), default=-1)
     for offset, message in enumerate(new):
         index = outcome.matched + offset

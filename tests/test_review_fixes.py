@@ -200,3 +200,20 @@ def test_v1_archive_migrates_and_indexes_existing_blocks(tmp_path):
         s.close()
 
     assert found == ["legacy wording"]
+
+
+def test_a_cancelled_partial_is_superseded_once_across_later_turns(lc):
+    lc.upstream.respond_sse([chunk({"role": "assistant", "content": "", "reasoning_content": "hm"})]
+                            + [(0.05, chunk({"reasoning_content": "m"}))] * 100)
+    with httpx.stream("POST", lc.url(SID), content=body([user("q")]), timeout=30) as r:
+        next(r.iter_raw())
+    assert eventually(lambda: len(lc.events("cancelled")) == 1)
+
+    for turn in range(2):
+        lc.upstream.respond_sse(answer(f"A{turn}"))
+        msgs = [user("q"), user("again")] + ([{"role": "assistant", "content": "A0"}, user("more")]
+                                              if turn else [])
+        r = lc.post(SID, body(msgs))
+        assert r.status_code == 200, r.content[:300]
+
+    assert len(lc.events("partial_superseded")) == 1

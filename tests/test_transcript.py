@@ -365,3 +365,18 @@ def test_answer_from_a_retry_after_a_cancelled_partial_aligns_past_the_partial()
     assert isinstance(result, Extend) and result.matched == 3
     assert result.superseded == ("occ-cancelled",)
     assert result.aligned[-1] == "occ-gen"
+
+
+def test_retry_answer_that_prefixes_the_cancelled_text_binds_to_the_answer_not_the_partial():
+    # Review re-check: greedy alignment matched "OK" as a flattened partial of
+    # the cancelled "OK, so the answer" and then diverged on the next turn.
+    cancelled = Archived.generated("occ-p", text="OK, so the answer", reasoning="",
+                                   tool_calls=(), complete=False, cancelled=True)
+    answer = Archived.generated("occ-a", text="OK", reasoning="", tool_calls=(), complete=True)
+    archive = _archive(U1, cancelled, answer)
+
+    result = reconcile(client(U1, {"role": "assistant", "content": "OK"}, U2), archive)
+
+    assert isinstance(result, Extend) and result.matched == 2
+    assert result.aligned[1:] == ("occ-a",)
+    assert result.superseded == ("occ-p",) and result.partials == ()

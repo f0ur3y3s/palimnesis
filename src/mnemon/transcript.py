@@ -201,6 +201,15 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
         leading_system = leading_system and message.role == "system" and past.role == "system"
         unfinished = past.source == "generated" and (not past.complete or not past.delivered)
         if unfinished:
+            following = visible[j + 1] if j + 1 < len(visible) else None
+            if (past.cancelled and not past.complete and following is not None
+                    and following.source == "generated" and following.complete
+                    and _mismatch(message, following) is None):
+                # The client holds the complete answer that followed the cancel;
+                # prefer it over reading the message as a flattened partial.
+                superseded.append(past.occ_id)
+                j += 1
+                continue
             if message.role != "assistant":
                 if past.cancelled and not past.complete:
                     superseded.append(past.occ_id)
