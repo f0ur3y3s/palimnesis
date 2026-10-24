@@ -74,3 +74,16 @@ Resolved from `docs/plans/phase1.md` §Decisions. The user chose items 1–3 and
 15. **Lone surrogates:** stored as WTF-8 with an encoding tag.
 16. **Input-commit failure:** `503 archive_unavailable`, `retry-after: 2`, retry allowed because nothing was accepted.
 17. **Fingerprint parent:** the full visible message list stands for the visible parent. The parent occurrence ID is stored on the binding.
+
+## D11 — Chat Completions parsing is allowlist-strict (Phase 1 slice 3)
+
+`mnemon.chat` rejects whatever falls outside the declared subset, at every level. Rejection happens before acceptance, so nothing is archived or silently dropped (contracts §3).
+
+- **Unknown keys** are rejected per message role (e.g. `user.name`, `reasoning_content` on a non-assistant message), inside each tool call, inside its `function`, and inside each `tools[i].function` (allowed: name, description, parameters, strict).
+- **Content.** System, user and tool messages need string content; only assistant content may be null or absent. A tool message needs a string `tool_call_id`.
+- **Types and counts.** An empty `messages` array is `InvalidBody`. `stream` must be a bool and `stream_options` an object. `n` is off the allowlist, so even `n: 1` is rejected.
+- **Block order.** Assistant blocks are always reasoning, then text, then tool calls. The envelope keeps the client's key order for verbatim re-emission.
+- **Hashing.** `content_sha256` covers role and blocks only, so key order and null-versus-absent content don't change it.
+- **Error paths.** For duplicate keys and NaN/Infinity, the error names the path of the first occurrence in document order.
+
+Loosening any of these is a capability change: add a test and a `capabilities.md` row.
