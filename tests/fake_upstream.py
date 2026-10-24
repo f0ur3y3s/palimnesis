@@ -3,16 +3,37 @@
 Tests queue responses with ``respond_json``/``respond_sse`` and then inspect
 ``requests`` (what the upstream actually received) and ``closed_streams``
 (streams the upstream saw terminate early because the reader went away).
+
+``GET /props`` is static: it answers from the recorded Strata ``props.json`` with the
+mutable ``props_*`` attributes applied, never consumes the response script and is
+counted in ``props_requests`` rather than ``requests``. When ``count_tokens_handler``
+is set, ``POST /v1/messages/count_tokens`` is answered by it (parsed body in, input
+token count out) and recorded in ``count_tokens_requests``; otherwise that route is
+scripted like any other.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, StreamingResponse
+
+
+_PROBES = Path(__file__).resolve().parents[1] / "eval" / "probes" / "fixtures"
+
+
+def _recorded_props() -> dict:
+    return json.loads((_PROBES / "props.json").read_text(encoding="utf-8"))
+
+
+def _recorded_template() -> str:
+    return (_PROBES / "strata_chat_template.jinja").read_bytes().decode("utf-8")
 
 
 @dataclass
@@ -44,6 +65,16 @@ class FakeUpstream:
     abandoned: list[str] = field(default_factory=list)
     _script: list[_Scripted] = field(default_factory=list)
     _lock: threading.Lock = field(default_factory=threading.Lock)
+    # Static GET /props (not scripted).
+    props_n_ctx: int = 65536
+    props_build_info: str = "Strata 0.1.48"
+    props_chat_template: str = field(default_factory=_recorded_template)
+    props_status: int = 200
+    props_delay: float = 0.0
+    props_requests: int = 0
+    # Optional POST /v1/messages/count_tokens handler: parsed body -> input_tokens.
+    count_tokens_handler: Callable[[dict], int] | None = None
+    count_tokens_requests: list[dict] = field(default_factory=list)
 
     def respond_json(
         self,
@@ -89,6 +120,21 @@ class FakeUpstream:
         )
         async def handle(path: str, request: Request) -> Response:
             body = await request.body()
+            if request.method == "GET" and request.url.path == "/props":
+                return await self._props()
+            handler = self.count_tokens_handler
+            if (
+                handler is not None
+                and request.method == "POST"
+                and request.url.path == "/v1/messages/count_tokens"
+            ):
+                parsed = json.loads(body)
+                with self._lock:
+                    self.count_tokens_requests.append(parsed)
+                return Response(
+                    json.dumps({"input_tokens": handler(parsed)}).encode(),
+                    media_type="application/json",
+                )
             with self._lock:
                 self.requests.append(
                     ReceivedRequest(
@@ -121,6 +167,26 @@ class FakeUpstream:
             )
 
         return app
+
+    async def _props(self) -> Response:
+        with self._lock:
+            self.props_requests += 1
+        if self.props_delay:
+            await asyncio.sleep(self.props_delay)
+        if self.props_status != 200:
+            return Response(
+                b'{"error":{"type":"server_error","message":"fake props failure"}}',
+                status_code=self.props_status,
+                media_type="application/json",
+            )
+        props = _recorded_props()
+        props["default_generation_settings"]["n_ctx"] = self.props_n_ctx
+        props["build_info"] = self.props_build_info
+        props["chat_template"] = self.props_chat_template
+        return Response(
+            json.dumps(props, ensure_ascii=False).encode("utf-8"),
+            media_type="application/json",
+        )
 
     async def _work(self, request: Request, delay: float) -> bool:
         """Sleep ``delay``; False (and recorded) if the client left meanwhile."""

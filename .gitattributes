@@ -7,3 +7,6 @@ eval/probes/fixtures/** -text
 *.sse -text
 *.raw -text
 *.body -text
+
+# Vendored pins (template, tokenizer, manifest) are hashed byte-for-byte.
+src/mnemon/pins_data/** -text

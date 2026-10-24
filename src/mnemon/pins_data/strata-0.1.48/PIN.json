@@ -1,0 +1,32 @@
+{
+  "pin": "strata-0.1.48",
+  "build_info": "Strata 0.1.48",
+  "model_alias": "qwen3.8-flash-next-iq3_xxs",
+  "files": {
+    "chat_template.jinja": {
+      "sha256": "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce",
+      "source": "GET /props chat_template on the installed server (eval/probes/fixtures/strata_chat_template.jinja), identical before and after the 2026-10-24 restart"
+    },
+    "tokenizer.json": {
+      "sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+      "source": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next/resolve/de4b8e4d43b917e7706784d8bb445c9af86a3540/tokenizer.json",
+      "repo": "Qwen/Qwen3.8-Flash-Next",
+      "revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+      "size": 12809320
+    }
+  },
+  "render": {
+    "environment": "jinja2 ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True, extensions=[loopcontrols])",
+    "tojson": "json.dumps(ensure_ascii=False), no key sorting",
+    "add_generation_prompt": true,
+    "tokenize": "add_special_tokens=False over the rendered text"
+  },
+  "preprocessing": {
+    "tools": "each tool rendered bare: an OpenAI {type, function} tool renders as its function object with every key in order (name, description, parameters and extras such as strict; verified on the live OpenCode bodies); an Anthropic tool renders as {name, description, parameters=input_schema}",
+    "tool_call_arguments": "OpenAI string arguments are parsed as JSON to mappings before rendering (the template raises on non-empty string arguments)",
+    "reasoning": "assistant reasoning is passed as reasoning_content (OpenAI field; Anthropic thinking blocks); preserve_thinking is never passed, so every earlier assistant turn keeps its reasoning",
+    "consecutive_tool_messages": "left as separate tool messages; the template merges a run of tool messages into one user turn of <tool_response> blocks",
+    "effort": "reasoning_effort passed through (high maps to xhigh in the template); effort none means enable_thinking=false and no reasoning_effort",
+    "enable_thinking": "chat_template_kwargs.enable_thinking or Anthropic thinking.type=disabled; passed only when given"
+  }
+}
