@@ -20,13 +20,15 @@ What Mnemon claims, per endpoint and harness. Anything absent is unsupported and
 
 ## Endpoints
 
-| Client endpoint | Phase 0 | First rewritten | Notes |
+Modes: archive mode (`mnemon serve`, the default, with `--db`) archives and reconciles chat requests; `--passthrough` relays everything unchanged.
+
+| Client endpoint | `--passthrough` | Archive mode | Notes |
 | --- | --- | --- | --- |
-| `POST /v1/chat/completions` (stream) | passthrough | supported (Ph1) | first-harness path |
-| `POST /v1/chat/completions` (non-stream) | passthrough | supported (Ph1) | no first-harness traffic; fake-upstream fixtures only |
-| `POST /v1/messages` (+ `count_tokens`) | passthrough | planned (Ph4B) | upstream errors lack Anthropic's envelope; final `usage.input_tokens` is 1 |
-| `POST /v1/responses` | passthrough | rejected (until listed) | upstream is stateless |
-| `GET /v1/models`, `/props`, `/health` | passthrough | passthrough | metadata |
+| `POST /v1/chat/completions` (stream) | relayed | **supported (Ph1)** | first-harness path; live-verified with OpenCode |
+| `POST /v1/chat/completions` (non-stream) | relayed | **supported (Ph1)** | no first-harness traffic; fake-upstream tests only |
+| `POST /v1/messages` (+ `count_tokens`) | relayed | rejected, `unsupported_feature` (planned Ph4B) | upstream errors lack Anthropic's envelope; final `usage.input_tokens` is 1 |
+| `POST /v1/responses` and any other `POST` | relayed | rejected, `unsupported_feature` | upstream is stateless |
+| `GET`/`HEAD`/`OPTIONS` (`/v1/models`, `/props`, `/health`) | relayed | relayed | metadata |
 
 ## Harnesses
 
@@ -64,3 +66,19 @@ What Mnemon claims, per endpoint and harness. Anything absent is unsupported and
 | Undo, revert, fork, `/btw` | rejected (Ph1) | divergence error; no config switch exists |
 | Continue-after-partial resend | supported (Ph1) | rewritten streams end failures with an in-stream error event plus `x-should-retry: false`; when OpenCode still resends a flattened partial plus "Continue…", it is reconciled against the archived partial (D10.3) |
 | Streaming idempotent replay | planned (Ph8) | 409 recovery response until then |
+
+## Known limits of the Phase 1 archive
+
+These are the limits of the first usable release. They are rejected or documented, never silent.
+
+- **One serialized branch per session.**
+  - Edits, undo, revert, fork and rewind get `409 history_divergence`; start a new session.
+  - Concurrent requests get `409 session_busy` or `409 request_in_progress`.
+- **Interrupted turns are never resumed automatically.**
+  - After a crash or a failed stream, a resend that repeats an already-answered request gets `409 ambiguous_retry`.
+  - OpenCode's own resend of a flattened partial is accepted (D10.3).
+- **Idempotent replay** covers completed non-streaming results only. Repeated streaming keys get `409 streaming_replay_unsupported` (Ph8).
+- **No bounded view yet** (Ph2). The upstream receives the client's full history, and `n_ctx` limits are the harness's and upstream's own.
+- **Archive growth is unbounded.** There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.
+- **Durability.** Process crashes are tested; power-loss durability is not claimed (Ph8).
+- **Per-request cost grows with history.** Accept reloads the whole branch (R8: TTFB p50 rises from 8 to 16 ms over 50 turns).

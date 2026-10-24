@@ -27,8 +27,9 @@ The upstream silently clamps oversized output limits, so Mnemon enforces both it
 
 - **Passthrough** relays request and response bytes unchanged. It drops hop-by-hop headers, headers named in `Connection`, and `x-mnemon-*` headers, and adds none of its own. It relays every method (including `HEAD` and `OPTIONS`), the raw query string, repeated response headers, and the upstream's `Date` and `Server`, and streams SSE chunks as they arrive. A client disconnect at any stage (body read, waiting for upstream headers, streaming) closes the upstream request. **[enforced]**
 - **Unreachable upstream** (connect or transport failure before response headers) returns `502`, code `upstream_unreachable`, in the endpoint's error shape. In passthrough nothing is archived, so it carries `x-should-retry: true`. **[enforced]**
-- **Rewriting** accepts only requests inside `capabilities.md`. Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`. Fields are never dropped silently. **[defined, Ph1]**
-- **Upstream EOF** without the endpoint's terminal event (`[DONE]`, `message_stop`) is an upstream failure, never a successful stop. In passthrough the client sees the same abrupt close it would see directly. **[defined, Ph1]**
+- **Archive mode** (`--db`, the default) rewrites `POST /v1/chat/completions` only. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. **[enforced]**
+- **Rewriting** accepts only requests inside `capabilities.md` (allowlist rules in D11). Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`, and nothing is archived. Fields are never dropped silently. **[enforced]**
+- **Upstream EOF** without the endpoint's terminal event (`[DONE]`, `message_stop`) is an upstream failure, never a successful stop. On rewritten streams the finish chunk is held until `[DONE]`, so a stream cut short after it still ends in the error event. In passthrough the client sees the same abrupt close it would see directly. **[enforced]**
 - **Error shape.** Proxy-originated errors use the client endpoint's shape: OpenAI `{"error":{message,type,code,param}}`, Anthropic `{"type":"error","error":{type,message}}`. **[enforced]** Upstream errors are re-enveloped only on rewritten routes. **[defined, Ph3]**
 
 ## 4. Session identity
@@ -41,8 +42,14 @@ The upstream silently clamps oversized output limits, so Mnemon enforces both it
 All of the above are **[enforced]**.
 
 - IDs are routing keys, not secrets. The proxy binds to loopback by default; URLs and bodies stay out of operational logs.
-- Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[defined, Ph1]**
-- **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[defined, Ph1]**
+- Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Mnemon session]**
+- **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
+- **Reconciliation** (D10.3–D10.5, `mnemon.transcript`). Each resend is compared position by position with the archived visible history:
+  - Client messages match by content hash.
+  - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments.
+  - A changed system message before the first non-system message is a new context version, not a divergence.
+  - A flattened partial matches with its acknowledged extent.
+  **[enforced]**
 
 ## 5. Client timeouts and retries
 
@@ -51,27 +58,36 @@ Per-harness facts (header wait, read-idle, total deadline, retry triggers, behav
 - **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued. **[defined, Ph3]**
 - **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph3]**
 - **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. **[defined, Ph3]**
-- **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[defined, Ph1]**
-- **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Mnemon, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event before close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[defined, Ph1]**
+- **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[enforced]**
+- **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Mnemon, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
 
-Proxy-originated statuses, chosen so a harness never retries into a duplicate generation. **[enforced: identity rows; others verified against OpenCode 2.1.4, `docs/probes/opencode_faults.md`]**
+Proxy-originated statuses, chosen so a harness never retries into a duplicate generation. Statuses and `x-should-retry` behavior were verified against OpenCode 2.1.4 (`docs/probes/opencode_faults.md`).
 
-| Situation | Status | Headers |
-| --- | --- | --- |
-| Identity, unsupported feature, budget | 400 | `x-should-retry: false` |
-| Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) |
-| Matching request in progress | 409 | `x-should-retry: false` |
-| Matching completed request, response absent from resend | 409 | `x-should-retry: false`, code `ambiguous_retry` |
-| Upstream failure before response headers | 502 or 503 | `x-should-retry: false` once input is archived (`true` in passthrough) |
-| Deadline expired before first byte | 504 | `x-should-retry: false` |
-| Failure after stream start | endpoint's in-stream error event, then close | `x-should-retry: false` (sent with the 200) |
+| Situation | Status, code | Headers | |
+| --- | --- | --- | --- |
+| Identity | 400 `session_*`, `invalid_session_id` | `x-should-retry: false` | **[enforced]** |
+| Unsupported feature or invalid body | 400 `unsupported_feature`, `invalid_body` | `x-should-retry: false` | **[enforced]** |
+| Budget | 400 | `x-should-retry: false` | [defined, Ph2] |
+| Edited, truncated or forged history (D10.1) | 409 `history_divergence` | `x-should-retry: false` | **[enforced]** |
+| Different request while one is active (D10.2) | 409 `session_busy` | `x-should-retry: false` | **[enforced]** |
+| Matching request in progress | 409 `request_in_progress` | `x-should-retry: false` | **[enforced]** |
+| Matching request already answered (fully or partly), answer absent from resend | 409 `ambiguous_retry` | `x-should-retry: false` | **[enforced]** |
+| Idempotency key bound to another request | 409 `idempotency_conflict` | `x-should-retry: false` | **[enforced]** |
+| Repeated key for a completed stream | 409 `streaming_replay_unsupported` | `x-should-retry: false` | **[enforced]** until Ph8 |
+| Archive cannot commit the input (D10.16) | 503 `archive_unavailable` | `retry-after: 2`, `x-should-retry: true` | **[enforced]** |
+| Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
+| Upstream non-200 after acceptance | relayed status and body | `x-should-retry: false` | **[enforced]** |
+| Upstream unreachable in passthrough | 502 `upstream_unreachable` | `x-should-retry: true` | **[enforced]** |
+| Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) | [defined, Ph3] |
+| Deadline expired before first byte | 504 | `x-should-retry: false` | [defined, Ph3] |
+| Failure after stream start | endpoint's in-stream error event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
 
 ## 6. Idempotency and request fingerprints
 
-**[defined, Ph1]**
+**[enforced]** (`mnemon.fingerprint`, `mnemon.ledger`)
 
 - **Key.** An optional `Idempotency-Key` header, scoped to (session, branch) and bound atomically to a fingerprint before inference. None of the current harnesses send one.
-- **Fingerprint v1.** SHA-256 of canonical JSON over: endpoint, session, branch, visible parent, `model`, generation settings, `tools`, `tool_choice`, `parallel_tool_calls`, `response_format`, visible messages, and every other top-level field not listed as transport-only.
+- **Fingerprint v1.** SHA-256 of canonical JSON over: endpoint, session, branch, `model`, generation settings, `tools`, `tool_choice`, the full visible message list (which stands for the visible parent, D10.17), and every other top-level field not listed as transport-only. The parent occurrence ID is stored on the request row.
   - Transport-only fields: `stream`, `stream_options`, all HTTP headers, the key itself.
   - Canonical form: object keys sorted, arrays in order, strings exact (no Unicode normalization), numbers as parsed (`1` ≠ `1.0`).
 - **Delivery mode** (`stream`) is recorded with the binding. The same key with a different mode is a conflict.
@@ -80,7 +96,8 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 - **Streaming match** gets the 409 recovery response until Phase 8.
 - **Keyless requests** match on (session, visible parent, fingerprint):
   - Outstanding match: in-progress response.
-  - Completed match whose response is absent from the resend: ambiguous; recovery response.
+  - Match whose attempts produced no output: a new attempt on the same logical request (no new occurrences).
+  - Match that produced output, complete or partial, absent from the resend: `ambiguous_retry` (D10.12).
   - A new identical user occurrence extending a later visible parent is a new occurrence.
 
 ## 7. Request-wide generation and time limits
@@ -128,7 +145,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 11. Durability and isolation
 
-**[defined, Ph1]**
+**[enforced]** except recall provenance (Ph3). Process-crash recovery is tested at three crash points (`tests/test_crash_recovery.py`). Power-loss durability is not claimed until separately tested (Ph8).
 
 - SQLite runs with `journal_mode=WAL` and `synchronous=FULL`, both read back on every connection. `NORMAL` is an explicit, reported option and never carries the power-loss claim.
 - **Commit order.**
@@ -136,7 +153,8 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
   - Each bounded output batch commits, with its transcript mapping, before it is forwarded.
   - Turn-completion markers are separate, so a crash leaves an explicit incomplete turn.
 - No write transaction is held across inference. Blocking database work runs off the event loop.
-- Archive rows are immutable, enforced by database triggers. User-invoked deletion is the only exception.
+- Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
+- An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically.
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.
 
 ## 12. Capture
