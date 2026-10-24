@@ -124,3 +124,22 @@ Follow-ups from the re-review, fixed:
 **Carried to Phase 3:** internal occurrences that belong to a superseded (cancelled) attempt must not be spliced into the upstream body. Phase 1 creates no internal occurrences.
 
 Not changed: an FTS rowid can shift under `VACUUM`. Mnemon never runs `VACUUM`, and `search.rebuild` restores the index if a user does.
+
+## D14 — Phase 2 design decisions (user, 2026-10-24)
+
+From `docs/plans/phase2.md` §Decisions. The user chose items 1–3 and accepted the planner's recommendations for the rest.
+
+1. **Masking is overflow-triggered, before Phase 3 recall exists.** The view is always built and counted. The client body is forwarded byte-identical until the view would cross the high watermark. Past it, masking is deterministic and oldest-first with stubs and stable aliases, under hysteresis. `--view off` disables masking but keeps budgets. Masked detail beyond the stub previews is not model-recallable until Phase 3; this is a known limit.
+2. **Pins are vendored.** The Qwen `tokenizer.json` and the chat template live in `pins/strata-0.1.48/` with SHA-256s and are verified on load.
+3. **Input budget cap is 48K.** `input_budget = min(48000, n_ctx − R − M)`: 24,320 at 32K capacity, 48,000 at 64K.
+4. **Catalog and recall slots are reserved now:** P = min(1024, 5%·B_in) and Q = min(4096, 10%·B_in), rendered empty in Phase 2.
+5. **Stubs.** Addresses are `§ALIAS.N`. Stub format `s1` is versioned, and a format change is a recorded, one-time invalidation.
+6. **Watermarks:** H = 0.90, T = 0.50 of maskable capacity, with `min_recent` = 4,096 tokens. Revisit after `bench_view`.
+7. **Catalog pages:** p = 20 entries of at most c = 48 tokens each.
+8. **Cache accounting** lives in `events` rows. Token sequences are held in memory and re-rendered deterministically after a restart.
+9. **Pin mismatch or floor failure** puts the proxy in view-disabled mode: archive and forward as in Phase 1, with diagnostics.
+10. **Budget-rejected input** is rejected before acceptance; nothing is archived.
+11. **Generation reserve:** `R_req = min(client limit, 8192)`. The upstream limit is rewritten when it is absent or above the cap, so Strata's silent clamp never fires.
+12. **Masked reasoning** becomes a reasoning stub, a declared §9 view transform.
+13. **Collapsed spans** become one proxy-authored user-role note. The template forbids non-leading system messages.
+14. **Contracts §10 allowed causes** gain "view policy/format version change" and "capacity/budget change".
