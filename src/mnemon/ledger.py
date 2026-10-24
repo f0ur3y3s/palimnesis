@@ -26,7 +26,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import chat
+from . import chat, search
 from .addresses import issue_alias
 from .chat import ChatRequest, Message
 from .rawarchive import put_raw
@@ -217,6 +217,7 @@ def _insert_client_message(conn, session_id, branch_id, request_id, message: Mes
             meta = {"tool_call_id": block.tool_call_id}
         _insert_block(conn, occ_id, idx, block.kind, block.encoding, meta, block.to_bytes())
     issue_alias(conn, session_id, occ_id)
+    search.index_occurrence(conn, occ_id)
     return occ_id
 
 
@@ -518,6 +519,8 @@ def finish_attempt(conn: sqlite3.Connection, gen: Generation, kind: str, **paylo
         payload["occ_id"] = gen.occ_id
     _event(conn, plan.request_id, plan.attempt_id, kind, **payload)
     _set_active(conn, plan.branch_id, None)
+    if gen.occ_id is not None:
+        search.index_occurrence(conn, gen.occ_id)
     gen.finished = True
 
 

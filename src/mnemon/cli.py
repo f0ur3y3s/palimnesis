@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import os
 import secrets
 import sys
 from datetime import datetime
 from pathlib import Path
 
+from .config import Settings
 from .sessions import SessionError, resolve_session
 
 DEFAULT_HOST = "127.0.0.1"
@@ -21,14 +23,55 @@ def _print_urls(session: str, host: str, port: int) -> None:
     print(f"anthropic_base_url: {base}")
 
 
+def default_db_path() -> Path:
+    """Per-user archive location (D10.11): %LOCALAPPDATA% on Windows, XDG elsewhere."""
+    if sys.platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    return base / "mnemon" / "mnemon.db"
+
+
+def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
+    serve.add_argument("--upstream", required=True, help="upstream origin, e.g. http://host:8080")
+    serve.add_argument(
+        "--capture-dir", type=Path, help="opt-in raw exchange capture (stores conversation bodies)"
+    )
+    mode = serve.add_mutually_exclusive_group()
+    mode.add_argument("--db", type=Path, help=f"archive database (default: {default_db_path()})")
+    mode.add_argument("--passthrough", action="store_true",
+                      help="relay without archiving or rewriting")
+    serve.add_argument(
+        "--synchronous", choices=["FULL", "NORMAL"], default="FULL",
+        help="SQLite durability: FULL survives power loss; NORMAL only process crashes",
+    )
+
+
+def _settings(args: argparse.Namespace) -> Settings:
+    db_path = None if args.passthrough else (args.db or default_db_path())
+    return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
+                    db_path=db_path, synchronous=args.synchronous)
+
+
+def serve_settings(argv: list[str]) -> Settings:
+    """The Settings `mnemon serve` would run with for these arguments."""
+    parser = argparse.ArgumentParser(prog="mnemon serve")
+    _add_serve_arguments(parser)
+    return _settings(parser.parse_args(argv))
+
+
 def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
     from .api import create_app
-    from .config import Settings
     from .server import uvicorn_config
 
-    settings = Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir)
+    settings = _settings(args)
+    if settings.db_path is not None:
+        settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"archive: {settings.db_path} (synchronous={settings.synchronous})")
+    else:
+        print("passthrough: nothing is archived")
     uvicorn.Server(uvicorn_config(create_app(settings), host=args.host, port=args.port)).run()
     return 0
 
@@ -60,10 +103,7 @@ def main(argv: list[str] | None = None) -> int:
 
     serve = commands.add_parser("serve", help="run the proxy")
     address(serve)
-    serve.add_argument("--upstream", required=True, help="upstream origin, e.g. http://host:8080")
-    serve.add_argument(
-        "--capture-dir", type=Path, help="opt-in raw exchange capture (stores conversation bodies)"
-    )
+    _add_serve_arguments(serve)
     serve.set_defaults(run=_serve)
 
     session = commands.add_parser("session", help="session base URLs")

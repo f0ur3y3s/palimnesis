@@ -225,7 +225,11 @@ def _immutability_triggers() -> str:
     return "\n".join(statements)
 
 
-MIGRATIONS: list[str] = [_SCHEMA_V1 + _immutability_triggers()]
+MIGRATIONS: list[str] = [
+    _SCHEMA_V1 + _immutability_triggers(),
+    # v2: derived full-text index (mnemon.search); populated on first rebuild.
+    "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);",
+]
 
 _DENIED_ACTIONS = frozenset(
     {
