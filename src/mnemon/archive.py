@@ -74,6 +74,7 @@ class ArchiveHandler:
         self.forward_headers = forward_headers  # filtered client headers for upstream
         # Request IDs being relayed by this process (see ledger.accept).
         self.live: set[str] = set()
+        self.branches = ledger.BranchCache()
 
     async def __call__(self, scope, receive, send, *, session: str, api_path: str,
                        headers: list[tuple[bytes, bytes]], body: bytes, association: str) -> None:
@@ -96,7 +97,7 @@ class ArchiveHandler:
                 plan = await self.store.write(lambda c: ledger.accept(
                     c, session_id=session, association=association, req=req,
                     fingerprint=fingerprint, retry_hint=parse_retry_hint(str_headers),
-                    idem_key=idem_key, live=self.live))
+                    idem_key=idem_key, live=self.live, cache=self.branches))
         except ledger.Rejection as e:
             await error_response(api_path, e.status, e.code, e.message, retry=e.retry)(
                 scope, receive, send)

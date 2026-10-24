@@ -111,10 +111,17 @@ def _attempt_events(conn: sqlite3.Connection, generation_id: str) -> set[str]:
     }
 
 
-def _archived(conn: sqlite3.Connection, row) -> Archived:
-    occ_id, role, source, view, sha, generation_id, _envelope = row
+# Attempt events after which a generated turn's flags can no longer change.
+_SETTLED_EVENTS = frozenset({"cancelled", "attempt_failed", "attempt_abandoned",
+                             "delivery_completed", "delivery_failed"})
+_OCC_COLUMNS = "occ_id, role, source, view, content_sha256, generation_id, envelope, seq"
+
+
+def _archived(conn: sqlite3.Connection, row) -> tuple[Archived, bool]:
+    """(archived occurrence, settled): settled ones never change again."""
+    occ_id, role, source, view, sha, generation_id, _envelope = row[:7]
     if source != "generated":
-        return Archived(occ_id, role, source, view=view, content_sha256=sha)
+        return Archived(occ_id, role, source, view=view, content_sha256=sha), True
     text = reasoning = ""
     calls = []
     for kind, meta, content in _blocks(conn, occ_id):
@@ -125,26 +132,75 @@ def _archived(conn: sqlite3.Connection, row) -> Archived:
         elif kind == "tool_call":
             calls.append({"id": meta["id"], "name": meta["name"], "arguments": content})
     kinds = _attempt_events(conn, generation_id)
-    return Archived.generated(occ_id, text=text, reasoning=reasoning, tool_calls=tuple(calls),
-                              complete="turn_complete" in kinds, view=view,
-                              cancelled="cancelled" in kinds,
-                              delivered="delivery_completed" in kinds)
+    archived = Archived.generated(occ_id, text=text, reasoning=reasoning, tool_calls=tuple(calls),
+                                  complete="turn_complete" in kinds, view=view,
+                                  cancelled="cancelled" in kinds,
+                                  delivered="delivery_completed" in kinds)
+    return archived, bool(kinds & _SETTLED_EVENTS)
 
 
-def load_archived(conn: sqlite3.Connection, branch_id: str) -> list[Archived]:
+@dataclass
+class _Entry:
+    archived: Archived
+    supersedes: str | None
+    settled: bool
+    row: tuple
+
+
+class BranchCache:
+    """Per-process cache of each branch's archived occurrences.
+
+    The archive has one owning process (the store lock), and occurrences are
+    append-only, so a branch's cached rows stay valid. Each load fetches only
+    rows past the cached max ``seq`` and re-reads generated turns that are not
+    yet settled. Accept's database work is O(new rows), not O(history)
+    (results R8).
+    """
+
+    def __init__(self) -> None:
+        self._branches: dict[str, tuple[int, list[_Entry]]] = {}
+
+    def load(self, conn: sqlite3.Connection, branch_id: str) -> list[_Entry]:
+        max_seq, entries = self._branches.get(branch_id, (0, []))
+        current = conn.execute(
+            "SELECT coalesce(max(seq), 0) FROM occurrences WHERE branch_id = ?", (branch_id,)
+        ).fetchone()[0]
+        if current < max_seq:  # archive replaced underneath us: start over
+            max_seq, entries = 0, []
+        entries = [
+            e if e.settled else _entry(conn, conn.execute(
+                f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE occ_id = ?", (e.row[0],)
+            ).fetchone())
+            for e in entries
+        ]
+        if current > max_seq:
+            entries += [_entry(conn, row) for row in conn.execute(
+                f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE branch_id = ? AND seq > ?"
+                " ORDER BY seq", (branch_id, max_seq))]
+        self._branches[branch_id] = (current, entries)
+        return entries
+
+
+def _entry(conn: sqlite3.Connection, row) -> _Entry:
+    archived, settled = _archived(conn, row)
+    return _Entry(archived, json.loads(row[6]).get("supersedes"), settled, tuple(row))
+
+
+def load_archived(conn: sqlite3.Connection, branch_id: str,
+                  cache: BranchCache | None = None) -> list[Archived]:
     """The branch's occurrences in order, superseded context versions replaced."""
-    rows = conn.execute(
-        "SELECT occ_id, role, source, view, content_sha256, generation_id, envelope"
-        " FROM occurrences WHERE branch_id = ? ORDER BY seq",
-        (branch_id,),
-    ).fetchall()
+    if cache is not None:
+        entries = cache.load(conn, branch_id)
+    else:
+        entries = [_entry(conn, row) for row in conn.execute(
+            f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE branch_id = ? ORDER BY seq",
+            (branch_id,))]
     history: list[Archived] = []
     position: dict[str, int] = {}
-    for row in rows:
-        supersedes = json.loads(row[6]).get("supersedes")
-        archived = _archived(conn, row)
-        if supersedes in position:
-            index = position.pop(supersedes)
+    for entry in entries:
+        archived = entry.archived
+        if entry.supersedes in position:
+            index = position.pop(entry.supersedes)
             history[index] = archived
             position[archived.occ_id] = index
         else:
@@ -339,6 +395,7 @@ def accept(
     retry_hint: int | None,
     idem_key: str | None = None,
     live: set[str] | None = None,
+    cache: BranchCache | None = None,
 ) -> Plan:
     """Accept or reject a request. ``live`` is the set of request IDs this
     process is currently relaying; the archive has one owning process, so an
@@ -364,13 +421,13 @@ def accept(
                         "requests per session.")
 
     if idem_key is not None:
-        plan = _keyed(conn, session_id, branch_id, req, fingerprint, idem_key)
+        plan = _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache)
         if plan is not None:
             if live is not None and plan.replay is None:
                 live.add(plan.request_id)
             return plan
 
-    archived = load_archived(conn, branch_id)
+    archived = load_archived(conn, branch_id, cache)
     outcome = reconcile(req.messages, archived)
     if isinstance(outcome, Divergence):
         raise Rejection(
@@ -410,7 +467,7 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
                 _upstream_body(conn, req, archived, outcome), req.stream)
 
 
-def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key) -> Plan | None:
+def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) -> Plan | None:
     row = conn.execute(
         "SELECT request_id, fingerprint, stream FROM idempotency_bindings"
         " WHERE session_id = ? AND branch_id = ? AND key = ?",
@@ -438,7 +495,7 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key) -> Plan | No
     if _attempt_has_output(conn, request_id):
         raise Rejection(409, "ambiguous_retry",
                         "This keyed request produced partial output before failing.")
-    archived = load_archived(conn, branch_id)
+    archived = load_archived(conn, branch_id, cache)
     outcome = reconcile(req.messages, archived)
     if not isinstance(outcome, Prefix):
         raise Rejection(409, "idempotency_conflict",
