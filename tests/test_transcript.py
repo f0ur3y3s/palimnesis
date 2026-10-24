@@ -1,0 +1,171 @@
+"""Reconciling a client resend against the archived visible history (pure seam).
+
+Outcomes (docs/plans/phase1.md; D10.3-D10.6):
+- Extend(k, ...): client messages [0, k) match the archive; the rest are new.
+- Prefix(k): the client resent only the first k archived messages (a retry).
+- Divergence(index, reason): history was edited, truncated or forged.
+"""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from mnemon.chat import parse
+from mnemon.transcript import Archived, Divergence, Extend, Prefix, reconcile
+
+
+def client(*messages) -> tuple:
+    body = {"model": "m", "messages": list(messages)}
+    if messages[-1]["role"] == "assistant":  # parse() forbids a trailing assistant
+        body["messages"].append({"role": "user", "content": "__tail__"})
+        return parse(json.dumps(body).encode()).messages[:-1]
+    return parse(json.dumps(body).encode()).messages
+
+
+def archived_client(message) -> Archived:
+    return Archived.from_client(f"occ-{id(message)}", message)
+
+
+def generated(text="", reasoning="", tool_calls=(), complete=True) -> Archived:
+    return Archived.generated("occ-gen", text=text, reasoning=reasoning,
+                              tool_calls=tuple(tool_calls), complete=complete)
+
+
+SYS = {"role": "system", "content": "You are helpful. Today is 2026-10-24."}
+U1 = {"role": "user", "content": "write hello.py"}
+U2 = {"role": "user", "content": "now run it"}
+CALL = {"id": "call_1", "name": "write", "arguments": '{"path":"hello.py"}'}
+A1 = {"role": "assistant", "content": None, "reasoning_content": "I will write it.",
+      "tool_calls": [{"id": "call_1", "type": "function",
+                      "function": {"name": "write", "arguments": '{"path":"hello.py"}'}}]}
+T1 = {"role": "tool", "tool_call_id": "call_1", "content": "ok"}
+
+
+def _archive(*parts):
+    return [p if isinstance(p, Archived) else archived_client(client(p)[0]) for p in parts]
+
+
+def test_first_request_extends_an_empty_archive_from_zero():
+    msgs = client(SYS, U1)
+
+    assert reconcile(msgs, []) == Extend(0)
+
+
+def test_appended_turns_extend_the_archive():
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[CALL]))
+    msgs = client(SYS, U1, A1, T1)
+
+    assert reconcile(msgs, archive) == Extend(3)
+
+
+def test_generated_assistant_matches_when_client_omits_reasoning():
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[CALL]))
+    without_reasoning = {k: v for k, v in A1.items() if k != "reasoning_content"}
+
+    assert reconcile(client(SYS, U1, without_reasoning, T1), archive) == Extend(3)
+
+
+@pytest.mark.parametrize("content", [None, "", "absent"])
+def test_generated_empty_text_matches_null_empty_or_absent_content(content):
+    archive = _archive(SYS, U1, generated(tool_calls=[CALL]))
+    a = {k: v for k, v in A1.items() if k not in ("content", "reasoning_content")}
+    if content != "absent":
+        a["content"] = content
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+def test_resend_of_only_the_archived_prefix_is_a_retry_not_an_extension():
+    archive = _archive(SYS, U1, generated(text="done"))
+
+    assert reconcile(client(SYS, U1), archive) == Prefix(2)
+
+
+def test_edited_earlier_user_message_diverges_at_its_index():
+    archive = _archive(SYS, U1, generated(text="done"))
+    edited = {"role": "user", "content": "write hello2.py"}
+
+    result = reconcile(client(SYS, edited, {"role": "assistant", "content": "done"}, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 1
+
+
+def test_changed_generated_text_diverges():
+    archive = _archive(SYS, U1, generated(text="done"))
+    forged = {"role": "assistant", "content": "done!"}
+
+    result = reconcile(client(SYS, U1, forged, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_changed_reasoning_diverges_but_omitted_reasoning_does_not():
+    archive = _archive(SYS, U1, generated(text="done", reasoning="think"))
+    changed = {"role": "assistant", "content": "done", "reasoning_content": "thought"}
+
+    result = reconcile(client(SYS, U1, changed, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_changed_tool_call_arguments_diverge():
+    archive = _archive(SYS, U1, generated(tool_calls=[CALL]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = '{"path": "hello.py"}'
+
+    result = reconcile(client(SYS, U1, a, T1), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_assistant_message_mnemon_never_generated_diverges():
+    archive = _archive(SYS, U1, U2)  # archived as client-sent users only
+    result = reconcile(client(SYS, U1, {"role": "assistant", "content": "hi"}, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_truncated_history_with_a_new_user_message_diverges():
+    archive = _archive(SYS, U1, generated(text="done"), U2, generated(text="ran"))
+
+    result = reconcile(client(SYS, U1, {"role": "assistant", "content": "done"},
+                              {"role": "user", "content": "different"}), archive)
+
+    assert isinstance(result, Divergence) and result.index == 3
+
+
+def test_changed_leading_system_message_is_a_context_version_not_divergence():
+    archive = _archive(SYS, U1, generated(text="done"))
+    tomorrow = {"role": "system", "content": "You are helpful. Today is 2026-10-25."}
+
+    assert reconcile(client(tomorrow, U1, {"role": "assistant", "content": "done"}, U2), archive) == Extend(
+        3, context_changed=(0,)
+    )
+
+
+def test_changed_system_message_after_the_first_user_turn_diverges():
+    archive = _archive(SYS, U1, generated(text="done"), {"role": "system", "content": "note A"})
+
+    result = reconcile(client(SYS, U1, {"role": "assistant", "content": "done"},
+                              {"role": "system", "content": "note B"}, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 3
+
+
+def test_identical_user_text_twice_is_two_positions_not_a_match_shortcut():
+    archive = _archive(SYS, U1, generated(text="done"))
+    msgs = client(SYS, U1, {"role": "assistant", "content": "done"}, U1)
+
+    assert reconcile(msgs, archive) == Extend(3)
+
+
+def test_hidden_internal_occurrences_are_not_part_of_the_visible_history():
+    hidden_call = Archived.generated("occ-h", text="", reasoning="", tool_calls=(
+        {"id": "m1", "name": "mnemon_recall", "arguments": "{}"},), complete=True, view="internal")
+    hidden_result = Archived("occ-r", role="tool", source="internal_tool", view="internal",
+                             content_sha256="x")
+    archive = _archive(SYS, U1, hidden_call, hidden_result, generated(text="done"))
+
+    assert reconcile(client(SYS, U1, {"role": "assistant", "content": "done"}, U2), archive) == Extend(3)
