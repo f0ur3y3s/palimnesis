@@ -18,6 +18,8 @@ What Mnemon claims, per endpoint and harness. Anything absent is unsupported and
 | Tokenizer | `Qwen/Qwen3.8-Flash-Next` `tokenizer.json`; 19/19 exact against server | §4 |
 | `n_ctx` | read at runtime (observed 32768, then 65536) | §0 |
 
+Other backends, such as llama.cpp, are not supported in v1. `--passthrough` relays to any OpenAI-compatible server, but counting, budgets and cache accounting are Strata-specific. Multi-backend support is a v2 item (D15).
+
 ## Endpoints
 
 Modes: archive mode (`mnemon serve`, the default, with `--db`) archives and reconciles chat requests; `--passthrough` relays everything unchanged.

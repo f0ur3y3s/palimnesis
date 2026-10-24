@@ -143,3 +143,18 @@ From `docs/plans/phase2.md` §Decisions. The user chose items 1–3 and accepted
 12. **Masked reasoning** becomes a reasoning stub, a declared §9 view transform.
 13. **Collapsed spans** become one proxy-authored user-role note. The template forbids non-leading system messages.
 14. **Contracts §10 allowed causes** gain "view policy/format version change" and "capacity/budget change".
+
+## D15 — Other model backends (llama.cpp and others) are a v2 item (user, 2026-10-24)
+
+v1 keeps the plan's scope: one Strata instance. No upstream-profile abstraction is built in v1. `mnemon.pins`, `mnemon.upstream_facts` and the Phase 2 cache accounting stay Strata-specific.
+
+**What v1 already offers another OpenAI-compatible server:** `--passthrough` works against any OpenAI-compatible server. Archive mode's session routing, reconciliation, archive and SSE relay key off the Chat Completions protocol, not the backend.
+
+**What v2 needs for a new backend:** an upstream profile per backend and version, built from the profile's own probe suite (`eval/probes/` style), never from assumed defaults. It bundles:
+- **Pins:** the chat template, tokenizer and preprocessing rules for the served model.
+- **Facts reader:** context size, build and template identity. llama.cpp's `/props` is similar to Strata's, but each field needs verifying.
+- **Counting cross-check:** e.g. llama.cpp `/tokenize` in place of Strata's `count_tokens`.
+- **Cache-reuse model:** llama.cpp prefix reuse, not Strata's 6-checkpoint model. This feeds the expected-reuse estimates and the reuse classes.
+- **Measured behavior:** error shapes, output-limit clamping, cancellation and slot release, keepalive cadence, reasoning carryover.
+
+Rejected for v1: adding the profile seam during Phase 2. It is cheap but outside the v1 scope, and the user chose to defer it.
