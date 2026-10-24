@@ -169,3 +169,21 @@ def test_an_unexpected_view_failure_falls_back_to_the_unbounded_body(tmp_path, m
 
     assert r.status_code == 200
     assert fake.requests[-1].body == data
+
+
+def test_archived_reasoning_is_restored_when_the_client_omits_it(tmp_path):
+    reasoning_answer = (
+        b'data: {"choices":[{"index":0,"delta":{"reasoning_content":"I think 4."}}]}\n\n'
+        b'data: {"choices":[{"index":0,"delta":{"content":"4"},"finish_reason":"stop"}]}\n\n'
+        b"data: [DONE]\n\n")
+    with view_stack(tmp_path) as (fake, url, _):
+        first = [{"role": "user", "content": "2+2?"}]
+        fake.respond_sse([reasoning_answer])
+        post(url, body(first, max_completion_tokens=8192))
+        # The client resends the answer without its reasoning (contracts §9).
+        second = first + [{"role": "assistant", "content": "4"}, {"role": "user", "content": "and 3+3?"}]
+        fake.respond_sse([DONE])
+        assert post(url, body(second, max_completion_tokens=8192)).status_code == 200
+
+    sent = json.loads(fake.requests[-1].body)["messages"]
+    assert sent[1] == {"role": "assistant", "content": "4", "reasoning_content": "I think 4."}

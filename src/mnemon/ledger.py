@@ -402,6 +402,14 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
         split["reasoning_content"] = sent[:cut]
         split["content"] = sent[cut:extent] if (sent[cut:extent] or "tool_calls" not in split) else None
         replacements[index] = split
+    # Contracts §9: the pinned template renders reasoning for every earlier
+    # assistant turn, so archived reasoning the client omitted is restored.
+    for index, occ in enumerate(outcome.aligned):
+        past = by_id.get(occ)
+        original = req.messages[index].raw_object
+        if (index not in replacements and past is not None and past.source == "generated"
+                and past.reasoning and "reasoning_content" not in original):
+            replacements[index] = {**original, "reasoning_content": past.reasoning}
     body = chat.render_upstream(req, insertions, replacements)
 
     occs = list(outcome.aligned) + list(client_occs or [])
