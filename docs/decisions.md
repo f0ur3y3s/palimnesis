@@ -48,3 +48,29 @@ The Phase 0 protocol review found four fidelity bugs that all came from framewor
 - Starlette only watched for disconnect once a `StreamingResponse` started, so a client leaving before upstream headers kept Strata's single slot busy.
 
 `mnemon.api.Proxy` now handles the ASGI scope directly. It works on `raw_path`, `query_string` and the raw header list, builds an `httpx.Request` without client defaults, and runs a disconnect watcher in a task group for the whole relay. uvicorn runs with its own `Server` and `Date` headers off (`mnemon.server`), so the upstream's are relayed once. Paired p95 overhead dropped from 3.1–4.3 ms to 1.9–3.8 ms.
+
+## D10 — Phase 1 lifecycle and storage decisions (user, 2026-10-24)
+
+Resolved from `docs/plans/phase1.md` §Decisions. The user chose items 1–3 and 11 explicitly and accepted the planner's recommendations for the rest.
+
+1. **Divergence:** `409 history_divergence` with `x-should-retry: false`. The message gives the message index and says to start a new session. It includes no content.
+2. **Conflicting concurrent request:** `409 session_busy` with `x-should-retry: false`.
+3. **Continue-after-partial resend:** accepted as an extension. The flattened text maps back to the archived partial and the acknowledged extent is recorded. The upstream view renders reasoning and text split at that extent.
+4. **Resend omitting an incomplete partial:** accepted as a superseded partial. The partial stays archived and the next turn attaches to its parent. Final rule pending the slice-0 probe.
+5. **Leading system message changes** (OpenCode's date and `<env>`): recorded as an immutable context version, an allowed invalidation cause. Edits to user, assistant or tool history remain divergence.
+6. **First request with prior turns:** imported with `source=client_import`.
+7. **Raw delta format:** v1 (prefix plus suffix) and v2 (prefix, middle and suffix length) are both implemented. Adopt v2 only if it saves ≥ 25% raw bytes on the live replay plus a synthetic 200-turn replay.
+8. **Aliases:** stored, hash-derived Crockford base32, at least 6 characters, extended on collision, never reassigned. Blocks are `alias.N`.
+9. **Upstream body in Ph1:** the client's verbatim message objects with internal occurrences spliced in. Full re-render from the archive comes in Ph2.
+10. **Passthrough:** a global `--passthrough` flag only. In archive mode, `/v1/messages` and `/v1/responses` return `unsupported_feature`.
+11. **DB location:** `%LOCALAPPDATA%\mnemon\mnemon.db` (XDG data dir elsewhere), overridable with `--db`, plus a single-process lock file.
+12. **Incomplete turn after a crash:** marked abandoned on restart. Then:
+    - an identical resend with no committed output gets a new attempt;
+    - a Continue shape is accepted (3);
+    - anything else gets `409 ambiguous_retry`;
+    - there is no automatic resume.
+13. **Finish chunk without `[DONE]`:** the finish chunk is held. EOF before `[DONE]` produces an in-stream error event (contracts §3).
+14. **Top-level allowlist:** `temperature`, `top_p`, `seed`, `stop`, `presence_penalty`, `frequency_penalty`, `reasoning_effort` and `chat_template_kwargs.enable_thinking` are forwarded and fingerprinted. `developer` role and text-part arrays are rejected until a harness sends them.
+15. **Lone surrogates:** stored as WTF-8 with an encoding tag.
+16. **Input-commit failure:** `503 archive_unavailable`, `retry-after: 2`, retry allowed because nothing was accepted.
+17. **Fingerprint parent:** the full visible message list stands for the visible parent. The parent occurrence ID is stored on the binding.

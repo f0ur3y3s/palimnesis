@@ -62,5 +62,5 @@ What Mnemon claims, per endpoint and harness. Anything absent is unsupported and
 | `subagent` tool | must be denied | `harnesses.md` |
 | Native compaction | must be disabled | `compaction.auto: false` |
 | Undo, revert, fork, `/btw` | rejected (Ph1) | divergence error; no config switch exists |
-| Continue-after-partial retry | suppressed once streams are rewritten (Ph1) | in-stream error event plus `x-should-retry: false` (contracts §5, Ph1); a resend carrying a flattened partial is a divergence |
+| Continue-after-partial resend | supported (Ph1) | rewritten streams end failures with an in-stream error event plus `x-should-retry: false`; when OpenCode still resends a flattened partial plus "Continue…", it is reconciled against the archived partial (D10.3) |
 | Streaming idempotent replay | planned (Ph8) | 409 recovery response until then |
