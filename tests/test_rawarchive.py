@@ -62,8 +62,8 @@ async def test_consecutive_bodies_chain_as_deltas(store, tmp_path):
     second = await _put(store, b'{"messages":[1,2]}')
 
     assert _row(tmp_path / "archive.db", first) == (0, None, 0)
-    # v1 (prefix + suffix) is the default until the D10.7 benchmark.
-    assert _row(tmp_path / "archive.db", second) == (1, first, 1)
+    # v2 (prefix + middle + suffix length) is the default (D12).
+    assert _row(tmp_path / "archive.db", second) == (2, first, 1)
 
 
 async def test_chains_never_cross_sessions(store, tmp_path):
@@ -150,3 +150,4 @@ async def test_online_backup_copy_reconstructs(store, tmp_path):
         assert [await restored.read(lambda c, i=i: get_raw(c, i)) for i in ids] == bodies
     finally:
         restored.close()
+

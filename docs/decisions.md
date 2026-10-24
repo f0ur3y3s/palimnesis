@@ -87,3 +87,10 @@ Resolved from `docs/plans/phase1.md` §Decisions. The user chose items 1–3 and
 - **Error paths.** For duplicate keys and NaN/Infinity, the error names the path of the first occurrence in document order.
 
 Loosening any of these is a capability change: add a test and a `capabilities.md` row.
+
+## D12 — Tuning from the Phase 1 measurements (R6, R7 → R8)
+
+1. **v2 raw deltas are the default.** They meet D10.7's bar on both required replays: 68.6% smaller on the live chain, 56.3% / 58.0% on 200-request synthetic chains. The saving is the ~11 KB tools array that follows `messages` in OpenCode bodies. Existing v1 rows stay readable: the format is per row.
+2. **The stream relay flushes when its read queue drains**, not on a 25 ms age timer, still capped at 16 KiB per batch. On Windows the timer's 15.6 ms granularity made each paced token wait ~34 ms, while a FULL commit takes ~1 ms at p95. Paced tokens now commit and forward individually; bursts coalesce. Commit-before-forward is unchanged. Rejected: shortening the timer, because granularity makes any sub-16 ms age unreliable on Windows.
+3. **Consecutive parts of one block in a batch are merged into one segment row**, cutting segment rows ~16× on recorded-shape streams. Under paced decoding each token is still its own batch and segment; that is the price of commit-before-forward and is reported, not hidden.
+4. **`put_raw` reuses recently written or verified bodies** (64-entry cache, used only when the row's SHA-256 matches) instead of rebuilding the parent chain per insert.

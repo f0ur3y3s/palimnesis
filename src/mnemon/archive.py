@@ -6,9 +6,13 @@ Order of operations (contracts §3, §5, §11; D10):
 2. ``ledger.accept`` commits the raw body, request, new occurrences and the
    attempt, or rejects the request (409 divergence, busy, retry conflicts).
 3. Call the upstream with the reconstructed model view.
-4. Streaming: parse upstream SSE incrementally. Batch events (age, size or
-   terminal), commit each batch's generated content, then forward that
-   batch's original bytes. The finish chunk is held until ``[DONE]``. Any
+4. Streaming: parse upstream SSE incrementally. A batch is whatever has
+   arrived by the time the read queue drains (capped at ``BATCH_MAX_BYTES``):
+   paced decoding commits and forwards each event as it comes, bursts
+   coalesce. Commit each batch's generated content, then forward that
+   batch's original bytes. A fixed age timer was rejected: on Windows its
+   15.6 ms tick granularity added ~34 ms per token while a FULL commit takes
+   ~1 ms (results R7). The finish chunk is held until ``[DONE]``. Any
    failure after the 200 ends the body with an in-stream error event, and
    every streaming 200 carries ``x-should-retry: false``.
 5. Non-streaming: commit the generated turn and the prepared response, then
@@ -25,7 +29,6 @@ import json
 import logging
 import os
 import sqlite3
-import time
 
 import anyio
 import httpx
@@ -39,7 +42,6 @@ from .store import Store
 log = logging.getLogger(__name__)
 
 CRASH_EXIT_CODE = 77
-BATCH_MAX_AGE_S = 0.025
 BATCH_MAX_BYTES = 16 * 1024
 READ_QUEUE_CHUNKS = 64
 _EOF = object()
@@ -238,10 +240,9 @@ class ArchiveHandler:
         held: list = []  # the finish chunk and anything after it, until [DONE]
         state = {"finish": None, "usage": None, "done": False, "error": None}
         batches = {"n": 0}
-        started = None
 
         async def flush(terminal: bool = False) -> None:
-            nonlocal pending, started
+            nonlocal pending
             batch = pending + (held if terminal else [])
             parts = []
             for event in batch:
@@ -263,7 +264,7 @@ class ArchiveHandler:
             if data:
                 await send({"type": "http.response.body", "body": data, "more_body": True})
                 gen.forwarded += len(data)
-            pending, started = [], None
+            pending = []
             if terminal:
                 held.clear()
 
@@ -272,14 +273,9 @@ class ArchiveHandler:
             outcome = None
             try:
                 while outcome is None:
-                    timeout = None
-                    if pending:
-                        timeout = max(0.0, started + BATCH_MAX_AGE_S - time.monotonic())
-                    try:
-                        item = await asyncio.wait_for(queue.get(), timeout)
-                    except asyncio.TimeoutError:
+                    if pending and queue.empty():
                         await flush()
-                        continue
+                    item = await queue.get()
                     if item is _EOF:
                         outcome = "eof"
                         break
@@ -289,8 +285,6 @@ class ArchiveHandler:
                     for event in parser.feed(item):
                         self._observe(event, state)
                         (held if state["finish"] or held else pending).append(event)
-                        if started is None and not held:
-                            started = time.monotonic()
                         if state["done"]:
                             outcome = "done"
                         elif state["error"]:

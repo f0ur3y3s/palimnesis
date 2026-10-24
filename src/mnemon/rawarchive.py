@@ -10,14 +10,23 @@ yielding different bytes. Both functions run inside the caller's transaction.
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 import time
 
 from . import rawdelta
 from .rawdelta import Delta, DeltaError
 
-DEFAULT_VARIANT = rawdelta.PREFIX_SUFFIX
+# v2 adopted per D10.7 / D12: 68.6% smaller on the live replay, 56-58% on
+# 200-turn replays (results R6), because OpenCode's tools follow messages.
+DEFAULT_VARIANT = rawdelta.PREFIX_MIDDLE_SUFFIX
 DEFAULT_MAX_DEPTH = 32
+# Bodies recently written or verified, so put_raw need not rebuild the parent
+# chain per insert. A hit is used only if it matches the row's stored SHA-256.
+# (A rolled-back insert frees its raw_id, but any reuse goes through put_raw,
+# which overwrites the entry first; the check is defence in depth.)
+_RECENT_LIMIT = 64
+_recent: dict[tuple[str, int], bytes] = {}
 
 
 class RawArchiveError(Exception):
@@ -40,12 +49,12 @@ def put_raw(
     max_depth: int = DEFAULT_MAX_DEPTH,
 ) -> int:
     parent = conn.execute(
-        "SELECT raw_id, depth FROM raw_bodies WHERE session_id = ? AND branch_id = ?"
+        "SELECT raw_id, depth, sha256 FROM raw_bodies WHERE session_id = ? AND branch_id = ?"
         " ORDER BY raw_id DESC LIMIT 1",
         (session_id, branch_id),
     ).fetchone()
-    parent_id, parent_depth = parent if parent else (None, 0)
-    parent_body = get_raw(conn, parent_id) if parent_id is not None else None
+    parent_id, parent_depth, parent_sha = parent if parent else (None, 0, None)
+    parent_body = _cached_get(conn, parent_id, parent_sha) if parent_id is not None else None
     delta = rawdelta.choose(
         parent_body,
         body,
@@ -73,7 +82,26 @@ def put_raw(
             time.time(),
         ),
     )
+    _remember(conn, cursor.lastrowid, body)
     return cursor.lastrowid
+
+
+def _db_key(conn: sqlite3.Connection, raw_id: int) -> tuple[str, int]:
+    return (conn.execute("PRAGMA database_list").fetchone()[2], raw_id)
+
+
+def _remember(conn: sqlite3.Connection, raw_id: int, body: bytes) -> None:
+    _recent[_db_key(conn, raw_id)] = body
+    while len(_recent) > _RECENT_LIMIT:
+        _recent.pop(next(iter(_recent)))
+
+
+def _cached_get(conn: sqlite3.Connection, raw_id: int, sha256: bytes) -> bytes:
+    body = _recent.get(_db_key(conn, raw_id))
+    if body is None or hashlib.sha256(body).digest() != sha256:
+        body = get_raw(conn, raw_id)
+        _remember(conn, raw_id, body)
+    return body
 
 
 def get_raw(conn: sqlite3.Connection, raw_id: int) -> bytes:

@@ -501,13 +501,25 @@ def _ensure_occurrence(conn, gen: Generation) -> None:
     issue_alias(conn, plan.session_id, gen.occ_id)
 
 
+def _merge_runs(parts: list[tuple]) -> list[tuple]:
+    """Join consecutive parts of the same block so a batch writes one segment each."""
+    merged: list[tuple] = []
+    for kind, key, text, meta in parts:
+        if merged and merged[-1][1] == key and not (meta.get("id") or meta.get("name")):
+            k, _, prev, m = merged[-1]
+            merged[-1] = (k, key, prev + text, m)
+        else:
+            merged.append((kind, key, text, meta))
+    return merged
+
+
 def commit_batch(conn: sqlite3.Connection, gen: Generation, parts: list[tuple],
                  forwarded_before: int) -> None:
     """Archive one batch of generated parts before it is forwarded."""
     plan = gen.plan
     if parts:
         _ensure_occurrence(conn, gen)
-    for kind, key, text, meta in parts:
+    for kind, key, text, meta in _merge_runs(parts):
         block_id = gen.blocks.get(key)
         if block_id is None:
             if kind == "tool_call" and not (meta.get("id") and meta.get("name")):
