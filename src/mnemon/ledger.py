@@ -73,6 +73,8 @@ class Generation:
     forwarded: int = 0
     finished: bool = False
     delivered: bool = False
+    delivery_started: bool = False
+    progress_recorded: int = 0
 
 
 # --- reading -----------------------------------------------------------------
@@ -307,11 +309,20 @@ def accept(
     fingerprint: str,
     retry_hint: int | None,
     idem_key: str | None = None,
+    live: set[str] | None = None,
 ) -> Plan:
+    """Accept or reject a request. ``live`` is the set of request IDs this
+    process is currently relaying; the archive has one owning process, so an
+    active marker outside it is stale (its terminal event could not be
+    written) and is abandoned instead of blocking the session. On success the
+    planned request is added to ``live`` inside this transaction."""
     branch_id = ensure_session(conn, session_id, association)
     active = conn.execute(
         "SELECT active_request_id FROM branch_heads WHERE branch_id = ?", (branch_id,)
     ).fetchone()[0]
+    if active is not None and live is not None and active not in live:
+        _abandon(conn, branch_id, active, "stale")
+        active = None
     if active is not None:
         same = conn.execute(
             "SELECT fingerprint FROM requests WHERE request_id = ?", (active,)
@@ -326,6 +337,8 @@ def accept(
     if idem_key is not None:
         plan = _keyed(conn, session_id, branch_id, req, fingerprint, idem_key)
         if plan is not None:
+            if live is not None and plan.replay is None:
+                live.add(plan.request_id)
             return plan
 
     archived = load_archived(conn, branch_id)
@@ -337,9 +350,13 @@ def accept(
             f"({outcome.reason}). Start a new session to continue from edited history.",
         )
     if isinstance(outcome, Prefix):
-        return _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome)
-    return _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
-                   archived, outcome)
+        plan = _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome)
+    else:
+        plan = _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
+                       archived, outcome)
+    if live is not None:
+        live.add(plan.request_id)
+    return plan
 
 
 def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Prefix) -> Plan:
@@ -506,10 +523,14 @@ def commit_batch(conn: sqlite3.Connection, gen: Generation, parts: list[tuple],
             conn.execute("INSERT INTO segments VALUES (?, ?, ?)",
                          (block_id, seq, text.encode("utf-8", "surrogatepass")))
             gen.next_segment[block_id] = seq + 1
-    if forwarded_before != gen.forwarded or forwarded_before == 0:
-        _event(conn, plan.request_id, plan.attempt_id,
-               "delivery_started" if forwarded_before == 0 else "delivery_progress",
+    # Each batch commit also records how far delivery got before it.
+    if not gen.delivery_started:
+        _event(conn, plan.request_id, plan.attempt_id, "delivery_started", bytes_forwarded=0)
+        gen.delivery_started = True
+    elif forwarded_before > gen.progress_recorded:
+        _event(conn, plan.request_id, plan.attempt_id, "delivery_progress",
                bytes_forwarded=forwarded_before)
+        gen.progress_recorded = forwarded_before
 
 
 def finish_attempt(conn: sqlite3.Connection, gen: Generation, kind: str, **payload) -> None:
@@ -542,11 +563,14 @@ def recover(conn: sqlite3.Connection) -> int:
         "SELECT branch_id, active_request_id FROM branch_heads WHERE active_request_id IS NOT NULL"
     ).fetchall()
     for branch_id, request_id in stale:
-        attempt = conn.execute(
-            "SELECT attempt_id FROM attempts WHERE request_id = ? ORDER BY n DESC LIMIT 1",
-            (request_id,),
-        ).fetchone()
-        _event(conn, request_id, attempt[0] if attempt else None, "attempt_abandoned",
-               reason="restart")
-        _set_active(conn, branch_id, None)
+        _abandon(conn, branch_id, request_id, "restart")
     return len(stale)
+
+
+def _abandon(conn, branch_id: str, request_id: str, reason: str) -> None:
+    attempt = conn.execute(
+        "SELECT attempt_id FROM attempts WHERE request_id = ? ORDER BY n DESC LIMIT 1",
+        (request_id,),
+    ).fetchone()
+    _event(conn, request_id, attempt[0] if attempt else None, "attempt_abandoned", reason=reason)
+    _set_active(conn, branch_id, None)

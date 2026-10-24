@@ -68,6 +68,8 @@ class ArchiveHandler:
         self.client = client
         self.upstream_base = upstream_base
         self.forward_headers = forward_headers  # filtered client headers for upstream
+        # Request IDs being relayed by this process (see ledger.accept).
+        self.live: set[str] = set()
 
     async def __call__(self, scope, receive, send, *, session: str, api_path: str,
                        headers: list[tuple[bytes, bytes]], body: bytes, association: str) -> None:
@@ -87,7 +89,7 @@ class ArchiveHandler:
             plan = await self.store.write(lambda c: ledger.accept(
                 c, session_id=session, association=association, req=req,
                 fingerprint=fingerprint, retry_hint=parse_retry_hint(str_headers),
-                idem_key=idem_key))
+                idem_key=idem_key, live=self.live))
         except ledger.Rejection as e:
             await error_response(api_path, e.status, e.code, e.message, retry=e.retry)(
                 scope, receive, send)
@@ -125,6 +127,8 @@ class ArchiveHandler:
                 except Exception:
                     log.exception("could not record the interrupted attempt")
             raise
+        finally:
+            self.live.discard(plan.request_id)
 
     async def _send_replay(self, send, replay: dict) -> None:
         headers = [(k.encode("latin-1"), v.encode("latin-1")) for k, v in replay["headers"]]
@@ -150,34 +154,57 @@ class ArchiveHandler:
             return
         try:
             if upstream.status_code != 200:
-                await self._relay_upstream_error(send, gen, upstream)
+                await self._relay_upstream_error(scope, receive, send, gen, upstream, api_path)
             elif plan.stream:
                 await self._stream(send, gen, upstream)
             else:
-                await self._buffered(send, gen, upstream)
+                await self._buffered(scope, receive, send, gen, upstream, api_path)
         finally:
             with anyio.CancelScope(shield=True):
                 await upstream.aclose()
 
-    async def _relay_upstream_error(self, send, gen, upstream: httpx.Response) -> None:
-        body = await upstream.aread()
+    async def _upstream_failed(self, scope, receive, send, gen, api_path: str,
+                               reason: str, message: str) -> None:
+        """Shaped 502 after acceptance: input is archived, so no client retry (§5)."""
+        await self.store.write(lambda c: ledger.finish_attempt(
+            c, gen, "attempt_failed", reason=reason))
+        await error_response(api_path, 502, "upstream_failed", message,
+                             type_="api_error")(scope, receive, send)
+
+    async def _relay_upstream_error(self, scope, receive, send, gen, upstream: httpx.Response,
+                                    api_path: str) -> None:
+        try:
+            body = await upstream.aread()
+        except httpx.TransportError:
+            await self._upstream_failed(scope, receive, send, gen, api_path, "upstream_reset",
+                                        "The upstream failed while sending an error response.")
+            return
         await self.store.write(lambda c: ledger.finish_attempt(
             c, gen, "attempt_failed", reason="upstream_status", status=upstream.status_code))
         headers = _with_no_retry(_response_headers(upstream))
         await send({"type": "http.response.start", "status": upstream.status_code, "headers": headers})
         await send({"type": "http.response.body", "body": body, "more_body": False})
 
-    async def _buffered(self, send, gen, upstream: httpx.Response) -> None:
-        body = await upstream.aread()
+    async def _buffered(self, scope, receive, send, gen, upstream: httpx.Response,
+                        api_path: str) -> None:
+        try:
+            body = await upstream.aread()
+        except httpx.TransportError:
+            await self._upstream_failed(scope, receive, send, gen, api_path, "upstream_reset",
+                                        "The upstream connection failed mid-response.")
+            return
         headers = _with_no_retry(_response_headers(upstream))
         try:
             message = json.loads(body)
+            if not isinstance(message, dict):
+                raise ValueError("response is not a JSON object")
             parts = ledger.deltas(message)
             finish = (message.get("choices") or [{}])[0].get("finish_reason")
-        except ValueError:
-            await self.store.write(lambda c: ledger.finish_attempt(
-                c, gen, "attempt_failed", reason="malformed_upstream_body"))
-            raise
+        except (ValueError, AttributeError, TypeError, KeyError, IndexError):
+            await self._upstream_failed(scope, receive, send, gen, api_path,
+                                        "malformed_upstream_body",
+                                        "The upstream returned a malformed response.")
+            return
 
         def commit(c):
             ledger.commit_batch(c, gen, parts, 0)
