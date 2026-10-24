@@ -56,7 +56,7 @@ Resolved from `docs/plans/phase1.md` §Decisions. The user chose items 1–3 and
 1. **Divergence:** `409 history_divergence` with `x-should-retry: false`. The message gives the message index and says to start a new session. It includes no content.
 2. **Conflicting concurrent request:** `409 session_busy` with `x-should-retry: false`.
 3. **Continue-after-partial resend:** accepted as an extension. The flattened text maps back to the archived partial and the acknowledged extent is recorded. The upstream view renders reasoning and text split at that extent.
-4. **Resend omitting an incomplete partial:** accepted as a superseded partial. The partial stays archived and the next turn attaches to its parent. Final rule pending the slice-0 probe.
+4. **Resend omitting an incomplete partial:** divergence. *Amended after the slice-0 probe (`docs/probes/opencode_partials.md`):* OpenCode 2.1.4 never omits a partial once output has streamed, so the proposed superseded-partial rule had no evidence and is not implemented. A resend ending at the failed user message is a retry (`Prefix`), handled by D10.12.
 5. **Leading system message changes** (OpenCode's date and `<env>`): recorded as an immutable context version, an allowed invalidation cause. Edits to user, assistant or tool history remain divergence.
 6. **First request with prior turns:** imported with `source=client_import`.
 7. **Raw delta format:** v1 (prefix plus suffix) and v2 (prefix, middle and suffix length) are both implemented. Adopt v2 only if it saves ≥ 25% raw bytes on the live replay plus a synthetic 200-turn replay.

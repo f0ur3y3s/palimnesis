@@ -169,3 +169,104 @@ def test_hidden_internal_occurrences_are_not_part_of_the_visible_history():
     archive = _archive(SYS, U1, hidden_call, hidden_result, generated(text="done"))
 
     assert reconcile(client(SYS, U1, {"role": "assistant", "content": "done"}, U2), archive) == Extend(3)
+
+
+# --- Partial turns (D10.3, docs/probes/opencode_partials.md) ----------------
+
+PARTIAL = generated(reasoning="Let me think. ", text="Hello wor", complete=False)
+
+
+def _partial_msg(content, **extra):
+    return {"role": "assistant", "content": content, **extra}
+
+
+@pytest.mark.parametrize("reasoning_field", [{"reasoning_content": ""}, {}])
+def test_flattened_partial_matches_and_records_the_acknowledged_extent(reasoning_field):
+    archive = _archive(SYS, U1, PARTIAL)
+    msgs = client(SYS, U1, _partial_msg("Let me think. Hello wor", **reasoning_field), U2)
+
+    assert reconcile(msgs, archive) == Extend(3, partials=((2, 23),))
+
+
+def test_partial_cut_short_by_a_reset_matches_a_shorter_prefix():
+    archive = _archive(SYS, U1, PARTIAL)
+    msgs = client(SYS, U1, _partial_msg("Let me th"), U2)
+
+    assert reconcile(msgs, archive) == Extend(3, partials=((2, 9),))
+
+
+def test_continue_message_after_a_partial_is_ordinary_new_client_content():
+    archive = _archive(SYS, U1, PARTIAL)
+    cont = {"role": "user", "content": "The previous response was interrupted. Continue from "
+            "where you left off without repeating completed content."}
+
+    assert reconcile(client(SYS, U1, _partial_msg("Let me think. Hello wor"), cont), archive) == Extend(
+        3, partials=((2, 23),)
+    )
+
+
+def test_flattened_text_that_is_not_a_prefix_of_what_was_sent_diverges():
+    archive = _archive(SYS, U1, PARTIAL)
+
+    result = reconcile(client(SYS, U1, _partial_msg("Let me think. Hello world!"), U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_partial_resent_with_nonempty_reasoning_diverges():
+    archive = _archive(SYS, U1, PARTIAL)
+    msg = _partial_msg("Hello wor", reasoning_content="Let me think. ")
+
+    result = reconcile(client(SYS, U1, msg, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def _tool_partial_msg(content, call_id="call_9", name="write"):
+    return {"role": "assistant", "content": content, "reasoning_content": "", "tool_calls": [
+        {"id": call_id, "type": "function", "function": {"name": name, "arguments": "{}"}}]}
+
+
+TOOL_PARTIAL = generated(reasoning="Plan.", tool_calls=[
+    {"id": "call_9", "name": "write", "arguments": '{"pa'}], complete=False)
+TOOL_ERROR = {"role": "tool", "tool_call_id": "call_9", "content": '{"error":"interrupted"}'}
+
+
+@pytest.mark.parametrize("content", ["Plan.", None])
+def test_partial_tool_call_matches_on_id_and_name_with_placeholder_arguments(content):
+    archive = _archive(SYS, U1, TOOL_PARTIAL)
+    msgs = client(SYS, U1, _tool_partial_msg(content), TOOL_ERROR, U2)
+
+    assert reconcile(msgs, archive) == Extend(3, partials=((2, len(content or "")),))
+
+
+@pytest.mark.parametrize("call", [{"call_id": "call_8"}, {"name": "read"}])
+def test_partial_tool_call_with_another_id_or_name_diverges(call):
+    archive = _archive(SYS, U1, TOOL_PARTIAL)
+
+    result = reconcile(client(SYS, U1, _tool_partial_msg("Plan.", **call), TOOL_ERROR, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_a_resend_that_omits_an_archived_partial_diverges():
+    # Never observed from OpenCode (probe rule 5); treated strictly.
+    archive = _archive(SYS, U1, PARTIAL)
+
+    result = reconcile(client(SYS, U1, U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_resend_up_to_the_failed_user_message_is_a_retry_of_that_request():
+    archive = _archive(SYS, U1, PARTIAL)
+
+    assert reconcile(client(SYS, U1), archive) == Prefix(2)
+
+
+def test_completed_turn_still_requires_exact_text():
+    archive = _archive(SYS, U1, generated(text="Hello world", complete=True))
+
+    result = reconcile(client(SYS, U1, _partial_msg("Hello wor"), U2), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2

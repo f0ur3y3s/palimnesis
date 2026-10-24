@@ -51,7 +51,10 @@ class Stream:
 
     ("role",) ("text", s) ("reasoning", s) ("finish", reason) ("usage",) ("done",)
     ("sleep", seconds) ("comment", text) ("comments", interval_s, total_s, text)
-    ("error", message)  -- an in-stream ``data: {"error": {...}}`` event
+    ("error", message[, code])  -- an in-stream ``data: {"error": {...}}`` event
+        (type "server_error"; code defaults to 500)
+    ("tool_call", id, name, [arg_fragment, ...])  -- one streamed tool call at index 0:
+        a header delta (id, type, name, empty arguments), then one delta per fragment
 
     ``end``: "eof" ends the chunked body cleanly; "abort" closes the socket without
     the terminating chunk (RST); "hang" never ends (the client must time out).
@@ -235,6 +238,238 @@ SCENARIOS: dict[str, tuple[str, list]] = {
             ok(),
         ],
     ),
+    # Partial output, then a next user turn (opencode_partials_probe.py). Turn 1's
+    # first attempt fails; every later attempt (a Continue, or turn 2) gets ok().
+    "pp_reason_text_err_noretry": (
+        (
+            "A: reasoning + text, error event (upstream_stream_failed), EOF, "
+            "x-should-retry: false; then OK."
+        ),
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "Thinking about ATTEMPT"),
+                    ("text", "Partial answer ATTEMPT"),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_reason_err_noretry": (
+        (
+            "A2: reasoning only, error event (upstream_stream_failed), EOF, "
+            "x-should-retry: false; then OK."
+        ),
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "Thinking about ATTEMPT"),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_reason_text_ok": (
+        "Control: reasoning + text + finish stop + usage + [DONE], every attempt.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "Thinking about ATTEMPT"),
+                    ("text", "Complete answer ATTEMPT"),
+                    ("finish", "stop"),
+                    ("usage",),
+                    ("done",),
+                ]
+            )
+        ],
+    ),
+    "pp_ws_reason_text_err_noretry": (
+        (
+            "A3: reasoning + text with leading/trailing whitespace, error event, EOF, "
+            "x-should-retry: false; then OK."
+        ),
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "\nThinking about ATTEMPT\n\n"),
+                    ("text", "\n\nPartial answer ATTEMPT \n"),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_ws_reason_text_eof": (
+        "D3: whitespace-padded reasoning + text, bare EOF; then OK.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "\nThinking about ATTEMPT\n\n"),
+                    ("text", "\n\nPartial answer ATTEMPT \n"),
+                ],
+                "eof",
+            ),
+            ok(),
+        ],
+    ),
+    "pp_ws_reason_text_ok": (
+        "Control: whitespace-padded reasoning + text, finish stop, every attempt.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "\nThinking about ATTEMPT\n\n"),
+                    ("text", "\n\nComplete answer ATTEMPT \n"),
+                    ("finish", "stop"),
+                    ("usage",),
+                    ("done",),
+                ]
+            )
+        ],
+    ),
+    "pp_text_err_noretry": (
+        "B: text, error event (upstream_stream_failed), EOF, x-should-retry: false; then OK.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("text", "Partial answer ATTEMPT"),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_text_eof_noretry": (
+        "C: text, bare EOF (no finish, no error), x-should-retry: false; then OK.",
+        [
+            Stream([("role",), ("text", "Partial answer ATTEMPT")], "eof", NO_RETRY),
+            ok(),
+        ],
+    ),
+    "pp_text_eof": (
+        "D: text, bare EOF (no finish, no error); then OK.",
+        [Stream([("role",), ("text", "Partial answer ATTEMPT")], "eof"), ok()],
+    ),
+    "pp_reason_text_eof": (
+        "D2: reasoning + text, bare EOF; then OK.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "Thinking about ATTEMPT"),
+                    ("text", "Partial answer ATTEMPT"),
+                ],
+                "eof",
+            ),
+            ok(),
+        ],
+    ),
+    "pp_tool_err_noretry": (
+        (
+            "E: partial tool call (read, half the arguments), error event, EOF, "
+            "x-should-retry: false; then OK."
+        ),
+        [
+            Stream(
+                [
+                    ("role",),
+                    (
+                        "tool_call",
+                        "call_fault_1",
+                        "read",
+                        ['{"filePath', '": "notes', ".tx"],
+                    ),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_reason_text_tool_err_noretry": (
+        (
+            "E2: reasoning + text + partial tool call, error event, EOF, "
+            "x-should-retry: false; then OK."
+        ),
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("reasoning", "Thinking about ATTEMPT"),
+                    ("text", "Let me look ATTEMPT"),
+                    (
+                        "tool_call",
+                        "call_fault_1",
+                        "read",
+                        ['{"filePath', '": "notes', ".tx"],
+                    ),
+                    (
+                        "error",
+                        "mnemon: upstream stream failed",
+                        "upstream_stream_failed",
+                    ),
+                ],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "pp_tool_eof": (
+        "E3: partial tool call, bare EOF (no header); then OK.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    (
+                        "tool_call",
+                        "call_fault_1",
+                        "read",
+                        ['{"filePath', '": "notes', ".tx"],
+                    ),
+                ],
+                "eof",
+            ),
+            ok(),
+        ],
+    ),
     # 5. Terminal-marker variants
     "finish_no_done": (
         "Text + finish_reason stop + usage, EOF without [DONE].",
@@ -330,7 +565,8 @@ class Log:
 
 
 class FaultServer:
-    def __init__(self, scenario: str, log: Log) -> None:
+    def __init__(self, scenario: str, log: Log, raw_dir: Path | None = None) -> None:
+        self.raw_dir = raw_dir
         self.name = scenario
         self.plan = SCENARIOS[scenario][1]
         self.log = log
@@ -416,6 +652,11 @@ class FaultServer:
             self.attempts += 1
             attempt = self.attempts
             step = self.step_for(attempt)
+        raw_file = None
+        if self.raw_dir is not None and req["body"]:
+            # Exact request-body bytes, for byte-level comparisons across requests.
+            raw_file = f"req-{self.seq:02d}.json"
+            (self.raw_dir / raw_file).write_bytes(req["body"])
         try:
             body_json = json.loads(req["body"]) if req["body"] else None
         except ValueError:
@@ -434,6 +675,7 @@ class FaultServer:
                 else req["body"].decode("utf-8", "replace"),
                 "scenario": self.name,
                 "step": _describe(step),
+                "raw_body_file": raw_file,
             }
         )
         if not is_chat:
@@ -558,9 +800,38 @@ class FaultServer:
                             choices=False,
                         )
                     )
+                elif kind == "tool_call":
+                    await send(
+                        chunk(
+                            {
+                                "tool_calls": [
+                                    {
+                                        "index": 0,
+                                        "id": s[1],
+                                        "type": "function",
+                                        "function": {"name": s[2], "arguments": ""},
+                                    }
+                                ]
+                            }
+                        )
+                    )
+                    for frag in s[3]:
+                        await send(
+                            chunk(
+                                {
+                                    "tool_calls": [
+                                        {"index": 0, "function": {"arguments": frag}}
+                                    ]
+                                }
+                            )
+                        )
                 elif kind == "error":
                     err = {
-                        "error": {"message": s[1], "type": "server_error", "code": 500}
+                        "error": {
+                            "message": s[1],
+                            "type": "server_error",
+                            "code": s[2] if len(s) > 2 else 500,
+                        }
                     }
                     await send(b"data: " + json.dumps(err).encode() + b"\n\n")
                 elif kind == "done":
@@ -675,7 +946,11 @@ def _describe(step) -> str | None:
 
 async def _serve(args) -> None:
     log = Log(Path(args.log))
-    server = FaultServer(args.scenario, log)
+    raw_dir = None
+    if args.raw_dir:
+        raw_dir = Path(args.raw_dir)
+        raw_dir.mkdir(parents=True, exist_ok=True)
+    server = FaultServer(args.scenario, log, raw_dir)
 
     srv = await asyncio.start_server(server.handle, args.host, args.port)
     port = srv.sockets[0].getsockname()[1]
@@ -705,6 +980,9 @@ def main() -> None:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=0)
     p.add_argument("--log", default="fault_server.jsonl")
+    p.add_argument(
+        "--raw-dir", help="also write each request body's exact bytes to this directory"
+    )
     p.add_argument("--list", action="store_true", help="list scenarios and exit")
     args = p.parse_args()
     if args.list:

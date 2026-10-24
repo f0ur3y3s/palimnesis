@@ -9,3 +9,5 @@ captures/
 
 # Fault-injection run logs (~5 MB); summarized in docs/probes/opencode_faults.md
 eval/fixtures/opencode-2.1.4/faults/
+eval/fixtures/opencode-2.1.4/partials/*
+!eval/fixtures/opencode-2.1.4/partials/summary.txt

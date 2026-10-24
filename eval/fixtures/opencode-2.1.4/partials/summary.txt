@@ -1,0 +1,312 @@
+== A2_reason_err_noretry
+   scenario=pp_reason_err_noretry config=v2 exits=[1, 0]
+   turn1 output: '\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20062 msgs=2 trace=5e5ab6e9652f74d3815df39db44797aa
+   [0] system (8748 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9129 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20203 msgs=4 trace=17debac655e3b36fa3e6b53c96a376da
+   [0] system (8748 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9129 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== A3_ws_reason_text_err_noretry
+   scenario=pp_ws_reason_text_err_noretry config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20086 msgs=2 trace=9feaa8202480e998a0ec6356e8687284
+   [0] system (8772 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9153 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20264 msgs=4 trace=83e45c14c5553cc7362c0fac9d4ee0fb
+   [0] system (8772 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="\nThinking about attempt-1\n\n\n\nPartial answer attempt-1 \n" extra={"reasoning_content": ""}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9153 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== A_reason_text_err_noretry
+   scenario=pp_reason_text_err_noretry config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20074 msgs=2 trace=a608397978ca1f5011c4eae5215f501f
+   [0] system (8760 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9141 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20239 msgs=4 trace=0e3e601618b568000da3b438f590bf5b
+   [0] system (8760 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9141 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== A_reason_text_err_noretry_v1
+   scenario=pp_reason_text_err_noretry config=v1 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20005 msgs=2 trace=82794d0549d2098249a402e4c0b4cd83
+   [0] system (8716 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9072 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20147 msgs=4 trace=fb6a61c204edfbc6277f3435ff8081f3
+   [0] system (8716 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1"
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9072 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== B_text_err_noretry
+   scenario=pp_text_err_noretry config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20053 msgs=2 trace=6841d37ef52f1e5dcd61561208b34fae
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20194 msgs=4 trace=1063e24bcb66e873d4d4d8a94449c1c4
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== C_text_eof_noretry
+   scenario=pp_text_eof_noretry config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\nOK from fault server\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20053 msgs=2 trace=f98225f5d7bc928ff2497de84f4be43d
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20271 msgs=4 trace=f98225f5d7bc928ff2497de84f4be43d
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20408 msgs=6 trace=cae6c2e3db8875d662e3a3e859394c2a
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [4] assistant: content="OK from fault server" extra={"reasoning_content": ""}
+   [5] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== D2_reason_text_eof
+   scenario=pp_reason_text_eof config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\nOK from fault server\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20053 msgs=2 trace=e5708ad6096853f68b6b4db17c1c40c7
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20295 msgs=4 trace=e5708ad6096853f68b6b4db17c1c40c7
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20432 msgs=6 trace=81b5507161ebec9129345197b1368acc
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [4] assistant: content="OK from fault server" extra={"reasoning_content": ""}
+   [5] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== D2_reason_text_eof_v1
+   scenario=pp_reason_text_eof config=v1 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\nOK from fault server\n\x1b[0m\n> build · m\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=19984 msgs=2 trace=93882c518dbffe5d14c5a6492fd1040c
+   [0] system (8695 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9051 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20203 msgs=4 trace=93882c518dbffe5d14c5a6492fd1040c
+   [0] system (8695 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1"
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9051 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20317 msgs=6 trace=3cd144aeca7eb2ce1230d116ac0b7e66
+   [0] system (8695 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Partial answer attempt-1"
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [4] assistant: content="OK from fault server"
+   [5] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9051 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== D3_ws_reason_text_eof
+   scenario=pp_ws_reason_text_eof config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\nOK from fault server\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20062 msgs=2 trace=3eb4955875af12bb6bbdd894548f95c6
+   [0] system (8748 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9129 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20317 msgs=4 trace=3eb4955875af12bb6bbdd894548f95c6
+   [0] system (8748 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="\nThinking about attempt-1\n\n\n\nPartial answer attempt-1 \n" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9129 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20454 msgs=6 trace=1e84b21a8e85f7fd3ecb5962adfda9d2
+   [0] system (8748 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="\nThinking about attempt-1\n\n\n\nPartial answer attempt-1 \n" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [4] assistant: content="OK from fault server" extra={"reasoning_content": ""}
+   [5] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9129 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== D_text_eof
+   scenario=pp_text_eof config=v2 exits=[1, 0]
+   turn1 output: 'Partial answer attempt-1\nOK from fault server\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20029 msgs=2 trace=76ea36137de412e312b50b6706083bd0
+   [0] system (8715 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9096 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20247 msgs=4 trace=76ea36137de412e312b50b6706083bd0
+   [0] system (8715 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9096 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20384 msgs=6 trace=4b415e32e00ae0a2bd56e60c8fa99e06
+   [0] system (8715 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Partial answer attempt-1" extra={"reasoning_content": ""}
+   [3] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [4] assistant: content="OK from fault server" extra={"reasoning_content": ""}
+   [5] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9096 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== E2_reason_text_tool_err_noretry
+   scenario=pp_reason_text_tool_err_noretry config=v2 exits=[1, 0]
+   turn1 output: 'Let me look attempt-1\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed\n\x1b[0m✗ \x1b[0mRead  failed\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20092 msgs=2 trace=0a03bbe2ff9561ca07fdd7c523f6bcdf
+   [0] system (8778 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9159 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20718 msgs=5 trace=eef2ebcae09a43dfcc9714c9da469868
+   [0] system (8778 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Thinking about attempt-1Let me look attempt-1" extra={"tool_calls": [{"id": "call_fault_1", "type": "function", "function": {"name": "read", "arguments": "{}"}}], "reasoning_content": ""}
+   [3] tool: content="{\"error\":{\"type\":\"provider.internal\",\"message\":\"mnemon: upstream stream failed\",\"status\":200,\"response\":{\"body\":\"{\\\"error\\\": {\\\"message\\\": \\\"mnemon: upstream stream failed\\\", \\\"type\\\": \\\"server_error\\\", \\\"code\\\": \\\"upstream_stream_failed\\\"}}\"}},\"content\":[]}" extra={"tool_call_id": "call_fault_1"}
+   [4] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9159 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== E3_tool_eof
+   scenario=pp_tool_eof config=v2 exits=[1, 0]
+   turn1 output: 'OK from fault server\n\x1b[0m\n> build · qwen3.8-flash-next-iq3_xxs\n\x1b[0m✗ \x1b[0mRead  failed\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason\n\x1b[91m\x1b[1mError: \x1b[0mOpenAI Chat stream ended without finish_reason'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20032 msgs=2 trace=3a0e02a0da7ad5abf1a9817a4696bd35
+   [0] system (8718 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9099 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=1 attempt=2 bytes=20529 msgs=5 trace=3a0e02a0da7ad5abf1a9817a4696bd35
+   [0] system (8718 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content=null extra={"tool_calls": [{"id": "call_fault_1", "type": "function", "function": {"name": "read", "arguments": "{}"}}], "reasoning_content": ""}
+   [3] tool: content="{\"error\":{\"type\":\"provider.invalid-output\",\"message\":\"OpenAI Chat stream ended without finish_reason\",\"status\":200},\"content\":[]}" extra={"tool_call_id": "call_fault_1"}
+   [4] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   bytes: starts with turn-1 attempt-1 body through its last message (9099 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+-- req-04.json turn=2 attempt=3 bytes=20666 msgs=7 trace=e5f5803c2f0b26eba73004feef5012da
+   [0] system (8718 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content=null extra={"tool_calls": [{"id": "call_fault_1", "type": "function", "function": {"name": "read", "arguments": "{}"}}], "reasoning_content": ""}
+   [3] tool: content="{\"error\":{\"type\":\"provider.invalid-output\",\"message\":\"OpenAI Chat stream ended without finish_reason\",\"status\":200},\"content\":[]}" extra={"tool_call_id": "call_fault_1"}
+   [4] user: content="The previous response was interrupted. Continue from where you left off without repeating completed content."
+   [5] assistant: content="OK from fault server" extra={"reasoning_content": ""}
+   [6] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9099 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== E_tool_err_noretry
+   scenario=pp_tool_err_noretry config=v2 exits=[1, 0]
+   turn1 output: '\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed\n\x1b[0m✗ \x1b[0mRead  failed\n\x1b[91m\x1b[1mError: \x1b[0mmnemon: upstream stream failed'
+   turn2 output: 'OK from fault server'
+-- req-02.json turn=1 attempt=1 bytes=20053 msgs=2 trace=8c5202d091e530a3bbd4c76b7eb91265
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20636 msgs=5 trace=dc0615acdaa44ad6d8c70184712c82c1
+   [0] system (8739 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content=null extra={"tool_calls": [{"id": "call_fault_1", "type": "function", "function": {"name": "read", "arguments": "{}"}}], "reasoning_content": ""}
+   [3] tool: content="{\"error\":{\"type\":\"provider.internal\",\"message\":\"mnemon: upstream stream failed\",\"status\":200,\"response\":{\"body\":\"{\\\"error\\\": {\\\"message\\\": \\\"mnemon: upstream stream failed\\\", \\\"type\\\": \\\"server_error\\\", \\\"code\\\": \\\"upstream_stream_failed\\\"}}\"}},\"content\":[]}" extra={"tool_call_id": "call_fault_1"}
+   [4] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9120 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== Z2_control_ws_reason_text_ok
+   scenario=pp_ws_reason_text_ok config=v2 exits=[0, 0]
+   turn1 output: 'Complete answer attempt-1'
+   turn2 output: 'Complete answer attempt-2'
+-- req-02.json turn=1 attempt=1 bytes=20083 msgs=2 trace=58e812bb2d65e0e7b14aad600e895aba
+   [0] system (8769 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9150 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20262 msgs=4 trace=1cf88f2bf2577cb8ed8ceda45edb1594
+   [0] system (8769 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="\n\nComplete answer attempt-1 \n" extra={"reasoning_content": "\nThinking about attempt-1\n\n"}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9150 B), next byte b','
+   bytes after messages array identical to attempt 1: True
+
+== Z_control_reason_text_ok
+   scenario=pp_reason_text_ok config=v2 exits=[0, 0]
+   turn1 output: 'Complete answer attempt-1'
+   turn2 output: 'Complete answer attempt-2'
+-- req-02.json turn=1 attempt=1 bytes=20071 msgs=2 trace=ba0c18788e326e5a982002181c246930
+   [0] system (8757 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9138 B), next byte b']'
+   bytes after messages array identical to attempt 1: True
+-- req-03.json turn=2 attempt=2 bytes=20237 msgs=4 trace=a60223f095b37ca1656753f9fc28cec8
+   [0] system (8757 chars)
+   [1] user: content="\"First question: what is 2+2?\""
+   [2] assistant: content="Complete answer attempt-1" extra={"reasoning_content": "Thinking about attempt-1"}
+   [3] user: content="\"Next question: what is 3+3?\""
+   bytes: starts with turn-1 attempt-1 body through its last message (9138 B), next byte b','
+   bytes after messages array identical to attempt 1: True
