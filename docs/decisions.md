@@ -208,3 +208,16 @@ Supersedes D15's "no seam in v1" because amendment A1 names Strata *or* llama.cp
 - **Hidden recall tools** (`palimnesis_recall`, `palimnesis_grep`, catalog navigation, internal interception, hidden continuations) move to optional Phase 3B. `docs/affordances.md`'s A/B matrix of hidden-tool variants is a Phase 3B matrix. Phase 3 selects query policy, excerpt format, caps and the transcript-search addendum on development data instead.
 - **Evaluation** runs at 32K, then 64K, with the five arms A1 lists.
 - **Eunoe's evidence** (`docs/papers.md`) motivates but does not establish results at 32–64K.
+
+## D20 — Phase 2 excerpt policy and slots (user, 2026-10-24)
+
+From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
+
+1. **Old excerpt blocks are dropped only at threshold events** (watermark or collapse moves, budget changes), where the prefix is invalidated anyway. Between events a new user message may get a reduced or zero allocation. `bench_view` measures this starvation, and Phase 3 may change the policy on development data.
+2. **Excerpt caps, Phase 2 defaults:**
+   - per message `q_msg = min(2048, 4%·B_in)`;
+   - active-view total `Q = min(4096, 10%·B_in)`, D14.4's formula;
+   - effective total `Q_eff = min(Q, max(0, B_in − P − F − min_recent))`.
+
+   That is 972 / 2,432 tokens at 32K and 1,920 / 4,096 at 64K. Excerpts never count in F, never touch R or M, never trigger a watermark move, and never cause a BudgetError: their allocation shrinks to zero first. Phase 3 selects the final caps on development data.
+3. **The catalog slot is P = 0 until Phase 3B.** A1 removed model-facing catalog navigation, so the component stays in the budget but reserves nothing. Existing views see a one-time recorded budget change.
