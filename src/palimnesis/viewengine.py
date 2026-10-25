@@ -190,13 +190,15 @@ class ViewEngine:
         def run() -> View:
             return build(items, tools=prepared.tools, render_kwargs=prepared.render_kwargs,
                          budget=prepared.budget, state=plan.view_state, policy=policy,
-                         counter=self.counter)
+                         counter=self.counter,
+                         drops_empty_assistant=self.profile.rules.drops_empty_assistant)
 
         view = await anyio.to_thread.run_sync(run)
         if self.mode != "off":
             self._warm(dict(items=list(items), tools=prepared.tools,
                             render_kwargs=prepared.render_kwargs, budget=prepared.budget,
-                            state=view.state, policy=policy, counter=self.counter))
+                            state=view.state, policy=policy, counter=self.counter,
+                            drops_empty_assistant=self.profile.rules.drops_empty_assistant))
         return view
 
     def _warm(self, job: dict) -> None:

@@ -146,6 +146,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 **[enforced for ordinary turns]**: archived reasoning is restored when the client omits it. The parts specific to hidden proxy continuations move to optional Phase 3B (A1).
 
 - The pinned template renders `reasoning_content` for **every** earlier assistant turn, and an empty think block where there is none. Palimnesis reconstructs archived reasoning for every rendered assistant turn so upstream input matches what the model saw, whether or not the client resends it.
+- **Except turns the upstream renders as nothing.** Strata drops a completed assistant turn with no text, image or tool calls, reasoning included (#843); the final message always renders. A profile declares this as `TemplateRules.drops_empty_assistant`. Counting, layouts, the view's recent window and masking all treat such a turn as zero tokens: it is never stubbed and never reported as evicted (D41, D42). The `count_tokens` canary includes one, so a server that renders them fails the pin check. **[enforced]**
 - A template revision that changes this rule is a pinned-value change (§1), not a runtime branch.
 - Reasoning-effort and thinking toggles alter the first system message, so they are full-prefix invalidation causes.
 

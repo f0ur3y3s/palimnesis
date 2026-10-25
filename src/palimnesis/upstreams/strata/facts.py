@@ -68,6 +68,17 @@ CANARY_CASES: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     (
+        # A completed reasoning-only turn: Strata renders nothing for it (#843, D41).
+        "prior_turn_thinking_only",
+        {
+            "messages": [
+                {"role": "user", "content": "Q1"},
+                {"role": "assistant", "content": [{"type": "thinking", "thinking": _TH, "signature": "x"}]},
+                {"role": "user", "content": "Q2"},
+            ],
+        },
+    ),
+    (
         "tool_turn_think",
         {
             "messages": [

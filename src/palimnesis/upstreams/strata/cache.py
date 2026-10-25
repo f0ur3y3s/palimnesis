@@ -33,7 +33,9 @@ class StrataCacheModel:
 
     def checkpoints(self, layout: Layout) -> tuple[int, ...]:
         """Resume points the upstream holds after prefilling ``layout``."""
-        starts = {s.start for s in layout.segments if s.kind in ("assistant", "generation")}
+        # A dropped turn's zero-length segment is no turn start Strata ever saw.
+        starts = {s.start for s in layout.segments
+                  if s.kind in ("assistant", "generation") and s.end > s.start}
         starts |= set(range(CHECKPOINT_INTERVAL, len(layout.ids), CHECKPOINT_INTERVAL))
         kept = set(sorted(starts)[-MAX_CHECKPOINTS:])
         head = next((s for s in layout.segments if s.kind == "head"), None)
