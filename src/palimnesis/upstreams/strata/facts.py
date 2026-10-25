@@ -317,8 +317,10 @@ class UpstreamState:
     async def refresh(self, client: httpx.AsyncClient) -> UpstreamFacts | None:
         """Re-read facts if stale (or never read) and re-run the canary if due.
 
-        Fresh facts with a canary on record are returned as they are."""
-        if not self.stale and self.props is not None and self.canary is not None:
+        Fresh facts with a conclusive canary are returned as they are; an
+        inconclusive canary (e.g. count_tokens unavailable while loading) is retried."""
+        if (not self.stale and self.props is not None and self.canary is not None
+                and self.canary.ok is not None):
             return self.facts
         if self.stale or self.props is None:
             try:

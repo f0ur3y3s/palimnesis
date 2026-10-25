@@ -176,7 +176,13 @@ class ArchiveHandler:
         selected = None
         hosted = any(i.excerpt for i in plan.items if i.occ_id == plan.host_occ_id)
         if plan.host_occ_id is not None and not hosted:
-            selected = await self.views.select(prepared, plan, view)
+            try:
+                selected = await self.views.select(prepared, plan, view)
+            except Exception:
+                # An excerpt defect must not fail the request: answer without excerpts.
+                # No row is written, so a later request may select for this host.
+                log.exception("excerpt selection failed; continuing without excerpts")
+                selected = None
 
         def commit(c):
             # The view move and the excerpt selection land together, before inference.
@@ -204,7 +210,17 @@ class ArchiveHandler:
                 plan.items = [replace(i, excerpt=(block_id, selected[1], selected[2]))
                               if i.occ_id == plan.host_occ_id else i for i in plan.items]
                 plan.view_state = view.state
-                view = await self.views.build(prepared, plan)
+                try:
+                    rebuilt = await self.views.build(prepared, plan)
+                except Exception:
+                    log.exception("view rebuild with excerpts failed; sending the base view")
+                else:
+                    if rebuilt.moved:  # e.g. an R3 omission the new block triggered
+                        await self.store.write(lambda c: ledger.record_view(
+                            c, plan, rebuilt.state,
+                            budget=ViewEngine.snapshot(prepared.budget),
+                            cause=ViewEngine.cause(view.state, rebuilt.state), **VIEW_FORMAT))
+                    view = rebuilt
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
         plan.view, plan.prepared = view, prepared
         return True

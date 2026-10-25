@@ -194,3 +194,21 @@ def test_excerpt_text_is_not_full_text_indexed(tmp_path):
         assert search_text(c, "historical") == []
     finally:
         c.close()
+
+
+class BrokenExcerpts:
+    query_version = "broken"
+    retrieval_version = "broken"
+
+    async def select(self, plan, base_view, allocation):
+        raise RuntimeError("retrieval bug")
+
+
+def test_a_failing_excerpt_source_never_fails_the_request(tmp_path):
+    with stack(tmp_path, BrokenExcerpts()) as (fake, url, settings):
+        fake.respond_sse([DONE])
+        r = post(url, FIRST)
+
+    assert r.status_code == 200
+    assert "palimnesis excerpts" not in fake.requests[-1].body.decode()
+    assert rows(settings, "SELECT count(*) FROM excerpt_blocks") == [(0,)]

@@ -94,7 +94,9 @@ def _read_only(db: Path):
     if not db.exists():
         print(f"error: no archive at {db}", file=sys.stderr)
         raise SystemExit(2)
-    return sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    # A proper file URI: '#', '%' and '?' in the path must not become URI syntax
+    # (which would drop mode=ro and open, or create, a different file).
+    return sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True)
 
 
 def _catalog(args: argparse.Namespace) -> int:

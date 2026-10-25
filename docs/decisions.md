@@ -263,3 +263,15 @@ From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
    - "Recent" means the last 8 calls, and `M_eff = M + 2·max drift`, capped at 2,048.
    - Three consecutive drifts, or one drift over 1,024, disables bounded views until the process restarts. A miscounting renderer is a pin problem, not a transient one.
 5. **Context versions keep their position.** A context version, such as OpenCode's daily date change in the system message, takes the view position (seq) of the occurrence it supersedes. Before this fix, view boundaries resolved to the start of history after a date change, and masked sessions failed with `context_budget_exceeded`.
+
+## D23 — Phase 2 protocol-review fixes
+
+1. **Escalation before a budget error.** After masking, collapse and excerpt omission, the view also stubs oversized reasoning in the recent window, not only tool output. If still over budget, it lets the window shrink below `min_recent` to the newest group and collapses everything older.
+   - **What it prevents:** a session with a large fixed input (e.g. a 15K-token system prompt at 32K) whose reasoning-heavy recent window failed with `context_budget_exceeded` after acceptance, on every later turn.
+   - **What remains:** a budget error after acceptance only when the newest group alone cannot fit. The next turn makes that group older and collapsible, so the session recovers.
+2. **Known limit of `--view off`.** Its pre-acceptance check counts the client's messages. The upstream view also restores archived reasoning (§9), so an over-budget history can still be rejected after acceptance. `--view off` is a diagnostic mode.
+3. **Startup canary.** An inconclusive canary (`count_tokens` unavailable) is re-run on the next refresh instead of disabling views for the process lifetime.
+4. **CLI read-only opens** use a proper file URI, so `#`, `%` or `?` in a path cannot drop `mode=ro` or open another file.
+5. **Excerpt path hardening.**
+   - Excerpt header fields (alias, role, tool name) are reduced to a safe character set, so a client-chosen tool name cannot inject delimiters or special tokens.
+   - An excerpt-source or rebuild failure falls back to answering without excerpts. A move caused by the rebuild is recorded.

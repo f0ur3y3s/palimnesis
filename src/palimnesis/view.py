@@ -364,12 +364,19 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         messages, _, included, charge = b.apply(new_state)
         total = b.count(messages)
 
-    # Oversized newest output: stub the largest unmasked tool results in place.
+    # Oversized items in the recent window: stub the largest unmasked tool results
+    # and assistant reasoning in place (the newest output may be the culprit).
     if total > budget.input_budget:
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
+
+        def stubbable(i: int) -> bool:
+            message = b.items[i].message
+            return (message.get("role") == "tool"
+                    or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))))
+
         unmasked = sorted(
             (i for i in range(w_index, len(b.items))
-             if i not in b.fixed and b.items[i].message.get("role") == "tool"
+             if not b.is_fixed(i, new_state) and stubbable(i)
              and b.items[i].occ_id not in new_state.oversized),
             key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
         for i in unmasked:
@@ -378,6 +385,24 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             total = b.count(messages)
             if total <= budget.input_budget:
                 break
+
+    # Last resort before a budget error: let the recent window shrink below
+    # min_recent to the newest group, masking and collapsing everything older.
+    if total > budget.input_budget and b.starts:
+        newest = b.starts[-1]
+        old_w = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
+        if newest > old_w:
+            new_state = replace(new_state, watermark_seq=_seq(b.items, newest))
+        old_c = b.seq_index(new_state.collapse_seq) if new_state.collapse_seq else 0
+        candidates = [s for s in b.starts if old_c < s <= newest]
+        if candidates:
+            found = b.search(candidates,
+                             lambda i: b.with_collapse(new_state, _seq(b.items, i)),
+                             budget.input_budget)
+            new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
+                                                        else candidates[-1]))
+        messages, _, _, _ = b.apply(b.keep_fixed(new_state))
+        total = b.count(messages)
     new_state = b.keep_fixed(new_state)
     result = view(new_state, new_state != state, base_manifest)
     if result.tokens > budget.input_budget:
