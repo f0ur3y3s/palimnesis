@@ -2,6 +2,8 @@
 
 Oct 24, 2026 · @Daniel · Revised after design review and implementation notes
 
+> **Amended.** Read with `docs/amendments/A1-proactive-recall.md` (from Phase 2 on), which makes proactive recall plus transcript files the primary recall mechanism and defers hidden recall tools to optional Phase 3B. Decisions D15 (amended) and D17–D19 apply.
+
 ## Overview
 
 Palimnesis is a local proxy between an agent harness and Strata. It archives accepted conversation content, presents a bounded view to the model, and provides exact, addressable retrieval of content removed from that view.

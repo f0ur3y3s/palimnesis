@@ -178,3 +178,33 @@ Choices made while implementing `palimnesis.stubs`, `palimnesis.catalog` and `pa
    - `page(k)` relies on per-branch seqs being dense from 1 and raises if that breaks.
    - "Superseded" covers replaced context versions as well as `partial_superseded` partials.
 5. **Masking must pay.** Texts within the preview caps (about 65–288 tokens) produce stubs no smaller than the original. The watermark logic stubs an item only when the stub is smaller.
+
+## D17 — The project is named Palimnesis (user amendment 1, 2026-10-24)
+
+*Palin* ("again") + *mnēsis* ("remembering"). The name echoes a palimpsest, a manuscript scraped and overwritten, and inverts it: in Palimnesis nothing is ever overwritten, and the original can always be read again.
+
+The rename reaches the package and CLI (`palimnesis`), the headers `X-Palimnesis-Session` and `X-Palimnesis-Kind` (all `x-palimnesis-*` headers are stripped before forwarding), the env vars `PALIMNESIS_*`, the default archive `%LOCALAPPDATA%\palimnesis\palimnesis.db`, the OpenCode provider and plugin, docs and agent roles. Model-facing text follows: stubs read `[palimnesis s1 …]` and future tools are `palimnesis_*`.
+
+Unchanged: the repo folder, git history, and recorded evidence (`eval/fixtures/`, `eval/probes/fixtures/`, the vendored pins), which must stay byte-exact. The release is pre-1.0, so there are no compatibility aliases.
+
+## D18 — MIT license (user, 2026-10-24)
+
+Palimnesis is MIT-licensed (`LICENSE`), matching Eunoe, the MIT project behind amendment A1. Vendored third-party files keep their own licenses: the Qwen tokenizer and chat template are Apache-2.0 per the model repository (`THIRD_PARTY_NOTICES.md`). Eunoe is credited as a design influence; if any of its code is ever incorporated, its MIT notice must be reproduced.
+
+## D15 amended — upstream-profile seam in v1, llama.cpp profile later (user, 2026-10-24)
+
+Supersedes D15's "no seam in v1" because amendment A1 names Strata *or* llama.cpp.
+- Phase 2 builds a backend-neutral upstream profile, so budgeting, views and the A1 retrieval code do not depend on Strata specifics. The profile covers pins, facts reader, counting cross-check, cache-reuse model and error mapping.
+- v1 ships and evaluates only the Strata 0.1.48 profile.
+- A llama.cpp profile, with its own probe suite, remains later work. Until it exists, capabilities advertise Strata only.
+
+## D19 — Amendment A1 adopted: proactive recall and transcript files (user, 2026-10-24)
+
+`docs/amendments/A1-proactive-recall.md` amends `docs/v1_plan.md` from Phase 2 on. Consequences for work already done or planned:
+- **Recall slot.** D14.4's reserved recall slot Q becomes the `recall_excerpts` allocation, with a per-message cap and an active-view total cap. It may fall to zero, never displaces non-evictable input, and never touches the generation reserve.
+- **Excerpt blocks** are immutable per accepted user message. They render after the user text in the internal copy only, never in the harness-visible transcript. The view builder may omit a whole block deterministically; each change is a recorded invalidation with hysteresis.
+- **Catalog stays internal.** `palimnesis.catalog` remains a bounded index and the transcript index's source. There are no model-facing catalog tools in Phase 2 (none were built).
+- **Phase 3** becomes proactive recall plus transcript-file fallback, with a harness capability gate: the first harness must demonstrably read the transcript directory.
+- **Hidden recall tools** (`palimnesis_recall`, `palimnesis_grep`, catalog navigation, internal interception, hidden continuations) move to optional Phase 3B. `docs/affordances.md`'s A/B matrix of hidden-tool variants is a Phase 3B matrix. Phase 3 selects query policy, excerpt format, caps and the transcript-search addendum on development data instead.
+- **Evaluation** runs at 32K, then 64K, with the five arms A1 lists.
+- **Eunoe's evidence** (`docs/papers.md`) motivates but does not establish results at 32–64K.

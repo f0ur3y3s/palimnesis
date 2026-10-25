@@ -1,6 +1,6 @@
 # Palimnesis
 
-Local proxy between agent harnesses and a Strata server: archives accepted conversation content, presents a bounded view upstream, and gives exact addressable recall of what the view removed. `docs/v1_plan.md` is the plan; read the section for the phase you're working in.
+Local proxy between agent harnesses and a Strata server: archives accepted conversation content, presents a bounded view upstream, and gives exact addressable recall of what the view removed. `docs/v1_plan.md` is the plan, amended by `docs/amendments/` (A1: proactive recall and transcript files); read the section for the phase you're working in, plus any amendment that touches it.
 
 ## Commands
 
