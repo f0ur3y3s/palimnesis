@@ -79,6 +79,19 @@ def rows(settings, sql, *params):
 
 
 def events(settings, kind="upstream_call") -> list[dict]:
+    if kind == "upstream_call":
+        # Accounting is written after delivery (contracts §10), so the client can
+        # finish reading first: wait until every attempt that called the upstream has one.
+        import time
+
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            calls = rows(settings, "SELECT count(*) FROM events WHERE kind = 'upstream_call'")[0][0]
+            sent = rows(settings, "SELECT count(DISTINCT attempt_id) FROM events WHERE kind IN"
+                                  " ('turn_complete', 'attempt_failed', 'cancelled')")[0][0]
+            if calls >= sent:
+                break
+            time.sleep(0.02)
     return [json.loads(p) for (p,) in rows(
         settings, "SELECT payload FROM events WHERE kind = ? ORDER BY event_id", kind)]
 

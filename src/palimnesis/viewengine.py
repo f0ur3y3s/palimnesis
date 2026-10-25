@@ -51,7 +51,7 @@ from .budget import (
 )
 from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
 from .profile import UpstreamProfile, unsupported_rules
-from .stubs import STUB_FORMAT
+from .stubs import STUB_FORMAT, span_note
 from .view import POLICY_VERSION, View, ViewPolicy, build, warm
 
 
@@ -158,9 +158,16 @@ class ViewEngine:
         users = [i for i, m in enumerate(req.messages) if m.role == "user"]
         fixed = [m for i, m in enumerate(messages)
                  if req.messages[i].role == "system" or (users and i == users[-1])]
-        # extra_fixed: proxy-added fixed input (the addendum, D36), checked before acceptance.
-        check_fixed(budget, fixed_tokens=self.counter.count_messages(fixed, tools, **args)
-                    + extra_fixed)
+        # extra_fixed: proxy-added fixed input (the addendum, D36). Any older history
+        # leaves at least one span note however much is collapsed, so that residue is
+        # counted too: a request that cannot fit is refused before acceptance (D23, D38).
+        fixed_tokens = self.counter.count_messages(fixed, tools, **args)
+        if len(fixed) < len(messages):
+            note = {"role": "user", "content": span_note("ZZZZZZ", "ZZZZZZ", 99_999,
+                                                        tokens=9_999_999)}
+            fixed_tokens = self.counter.count_messages([*fixed, note], tools, **args) \
+                + RESIDUE_SLACK
+        check_fixed(budget, fixed_tokens=fixed_tokens + extra_fixed)
         if self.mode == "off":
             total = self.counter.count_messages(messages, tools, **args)
             if total > budget.input_budget:
@@ -185,7 +192,7 @@ class ViewEngine:
 
         view = await anyio.to_thread.run_sync(run)
         if self.mode != "off":
-            self._warm(dict(items=list(plan.items), tools=prepared.tools,
+            self._warm(dict(items=list(items), tools=prepared.tools,
                             render_kwargs=prepared.render_kwargs, budget=prepared.budget,
                             state=view.state, policy=policy, counter=self.counter))
         return view
@@ -262,6 +269,7 @@ class ViewEngine:
 
 
 VIEW_FORMAT = {"policy_version": POLICY_VERSION, "stub_format": STUB_FORMAT}
+RESIDUE_SLACK = 8  # template junction tokens around the span note
 
 
 def with_addendum(items, addendum: str | None) -> list:

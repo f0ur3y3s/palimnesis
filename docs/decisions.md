@@ -361,7 +361,7 @@ Items render in the order (source seq, source block, start). Phase 2 sorted by t
 
 ## D31 — Retries select when no excerpt row exists
 
-A retried or keyed request hosts excerpts when its last new client message is a genuine instruction with no `excerpt_blocks` row. This happens when a crash fell between acceptance and the excerpt commit, or when the source failed. No inference has happened for it, so selecting then is safe. An existing row is always reused (`test_a_retry_after_a_crash_before_the_excerpt_commit_selects_once`).
+A retried or keyed request hosts excerpts when its last new client message is a genuine instruction with no `excerpt_blocks` row. This happens when a crash fell between acceptance and the excerpt commit, or when the source failed. Either no upstream call was made for it, or the call failed without output, so nothing the model saw depended on a selection and selecting then is safe. An existing row is always reused (`test_a_retry_after_a_crash_before_the_excerpt_commit_selects_once`).
 
 ## D37 — Transcript capability gate for OpenCode 2.1.4: passed
 
@@ -430,6 +430,34 @@ The root is `<db dir>/transcripts` by default, overridden with `--transcripts DI
 - **Before acceptance.** The budget check counts the addendum's tokens, so it cannot turn into a budget error after acceptance.
 - **Deviation from the plan.** The plan fixed the addendum at the first bounded request; it is fixed at the first masked one instead.
   - Unmasked sessions stay byte-identical to the client, as Phase 2 promises. The addendum's claim that content may be hidden is only made once it is true.
-  - The cost is one extra re-read of the tool schemas, once per session. A watermark move already falls back to about the system root (R14), and the template renders tools after the system text.
+  - The cost is one extra re-read of the whole head, system prompt and tool schemas (about 5K tokens for OpenCode), once per session. The pinned template renders the tools before the system text, so the addendum lands just before the system-root checkpoint and that checkpoint is lost. A watermark move already falls back to that checkpoint (R14), so this is the only extra cost. Measured by the Phase 3 cache audit: LCP 4,958 versus 4,976 for the move alone; estimated reuse 0 versus about 4,975 tokens.
 - **Cache accounting.** A change of the addendum, including its first appearance or a later removal, is recorded as `view_format_change`. On the first masked request that is the first token difference, ahead of the move itself.
 - **Disabling it.** `--no-transcripts` drops the addendum, recorded as `view_format_change`. Rejected: injecting it through harness configuration, which is harness-specific and would be archived as client content.
+
+## D38 — Phase 3 review fixes
+
+1. **Excerpts of text with lone surrogates.** JSON allows lone surrogates, and the archive keeps them as WTF-8. An excerpt now quotes each one as U+FFFD, which keeps offsets because it is one code point each. `source_sha256` still covers the exact archived range.
+   - **Bug fixed:** the rendering could not be stored, and the request failed with a 500 on every retry.
+   - **Fallback:** if an excerpt row still cannot be stored, the view move is committed alone and the request proceeds without excerpts (§13).
+2. **Counted before acceptance:**
+   - the addendum the session actually uses, i.e. the stored text when one is fixed, not the current root's;
+   - the residue of any older history, as one worst-case span note.
+
+   A request that cannot fit is refused before acceptance rather than failing after it, with the in-build check as the safety net. A sweep test drives requests near the budget edge and confirms it.
+3. **A move made by the rebuild with a new excerpt block** (an R3 omission) is recorded and becomes the view the upstream call is attributed to.
+   - **Bug fixed:** calls kept the base view number and were recorded `unexplained`, so `--explain` failed. The auditor's `long12b` scenario is now a regression test.
+4. **Code-like terms narrowed (D28 amended).** A term is code-like when it has digits, `_`, `/`, `::`, internal capitals, a dot between two parts of 2+ characters, or backticks. Hyphenated and abbreviated prose (`follow-up`, `e.g.`) is plain, and a phrase of only one-character parts is dropped. A single code-like term can therefore clear the r1 floor alone only for a real identifier. Eunoe requires `min(2, wanted)` matched terms. r1 also admits one code-like term, because an error code or identifier is the strongest single signal in a coding session (papers.md).
+5. **Packing counts the real rendering (D29.5 amended).** The block is counted with real provenance (alias, turn, role, tool name), so the charge is exact. A placeholder had let a long tool name throw away a whole selection. `over_allocation` remains as the defensive reason when a source returns more than its allocation.
+6. **Never re-quote included text (D26).** Already-quoted ranges are compared with each item's span after context is added, not with the hit chunk.
+7. **One decode per block.** `search_chunks` decodes each block once, however many of its chunks hit. A 4 MB tool output had cost 1.2 s.
+8. **Warm-up sees the addendum.** Warm-up runs on the items the build used, addendum included.
+9. **Carriage returns in transcripts (D33 amended).** File structure is LF only. A CR inside a payload is payload text and is kept, so lines of CRLF tool output end in CR inside their block, and `extract` splits on LF only. Linked payload files hold exact bytes, special tokens included; only inline payloads are escaped.
+10. **"Byte-identical" means "except restored reasoning" (§9).** Unmasked sessions forward the client's body unchanged unless archived reasoning is restored for a client that omits it, as OpenCode does.
+
+## D39 — The upstream is shared with another application
+
+The user advised on 2026-10-25 that the Strata server on bazzite also serves another application.
+
+- **Pacing.** Evaluation and live runs never saturate the slot. Each request waits for an idle slot (`/slots` or `/status`) and backs off rather than queueing behind foreign work. Runs are sequential and small.
+- **Labelling.** Foreign traffic during a run is recorded. Latency, prefill and prompt-cache figures from such runs are labelled as possibly affected by it, not reported as clean. Foreign requests can evict cached prefixes, so measured reuse is a lower bound.
+- **No restarts without asking.** The held-out step's restart with `n_ctx` 32768 (O2) would disrupt the other application, so it needs the user's go-ahead first. The fallback is emulating 32K with `--input-budget 24320` at 64K capacity, with native compaction (arm 1) given a matching `limit.context`, labelled as emulated.

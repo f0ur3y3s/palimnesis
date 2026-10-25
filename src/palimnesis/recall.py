@@ -8,10 +8,11 @@ back verbatim in a block appended to that message. Adaptations:
   own text by a frozen policy, never passed through as FTS5 syntax. Every term
   is an FTS5 string of tokenizer sub-tokens, so operators, column filters,
   prefixes and quotes in the text are only ever searched as words.
-- **Code first.** Identifiers, paths and error codes (runs the ``unicode61``
-  tokenizer would split, or containing digits, internal capitals or
-  backticks) outrank plain words, then terms keep their first-occurrence
-  order. A run that splits becomes a phrase of its sub-tokens, so
+- **Code first.** Identifiers, paths and error codes (runs containing digits,
+  ``_``, ``/``, ``::``, internal capitals, a dot between two 2+-character parts,
+  or backticks) outrank plain words, then terms keep their first-occurrence
+  order. Hyphenated and abbreviated prose (``follow-up``, ``e.g.``) is not
+  code. A run that splits becomes a phrase of its sub-tokens, so
   ``parse_config`` matches ``parse config`` adjacently, not either word alone.
 - **Bounds.** At most 32 terms; long messages contribute their first 12,000
   and last 4,000 code points. Filler ("continue", "ok", "thanks") yields an
@@ -25,7 +26,8 @@ back verbatim in a block appended to that message. Adaptations:
   code-like term or two distinct terms in the chunk), ±4 lines of context,
   merged per block, each item capped at ``min(512, allocation − block overhead)`` tokens,
   then packed greedily in rank order (at most 8 items, 2 per source) against
-  the exact rendered block count, so the charge never exceeds the allocation.
+  the exact count of the block as it renders, provenance included, so the
+  charge never exceeds the allocation.
   Rank decides survival; the block renders chronologically (A1, D30).
 - **No currency judgment.** Each item carries its turn and provenance; a
   high score does not make a statement current.
@@ -55,6 +57,7 @@ _RUN = re.compile(r"[\w.\-/:#@]+")
 _SUBTOKEN = re.compile(r"[^\W_]+")  # unicode61: letters and digits; everything else separates
 _BACKTICKED = re.compile(r"`([^`\n]+)`")
 _INTERNAL_CAPITAL = re.compile(r"[a-z][A-Z]")
+_DOTTED = re.compile(r"[^\W_]{2,}\.[^\W_]{2,}")
 
 STOPWORDS = frozenset("""
 a about above after again against all also am an and any are as at be because been before
@@ -88,7 +91,7 @@ def _bounded(text: str) -> str:
 
 def _keep(subtokens: list[str]) -> bool:
     if len(subtokens) > 1:
-        return True
+        return any(len(s) > 1 for s in subtokens)  # "e.g." is not a term
     word = subtokens[0]
     if len(word) < 2:
         return False
@@ -110,8 +113,9 @@ def build_query(text: str) -> Query:
         if term in seen:
             continue
         seen.add(term)
-        is_code = (len(subtokens) > 1 or any(ch.isdigit() for ch in run)
-                   or bool(_INTERNAL_CAPITAL.search(run)) or run.lower() in backticked)
+        is_code = (any(ch.isdigit() for ch in run) or "_" in run or "/" in run
+                   or "::" in run or bool(_INTERNAL_CAPITAL.search(run))
+                   or bool(_DOTTED.search(run)) or run.lower() in backticked)
         (code if is_code else plain).append(term)
     terms = tuple((code + plain)[:MAX_TERMS])
     if not terms:
@@ -235,9 +239,17 @@ class _Candidate:
     seq: int
     block_idx: int
     kind: str
-    text: str
+    text: str  # the block's text with lone surrogates as U+FFFD (same offsets)
+    exact: str  # the block's exact archived text
     hit: tuple[int, int]
     span: tuple[int, int]
+
+
+def _quotable(text: str) -> str:
+    """Lone surrogates (valid in JSON, archived exactly as WTF-8) become U+FFFD, one
+    code point each, so offsets hold and the rendering can be stored and sent."""
+    return "".join("\ufffd" if "\ud800" <= ch <= "\udfff" else ch for ch in text) \
+        if any("\ud800" <= ch <= "\udfff" for ch in text) else text
 
 
 class FtsExcerpts:
@@ -276,12 +288,13 @@ class FtsExcerpts:
             lambda conn: self._rank(conn, query, found, base_view.included_excerpts, cap))
         if not ranked:
             return empty(reason, query.match)
-        chosen = self._pack(ranked, allocation)
+        prov = _Provenance(plan.items)
+        chosen = self._pack(ranked, allocation, prov)
         if not chosen:
             return empty("no_fit", query.match)
         return Selection(query=query.match, query_version=self.query_version,
                          retrieval_version=self.retrieval_version, archive_cutoff_seq=cutoff,
-                         items=self._items(plan.items, chosen))
+                         items=self._items(chosen, prov))
 
     def _overhead(self) -> int:
         """Tokens a one-item block costs beyond its payload: block header, item
@@ -312,20 +325,21 @@ class FtsExcerpts:
         for rank, hit in enumerate(hits):
             if not passes_floor(query, hit.text):
                 continue
-            if any(o == hit.occ_id and b == hit.block_idx and hit.start < e and s < hit.end
-                   for o, b, s, e in taken):
-                continue
             rowid, block_id, idx, kind, encoding, occ_id, seq = blocks[hit.block_rowid]
             if rowid not in texts:
-                texts[rowid] = search._block_text(conn, block_id, encoding)
-            text = texts[rowid]
+                exact = search._block_text(conn, block_id, encoding)
+                texts[rowid] = (_quotable(exact), exact)
+            text, exact = texts[rowid]
             span = _expand(text, hit.start, hit.end, CONTEXT_LINES)
+            if any(o == occ_id and b == idx and span[0] < e and s < span[1]
+                   for o, b, s, e in taken):
+                continue  # D26: never re-quote what an included block already shows
             same = next((c for c in merged if c.occ_id == occ_id and c.block_idx == idx
                          and span[0] <= c.span[1] and c.span[0] <= span[1]), None)
             if same is not None:  # overlapping or touching: one range, best rank kept
                 same.span = (min(same.span[0], span[0]), max(same.span[1], span[1]))
                 continue
-            merged.append(_Candidate(rank, hit.score, occ_id, seq, idx, kind, text,
+            merged.append(_Candidate(rank, hit.score, occ_id, seq, idx, kind, text, exact,
                                      (hit.start, hit.end), span))
         if not merged:
             return [], "below_floor"
@@ -336,11 +350,12 @@ class FtsExcerpts:
                 c.span = _fit(c.text, c.hit, c.span, cap, count)
         return merged, None
 
-    def _pack(self, ranked: list[_Candidate], allocation: int) -> list[_Candidate]:
-        """Greedy in rank order against the exact rendered count. An item that
-        overshoots is shrunk once by the measured excess (it keeps at least
-        ``MIN_ITEM_TOKENS``), else skipped; at most ``MAX_RENDERS`` renders."""
-        from .excerpts import Excerpt, render_block
+    def _pack(self, ranked: list[_Candidate], allocation: int, prov) -> list[_Candidate]:
+        """Greedy in rank order against the exact count of the block as it will render,
+        provenance included. An item that overshoots is shrunk once by the measured
+        excess (it keeps at least ``MIN_ITEM_TOKENS``), else skipped; at most
+        ``MAX_RENDERS`` renders."""
+        from .excerpts import render_block
 
         count = self.counter.count
         chosen: list[_Candidate] = []
@@ -350,11 +365,9 @@ class FtsExcerpts:
             nonlocal renders
             renders += 1
             ordered = sorted(trial, key=lambda x: (x.seq, x.block_idx, x.span[0]))
-            rendered = render_block(
-                [Excerpt("x", x.block_idx, 0, x.kind, None, x.text[x.span[0]:x.span[1]])
-                 for x in ordered], added_tokens=self.counter.added_token_strings)
-            # Provenance is filled in later; reserve room for the longest per item.
-            return count(rendered) + _HEADER_SLACK * len(trial) - allocation
+            rendered = render_block([prov.excerpt(x) for x in ordered],
+                                    added_tokens=self.counter.added_token_strings)
+            return count(rendered) - allocation
 
         for c in ranked:
             if len(chosen) >= MAX_ITEMS or renders >= MAX_RENDERS:
@@ -371,35 +384,53 @@ class FtsExcerpts:
                 chosen.append(c)
         return chosen
 
-    def _items(self, items, chosen: list[_Candidate]):
+    def _items(self, chosen: list[_Candidate], prov):
         from .excerpts import SelectedExcerpt
-        from .turns import turn_numbers
 
-        by_occ = {i.occ_id: i for i in items if i.occ_id}
-        numbers = turn_numbers(
-            [(i.seq, i.message.get("role", "")) for i in items if i.seq is not None],
-            {i.seq: _message_text(i.message) for i in items
-             if i.seq is not None and i.message.get("role") == "user"})
-        tools = {tc.get("id"): (tc.get("function") or {}).get("name")
-                 for i in items for tc in (i.message.get("tool_calls") or [])}
         out = []
         for c in sorted(chosen, key=lambda x: x.rank):
-            item = by_occ[c.occ_id]
-            role = "reasoning" if c.kind == "reasoning" else item.message.get("role", "")
-            tool = (tools.get(item.message.get("tool_call_id"))
-                    if item.message.get("role") == "tool" else None)
-            payload = c.text[c.span[0]:c.span[1]]
+            alias, turn, role, tool = prov.of(c)
+            exact = c.exact[c.span[0]:c.span[1]]
             out.append(SelectedExcerpt(
-                rank=c.rank, score=c.score, source_occ_id=c.occ_id, source_alias=item.alias,
+                rank=c.rank, score=c.score, source_occ_id=c.occ_id, source_alias=alias,
                 source_block=c.block_idx, start=c.span[0], end=c.span[1],
-                source_sha256=hashlib.sha256(payload.encode("utf-8", "surrogatepass")).hexdigest(),
-                turn_number=numbers.get(c.seq, 0), role=role, tool_name=tool, text=payload,
+                source_sha256=hashlib.sha256(exact.encode("utf-8", "surrogatepass")).hexdigest(),
+                turn_number=turn, role=role, tool_name=tool, text=c.text[c.span[0]:c.span[1]],
                 source_seq=c.seq))
         return tuple(out)
 
 
-# Room per item for the provenance a packing render leaves out: alias, turn digits,
-# role and a tool name of up to 64 safe characters (``excerpts._header_field``).
+class _Provenance:
+    """Alias, turn, role and tool name of each candidate's source, from the plan."""
+
+    def __init__(self, items):
+        from .turns import turn_numbers
+
+        self.by_occ = {i.occ_id: i for i in items if i.occ_id}
+        self.numbers = turn_numbers(
+            [(i.seq, i.message.get("role", "")) for i in items if i.seq is not None],
+            {i.seq: _message_text(i.message) for i in items
+             if i.seq is not None and i.message.get("role") == "user"})
+        self.tools = {tc.get("id"): (tc.get("function") or {}).get("name")
+                      for i in items for tc in (i.message.get("tool_calls") or [])}
+
+    def of(self, c: _Candidate) -> tuple[str | None, int, str, str | None]:
+        item = self.by_occ[c.occ_id]
+        role = "reasoning" if c.kind == "reasoning" else item.message.get("role", "")
+        tool = (self.tools.get(item.message.get("tool_call_id"))
+                if item.message.get("role") == "tool" else None)
+        return item.alias, self.numbers.get(c.seq, 0), role, tool
+
+    def excerpt(self, c: _Candidate):
+        from .excerpts import Excerpt
+
+        alias, turn, role, tool = self.of(c)
+        return Excerpt(alias or "", c.block_idx, turn, role, tool, c.text[c.span[0]:c.span[1]])
+
+
+# Room per item for provenance when sizing the item cap before packing: alias, turn
+# digits, role and a tool name of up to 64 safe characters (``excerpts._header_field``).
+# Packing itself counts the real rendering.
 _HEADER_SLACK = 40
 
 

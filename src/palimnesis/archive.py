@@ -116,6 +116,12 @@ class ArchiveHandler:
         prepared = None
         if self.views is not None and await self.views.ready(self.client):
             candidate = self.addendum_for(session) if self.addendum_for else None
+            if candidate is not None:
+                # The text actually applied is the one fixed earlier, if any (D36).
+                fixed = await self.store.read(lambda c: ledger.fixed_addendum(
+                    c, ledger.branch_id_for(session)))
+                if fixed is not None:
+                    candidate = (fixed["addendum_id"], fixed["text"])
             extra = self.views.counter.count(candidate[1]) + 2 if candidate else 0
             try:
                 prepared = await self.views.prepare(req, extra)
@@ -258,7 +264,16 @@ class ArchiveHandler:
             return block_id, view_id, view_n
 
         if view.moved or selected is not None:
-            block_id, plan.view_id, plan.view_n = await self.store.write(commit)
+            try:
+                block_id, plan.view_id, plan.view_n = await self.store.write(commit)
+            except Exception:
+                if selected is None:
+                    raise
+                # An excerpt row that cannot be stored must not fail the request (§13):
+                # commit the view move alone and answer without excerpts.
+                log.exception("excerpt selection could not be stored; continuing without")
+                selected = None
+                block_id, plan.view_id, plan.view_n = await self.store.write(commit)
             crash_point("after_excerpt_commit")
             if selected is not None and selected[1]:
                 plan.items = [replace(i, excerpt=(block_id, selected[1], selected[2]))
@@ -270,10 +285,15 @@ class ArchiveHandler:
                     log.exception("view rebuild with excerpts failed; sending the base view")
                 else:
                     if rebuilt.moved:  # e.g. an R3 omission the new block triggered
-                        await self.store.write(lambda c: ledger.record_view(
-                            c, plan, rebuilt.state,
-                            budget=ViewEngine.snapshot(prepared.budget),
-                            cause=ViewEngine.cause(view.state, rebuilt.state), **VIEW_FORMAT))
+                        def record(c):
+                            view_id = ledger.record_view(
+                                c, plan, rebuilt.state,
+                                budget=ViewEngine.snapshot(prepared.budget),
+                                cause=ViewEngine.cause(view.state, rebuilt.state), **VIEW_FORMAT)
+                            return view_id, ledger.latest_view(c, plan.branch_id)[1]
+
+                        # The call is attributed to the view it sends (contracts §10).
+                        plan.view_id, plan.view_n = await self.store.write(record)
                     view = rebuilt
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
         plan.view, plan.prepared = view, prepared

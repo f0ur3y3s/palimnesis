@@ -168,8 +168,11 @@ def search_chunks(conn: sqlite3.Connection, match: str, *,
         params,
     ).fetchall()
     hits = []
+    texts: dict[str, str] = {}  # each block decoded once, however many of its chunks hit
     for rowid, block_rowid, block_id, idx, encoding, occ_id, seq, start, end, score in rows:
-        text = _indexable(conn, block_id, encoding)[start:end]
+        if block_id not in texts:
+            texts[block_id] = _indexable(conn, block_id, encoding)
+        text = texts[block_id][start:end]
         hits.append(ChunkHit(rowid, block_rowid, block_id, idx, occ_id, seq, start, end,
                              score, text))
     return hits

@@ -32,9 +32,10 @@ def test_backticked_text_is_code_like():
 def test_fts_operators_in_user_text_are_quoted_literally():
     q = build_query('NEAR(alpha beta) OR gamma* AND ^delta "quoted" col:value -x')
 
-    assert q.terms == ("col value", "near", "alpha", "beta", "gamma", "delta", "quoted")
-    assert q.match == ('"col value" OR "near" OR "alpha" OR "beta" OR "gamma" OR "delta"'
-                       ' OR "quoted"')
+    # ":" alone is not code (D28 as amended): plain words in first-occurrence order.
+    assert q.terms == ("near", "alpha", "beta", "gamma", "delta", "quoted", "col value")
+    assert q.match == ('"near" OR "alpha" OR "beta" OR "gamma" OR "delta" OR "quoted"'
+                       ' OR "col value"')
 
 
 def test_query_strings_never_raise_fts_syntax_errors():
