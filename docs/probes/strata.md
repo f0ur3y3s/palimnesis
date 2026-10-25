@@ -129,6 +129,10 @@ There is no tokenize or apply-template endpoint.
 
 The one requirement is that tools are passed in the bare form. Scripts: `p04_count_tokens.py` and `p02_template_render.py`. Fixtures: `count_tokens.json`, `template_render_check*.json`.
 
+**Strata normalizes messages before rendering** (`serve/frontend.py`; found by the Phase 3 development runs, R21; probe `p12_strata_normalization.py`, fixture `strata_normalization.json`, 2026-10-25). The 19 cases above did not exercise either rule.
+- **Empty assistant turns are dropped** (`ChatTemplate.render`, #843). A completed assistant turn with no text (null, "", whitespace, or text parts that join to nothing), no image and no tool calls is left out, reasoning included. The final message is always kept. `STRATA_KEEP_EMPTY_TURNS=1` restores the old rendering. All four empty forms counted 311, the same as removing the turn; with content "ok" the count was 344.
+- **Tool-call arguments** (`tool_arguments`, #510). A JSON object, whether text or parsed, is used as it is; empty is `{}`; anything else (cut-off JSON, a list, a number) is kept as text under `"arguments"` instead of refusing the request.
+
 ## 5. Non-streaming responses [verified]
 
 Fixtures are `fixtures/nonstream_*.json`; each holds the request, headers, body and wall time. Script: `p05_nonstream.py`.

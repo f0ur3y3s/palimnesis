@@ -478,4 +478,18 @@ The user granted SSH access to bazzite (alias `bazzite`) on 2026-10-25 and asked
   3. Check that `/props` and `/v1/status` report `n_ctx` 32768, and that the build, template hash and canary still match the pinned profile. Bounded views turn off otherwise.
   4. Run the held-out evaluation.
   5. Restore with `strata.py launch --preset "IQ3_XXS 64K" --restart --no-tui --yes` and check that `n_ctx` is 65536.
+- **Launch outside the SSH login.** bazzite sets logind `KillUserProcesses=true`, so anything started from an SSH login is killed when the login closes, even under `setsid nohup`. That is what stopped the 64K server at 06:07 EDT on 2026-10-25, during the development evaluation. Every launch is therefore wrapped in its own systemd user scope, so it outlives the login: `systemd-run --user --scope --unit=strata-<ctx> python/bin/python3 strata.py launch ...`. Stop with `strata.py launch --stop --preset "IQ3_XXS 64K"` before starting the next unit.
 - **Observed and not changed:** the launcher warns that the server runs on the LAN with no API key ("anyone who can reach this port can use the model and its tools"). This is the user's existing configuration.
+
+## D41 — The counter follows Strata's message normalization (R21-A, R21-B)
+
+The development evaluation (R21) found two places where the pinned counter rendered something other than what Strata renders. Strata's `serve/frontend.py` is the evidence; `eval/probes/p12_strata_normalization.py` recorded live counts for both.
+
+1. **Reasoning-only assistant turns.** Strata drops a completed assistant turn that has no text, no image and no tool calls, reasoning included (#843); the final message is kept. The counter now drops the same turns.
+   - **Effect before the fix:** whenever the model answered only in its reasoning, every later request in the session drifted, by 83 and 16 tokens live. Three drifts in a row disabled bounded views for the whole process (D22.4).
+   - OpenCode 2.1.4 sends "" for such turns, so this hits real sessions, not only the emulator.
+   - In `layout` a dropped turn is a zero-length segment. The kept messages around it group as Strata renders them, so a tool run continues across it.
+2. **Malformed tool-call arguments.** Strata keeps arguments that are not a JSON object as text under `"arguments"`, and maps empty arguments to `{}` (#510). The counter used to leave them as strings, which the pinned template refuses.
+   - **Effect before the fix:** a call cut off by `finish_reason: "length"`, resent by the client, made every view build fail. The proxy then forwarded the whole history (D14.9), and Strata answered 400 on every later request in the session.
+3. **D14.9 is unchanged.** A view defect still forwards unbounded. With the counter matching Strata, these two inputs no longer reach that path. Making the fallback refuse rather than forward would turn a counter defect into a hard failure for the user, so it is not done here.
+4. **R21-C (upstream early stops) is not a proxy defect.** Answers that end mid-value or arrive empty match the raw upstream stream. With item 1 fixed they no longer cascade, so they now count as ordinary model misses. Their cause in Strata 0.1.48 is unknown.

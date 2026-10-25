@@ -1,0 +1,302 @@
+{
+ "upstream": "http://192.168.1.173:8080",
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "write",
+    "description": "Write a file.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  }
+ ],
+ "cases": {
+  "empty_turn_null": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "reasoning_content": "The user wants a number. I will think about which number to pick, maybe seven or eight or nine."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 311
+  },
+  "empty_turn_empty_string": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "assistant",
+     "content": "",
+     "reasoning_content": "The user wants a number. I will think about which number to pick, maybe seven or eight or nine."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 311
+  },
+  "empty_turn_whitespace": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "assistant",
+     "content": "  \n",
+     "reasoning_content": "The user wants a number. I will think about which number to pick, maybe seven or eight or nine."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 311
+  },
+  "empty_turn_text_parts": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": ""
+      }
+     ],
+     "reasoning_content": "The user wants a number. I will think about which number to pick, maybe seven or eight or nine."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 311
+  },
+  "nonempty_turn": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "The user wants a number. I will think about which number to pick, maybe seven or eight or nine."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 344
+  },
+  "turn_removed": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Say a number."
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 311
+  },
+  "args_truncated": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Save the notes."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "write",
+        "arguments": "{\"path\":\"notes.txt\",\"content\":\"abc"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "error: invalid arguments"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 366
+  },
+  "args_list": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Save the notes."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "write",
+        "arguments": "[1, 2]"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "error: invalid arguments"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 363
+  },
+  "args_empty": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Save the notes."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "write",
+        "arguments": ""
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "error: invalid arguments"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 346
+  },
+  "args_object": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Save the notes."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "write",
+        "arguments": "{\"path\":\"notes.txt\"}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "error: invalid arguments"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "prompt_tokens": 358
+  }
+ },
+ "props_build": "Strata 0.1.48"
+}

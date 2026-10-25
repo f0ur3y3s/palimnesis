@@ -8,7 +8,12 @@ preprocessing of OpenAI-shaped input:
 - tools are rendered bare: the OpenAI ``{type, function}`` wrapper is removed and the
   ``function`` object rendered with all its keys (``strict`` included); an Anthropic
   tool renders as ``{name, description, parameters}``;
-- string tool-call ``arguments`` are parsed to mappings;
+- tool-call ``arguments`` follow Strata's ``tool_arguments`` (#510): a JSON object is
+  parsed to a mapping, empty is {}, and anything else (cut-off JSON, a list) is kept as
+  text under ``"arguments"``;
+- completed assistant turns with no text, no image and no tool calls are dropped, except
+  the final message (``ChatTemplate.render``, #843). A reasoning-only turn therefore
+  renders nothing, reasoning included (R21-B, ``eval/probes/p12_strata_normalization.py``);
 - reasoning travels as ``reasoning_content``; ``preserve_thinking`` is never passed
   (Strata ignores it, so every earlier turn keeps its reasoning);
 - effort ``none`` means ``enable_thinking=False``.
@@ -98,25 +103,59 @@ def bare_tool(tool: Mapping[str, Any]) -> Mapping[str, Any]:
     return tool
 
 
+def _strata_arguments(raw: Any) -> Mapping[str, Any]:
+    """Strata's ``tool_arguments`` (#510): a JSON object is used as it is, empty is {},
+    anything else (cut-off JSON, a list, a number) is kept as text under "arguments"."""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return {}
+    if isinstance(raw, Mapping):
+        return raw
+    if isinstance(raw, str):
+        try:
+            value = json.loads(raw)
+        except ValueError:
+            return {"arguments": raw}
+        return value if isinstance(value, Mapping) else {"arguments": raw}
+    return {"arguments": json.dumps(raw, ensure_ascii=False)}
+
+
 def _parsed_arguments(tool_call: Mapping[str, Any]) -> Mapping[str, Any]:
     fn = tool_call.get("function")
     if not isinstance(fn, Mapping):
         return tool_call
-    args = fn.get("arguments")
-    if not isinstance(args, str) or not args.strip():
-        return tool_call
-    try:
-        parsed = json.loads(args)
-    except ValueError:
-        return tool_call  # the template rejects it, as Strata would
-    if not isinstance(parsed, Mapping):
-        return tool_call
-    return {**tool_call, "function": {**fn, "arguments": parsed}}
+    return {**tool_call, "function": {**fn, "arguments": _strata_arguments(fn.get("arguments"))}}
+
+
+def _text_of(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    return "".join(p.get("text", "") for p in content
+                   if isinstance(p, Mapping) and p.get("type") in ("text", "input_text", None))
+
+
+def _has_image(content: Any) -> bool:
+    return isinstance(content, list) and any(
+        isinstance(p, Mapping) and p.get("type") in ("image_url", "input_image", "image")
+        for p in content)
+
+
+def dropped_turns(messages: Sequence[Mapping[str, Any]]) -> frozenset[int]:
+    """Indices Strata leaves out of the render (#843): completed assistant turns with no
+    text, no image and no tool calls. The final message is always kept."""
+    return frozenset(
+        i for i, m in enumerate(messages[:-1])
+        if m.get("role") == "assistant" and not _text_of(m.get("content")).strip()
+        and not _has_image(m.get("content")) and not m.get("tool_calls"))
 
 
 def preprocess_messages(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    drop = dropped_turns(messages)
     out: list[Mapping[str, Any]] = []
-    for message in messages:
+    for i, message in enumerate(messages):
+        if i in drop:
+            continue
         calls = message.get("tool_calls")
         if isinstance(calls, list) and calls:
             message = {**message, "tool_calls": [_parsed_arguments(tc) for tc in calls]}
@@ -386,16 +425,28 @@ def _turn_units(messages: Sequence[Mapping[str, Any]], tools, has_head: bool,
         cuts = 1 + _cuts(list(messages[:num_sys])) + (_cuts([bare_tool(t) for t in tools])
                                                       if tools else 0)
         units.append(("head", tuple(range(num_sys)), cuts))
+    # A turn Strata drops renders nothing: a zero-fragment unit in its place. The kept
+    # messages around it render as if adjacent, so tool runs group across it.
+    drop = dropped_turns(messages)
     i = num_sys
     while i < len(messages):
+        if i in drop:
+            units.append((messages[i].get("role"), (i,), 0))
+            i += 1
+            continue
         role = messages[i].get("role")
+        members = [i]
         j = i + 1
         if role == "tool":
-            while j < len(messages) and messages[j].get("role") == "tool":
+            while j < len(messages) and (j in drop or messages[j].get("role") == "tool"):
+                if j not in drop:
+                    members.append(j)
                 j += 1
-        members = tuple(range(i, j))
-        units.append((role if role in ("user", "assistant", "tool") else "unmapped", members,
-                      1 + _cuts([messages[k] for k in members])))
+            while j - 1 > i and j - 1 in drop:  # trailing dropped turns get their own units
+                j -= 1
+        units.append((role if role in ("user", "assistant", "tool") else "unmapped",
+                      tuple(members), 1 + _cuts([messages[k] for k in members])))
+        units.extend((messages[k].get("role"), (k,), 0) for k in range(i, j) if k in drop)
         i = j
     if generation:
         units.append(("generation", (), 1))

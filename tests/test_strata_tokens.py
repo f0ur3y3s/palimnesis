@@ -249,3 +249,38 @@ def test_lone_surrogates_are_counted_as_replacement_characters_not_an_error():
     assert t.count_cached("b\udc00") == t.count("b�")
     rendered = t.render([{"role": "user", "content": "x\ud83d"}])
     assert t.count_rendered(rendered) == t.count(rendered.replace("\ud83d", "�"))
+
+
+# --- Strata's message normalization (R21-A, R21-B; eval/probes/p12_strata_normalization.py) ---
+
+NORMALIZATION = json.loads((PROBES / "strata_normalization.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("case", sorted(NORMALIZATION["cases"]))
+def test_local_count_equals_strata_after_its_normalization(case):
+    """Empty completed assistant turns are dropped (#843); malformed tool-call
+    arguments render as text under "arguments", empty ones as {} (#510)."""
+    rec = NORMALIZATION["cases"][case]
+    body = {"messages": rec["messages"], "tools": NORMALIZATION["tools"]}
+
+    assert tokens.count_messages(**tokens.render_args_from_openai(body)) == rec["prompt_tokens"]
+
+
+def test_a_final_empty_assistant_message_is_kept():
+    t = tokens.default()
+    head = [{"role": "user", "content": "Say a number."}]
+
+    assert t.render(head + [{"role": "assistant", "content": ""}], add_generation_prompt=False) \
+        != t.render(head, add_generation_prompt=False)
+
+
+def test_a_dropped_empty_turn_keeps_the_layout_mapped():
+    t = tokens.default()
+    messages = NORMALIZATION["cases"]["empty_turn_empty_string"]["messages"]
+
+    layout = t.layout(messages, NORMALIZATION["tools"])
+
+    assert len(layout.ids) == NORMALIZATION["cases"]["empty_turn_empty_string"]["prompt_tokens"]
+    assert all(s.kind != "unmapped" for s in layout.segments)
+    [empty] = [s for s in layout.segments if s.messages == (2,)]
+    assert empty.start == empty.end
