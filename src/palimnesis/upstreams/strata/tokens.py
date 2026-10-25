@@ -59,6 +59,25 @@ def _raise_exception(message: str) -> None:
     raise jinja2.exceptions.TemplateError(message)
 
 
+class _Sandbox(ImmutableSandboxedEnvironment):
+    """The immutable sandbox with its attribute check memoized by (type, attr).
+
+    The check (underscore names, internal attributes, known-mutable methods)
+    depends only on the object's type and the name, so this is exact. It removes
+    most of the per-render overhead that the view builder's searches pay."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._safe: dict[tuple[type, str], bool] = {}
+
+    def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:
+        key = (type(obj), attr)
+        hit = self._safe.get(key)
+        if hit is None:
+            hit = self._safe[key] = super().is_safe_attribute(obj, attr, value)
+        return hit
+
+
 def bare_tool(tool: Mapping[str, Any]) -> Mapping[str, Any]:
     """Strata's tool form.
 
@@ -136,7 +155,7 @@ class Tokens:
         self._split_tokens = tuple(split_tokens)
         self._hits = 0
         self._misses = 0
-        env = ImmutableSandboxedEnvironment(
+        env = _Sandbox(
             trim_blocks=True, lstrip_blocks=True, extensions=["jinja2.ext.loopcontrols"]
         )
         env.filters["tojson"] = _tojson

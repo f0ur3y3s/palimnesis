@@ -284,3 +284,36 @@ The independent cache audit re-rendered 789 consecutive upstream-call pairs acro
 2. **Logged for `bench_view`, not fixed: moves can come almost every turn.** When `min_recent` holds the watermark back, the view lands above T. At small budgets with large outputs it then crosses H nearly every turn: 21 of 24 calls moved at a 12K budget. The hysteresis parameters (D14.6) are revisited with `bench_view` data.
 3. **Logged, not fixed: an oversized newest output over-collapses.** The watermark and collapse searches run while the oversized newest output is still verbatim, so they take the last candidate before that output is stubbed. This discards more context and cache than needed. The ordering fix (stub the newest output first when it alone exceeds the window) is a Phase 2 follow-up tracked with `bench_view`.
 4. **Disabled-mode audit gap.** `view_disabled` and `first_call` are recorded causes; contracts §10 now lists them. Calls in disabled mode record no LCP, so their prefix changes are not audited.
+
+## D25 — Builder latency: off-path stub warm-up; Phase 2 latency gates
+
+R12 measured warm builds at 48K that do not move the view at p95 ≤ 22.6 ms. Builds that move it reached p95 95–175 ms, so all builds together missed the 30 ms target. Profiling located the cost:
+
+- **Not rendering.** Moves made 14 template renders each; cutting them to 8 changed the time by under 10%.
+- **Cold stubs and fragments.** Most of the cost was fitting s1 stub previews for newly masked messages, a bisection over uncached prefix counts at about 4.5 ms per stub. The rest was counting each masked message's rendered fragment for the first time.
+
+Changes. All are exact: views, counts and every R12 count are unchanged.
+
+1. **Stub cache across builds.** Stubs are memoized process-wide, keyed by kind, alias, block, the SHA-256 of the text, preview caps and counter. The bounded LRU holds 4,096 stubs, not texts.
+2. **Off-path warm-up.** After each build, `ViewEngine` hands the request's items to one background worker while the upstream generates. The worker renders the session once with every unfixed message masked (`view.warm`), which fills the stub and fragment caches for any later move.
+   - A newer request supersedes a pending warm-up rather than queueing behind it.
+   - Failures are logged and builds compute on demand.
+   - `--view off` skips it.
+3. **Per-build measurement memo.** The searches and the final view no longer re-render states already counted.
+4. **Sandbox check memo.** The jinja sandbox's attribute check is memoized by (type, attribute). The check depends on nothing else, so this is exact.
+5. **Rejected: an estimate-guided search.** It cut renders from 14 to 8 per move with identical results but gained under 10%, which did not justify the extra search logic.
+
+**Gate dispositions (Phase 2).**
+
+- **Builder latency** (plan: build + count p95 ≤ 30 ms at 48K, warm). Met on `tool_heavy` (24.8–26.6 ms) and `chatty` (3.9–4.5 ms). Missed on `big_single` (37.4–38.6 ms), which is accepted:
+  - Its moves are triggered by a 3K–15K-token output that arrives in the same request, so that output's stub cannot be prepared beforehand.
+  - A move precedes a re-read of ~19K tokens, about 60 s of prefill at 48K (R14, scaled). A 45 ms build adds under 0.1% to that request.
+  - Incremental rendering would remove the remainder. It is not scheduled.
+- **R8 "bench_archive TTFB flat"** is reinterpreted as *no per-request history reload*.
+  - **Met.** The statement count is constant over 200 turns (`test_accept_sql_statements_constant_over_200_turns`).
+  - **What still grows** (R13, R16), from first-10 to last-10 over 50 turns, is CPU linear in the client body:
+    - JSON parse, 0.7 → 3.7 ms;
+    - transcript alignment in accept, 2.0 → 5.2 ms;
+    - view render and count, bounded by the input budget.
+  - **Why the original wording is dropped:** a parser cannot be flat in the size of its input.
+  - **Phase 3 candidate:** incremental alignment against the BranchCache, so that accept is O(new messages).

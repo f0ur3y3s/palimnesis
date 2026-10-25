@@ -27,7 +27,9 @@ Every function is pure and makes no upstream calls.
 from __future__ import annotations
 
 import hashlib
+import threading
 import unicodedata
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Callable, Iterator
 
@@ -215,9 +217,34 @@ def _snap_tail(text: str, start: int, stop: int) -> int:
     return newline + 1 if 0 <= newline and newline + 1 < stop else start
 
 
+_STUBS: OrderedDict[tuple, str] = OrderedDict()
+_STUBS_MAX = 4096
+_STUBS_LOCK = threading.Lock()
+
+
 def _stub(kind: str, alias: str, block: int, text: str, count: Count,
           head_tokens: int, tail_tokens: int) -> str:
+    """A stub, memoized across builds: it is a pure function of these arguments,
+    and fitting its previews costs dozens of uncached counts. Keyed by the text's
+    SHA-256 so the cache holds stubs, not texts."""
     _check_alias(alias)
+    key = (kind, alias, block, hashlib.sha256(_bytes(text)).digest(),
+           head_tokens, tail_tokens, count)
+    with _STUBS_LOCK:
+        hit = _STUBS.get(key)
+        if hit is not None:
+            _STUBS.move_to_end(key)
+            return hit
+    stub = _render_stub(kind, alias, block, text, count, head_tokens, tail_tokens)
+    with _STUBS_LOCK:
+        _STUBS[key] = stub
+        if len(_STUBS) > _STUBS_MAX:
+            _STUBS.popitem(last=False)
+    return stub
+
+
+def _render_stub(kind: str, alias: str, block: int, text: str, count: Count,
+                 head_tokens: int, tail_tokens: int) -> str:
     sha = hashlib.sha256(_bytes(text)).hexdigest()[:6]
     header = (f"[palimnesis {STUB_FORMAT} {bare_ref(alias, block)} {kind} · {count(text):,} tok · "
               f"{_plural(_lines(text), 'line')} · sha {sha}]")

@@ -133,12 +133,23 @@ class _Builder:
         if self.last_user is not None:
             self.fixed.add(self.last_user)
         self.starts = _group_starts(self.items)
-        self._stub_cache: dict[tuple[int, str], dict] = {}
+        self._stub_cache: dict[tuple[int, str], tuple[dict, bool]] = {}
+        self._measured: dict[ViewState, tuple] = {}
 
     # -- rendering ------------------------------------------------------------
 
     def count(self, messages: list[dict]) -> int:
         return self.counter.count_messages(messages, self.tools, **self.render_kwargs)
+
+    def measure(self, state: ViewState):
+        """``apply(state)`` plus its exact rendered count, memoized per build: the
+        searches and the final view revisit the same states."""
+        hit = self._measured.get(state)
+        if hit is None:
+            messages, manifest, included, charge = self.apply(state)
+            hit = self._measured[state] = (messages, manifest, included, charge,
+                                           self.count(messages))
+        return hit
 
     def seq_index(self, seq: int) -> int:
         """Index of the first item with seq >= ``seq`` (len if none)."""
@@ -149,28 +160,9 @@ class _Builder:
 
     def masked_message(self, index: int) -> tuple[dict, bool]:
         key = (index, "masked")
-        if key in self._stub_cache:
-            return self._stub_cache[key]["message"], self._stub_cache[key]["changed"]
-        item = self.items[index]
-        message = dict(item.message)
-        changed = False
-        count = self.counter.count_cached
-        if message.get("role") == "tool" and isinstance(message.get("content"), str):
-            text = message["content"]
-            if count(text) > self.policy.inline_tokens and item.alias:
-                stub = tool_result_stub(item.alias, item.blocks.get("tool_result", 0), text,
-                                        count=count)
-                if count(stub) < count(text):
-                    message["content"], changed = stub, True
-        reasoning = message.get("reasoning_content")
-        if message.get("role") == "assistant" and isinstance(reasoning, str) and reasoning \
-                and item.alias:
-            stub = reasoning_stub(item.alias, item.blocks.get("reasoning", 0), reasoning,
-                                  count=count)
-            if count(stub) < count(reasoning):
-                message["reasoning_content"], changed = stub, True
-        self._stub_cache[key] = {"message": message, "changed": changed}
-        return message, changed
+        if key not in self._stub_cache:
+            self._stub_cache[key] = _masked(self.items[index], self.policy, self.counter)
+        return self._stub_cache[key]
 
     def is_fixed(self, index: int, state: ViewState) -> bool:
         return index in self.fixed or self.items[index].occ_id in state.kept
@@ -292,12 +284,51 @@ class _Builder:
         best = None
         while lo <= hi:
             mid = (lo + hi) // 2
-            messages, _, _, charge = self.apply(make_state(candidates[mid]))
-            if self.count(messages) - charge <= target:
+            _, _, _, charge, total = self.measure(make_state(candidates[mid]))
+            if total - charge <= target:
                 best, hi = candidates[mid], mid - 1
             else:
                 lo = mid + 1
         return best
+
+
+def _masked(item: ViewItem, policy: ViewPolicy, counter) -> tuple[dict, bool]:
+    """``item``'s masked form (s1 stubs where they pay, D16.5) and whether it changed."""
+    message = dict(item.message)
+    changed = False
+    count = counter.count_cached
+    if message.get("role") == "tool" and isinstance(message.get("content"), str):
+        text = message["content"]
+        if count(text) > policy.inline_tokens and item.alias:
+            stub = tool_result_stub(item.alias, item.blocks.get("tool_result", 0), text,
+                                    count=count)
+            if count(stub) < count(text):
+                message["content"], changed = stub, True
+    reasoning = message.get("reasoning_content")
+    if message.get("role") == "assistant" and isinstance(reasoning, str) and reasoning \
+            and item.alias:
+        stub = reasoning_stub(item.alias, item.blocks.get("reasoning", 0), reasoning,
+                              count=count)
+        if count(stub) < count(reasoning):
+            message["reasoning_content"], changed = stub, True
+    return message, changed
+
+
+def warm(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
+         render_kwargs: Mapping[str, Any], budget: Budget, state: ViewState,
+         policy: ViewPolicy, counter) -> None:
+    """Fill the process-wide stub and count caches for the next watermark move, off
+    the request path (D25). Stubs and counts are pure functions of their inputs,
+    so this never changes a view; it moves the cold cost of a move (fitting stub
+    previews, counting each masked message's rendered fragment) to idle time.
+
+    It renders once with every unfixed message masked, which stubs and counts each
+    message a later move could mask, in its real context. That includes the
+    newest group, which the next request makes maskable."""
+    b = _Builder(items, tools, render_kwargs, budget, policy, counter)
+    old = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
+    if len(b.items) > old:
+        b.measure(b.keep_fixed(replace(state, watermark_seq=_seq(b.items, len(b.items)))))
 
 
 def _seq(items: Sequence[ViewItem], index: int) -> int:
@@ -317,11 +348,11 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     target = fixed + policy.target * capacity
 
     def view(st: ViewState, moved: bool, base_manifest=()) -> View:
-        messages, manifest, included, charge = b.apply(st)
+        messages, manifest, included, charge, total = b.measure(st)
         base = dict(base_manifest)
         evicted = tuple(occ for occ, form in manifest
                         if moved and form != "verbatim" and base.get(occ) == "verbatim")
-        return View(messages, b.count(messages), st, moved, fixed, capacity, manifest,
+        return View(messages, total, st, moved, fixed, capacity, manifest,
                     included, charge, evicted)
 
     original = state
@@ -336,8 +367,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     if over_cap:
         state = replace(state, omitted_excerpts=state.omitted_excerpts | over_cap)
 
-    messages, manifest, _, charge = b.apply(state)
-    total = b.count(messages)
+    messages, manifest, _, charge, total = b.measure(state)
     if total - charge <= high and total <= budget.input_budget:
         return view(state, state != original)
     base_manifest = manifest
@@ -352,8 +382,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             replace(state, watermark_seq=_seq(b.items, i))), target)
         new_state = replace(state, watermark_seq=_seq(b.items, found if found is not None
                                                        else candidates[-1]))
-    messages, _, _, charge = b.apply(new_state)
-    total = b.count(messages)
+    messages, _, _, charge, total = b.measure(new_state)
 
     # Collapse the oldest masked span when stubs alone do not reach the target.
     if total - charge > target:
@@ -368,13 +397,11 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
 
     # A threshold event: excerpt omissions are scheduled with it (R3).
     new_state = b.omit_for_event(b.keep_fixed(new_state), fixed)
-    messages, _, included, charge = b.apply(new_state)
-    total = b.count(messages)
+    messages, _, included, charge, total = b.measure(new_state)
 
     if total > budget.input_budget and included:  # R4: excerpts go first
         new_state = replace(new_state, omitted_excerpts=new_state.omitted_excerpts | set(included))
-        messages, _, included, charge = b.apply(new_state)
-        total = b.count(messages)
+        messages, _, included, charge, total = b.measure(new_state)
 
     # Oversized items in the recent window: stub the largest unmasked tool results
     # and assistant reasoning in place (the newest output may be the culprit).
@@ -393,8 +420,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
         for i in unmasked:
             new_state = replace(new_state, oversized=new_state.oversized | {b.items[i].occ_id})
-            messages, _, _, _ = b.apply(new_state)
-            total = b.count(messages)
+            *_, total = b.measure(new_state)
             if total <= budget.input_budget:
                 break
 
@@ -413,8 +439,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
                              budget.input_budget)
             new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
                                                         else candidates[-1]))
-        messages, _, _, _ = b.apply(b.keep_fixed(new_state))
-        total = b.count(messages)
+        *_, total = b.measure(b.keep_fixed(new_state))
     new_state = b.keep_fixed(new_state)
     result = view(new_state, new_state != original, base_manifest)
     if result.tokens > budget.input_budget:

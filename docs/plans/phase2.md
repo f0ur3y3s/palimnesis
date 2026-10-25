@@ -153,8 +153,8 @@ Fixtures:
 | §9 recall continuations | deferred to Phase 3 | — |
 | §10 | cacheacct tests, `test_upstream_call_event_fields` | P, H |
 | Masked spans keep addresses | `test_every_masked_item_has_resolvable_alias_and_catalog_entry` | S |
-| R8 | `test_accept_sql_statements_constant_over_200_turns`; bench_archive TTFB flat | S, E |
-| Builder latency | bench_view: build + count p95 ≤ 30 ms at 48K, warm | E |
+| R8 | `test_accept_sql_statements_constant_over_200_turns`; bench_archive TTFB flat (reinterpreted as no history reload: D25) | S, E |
+| Builder latency | bench_view: build + count p95 ≤ 30 ms at 48K, warm (disposition: D25, R16) | E |
 | §7, §8, keepalives, recall | deferred to Phase 3 | — |
 
 ### Phase 3 A/B matrix (defined now, run in Phase 3)

@@ -268,3 +268,24 @@ def test_a_message_kept_verbatim_inside_the_masked_region_stays_kept_on_later_tu
 
     assert second.messages[:len(first.messages)] == first.messages or second.moved
     assert {"role": "user", "content": "refactor the project"} in second.messages
+
+
+def test_warming_stubs_never_changes_a_view(counter):
+    # Phase 2 latency (D25): the engine warms stubs off the request path; a view
+    # built after warming must be identical to one built cold.
+    from palimnesis.upstreams.strata import pins
+    from palimnesis.view import warm
+
+    s = Session().system().user("refactor everything")
+    for i in range(12):
+        s.tool_turn(i, _code(i, lines=200), reasoning="consider " * 300)
+    s.user("now summarize")
+    cold = _view(tokens.Tokens(pins.load()), s, budget=_budget())
+
+    warm_counter = tokens.Tokens(pins.load())
+    warm(s.items, tools=TOOLS, render_kwargs={}, budget=_budget(), state=ViewState(),
+         policy=ViewPolicy(), counter=warm_counter)
+    warm = _view(warm_counter, s, budget=_budget())
+
+    assert cold.moved and warm.moved
+    assert (warm.messages, warm.tokens, warm.state) == (cold.messages, cold.tokens, cold.state)

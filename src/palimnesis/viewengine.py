@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any
@@ -51,7 +52,7 @@ from .budget import (
 from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
 from .profile import UpstreamProfile, unsupported_rules
 from .stubs import STUB_FORMAT
-from .view import POLICY_VERSION, View, ViewPolicy, build
+from .view import POLICY_VERSION, View, ViewPolicy, build, warm
 
 
 log = logging.getLogger(__name__)
@@ -118,6 +119,9 @@ class ViewEngine:
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
         self.view_policy = ViewPolicy()
+        self._warm_lock = threading.Lock()
+        self._warm_next = None
+        self._warming = False
         self.drift = DriftMonitor(self.policy.margin)
 
     @property
@@ -176,7 +180,35 @@ class ViewEngine:
                          budget=prepared.budget, state=plan.view_state, policy=policy,
                          counter=self.counter)
 
-        return await anyio.to_thread.run_sync(run)
+        view = await anyio.to_thread.run_sync(run)
+        if self.mode != "off":
+            self._warm(dict(items=list(plan.items), tools=prepared.tools,
+                            render_kwargs=prepared.render_kwargs, budget=prepared.budget,
+                            state=view.state, policy=policy, counter=self.counter))
+        return view
+
+    def _warm(self, job: dict) -> None:
+        """Warm stubs for the next watermark move while the upstream generates. One
+        worker, newest request wins: a pending warm-up is superseded, not queued."""
+        with self._warm_lock:
+            self._warm_next = job
+            if self._warming:
+                return
+            self._warming = True
+
+        def work() -> None:
+            while True:
+                with self._warm_lock:
+                    job, self._warm_next = self._warm_next, None
+                    if job is None:
+                        self._warming = False
+                        return
+                try:
+                    warm(**job)
+                except Exception:
+                    log.exception("stub warm-up failed; builds compute stubs on demand")
+
+        threading.Thread(target=work, name="palimnesis-stub-warm", daemon=True).start()
 
     async def select(self, prepared: Prepared, plan, base: View):
         """Excerpt selection for the plan's host message within the allocation the
