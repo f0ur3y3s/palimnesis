@@ -414,7 +414,7 @@ def run(a) -> int:
     res["gate_events"] = stack.gate.events
     calls = stack.tap.calls
     res["upstream_calls"] = len(calls)
-    res["upstream_errors"] = sum(1 for c in calls if c.get("status") != 200 or c.get("stream_error"))
+    res["upstream_errors"] = len(oc_stack.failed(calls))
     res["proxy_rejections"] = sum(t["proxy_rejections"] for t in res["turns"])
     res["prompt_tokens"] = sum(c.get("prompt_tokens") or 0 for c in calls)
     res["completion_tokens"] = sum(c.get("completion_tokens") or 0 for c in calls)

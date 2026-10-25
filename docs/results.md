@@ -795,3 +795,63 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `
   - reachability (0 records found under the workspace trees);
   - both reports (`--set development` and `--coding`).
 - **Preflight.** `needle.py preflight --set heldout --histories h1,h2` reported both imports faithful: 101/101 messages, 50 empty reasoning fields added. The questions were sent only to the fake upstream and were not read.
+
+## R24 — S11 development smoke on the final commit; held-out runs not started (2026-10-25)
+
+**Outcome: Step 1 failed one gate input, so no held-out history or task was run.** The failure is in the evaluation tooling, not the proxy (R24-A). Fixing it needs a decision first.
+
+**Setup.**
+- **Code:** `64f21c8`, clean tree (`provenance.dirty` false in every run). Drivers: `needle-opencode v2` and `tasks-run v2`. OpenCode 2.1.4.
+- **Deterministic suite:** `uv run pytest -q` gave 1269 passed and 1 skipped. An earlier `-x` run failed once in `test_archive_lifecycle.py::test_session_usable_after_mid_stream_commit_failure` (`sqlite3.OperationalError: database is locked`). That file then passed 58/58 on its own, and the full suite passed. The test looks timing-flaky; this is unverified.
+- **`run.py --check-reference`:** all 8 tasks pass on their reference and fail on their stub.
+- **Strata:** 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `/props` `n_ctx` 32768 before and after every run, one slot, RTX 3060 12 GB. It was not restarted or reconfigured. The proxy's pin and canary passed at each start: 0 "views disabled" lines.
+- **Client host:** Windows 11 Pro 26200, Intel Core Ultra 7 355, 31.5 GB RAM, Python 3.12.13 (venv) and 3.14.6 (system, the model's shell and the checks), tokenizers 0.23.3, SQLite 3.53.1.
+- **Settings:** arm 4 is `a4-d43` (`serve` defaults, `deadline_s` 3600, D45.4). Arm 1 is `serve --passthrough` with `compaction.auto` true and `limit.context` 32768.
+- **D39:** foreign activity was 0 between and during calls in every run, with 0 gate events. All runs are labelled unaffected.
+- **Cache:** warm from the preflight and earlier traffic on the same server. The first dev-h1 question took 25 s.
+- Raw data stayed in the session scratchpad (`…/scratchpad/s11-final/`).
+
+**(a) dev-h1, arm 4, 16:32–16:37Z.**
+
+| Loose exact | Strict | In view / excerpt / absent | Lookups (questions) | Upstream calls | `--explain` | verify | Count drift | Over 24,320 | Leaks : echoes, client / transcripts | Views disabled / unbounded | Proxy rejections | Reachable records | TTFVC p50 / p90 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9/10 (Wilson 60–98%) | 9 | 1 / 8 / 1 | 9 (3) | 28 | exit 0, 27/27 pairs, 0 unexplained | pass | 0 of 28 | 0 of 28 | 0:0 / 0:0 | 0 / 0 | 0 | 0 | 3.8 / 6.5 |
+
+- The import was faithful: 101 messages, 50 empty reasoning fields added, and all prior turns archived as `client_import`.
+- The miss is Q7 again: `pytest` is absent, as in R23(a).
+- There were 0 early stops and 0 upstream calls over 600 s.
+
+**(b) dev-t1, 16:37–17:50Z.** Arm 4 ran first, then arm 1.
+
+| Arm | Success | Constraints (stub) | Upstream calls | Prompt / completion tokens | Max input | Lookups | Latency | Compaction | Proxy rejections | `--explain` | verify | Count drift | Over 24,320 | Leaks | Views disabled / unbounded |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 | no (check could not import) | 0/3 (1/3) | 97 | 1,531,556 / 66,544 | 20,706 | 7 (turn 1) | 1,808 s | none | **7** | exit 0, 96/96, 0 unexplained | pass | 0 of 97 | 0 | 0:0 / 0:0 | 0 / 0 |
+| 1 | yes (4/4) | 3/3 (1/3) | 129 | 1,656,084 / 98,348 | 25,016 | 0 | 2,474 s | 15 compaction calls | 0 | n/a | n/a | 0 of 129 | n/a | n/a | 0 / 0 |
+
+- **Arm 4, turn 1, ran into the driver's 30-minute kill** (96 calls, all 200). The session passed the budget inside turn 1, and the view collapsed 180 earlier messages into an s1 span. The model then kept re-checking its own edits with scratch scripts.
+  - It also renamed `Item` to `InventoryRecord`, so the hidden check fails on import.
+  - This is model behavior under the bounded view, and every view gate input holds. It is still a cost signal: in R23 the whole arm-4 session took 1,247 s.
+- **Arm 1 succeeded.** It made 15 compaction calls, and its largest input was 25,016 tokens, above 24,320. Arm 1 has no input budget, so this is not a gate input.
+- No call took over 600 s (max 88.7 s for arm 4, 108.3 s for arm 1).
+
+**R24-A. Evaluation-tooling defect: the front tap hides client disconnects from the proxy.**
+- **Gate input failed:** proxy rejections in the front tap, 7 of 8 arm-4 turns (`409 history_divergence`, "Message 200 … a generated assistant turn was replaced by another role").
+- **Sequence** (dev-t1 arm 4, records `attempt-001/dev-t1-a4/front/0097–0104`):
+  1. Turn 1 started at 16:37:17.6Z.
+  2. Call 97 was dispatched at 17:07:06.5Z.
+  3. The driver killed `opencode run` at about 17:07:17.8Z, 11 s into the stream.
+  4. The front tap (`needle.Tap` with `SlotGate(None)`, `eval/oc_stack.py`) never reads `receive()` for `http.disconnect`. It kept draining the proxy's stream until 17:08:12.1Z, so the stream completed: `finish_reason: "tool_calls"`, `[DONE]`.
+  5. The proxy therefore saw a complete, delivered turn and archived it.
+  6. OpenCode had not stored that turn. Turn 2 resent history without it, and the proxy applied D10.1 (divergence) to it and to every later turn.
+- **Not a proxy defect.**
+  - Without the front tap, the kill would have reached the proxy as a client disconnect. The attempt would then be `cancelled`, and D13.1 lets the resend omit it.
+  - D13.1 is covered by `test_transcript.py::test_partial_the_client_cancelled_may_be_omitted_and_is_superseded` and `test_review_fixes.py::test_a_cancelled_partial_is_superseded_once_across_later_turns`, both passing at `64f21c8`.
+  - This was not re-verified live on this path.
+- **The same blind spot sits between proxy and Strata.** The upstream tap is the same class, so after a proxy cancel Strata would keep generating until the stream ends. This is inferred from the code, not observed.
+- **Effect on held-out runs.** Any turn that reaches the 30-minute kill would end its session in 409s.
+  - D45.9.13 would count those as proxy rejections.
+  - For needles, the driver marks the rest of the history as misses ("history_divergence (409) earlier in the session").
+  - D44.7 allows a rerun only for a failure outside the proxy. That case is arguable here, and a rerun would hit the same tooling.
+- **Not changed here.** The fix is in `eval/`: propagate the client disconnect in `Tap`. D44.1 allows a later commit that changes only `eval/` and docs, but that needs a new commit. No held-out data has been seen.
+
+**Resolution (2026-10-25).** Fixed in `eval/` by D45.9.16 before any held-out run: both taps now watch for the client's disconnect and close the stream they relay. `tests/test_eval_taps.py` fails without the fix (the upstream stream runs its full 30 s) and passes with it, including the resend that omits the cut-off turn. The held-out runs use the commit that carries this fix.

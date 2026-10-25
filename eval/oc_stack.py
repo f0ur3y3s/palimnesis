@@ -68,16 +68,22 @@ class Stack:
 def call_summary(upstream: list[dict], front: list[dict]) -> dict:
     """Per-turn status accounting: the proxy's answers to the client (front tap) and the
     upstream's answers to the proxy (upstream tap). A failed front call while every
-    upstream call succeeded is a proxy rejection."""
-    proxy_bad = [c for c in front if c.get("status") != 200 or c.get("stream_error")]
-    up_bad = [c for c in upstream if c.get("status") != 200 or c.get("stream_error")]
+    upstream call succeeded is a proxy rejection. A call the client left (OpenCode killed
+    mid-stream) is a client cancel, neither."""
+    proxy_bad, up_bad = failed(front), failed(upstream)
     return {"proxy_statuses": [c.get("status") for c in front],
             "proxy_stream_errors": [c.get("stream_error") for c in front if c.get("stream_error")],
             "upstream_statuses": [c.get("status") for c in upstream],
             "proxy_rejections": len(proxy_bad) if not up_bad else 0,
             "upstream_failures": len(up_bad),
+            "client_cancels": sum(1 for c in front if c.get("client_disconnect")),
             "slow_upstream_calls": [c["n"] for c in upstream if (c.get("upstream_s") or 0) > SLOW_UPSTREAM_S],
             "max_upstream_s": max((c.get("upstream_s") or 0 for c in upstream), default=0)}
+
+
+def failed(calls: list[dict]) -> list[dict]:
+    """Calls answered with an error status or an in-stream error."""
+    return [c for c in calls if c.get("status") != 200 or c.get("stream_error")]
 
 
 def client_texts(records: Path, front_calls: list[dict]) -> list[str]:

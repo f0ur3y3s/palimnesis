@@ -431,9 +431,8 @@ def run_step(a, cfg, h, step, session, ses, home, stack, tools, client, clog, re
         rec["errors"].append({"status": None, "error": f"opencode exit {turn['exit']}: {turn['stderr'][-300:]}"})
     for e in summ["errors"]:
         rec["errors"].append({"status": None, "error": e})
-    for c in front_calls:
-        if c.get("status") != 200 or c.get("stream_error"):
-            rec["errors"].append({"status": c.get("status"), "error": f"proxy: {c.get('stream_error') or 'status'}"})
+    for c in oc_stack.failed(front_calls):
+        rec["errors"].append({"status": c.get("status"), "error": f"proxy: {c.get('stream_error') or 'status'}"})
     for tc in new_calls:
         rec["prompt_tokens"] += tc.get("prompt_tokens") or 0
         rec["completion_tokens"] += tc.get("completion_tokens") or 0

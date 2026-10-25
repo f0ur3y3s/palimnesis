@@ -263,22 +263,42 @@ class Tap:
             raise
         out = bytearray()
         rec["t_upstream_headers"] = time.time()
+
+        async def relay():
+            try:
+                await send({"type": "http.response.start", "status": resp.status_code, "headers": [
+                    (k, v) for k, v in resp.headers.raw
+                    if k.lower() not in (b"content-length", b"transfer-encoding", b"connection")]})
+                async for chunk in resp.aiter_raw():
+                    if inference:
+                        if "t_first_chunk" not in rec:
+                            rec["t_first_chunk"] = time.time()
+                        if "t_first_content" not in rec and VISIBLE.search(chunk):
+                            rec["t_first_content"] = time.time()
+                        out.extend(chunk)
+                    await send({"type": "http.response.body", "body": chunk, "more_body": True})
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+            except Exception as e:
+                rec["relay_error"] = type(e).__name__
+
+        async def client_gone():
+            while (await receive())["type"] != "http.disconnect":
+                pass
+
+        # The server does not fail a send to a client that left, so the tap watches for
+        # the disconnect itself and closes the upstream stream: the proxy (and Strata
+        # behind the upstream tap) then sees a cancel, not a turn read to the end (D45.9.16).
+        relaying, gone = asyncio.ensure_future(relay()), asyncio.ensure_future(client_gone())
         try:
-            await send({"type": "http.response.start", "status": resp.status_code, "headers": [
-                (k, v) for k, v in resp.headers.raw
-                if k.lower() not in (b"content-length", b"transfer-encoding", b"connection")]})
-            async for chunk in resp.aiter_raw():
-                if inference:
-                    if "t_first_chunk" not in rec:
-                        rec["t_first_chunk"] = time.time()
-                    if "t_first_content" not in rec and VISIBLE.search(chunk):
-                        rec["t_first_content"] = time.time()
-                    out.extend(chunk)
-                await send({"type": "http.response.body", "body": chunk, "more_body": True})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-        except Exception as e:
-            rec["relay_error"] = type(e).__name__
+            await asyncio.wait({relaying, gone}, return_when=asyncio.FIRST_COMPLETED)
+            if not relaying.done():
+                rec["client_disconnect"] = True
+                rec["t_disconnect"] = time.time()
+                relaying.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await relaying
         finally:
+            gone.cancel()
             await resp.aclose()
             if inference:
                 stop.set()

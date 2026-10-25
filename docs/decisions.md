@@ -612,6 +612,12 @@ None of these is an answer, or the evidence for one. No four-word run of user, a
       - `a4-d43` is in `report.py`'s `ORDER`.
       - `report.py --coding RUN` prints each run's constraint adherence next to the stub's own check result, followed by the D44.5 verdict: arm 4's successes against arm 1's over ho-t1..t5, plus the restart gate. A missing or aborted run counts as a failure.
    15. **Environment allowlist** (`oc_harness.ENV_ALLOW`, details in `docs/harnesses.md`). `APPDATA` and `LOCALAPPDATA` stay real, because the system `python` (Python install manager) keeps its installs there. The hidden check's interpreter is resolved on the cleaned PATH, because Windows resolves a bare `python` on the parent's PATH.
+   16. **The taps pass a client's disconnect along (R24-A, 2026-10-25, before any held-out run).**
+       - `needle.Tap` watches `receive()` for `http.disconnect` while it relays. When the client leaves first, it stops relaying and closes the stream it was reading, and records `client_disconnect`. The server does not fail a send to a client that left, so without this the tap read the stream to the end.
+       - In the front tap, OpenCode killed at the turn timeout reaches the proxy as a client cancel, so D13.1 lets the next request omit the cut-off turn. In the upstream tap, the proxy's cancel reaches Strata, which releases the slot on disconnect (`docs/probes/strata.md` §9).
+       - A disconnected call is a client cancel (`client_cancels` per turn), neither a proxy rejection nor an upstream failure. A non-200 status or an in-stream error still counts.
+       - Test: `tests/test_eval_taps.py` (client → front tap → proxy → upstream tap → fake upstream; the cut-off stream closes, the resend gets 200).
+       - D44.1: the held-out configuration is `a4-d43` at the commit that carries this fix. It changes `eval/` only.
 
 ## D46 — Added-token strings inside messages count as text (R23-A)
 
