@@ -71,8 +71,11 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
-                 forward_headers, views=None) -> None:
+                 forward_headers, views=None, on_change=None) -> None:
         self.store = store
+        # Called with the session id after accept and after each attempt ends, from the
+        # event loop; it must not block (palimnesis.projector.Projector.trigger).
+        self.on_change = on_change
         self.views = views  # palimnesis.viewengine.ViewEngine, or None for no bounded views
         self.client = client
         self.upstream_base = upstream_base
@@ -136,6 +139,8 @@ class ArchiveHandler:
             return
 
         gen = ledger.Generation(plan)
+        if plan.replay is None:
+            self._changed(session)
         try:
             crash_point("after_accept")
             if plan.replay is not None:
@@ -158,6 +163,16 @@ class ArchiveHandler:
             raise
         finally:
             self.live.discard(plan.request_id)
+            if plan.replay is None:
+                self._changed(session)
+
+    def _changed(self, session: str) -> None:
+        if self.on_change is None:
+            return
+        try:
+            self.on_change(session)
+        except Exception as e:  # noqa: BLE001 - a projection never fails a request
+            log.warning("archive change hook failed: %s", type(e).__name__)
 
     async def _bound(self, scope, receive, send, req, gen, prepared, api_path) -> bool:
         """Replace the planned body with the bounded view; False if it cannot fit."""

@@ -50,6 +50,11 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                             "enforces budgets")
     serve.add_argument("--input-budget", type=int, metavar="TOKENS",
                        help="input budget cap (default 48000; never above capacity)")
+    files = serve.add_mutually_exclusive_group()
+    files.add_argument("--transcripts", type=Path, metavar="DIR",
+                       help="transcript files root (default: 'transcripts' beside the archive)")
+    files.add_argument("--no-transcripts", action="store_true",
+                       help="do not publish transcript files")
 
 
 def _settings(args: argparse.Namespace) -> Settings:
@@ -62,7 +67,8 @@ def _settings(args: argparse.Namespace) -> Settings:
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
                     db_path=db_path, synchronous=args.synchronous, view=args.view,
-                    input_budget=args.input_budget)
+                    input_budget=args.input_budget, transcripts=args.transcripts,
+                    transcripts_enabled=not args.no_transcripts)
 
 
 def serve_settings(argv: list[str]) -> Settings:
@@ -80,6 +86,15 @@ def _serve(args: argparse.Namespace) -> int:
 
     settings = _settings(args)
     if settings.db_path is not None:
+        from .projection import ProjectionError
+        from .projector import check_root
+
+        if settings.transcripts is not None and settings.transcripts_enabled:
+            try:
+                check_root(settings.transcripts)
+            except ProjectionError as e:
+                print(f"error: {e}", file=sys.stderr)
+                return 2
         settings.db_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"archive: {settings.db_path} (synchronous={settings.synchronous})")
     else:
@@ -144,6 +159,98 @@ def _excerpts(args: argparse.Namespace) -> int:
     return 0
 
 
+def _transcript_context(args: argparse.Namespace):
+    from . import profile
+    from .projection import ProjectionError
+    from .projector import check_root, default_root
+
+    db = args.db or default_db_path()
+    root = args.root or default_root(db)
+    try:
+        check_root(root)
+    except ProjectionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        raise SystemExit(2)
+    upstream = profile.load(profile.DEFAULT_PROFILE, "http://inspect.invalid")
+    return db, Path(root), upstream
+
+
+def _snapshot(conn, session: str, **kw):
+    from . import projector
+
+    conn.execute("BEGIN")
+    try:
+        return projector.load(conn, session, **kw)
+    finally:
+        conn.execute("COMMIT")
+
+
+def _transcripts_rebuild(args: argparse.Namespace) -> int:
+    """Re-project a session's transcript files from the archive (no inference)."""
+    from . import projector
+    from .projection import ProjectionError
+
+    try:
+        db, root, upstream = _transcript_context(args)
+    except SystemExit as e:
+        return e.code
+    conn = _read_only(db)
+    try:
+        snapshot = _snapshot(conn, args.session)
+    except ProjectionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+    projector.prepare_root(root, empty_staging=False)
+    try:
+        result = projector.publish(root, snapshot,
+                                   added_tokens=upstream.counter.added_token_strings,
+                                   count=upstream.counter.count_cached, profile=upstream.id,
+                                   repair=True)
+    except ProjectionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    print(f"transcripts: {projector.session_dir(root, args.session)} · generation "
+          f"{result.generation} · {result.turns} turns · {result.written} files written")
+    return 0
+
+
+def _transcripts_verify(args: argparse.Namespace) -> int:
+    """Check a session's published transcript files against the archive."""
+    import json as _json
+
+    from . import projection, projector
+
+    try:
+        db, root, upstream = _transcript_context(args)
+    except SystemExit as e:
+        return e.code
+    directory = projector.session_dir(root, args.session)
+    read = projector.read_published(directory)
+    try:
+        cutoff = _json.loads(read("manifest.json"))["archive_cutoff_seq"]
+    except (OSError, ValueError, KeyError):
+        print(f"error: no published transcripts at {directory}", file=sys.stderr)
+        return 1
+    conn = _read_only(db)
+    try:
+        expected = _snapshot(conn, args.session, max_seq=cutoff).payloads()
+    except projection.ProjectionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+    problems = projection.verify(read, expected,
+                                 added_tokens=upstream.counter.added_token_strings)
+    for problem in problems:
+        print(problem)
+    if problems:
+        return 1
+    print(f"ok: {len(expected)} payloads verified at generation {cutoff}")
+    return 0
+
+
 def _session_new(args: argparse.Namespace) -> int:
     # Readable, sortable, and unguessable enough to avoid accidental reuse.
     session = f"{datetime.now():%Y%m%d-%H%M%S}-{secrets.token_hex(4)}"
@@ -196,6 +303,17 @@ def main(argv: list[str] | None = None) -> int:
     excerpts.add_argument("session")
     excerpts.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
     excerpts.set_defaults(run=_excerpts)
+
+    transcripts = commands.add_parser("transcripts", help="rebuild or verify transcript files")
+    transcript_commands = transcripts.add_subparsers(dest="transcripts_command", required=True)
+    for name, run, text in (("rebuild", _transcripts_rebuild, "re-project from the archive"),
+                            ("verify", _transcripts_verify, "check payloads against the archive")):
+        sub = transcript_commands.add_parser(name, help=text)
+        sub.add_argument("session")
+        sub.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
+        sub.add_argument("--root", type=Path,
+                         help="transcripts root (default: 'transcripts' beside the archive)")
+        sub.set_defaults(run=run)
 
     args = parser.parse_args(argv)
     return args.run(args)

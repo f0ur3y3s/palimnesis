@@ -285,25 +285,32 @@ def render_index(summaries: Iterable[Summary], *, generation: int, revision: int
     return "\n".join(lines) + "\n"
 
 
-def render_manifest(rendered: Sequence[RenderedTurn], *, generation: int, revision: int,
-                    branch: str, profile: str) -> bytes:
-    """``manifest.json``: every published turn and payload file with its SHA-256 and size,
+def manifest(files: Mapping[str, tuple[str, int]], payloads: Iterable[Payload], *,
+             generation: int, revision: int, branch: str, profile: str) -> bytes:
+    """``manifest.json``: every published turn and payload file (path -> SHA-256, size),
     and every payload's archive SHA-256. ``index.md`` is published after it and is not
     listed."""
-    files: dict[str, dict] = {}
-    payloads: dict[str, dict] = {}
-    for r in rendered:
-        data = r.data
-        files[r.name] = {"sha256": _sha(data), "size": len(data)}
-        for path, blob in r.files.items():
-            files[path] = {"sha256": _sha(blob), "size": len(blob)}
-        for p in r.payloads:
-            payloads[p.address] = {"turn_file": p.turn_file, "linked": p.linked,
-                                   "sha256": p.sha256, "size": p.size}
-    manifest = {"format": FORMAT, "generation": generation, "archive_cutoff_seq": generation,
-                "revision": revision, "branch": branch, "profile": profile, "files": files,
-                "payloads": payloads}
-    return (json.dumps(manifest, sort_keys=True, indent=1, ensure_ascii=True) + "\n").encode()
+    body = {"format": FORMAT, "generation": generation, "archive_cutoff_seq": generation,
+            "revision": revision, "branch": branch, "profile": profile,
+            "files": {path: {"sha256": sha, "size": size} for path, (sha, size) in files.items()},
+            "payloads": {p.address: {"turn_file": p.turn_file, "linked": p.linked,
+                                     "sha256": p.sha256, "size": p.size} for p in payloads}}
+    return (json.dumps(body, sort_keys=True, indent=1, ensure_ascii=True) + "\n").encode()
+
+
+def file_meta(rendered: RenderedTurn) -> dict[str, tuple[str, int]]:
+    """Path -> (SHA-256, size) of a rendered turn's files, the turn file last."""
+    files = {path: (_sha(blob), len(blob)) for path, blob in sorted(rendered.files.items())}
+    data = rendered.data
+    files[rendered.name] = (_sha(data), len(data))
+    return files
+
+
+def render_manifest(rendered: Sequence[RenderedTurn], *, generation: int, revision: int,
+                    branch: str, profile: str) -> bytes:
+    files = {path: meta for r in rendered for path, meta in file_meta(r).items()}
+    return manifest(files, [p for r in rendered for p in r.payloads], generation=generation,
+                    revision=revision, branch=branch, profile=profile)
 
 
 # --- parsing and verification ------------------------------------------------

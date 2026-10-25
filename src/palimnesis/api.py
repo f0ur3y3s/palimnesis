@@ -8,7 +8,10 @@ headers, streaming) and closes the upstream request.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import sys
+from pathlib import Path
 
 import anyio
 import httpx
@@ -140,6 +143,7 @@ class Proxy:
         self.client: httpx.AsyncClient | None = None
         self.store: Store | None = None
         self.archive: ArchiveHandler | None = None
+        self.projector = None  # palimnesis.projector.Projector while transcripts are on
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] == "lifespan":
@@ -154,21 +158,57 @@ class Proxy:
                 self.client = httpx.AsyncClient(timeout=None)
                 if self.settings.db_path is not None:
                     self.store = Store.open(self.settings.db_path, self.settings.synchronous)
+                    interrupted = await self.store.read(lambda c: [row[0] for row in c.execute(
+                        "SELECT b.session_id FROM branch_heads h JOIN branches b"
+                        " ON b.branch_id = h.branch_id WHERE h.active_request_id IS NOT NULL")])
                     abandoned = await self.store.write(ledger.recover)
                     if abandoned:
                         log.warning("marked %d interrupted attempt(s) abandoned", abandoned)
+                    views = await self._view_engine()
+                    self.projector = self._start_projector(views.profile)
                     self.archive = ArchiveHandler(
                         self.store, self.client, self.upstream_base,
                         lambda headers: _filter_headers(headers, drop=_REQUEST_ONLY),
-                        views=await self._view_engine(),
+                        views=views,
+                        on_change=self.projector.trigger if self.projector else None,
                     )
+                    for session in interrupted if self.projector else ():
+                        self.projector.trigger(session)
                 await send({"type": "lifespan.startup.complete"})
             elif message["type"] == "lifespan.shutdown":
                 await self.client.aclose()
+                if self.projector is not None:
+                    await asyncio.to_thread(self.projector.close)
                 if self.store is not None:
                     self.store.close()
                 await send({"type": "lifespan.shutdown.complete"})
                 return
+
+    def _start_projector(self, upstream):
+        """Transcript files (Phase 3): on by default, beside the archive (contracts §14)."""
+        from .projection import ProjectionError
+        from .projector import Projector, check_root, default_root
+
+        settings = self.settings
+        if not settings.transcripts_enabled or str(settings.db_path) == ":memory:":
+            return None
+        root = Path(settings.transcripts or default_root(settings.db_path))
+        try:
+            check_root(root)
+        except ProjectionError:
+            if settings.transcripts is not None:
+                raise  # an explicit root inside a repository is refused
+            log.warning("transcript files disabled: the default root is inside a git work "
+                        "tree; pass --transcripts DIR outside any repository")
+            return None
+        if settings.transcripts is not None and sys.platform == "win32":
+            log.warning("transcript files use a custom root: they inherit its ACL, not the "
+                        "per-user ACL of %LOCALAPPDATA%")
+        projector = Projector(settings.db_path, root,
+                              added_tokens=tuple(upstream.counter.added_token_strings),
+                              count=upstream.counter.count_cached, profile=upstream.id)
+        projector.start()
+        return projector
 
     async def _view_engine(self):
         """Bounded views (Phase 2): the upstream profile, its facts read now."""

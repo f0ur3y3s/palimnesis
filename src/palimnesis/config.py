@@ -22,5 +22,9 @@ class Settings:
     # Excerpt source for new user messages (A1). None means the Phase 2 default,
     # which selects nothing; Phase 3 supplies proactive retrieval.
     excerpt_source: object | None = None
+    # Transcript files root (Phase 3); None means "transcripts" beside the archive.
+    transcripts: Path | None = None
+    # False: no transcript files are published.
+    transcripts_enabled: bool = True
     # Upstream profile name (palimnesis.profile.REGISTRY).
     profile: str = DEFAULT_PROFILE
