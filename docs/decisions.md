@@ -242,3 +242,23 @@ From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
 - **Template rules.** A profile declaring rules the core does not implement runs view-disabled (contracts §9: a template revision is a pinned-value change, not a runtime branch).
 - **Boundary.** `tests/test_profile.py` walks every core module's imports and fails on any Strata import. A toy profile (character counter) drives the full view path end to end.
 - **Note.** Earlier decision and plan entries name the pre-move module paths; they are historical records and are left as written.
+
+## D22 — Cache accounting, reuse model and drift (Phase 2 slices 9–10)
+
+1. **Every dispatched upstream call is recorded.** Each gets an immutable `upstream_call` event, written after delivery. Failed calls (503s, transport errors) are recorded too, with their `outcome` and null usage.
+2. **Strata reuse model** (`StrataCacheModel`, always labeled an estimate):
+   - The expected reuse is the latest checkpoint of the previous render at or before `min(LCP, generation start)`.
+   - The candidate checkpoints are the six latest of: assistant-turn starts, the generation-prompt start, and multiples of 16,384 tokens. A system root is added when the system prompt is ≥ 2,048 tokens.
+   - It reproduces the probe table (docs/probes/strata.md §7).
+   - **Limit:** it sees only the previous call. When the server still holds an older checkpoint from an earlier call, the estimate is a lower bound, as in the probe's turn-4 edit: estimate 1,043, measured 2,656.
+3. **Reuse classes, in order:**
+   - `full`: cached ≥ `min(LCP, generation start)`.
+   - `checkpoint_limited`: cached ≥ the estimate.
+   - `restart_or_eviction`: anything lower.
+   - `unexplained`: an unexplained cause always gets this class.
+
+   Causes are attributed from the first differing manifest segment (contracts §10). `eval/replay.py --explain` fails on any `unexplained`.
+4. **Drift.**
+   - "Recent" means the last 8 calls, and `M_eff = M + 2·max drift`, capped at 2,048.
+   - Three consecutive drifts, or one drift over 1,024, disables bounded views until the process restarts. A miscounting renderer is a pin problem, not a transient one.
+5. **Context versions keep their position.** A context version, such as OpenCode's daily date change in the system message, takes the view position (seq) of the occurrence it supersedes. Before this fix, view boundaries resolved to the start of history after a date change, and masked sessions failed with `context_budget_exceeded`.

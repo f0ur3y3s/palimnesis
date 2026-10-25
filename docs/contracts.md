@@ -9,7 +9,7 @@ Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve ·
 - `n_ctx`, `build_info` and the chat-template hash come from the upstream profile's facts reader (Strata: `GET /props`). They are read at startup and again after any transport error, 5xx, or context-window 400. **[enforced]**
 - **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). **[enforced]**
 - **Core is backend-neutral.** Backend specifics live behind `palimnesis.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
-- Counting renders the pinned template with the pinned tokenizer; `POST /v1/messages/count_tokens` cross-checks; per-call `usage` reconciles. Persistent drift raises `M` or rejects. **[defined, Ph2]**
+- Counting renders the pinned template with the pinned tokenizer, cross-checked at startup by a `count_tokens` canary. Every call's `usage.prompt_tokens` is reconciled with the local count. Drift raises `M` (D22.4); persistent or large drift disables bounded views. **[enforced]**
 
 ## 2. Budgets
 
@@ -150,10 +150,10 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 10. Cache accounting
 
-**[defined, Ph2]**
+**[enforced]** (`palimnesis.cacheacct`, D22)
 
 - Every pair of consecutive upstream calls records the token longest common prefix (LCP), the cached tokens reported by the upstream, and the invalidation cause.
-- **Allowed causes:** watermark move, state commit, catalog navigation, recall-buffer eviction, summary activation, system or tool change, effort or thinking change, branch, model or template change.
+- **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. These are recorded as `append`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `template_change`. State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
 - **Reuse is checkpoint-based.** The upstream resumes from its last checkpoint at or before the first changed token. Reported reuse below the LCP is expected and recorded as checkpoint-limited, not unexplained.
 - Restart and eviction reduce reuse without any input change.
 - Latency-derived estimates are labeled as estimates.

@@ -9,6 +9,8 @@ Local proxy between agent harnesses and a Strata server: archives accepted conve
 - `uv run palimnesis session new` / `uv run palimnesis session url <id>`: base URLs for a new or resumed chat.
 - `uv run python eval/replay.py CAPTURE_DIR --target URL`: replay captures against direct Strata or the proxy.
 - `uv run python eval/bench_passthrough.py`: passthrough overhead report.
+- `uv run python eval/replay.py --explain DB [--session S]`: explain every prompt-cache change between consecutive upstream calls; nonzero exit on any unexplained change.
+- `uv run palimnesis catalog SESSION` / `uv run palimnesis excerpts SESSION`: read-only archive inspection.
 
 ## Rules
 
