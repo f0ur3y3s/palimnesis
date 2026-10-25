@@ -324,10 +324,22 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         return View(messages, b.count(messages), st, moved, fixed, capacity, manifest,
                     included, charge, evicted)
 
+    original = state
+    # A budget change that shrinks the per-message cap is a threshold event: blocks
+    # now over the cap are omitted for good and the move is recorded (D20.1, R2).
+    # Re-checking the cap per build instead made blocks churn with the client limit.
+    watermark = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
+    over_cap = {item.excerpt[0] for i, item in enumerate(b.items)
+                if item.excerpt and item.excerpt[1] and i >= watermark
+                and item.excerpt[0] not in state.omitted_excerpts
+                and item.excerpt[2] > budget.excerpt_per_message}
+    if over_cap:
+        state = replace(state, omitted_excerpts=state.omitted_excerpts | over_cap)
+
     messages, manifest, _, charge = b.apply(state)
     total = b.count(messages)
     if total - charge <= high and total <= budget.input_budget:
-        return view(state, False)
+        return view(state, state != original)
     base_manifest = manifest
 
     # Advance the watermark over group starts, oldest first.
@@ -404,7 +416,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         messages, _, _, _ = b.apply(b.keep_fixed(new_state))
         total = b.count(messages)
     new_state = b.keep_fixed(new_state)
-    result = view(new_state, new_state != state, base_manifest)
+    result = view(new_state, new_state != original, base_manifest)
     if result.tokens > budget.input_budget:
         raise BudgetError(
             f"the view needs {result.tokens} tokens after masking everything maskable; the "

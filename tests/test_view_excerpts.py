@@ -173,3 +173,28 @@ def test_a_kept_user_message_can_collapse_at_a_later_collapse_move(counter):
     assert later.state.collapse_seq > first.state.collapse_seq
     assert "occ2" not in later.state.kept
     assert {"role": "user", "content": "first instruction"} not in later.messages
+
+
+def test_a_block_over_a_shrunken_cap_is_omitted_for_good_and_recorded_as_a_move(counter):
+    # Cache audit: alternating client limits moved q_msg and the block flipped
+    # in and out on every call (re-prefilling everything after it).
+    s = Session().system().user("q1")
+    big = plan_budget(32768, client_limit=4096, policy=BudgetPolicy())   # larger q_msg
+    small = plan_budget(32768, client_limit=8192, policy=BudgetPolicy())  # smaller q_msg
+    block = next(b for b in (_block(counter, 2, size=n) for n in range(150, 260))
+                 if small.excerpt_per_message < b[2] <= big.excerpt_per_message)
+    _with_block(s, 1, block)
+    s.answer("a1").user("q2")
+    assert small.excerpt_per_message < block[2] <= big.excerpt_per_message
+
+    def run(budget, state):
+        return build(s.items, tools=TOOLS, render_kwargs={}, budget=budget, state=state,
+                     policy=ViewPolicy(), counter=counter)
+
+    first = run(big, ViewState())
+    shrunk = run(small, first.state)
+    regrown = run(big, shrunk.state)
+
+    assert first.included_excerpts == ("blk2",) and not first.moved
+    assert shrunk.moved and "blk2" in shrunk.state.omitted_excerpts
+    assert regrown.included_excerpts == () and not regrown.moved

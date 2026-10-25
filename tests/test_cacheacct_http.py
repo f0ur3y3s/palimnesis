@@ -297,15 +297,19 @@ def test_cause_excerpt_omitted(tmp_path):
     assert "palimnesis excerpts" not in fake.requests[2].body.decode()
 
 
-def test_cause_excerpt_included(tmp_path):
+def test_an_omitted_block_stays_omitted_when_the_budget_grows_back(tmp_path):
+    # Cache audit (Phase 2): re-including an older block when the cap grew back made
+    # blocks churn with the budget. Omission is monotone (D20.1, R2) and recorded.
     fake, settings, calls = _excerpt_flow(tmp_path, back_up=True)
+    [(old_block,)] = rows(settings, "SELECT block_id FROM excerpt_blocks"
+                                    " WHERE status = 'selected' ORDER BY created_at LIMIT 1")
 
     regrown = calls[-1]
-    assert regrown["cause"] == "excerpt_included,capacity_budget_change"
-    before, after = regrown["first_diff"]["turns"]
-    assert before["excerpt"] is None and after["excerpt"] is not None
-    assert after["excerpt"] in calls[0]["included_excerpts"]
     assert regrown["budget"]["excerpt_per_message"] == 1920
+    assert old_block not in regrown["included_excerpts"]
+    assert "excerpt_included" not in regrown["cause"]
+    causes = [c for (c,) in rows(settings, "SELECT cause FROM view_versions ORDER BY n")]
+    assert any("excerpt_omitted" in c for c in causes)
 
 
 def explain(db, *extra):

@@ -275,3 +275,12 @@ From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
 5. **Excerpt path hardening.**
    - Excerpt header fields (alias, role, tool name) are reduced to a safe character set, so a client-chosen tool name cannot inject delimiters or special tokens.
    - An excerpt-source or rebuild failure falls back to answering without excerpts. A move caused by the rebuild is recorded.
+
+## D24 — Phase 2 cache-audit fixes and logged policy limits
+
+The independent cache audit re-rendered 789 consecutive upstream-call pairs across 17 scenarios, including restarts, date changes, effort, tool and `n_ctx` changes, drift and excerpts. It found no unexplained or misattributed pair.
+
+1. **Fixed: excerpt churn under a moving per-message cap.** A budget change that shrinks `q_msg` (client `max_tokens` changes, `n_ctx` changes, drift margin at 32K) is a threshold event. Blocks then over the cap are added to `omitted_excerpts` and the view version is recorded with cause `excerpt_omitted`. Previously the cap was re-checked on every build, so a block flipped in and out as the client limit alternated, re-reading everything after it each call. With omission monotone (D20 R2), re-including an older block cannot happen.
+2. **Logged for `bench_view`, not fixed: moves can come almost every turn.** When `min_recent` holds the watermark back, the view lands above T. At small budgets with large outputs it then crosses H nearly every turn: 21 of 24 calls moved at a 12K budget. The hysteresis parameters (D14.6) are revisited with `bench_view` data.
+3. **Logged, not fixed: an oversized newest output over-collapses.** The watermark and collapse searches run while the oversized newest output is still verbatim, so they take the last candidate before that output is stubbed. This discards more context and cache than needed. The ordering fix (stub the newest output first when it alone exceeds the window) is a Phase 2 follow-up tracked with `bench_view`.
+4. **Disabled-mode audit gap.** `view_disabled` and `first_call` are recorded causes; contracts §10 now lists them. Calls in disabled mode record no LCP, so their prefix changes are not audited.
