@@ -519,3 +519,21 @@ Selected on development data only (R20, R22); the held-out set has not been run.
 3. **a3 stays.** a4 scored 37/60 in R20, against 44 for a3.
 4. **q2 and a4 were not re-run after D41.** Their R20 results include bugs A and B. They stay selectable for later phases but are not part of the held-out configuration.
 5. **The held-out configuration** is the default `serve`: q1, r1, x2, a3, transcripts t1, s1 stubs. The emulated 32K (`--input-budget 24320`) is development-only; held-out runs use Strata restarted at 32K (O2, D40).
+
+## D44 — Held-out protocol for S11, fixed before any held-out run
+
+Written on 2026-10-25, after D43 froze the variants and before any held-out history was generated or run. Nothing here changes after held-out results are seen (plan §7: "Freeze criteria before held-out results; do not waive a failed gate after seeing them").
+
+1. **Configuration.** Arm 4 is `a4-d43`: the default `serve` at commit `ac87c8f` or a later commit that changes only `eval/` and docs. Strata runs at `n_ctx` 32768 (D40), and the pin and canary passed at 32K (4/4 cases, 2026-10-25). Arm 1 is native OpenCode compaction through `--passthrough`, with `limit.context` 32768.
+2. **Driver.** Held-out needles and coding tasks run through real OpenCode 2.1.4 (O3), never the emulator. A generated history enters OpenCode through `opencode session import`; each question is then a real `opencode run --session` turn. OpenCode therefore builds and resends every request itself.
+3. **Held-out set.** 12 histories × 10 questions (120 needles). Themes, seeds and question wording are disjoint from dev-h1..h6. The category skeleton is the same, so A1's coverage holds. The set is generated once and committed before its first run.
+4. **Needle gate (O1).** Loose exact match (R19's definition) on arm 4 at 32K is at least 85%, observed over all 120 needles.
+   - **What is reported:** the count, a 95% Wilson interval, strict exact, and a history-clustered bootstrap interval. Questions in one history are not independent.
+   - **What counts as a miss:** every needle with no correct answer, including errors, early stops and timeouts.
+5. **Coding gate (O1).** 5 held-out tasks (plus 3 development tasks, used only to check the harness), run once per arm.
+   - **The gate:** arm 4's successes are at least arm 1's, and the restart task passes under arm 4.
+   - **Task success** is the task's executable check, run after the session.
+6. **Other gates for the tag:** on every held-out archive, 0 over-budget inputs, 0 excerpt text visible to the client, `--explain` with 0 unexplained pairs, and `transcripts verify` passing.
+7. **Reruns.** A history or task is rerun from scratch only for an infrastructure failure outside the proxy: Strata down, foreign traffic seen by the D39 gate, or an OpenCode or driver crash not caused by a proxy response. Each rerun and its reason is recorded, and the first attempt's data is kept. A failure caused by the proxy counts.
+8. **A defect found during held-out runs.** The run stops. After the fix, the whole held-out needle set and every coding task rerun on the fixed commit. Both results are reported, and the gate is judged on the rerun.
+9. **64K (reported only).** After the 32K runs, Strata goes back to 65536. Arm 4 runs 60 needles (held-out histories h1..h6) and the same 5 tasks under both arms.
