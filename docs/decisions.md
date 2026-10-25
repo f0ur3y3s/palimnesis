@@ -221,3 +221,24 @@ From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
 
    That is 972 / 2,432 tokens at 32K and 1,920 / 4,096 at 64K. Excerpts never count in F, never touch R or M, never trigger a watermark move, and never cause a BudgetError: their allocation shrinks to zero first. Phase 3 selects the final caps on development data.
 3. **The catalog slot is P = 0 until Phase 3B.** A1 removed model-facing catalog navigation, so the component stays in the budget but reserves nothing. Existing views see a one-time recorded budget change.
+
+## D21 — Upstream-profile seam layout (Phase 2 slice A; implements D15 amended)
+
+- **Core interface.** `palimnesis/profile.py` holds the backend-neutral Protocols (`runtime_checkable`):
+  - `Counter`: `added_token_strings`, `count`, `count_cached`, `count_messages`, `render_args`;
+  - `FactsReader`: `facts`, `stale`, `pinned_ok`, `refresh`, `mark_stale`, `observe`, `diagnostics`;
+  - `CrossCheck`: `canary`, `usage → Usage(prompt_tokens, cached_tokens, prompt_ms)`;
+  - `CacheReuseModel`: `expected`;
+  - `ErrorMap`: `staleness_reason`, `is_context_overflow`.
+
+  These are bundled with `TemplateRules` in a frozen `UpstreamProfile`, alongside the neutral `UpstreamFacts(n_ctx, identity)`.
+- **Strata profile.** Everything Strata-specific lives in `palimnesis/upstreams/strata/`:
+  - `pins.py` and `pins_data/` (bytes unchanged);
+  - `tokens.py`;
+  - `facts.py` (formerly `upstream_facts.py`; the `/props` record is `Props`);
+  - `errors.py`;
+  - `cache.py` (`StrataCacheModel`, filled in by slice 9).
+- **Loading.** `profile.load(name, base_url)` resolves names through a string registry. `Settings.profile` defaults to `strata-0.1.48`; there is no CLI flag while only one profile exists. An unknown name fails before the server starts.
+- **Template rules.** A profile declaring rules the core does not implement runs view-disabled (contracts §9: a template revision is a pinned-value change, not a runtime branch).
+- **Boundary.** `tests/test_profile.py` walks every core module's imports and fails on any Strata import. A toy profile (character counter) drives the full view path end to end.
+- **Note.** Earlier decision and plan entries name the pre-move module paths; they are historical records and are left as written.

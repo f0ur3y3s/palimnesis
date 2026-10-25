@@ -197,7 +197,8 @@ class ArchiveHandler:
             upstream = await self.client.send(request, stream=True)
         except httpx.TransportError as e:
             if self.views is not None:
-                self.views.upstream.mark_stale("transport_error")
+                facts, errors = self.views.profile.facts, self.views.profile.errors
+                facts.mark_stale(errors.staleness_reason(None))
             await self.store.write(lambda c: ledger.finish_attempt(
                 c, gen, "attempt_failed", reason="upstream_unreachable", error=type(e).__name__))
             await error_response(api_path, 502, "upstream_unreachable",
@@ -232,7 +233,7 @@ class ArchiveHandler:
                                         "The upstream failed while sending an error response.")
             return
         if self.views is not None:
-            self.views.upstream.observe(upstream.status_code, body)
+            self.views.profile.facts.observe(upstream.status_code, body)
         await self.store.write(lambda c: ledger.finish_attempt(
             c, gen, "attempt_failed", reason="upstream_status", status=upstream.status_code))
         headers = _with_no_retry(_response_headers(upstream))

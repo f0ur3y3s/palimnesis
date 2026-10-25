@@ -2,9 +2,11 @@
 
 Per request:
 
-1. ``ready`` refreshes upstream facts when stale. The view is enabled only
-   when the pinned template, build and canary all agree (contracts §1).
-   Otherwise the proxy is view-disabled and forwards as in Phase 1 (D14.9).
+1. ``ready`` refreshes the profile's upstream facts when stale. The view is
+   enabled only when the profile reports them pinned (for Strata: template,
+   build and canary all agree, contracts §1) and the core implements the
+   profile's template rules. Otherwise the proxy is view-disabled and
+   forwards as in Phase 1 (D14.9).
 2. ``prepare`` (before acceptance) computes the budget from ``n_ctx`` and the
    client's output limit, and rejects non-evictable input that cannot fit.
    With ``view="off"`` it also rejects any history over the budget, since
@@ -16,7 +18,9 @@ Per request:
    equals the full history and no limit is rewritten, otherwise a render of
    the view with the generation reserve applied (D14.11).
 
-CPU-heavy steps (rendering, counting) run in worker threads.
+Counting and facts come from the ``palimnesis.profile.UpstreamProfile``;
+nothing here depends on a particular backend. CPU-heavy steps (rendering,
+counting) run in worker threads.
 """
 
 from __future__ import annotations
@@ -27,8 +31,9 @@ from typing import Any
 
 import anyio
 
-from . import chat, tokens
+from . import chat
 from .budget import Budget, BudgetError, BudgetPolicy, check_fixed, plan_budget
+from .profile import UpstreamProfile, unsupported_rules
 from .stubs import STUB_FORMAT
 from .view import POLICY_VERSION, View, ViewPolicy, build
 
@@ -42,27 +47,28 @@ class Prepared:
 
 
 class ViewEngine:
-    def __init__(self, upstream_state, counter: tokens.Tokens, *, mode: str = "on",
+    def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
                  input_budget: int | None = None) -> None:
-        self.upstream = upstream_state
-        self.counter = counter
+        self.profile = profile
+        self.counter = profile.counter
+        # Declared template rules the view builder does not implement: views stay off.
+        self.unsupported_rules = unsupported_rules(profile.rules)
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
         self.view_policy = ViewPolicy()
         self.extra_margin = 0
 
     async def ready(self, client) -> bool:
-        if self.upstream.stale or self.upstream.facts is None or self.upstream.canary is None:
-            await self.upstream.refresh(client)
-        return self.upstream.pinned_ok
+        if self.unsupported_rules:
+            return False
+        await self.profile.facts.refresh(client)
+        return self.profile.facts.pinned_ok
 
     def _prepare(self, req: chat.ChatRequest) -> Prepared:
-        args = tokens.render_args_from_openai(json.loads(req.raw))
-        tools = args.pop("tools")
-        args.pop("messages")
+        tools, args = self.counter.render_args(json.loads(req.raw))
         limit_field = ("max_completion_tokens" if "max_completion_tokens" in req.settings
                        else "max_tokens" if "max_tokens" in req.settings else "max_completion_tokens")
-        budget = plan_budget(self.upstream.facts.n_ctx, client_limit=req.settings.get(limit_field),
+        budget = plan_budget(self.profile.facts.facts.n_ctx, client_limit=req.settings.get(limit_field),
                              policy=self.policy, extra_margin=self.extra_margin)
         messages = [m.raw_object for m in req.messages]
         users = [i for i, m in enumerate(req.messages) if m.role == "user"]

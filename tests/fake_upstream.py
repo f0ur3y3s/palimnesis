@@ -56,8 +56,8 @@ class _Scripted:
 
 
 def _local_count(body: dict) -> int:
-    from palimnesis import tokens
-    from palimnesis.upstream_facts import anthropic_to_render_args
+    from palimnesis.upstreams.strata import tokens
+    from palimnesis.upstreams.strata.facts import anthropic_to_render_args
 
     return tokens.default().count_messages(**anthropic_to_render_args(body))
 

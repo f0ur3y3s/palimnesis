@@ -13,7 +13,7 @@ import logging
 import anyio
 import httpx
 
-from . import ledger
+from . import ledger, profile
 from .archive import ArchiveHandler
 from .capture import CaptureRecorder
 from .config import Settings
@@ -88,6 +88,8 @@ class Proxy:
         self.recorder = (
             CaptureRecorder(settings.capture_dir) if settings.capture_dir else None
         )
+        # An unknown profile name fails here, before the server starts.
+        profile.resolve(settings.profile)
         self.client: httpx.AsyncClient | None = None
         self.store: Store | None = None
         self.archive: ArchiveHandler | None = None
@@ -122,19 +124,22 @@ class Proxy:
                 return
 
     async def _view_engine(self):
-        """Bounded views (Phase 2): pinned counter plus upstream facts, read now."""
-        from . import pins, tokens
-        from .upstream_facts import UpstreamState
+        """Bounded views (Phase 2): the upstream profile, its facts read now."""
         from .viewengine import ViewEngine
 
-        counter = tokens.default()
-        state = UpstreamState(self.settings.upstream_base_url, pins.load(), counter)
-        await state.refresh(self.client)
-        if not state.pinned_ok:
+        upstream = profile.load(self.settings.profile, self.settings.upstream_base_url)
+        engine = ViewEngine(upstream, mode=self.settings.view,
+                            input_budget=self.settings.input_budget)
+        if engine.unsupported_rules:
+            log.warning("bounded views disabled: profile %s declares template rules the "
+                        "view builder does not implement: %s", upstream.id,
+                        ", ".join(engine.unsupported_rules))
+            return engine
+        await upstream.facts.refresh(self.client)
+        if not upstream.facts.pinned_ok:
             log.warning("bounded views disabled until the upstream matches the pin: %s",
-                        state.diagnostics())
-        return ViewEngine(state, counter, mode=self.settings.view,
-                          input_budget=self.settings.input_budget)
+                        upstream.facts.diagnostics())
+        return engine
 
     async def _http(self, scope, receive, send) -> None:
         if self.client is None:

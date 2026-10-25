@@ -12,8 +12,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from palimnesis import pins, tokens, upstream_facts
-from palimnesis.upstream_facts import UpstreamState
+from palimnesis.upstreams.strata import errors, pins, tokens
+from palimnesis.upstreams.strata import facts as upstream_facts
+from palimnesis.upstreams.strata.facts import UpstreamState
 
 from .fake_upstream import FakeUpstream
 from .servers import serve
@@ -84,7 +85,7 @@ async def test_props_timeout_or_5xx_is_unavailable(fake):
     ],
 )
 def test_staleness_signals(status, body, reason):
-    assert upstream_facts.staleness_reason(status, body) == reason
+    assert errors.staleness_reason(status, body) == reason
 
 
 async def test_props_refreshed_after_5xx_transport_error_context_400(fake):

@@ -140,11 +140,28 @@ class Tokens:
         env.filters["tojson"] = _tojson
         env.globals["raise_exception"] = _raise_exception
         self._template = env.from_string(pin.chat_template)
-        self._tokenizer = Tokenizer.from_str(pin.tokenizer_json.decode("utf-8"))
+        tokenizer_json = pin.tokenizer_json.decode("utf-8")
+        self._tokenizer = Tokenizer.from_str(tokenizer_json)
+        self._added_token_strings = tuple(
+            t["content"] for t in json.loads(tokenizer_json).get("added_tokens", ()))
         self._cache: OrderedDict[bytes, int] = OrderedDict()
         self._cache_size = cache_size
         self._lock = threading.Lock()
         self.fragments_ok = self._additivity_self_test()
+
+    @property
+    def added_token_strings(self) -> tuple[str, ...]:
+        """The pinned tokenizer's added tokens (``<|im_start|>``, ``<think>``, ...).
+
+        The tokenizer extracts these from raw text before anything else, so text that
+        contains one renders as that token."""
+        return self._added_token_strings
+
+    def render_args(self, body: Mapping[str, Any]) -> tuple[list | None, dict[str, Any]]:
+        """``(tools, kw)`` for ``count_messages`` from an OpenAI Chat Completions body."""
+        args = render_args_from_openai(body)
+        args.pop("messages")
+        return args.pop("tools"), args
 
     # -- render -----------------------------------------------------------------
 

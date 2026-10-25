@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .profile import DEFAULT_PROFILE
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -17,3 +19,5 @@ class Settings:
     view: str = "on"
     # Input budget cap in tokens; None means the default (48,000, D14.3).
     input_budget: int | None = None
+    # Upstream profile name (palimnesis.profile.REGISTRY).
+    profile: str = DEFAULT_PROFILE

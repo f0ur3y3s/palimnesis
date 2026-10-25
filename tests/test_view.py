@@ -10,7 +10,7 @@ import random
 
 import pytest
 
-from palimnesis import tokens
+from palimnesis.upstreams.strata import tokens
 from palimnesis.budget import BudgetError, BudgetPolicy, plan_budget
 from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
 

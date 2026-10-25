@@ -1,17 +1,20 @@
-"""Upstream facts are read, not assumed (contracts §1.1, §1.2).
+"""Strata upstream facts are read, not assumed (contracts §1.1, §1.2).
 
-``fetch_facts`` reads ``GET /props`` (1 s timeout) into ``UpstreamFacts``: ``n_ctx``,
-``build_info`` and the SHA-256 of ``chat_template``. ``UpstreamState`` holds the last
-facts for one upstream:
+``fetch_facts`` reads ``GET /props`` (1 s timeout) into ``Props``: ``n_ctx``,
+``build_info`` and the SHA-256 of ``chat_template``. ``UpstreamState`` (the profile's
+``FactsReader``) holds the last props for one upstream and exposes them as neutral
+``palimnesis.profile.UpstreamFacts`` (``identity = (build_info, chat_template_sha256)``):
 
 - ``observe(status, body)`` / ``mark_stale(reason)`` mark them stale after a transport
-  error, a 5xx, or a context-window 400; ``refresh`` re-reads them before the next
-  build. A failed read keeps the cached facts (still stale) or, at startup, none:
-  they are then fetched lazily on the next ``refresh``.
+  error, a 5xx, or a context-window 400 (``errors.staleness_reason``); ``refresh``
+  re-reads them before the next build. It does nothing while the facts are fresh and a
+  canary is on record. A failed read keeps the cached facts (still stale) or, at
+  startup, none: they are then fetched lazily on the next ``refresh``.
 - ``mismatches`` compares ``build_info`` and the template hash with the pin.
 - ``canary`` compares local counts with ``POST /v1/messages/count_tokens`` on
-  ``CANARY_CASES``; it runs after the first good read and again whenever the build or
-  template changes or the previous run was inconclusive.
+  ``CANARY_CASES`` (``CountTokensCrossCheck.canary``); it runs after the first good read
+  and again, on the next refresh, whenever the build or template changes or the previous
+  run was inconclusive.
 - ``pinned_ok`` is true only with facts present, no pin mismatch and a passing canary.
   Otherwise the caller runs in view-disabled mode (D14.9).
 
@@ -34,7 +37,9 @@ from typing import Any
 
 import httpx
 
+from ...profile import UpstreamFacts, Usage
 from . import pins, tokens
+from .errors import staleness_reason
 
 PROPS_TIMEOUT_S = 1.0
 COUNT_TOKENS_TIMEOUT_S = 5.0
@@ -83,7 +88,9 @@ class FactsUnavailable(Exception):
 
 
 @dataclass(frozen=True)
-class UpstreamFacts:
+class Props:
+    """What ``GET /props`` reports."""
+
     n_ctx: int
     build_info: str
     chat_template_sha256: str
@@ -108,7 +115,7 @@ class CanaryResult:
 
 async def fetch_facts(
     client: httpx.AsyncClient, base_url: str, *, timeout: float = PROPS_TIMEOUT_S
-) -> UpstreamFacts:
+) -> Props:
     try:
         r = await client.get(f"{base_url.rstrip('/')}/props", timeout=timeout)
     except httpx.HTTPError as exc:
@@ -118,7 +125,7 @@ async def fetch_facts(
     try:
         props = r.json()
         template = props["chat_template"]
-        return UpstreamFacts(
+        return Props(
             n_ctx=int(props["default_generation_settings"]["n_ctx"]),
             build_info=str(props["build_info"]),
             chat_template_sha256=hashlib.sha256(template.encode("utf-8")).hexdigest(),
@@ -129,24 +136,13 @@ async def fetch_facts(
         raise FactsUnavailable(f"GET /props malformed: {exc!r}") from exc
 
 
-def pin_mismatches(facts: UpstreamFacts, pin: pins.Pin) -> tuple[str, ...]:
+def pin_mismatches(facts: Props, pin: pins.Pin) -> tuple[str, ...]:
     out = []
     if facts.build_info != pin.build_info:
         out.append(f"build_info: {facts.build_info!r} != pinned {pin.build_info!r}")
     if facts.chat_template_sha256 != pin.template_sha256:
         out.append(f"chat_template_sha256: {facts.chat_template_sha256} != pinned {pin.template_sha256}")
     return tuple(out)
-
-
-def staleness_reason(status: int | None, body: bytes = b"") -> str | None:
-    """Why an upstream outcome invalidates the facts; ``status=None`` is a transport error."""
-    if status is None:
-        return "transport_error"
-    if status >= 500:
-        return "upstream_5xx"
-    if status == 400 and b"exceeds the context window" in body:
-        return "context_window_400"
-    return None
 
 
 def _text(content: Any) -> str:
@@ -241,14 +237,49 @@ async def run_canary(
     return CanaryResult(all(c.local == c.remote for c in cases), tuple(cases))
 
 
+def parse_usage(payload: Mapping[str, Any]) -> Usage | None:
+    """Usage from a Chat Completions response or final chunk.
+
+    Strata reports ``usage.prompt_tokens``, ``usage.prompt_tokens_details.cached_tokens``
+    and ``timings.prompt_ms`` (eval/probes/fixtures/sse_oa_include_usage.sse)."""
+    usage = payload.get("usage")
+    if not isinstance(usage, Mapping) or not isinstance(usage.get("prompt_tokens"), int):
+        return None
+    details = usage.get("prompt_tokens_details")
+    cached = details.get("cached_tokens") if isinstance(details, Mapping) else None
+    timings = payload.get("timings")
+    prompt_ms = timings.get("prompt_ms") if isinstance(timings, Mapping) else None
+    return Usage(
+        prompt_tokens=usage["prompt_tokens"],
+        cached_tokens=cached if isinstance(cached, int) else 0,
+        prompt_ms=float(prompt_ms) if isinstance(prompt_ms, (int, float)) else None,
+    )
+
+
+class CountTokensCrossCheck:
+    """``palimnesis.profile.CrossCheck`` for Strata: ``count_tokens`` canary, usage parsing."""
+
+    def __init__(self, base_url: str, counter: tokens.Tokens | None = None) -> None:
+        self.base_url = base_url
+        self.counter = counter
+
+    async def canary(self, client: httpx.AsyncClient) -> CanaryResult:
+        return await run_canary(client, self.base_url, self.counter)
+
+    def usage(self, payload: Mapping[str, Any]) -> Usage | None:
+        return parse_usage(payload)
+
+
 class UpstreamState:
     """Current facts for one upstream, their staleness and the pin verdict."""
 
-    def __init__(self, base_url: str, pin: pins.Pin, counter: tokens.Tokens | None = None) -> None:
+    def __init__(self, base_url: str, pin: pins.Pin, counter: tokens.Tokens | None = None,
+                 cross_check: CountTokensCrossCheck | None = None) -> None:
         self.base_url = base_url
         self.pin = pin
         self.counter = counter
-        self.facts: UpstreamFacts | None = None
+        self.cross_check = cross_check or CountTokensCrossCheck(base_url, counter)
+        self.props: Props | None = None
         self.stale = True
         self.stale_reason: str | None = "not_fetched"
         self.mismatches: tuple[str, ...] = ()
@@ -268,35 +299,46 @@ class UpstreamState:
         return reason is not None
 
     @property
+    def facts(self) -> UpstreamFacts | None:
+        if self.props is None:
+            return None
+        return UpstreamFacts(self.props.n_ctx,
+                             (self.props.build_info, self.props.chat_template_sha256))
+
+    @property
     def pinned_ok(self) -> bool:
         return (
-            self.facts is not None
+            self.props is not None
             and not self.mismatches
             and self.canary is not None
             and self.canary.ok is True
         )
 
     async def refresh(self, client: httpx.AsyncClient) -> UpstreamFacts | None:
-        """Re-read facts if stale (or never read); returns the facts now held."""
-        if self.stale or self.facts is None:
+        """Re-read facts if stale (or never read) and re-run the canary if due.
+
+        Fresh facts with a canary on record are returned as they are."""
+        if not self.stale and self.props is not None and self.canary is not None:
+            return self.facts
+        if self.stale or self.props is None:
             try:
-                facts = await fetch_facts(client, self.base_url)
+                props = await fetch_facts(client, self.base_url)
             except FactsUnavailable as exc:
                 self.last_error = str(exc)
                 return self.facts
-            self.facts = facts
+            self.props = props
             self.stale = False
             self.stale_reason = None
             self.last_error = None
-            self.mismatches = pin_mismatches(facts, self.pin)
-        facts = self.facts
-        identity = (facts.build_info, facts.chat_template_sha256)
+            self.mismatches = pin_mismatches(props, self.pin)
+        props = self.props
+        identity = (props.build_info, props.chat_template_sha256)
         if not self.mismatches and (
             self.canary is None or self.canary.ok is None or self._canary_for != identity
         ):
-            self.canary = await run_canary(client, self.base_url, self.counter)
+            self.canary = await self.cross_check.canary(client)
             self._canary_for = identity
-        return facts
+        return self.facts
 
     def diagnostics(self) -> dict[str, Any]:
         return {
@@ -305,7 +347,7 @@ class UpstreamState:
             "stale": self.stale,
             "stale_reason": self.stale_reason,
             "last_error": self.last_error,
-            "facts": None if self.facts is None else self.facts.__dict__.copy(),
+            "facts": None if self.props is None else self.props.__dict__.copy(),
             "mismatches": list(self.mismatches),
             "canary": None if self.canary is None else {
                 "ok": self.canary.ok,

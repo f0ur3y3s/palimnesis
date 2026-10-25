@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis import pins, tokens
+from palimnesis.upstreams.strata import pins, tokens
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBES = ROOT / "eval" / "probes" / "fixtures"
@@ -89,14 +89,14 @@ def _golden(name: str) -> str:
 
 @pytest.mark.parametrize("name,messages,tools,kw", RENDER_CASES, ids=[c[0] for c in RENDER_CASES])
 def test_local_render_equals_render_fixtures_text(name, messages, tools, kw):
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     assert tokens.render(messages, tools, **kw) == _golden(name)
 
 
 def test_render_applies_strata_preprocessing_wrapped_tools_and_string_arguments():
     """OpenAI-wrapped tools render bare; string arguments render as parsed mappings."""
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     as_openai = [TOOL_TURN[0],
                  {**TOOL_TURN[1], "tool_calls": [{"id": "c1", "type": "function",
@@ -136,13 +136,13 @@ SERVER_COUNTS = {k: v["body"]["input_tokens"]
 
 @pytest.mark.parametrize("case,messages,tools,kw", COUNT_CASES, ids=[c[0] for c in COUNT_CASES])
 def test_local_count_equals_count_tokens_fixture(case, messages, tools, kw):
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     assert tokens.count_messages(messages, tools, **kw) == SERVER_COUNTS[case]
 
 
 def test_local_count_equals_check_json():
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     check = json.loads((PROBES / "template_render_check.json").read_text(encoding="utf-8"))
     for name, _, _, _ in RENDER_CASES:
@@ -157,7 +157,7 @@ OA_FIXTURES = ["oa_prior_reasoning", "oa_prior_reasoning_preserve_false", "oa_pr
 @pytest.mark.parametrize("case", OA_FIXTURES)
 def test_local_count_of_openai_request_equals_usage_prompt_tokens(case):
     """Whole recorded request bodies: wrapped tools, string arguments, effort none, kwargs."""
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     rec = json.loads((PROBES / f"nonstream_{case}.json").read_text(encoding="utf-8"))
     args = tokens.render_args_from_openai(rec["request"])
@@ -181,7 +181,7 @@ def test_live_fixture_set_is_complete():
 
 @pytest.mark.parametrize("exchange,prompt_tokens", LIVE_EXCHANGES)
 def test_local_count_equals_live_usage_prompt_tokens(exchange, prompt_tokens):
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     body = json.loads((exchange / "request.body").read_bytes())
     assert tokens.count_messages(**tokens.render_args_from_openai(body)) == prompt_tokens
@@ -198,13 +198,13 @@ def _all_golden_texts():
 
 
 def test_startup_self_test_finds_fragments_additive():
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     assert tokens.default().fragments_ok is True
 
 
 def test_fragment_sum_equals_full_count():
-    from palimnesis import tokens
+    from palimnesis.upstreams.strata import tokens
 
     t = tokens.default()
     for text, expected in _all_golden_texts():
@@ -219,7 +219,7 @@ def test_fragment_sum_equals_full_count():
 
 
 def test_warm_count_is_served_from_fragment_cache():
-    from palimnesis import pins, tokens
+    from palimnesis.upstreams.strata import pins, tokens
 
     t = tokens.Tokens(pins.load())
     body = json.loads((LIVE_EXCHANGES[-1].values[0] / "request.body").read_bytes())
@@ -233,7 +233,7 @@ def test_warm_count_is_served_from_fragment_cache():
 
 def test_non_additive_split_falls_back_to_full_counting():
     """A split that cuts inside words is not additive: the self-test must catch it."""
-    from palimnesis import pins, tokens
+    from palimnesis.upstreams.strata import pins, tokens
 
     t = tokens.Tokens(pins.load(), split_tokens=("e",))
     assert t.fragments_ok is False

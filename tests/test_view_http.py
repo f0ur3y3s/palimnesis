@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import httpx
 import pytest
 
-from palimnesis import tokens
+from palimnesis.upstreams.strata import tokens
 from palimnesis.api import create_app
 from palimnesis.config import Settings
 

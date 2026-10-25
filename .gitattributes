@@ -9,4 +9,4 @@ eval/probes/fixtures/** -text
 *.body -text
 
 # Vendored pins (template, tokenizer, manifest) are hashed byte-for-byte.
-src/palimnesis/pins_data/** -text
+src/palimnesis/upstreams/strata/pins_data/** -text
