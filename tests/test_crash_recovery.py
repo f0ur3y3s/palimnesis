@@ -202,3 +202,22 @@ def test_crash_after_the_terminal_commit_before_forwarding_accepts_the_continue(
     assert r.status_code == 200, r.content[:300]
     sent = json.loads(fake.requests[-1].body)["messages"][1]
     assert (sent["reasoning_content"], sent["content"]) == ("think ", "answer")
+
+
+def test_crash_after_the_excerpt_commit_reuses_the_stored_selection(upstream, tmp_path):
+    fake, upstream_url = upstream
+    db = tmp_path / "archive.db"
+    body = json.dumps({"model": "m", "stream": True, "max_completion_tokens": 8192,
+                       "messages": [{"role": "user", "content": "hello"}]}).encode()
+    with palimnesis_process(upstream_url, db, crash_at="after_excerpt_commit") as (url, proc):
+        with pytest.raises(httpx.TransportError):
+            _post(url, body)
+        assert proc.wait(timeout=10) == 77
+
+    assert fake.requests == []
+    with palimnesis_process(upstream_url, db) as (url, _):
+        fake.respond_sse([b'data: {"choices":[{"index":0,"delta":{"content":"hi"},'
+                          b'"finish_reason":"stop"}]}\n\n', b"data: [DONE]\n\n"])
+        assert _post(url, body).status_code == 200
+
+    assert _rows(db, "SELECT count(*) FROM excerpt_blocks") == [(1,)]

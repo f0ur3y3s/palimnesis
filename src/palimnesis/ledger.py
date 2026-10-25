@@ -31,6 +31,7 @@ from .addresses import issue_alias
 from .chat import ChatRequest, Message
 from .rawarchive import put_raw
 from .transcript import Archived, Divergence, Extend, Prefix, reconcile
+from .turns import is_instruction
 
 ENDPOINT_CHAT = "/v1/chat/completions"
 TERMINAL_EVENTS = ("turn_complete", "attempt_failed", "attempt_abandoned", "cancelled")
@@ -62,6 +63,9 @@ class Plan:
     # Upstream messages in order, each with its archived occurrence (palimnesis.view).
     items: list = field(default_factory=list)
     view_state: Any = None  # the branch's persisted ViewState when planned
+    # The genuine new user instruction this request carries, which gets an excerpt
+    # selection (A1); None for tool-result requests and retries.
+    host_occ_id: str | None = None
 
 
 @dataclass
@@ -422,10 +426,14 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
             if row:
                 addresses[occ] = (row[0], row[1])
     items = []
+    blocks = {host: (b.block_id, b.rendered, b.token_charge)
+              for host, b in excerpt_blocks(conn, branch_id).items()
+              if b.status == "selected"} if branch_id else {}
 
     def item(message, occ):
         seq, alias = addresses.get(occ, (None, None))
-        return ViewItem(message=message, occ_id=occ, seq=seq, alias=alias)
+        return ViewItem(message=message, occ_id=occ, seq=seq, alias=alias,
+                        excerpt=blocks.get(occ))
 
     for i, message in enumerate(req.messages):
         for occ, extra in zip(inserted_occs.get(i, []), insertions.get(i, [])):
@@ -598,11 +606,11 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
 
 
 def _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome, *,
-          client_occs=None, cache=None) -> Plan:
+          client_occs=None, cache=None, host_occ_id=None) -> Plan:
     body, items = _upstream_body(conn, req, archived, outcome, client_occs, branch_id, cache)
     _, _, state = latest_view(conn, branch_id)
     return Plan(session_id, branch_id, request_id, attempt_id, body, req.stream,
-                items=items, view_state=state)
+                items=items, view_state=state, host_occ_id=host_occ_id)
 
 
 def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
@@ -664,8 +672,13 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
            new=len(new), raw_id=raw_id)
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
+    host = None
+    if new and new[-1].role == "user":
+        text = next((b.text for b in new[-1].blocks if b.kind == "text"), "")
+        if is_instruction("user", text):
+            host = client_occs[-1]
     return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
-                 client_occs=client_occs, cache=cache)
+                 client_occs=client_occs, cache=cache, host_occ_id=host)
 
 
 # --- generation --------------------------------------------------------------

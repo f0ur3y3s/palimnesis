@@ -26,13 +26,21 @@ counting) run in worker threads.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import anyio
 
 from . import chat
-from .budget import Budget, BudgetError, BudgetPolicy, check_fixed, plan_budget
+from .budget import (
+    Budget,
+    BudgetError,
+    BudgetPolicy,
+    check_fixed,
+    excerpt_allocation,
+    plan_budget,
+)
+from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
 from .profile import UpstreamProfile, unsupported_rules
 from .stubs import STUB_FORMAT
 from .view import POLICY_VERSION, View, ViewPolicy, build
@@ -48,8 +56,9 @@ class Prepared:
 
 class ViewEngine:
     def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
-                 input_budget: int | None = None) -> None:
+                 input_budget: int | None = None, excerpts=None) -> None:
         self.profile = profile
+        self.excerpts = excerpts if excerpts is not None else NoExcerpts()
         self.counter = profile.counter
         # Declared template rules the view builder does not implement: views stay off.
         self.unsupported_rules = unsupported_rules(profile.rules)
@@ -98,6 +107,23 @@ class ViewEngine:
 
         return await anyio.to_thread.run_sync(run)
 
+    async def select(self, prepared: Prepared, plan, base: View):
+        """Excerpt selection for the plan's host message within the allocation the
+        base view leaves (D20.2). Returns (selection, rendered, charge, allocation)."""
+        charges = {item.excerpt[0]: item.excerpt[2] for item in plan.items if item.excerpt}
+        allocation = excerpt_allocation(
+            prepared.budget, fixed_tokens=base.fixed_tokens,
+            included=[charges[b] for b in base.included_excerpts if b in charges],
+            policy=self.policy)
+        selection = await self.excerpts.select(plan, base, allocation)
+        rendered = render_block(selection.excerpts(),
+                                added_tokens=self.counter.added_token_strings)
+        charge = self.counter.count(rendered) if rendered else 0
+        if charge > allocation:  # a source overreaching its allocation selects nothing
+            selection = replace(selection, items=())
+            rendered, charge = "", 0
+        return selection, rendered, charge, allocation
+
     @staticmethod
     def body(req: chat.ChatRequest, plan, prepared: Prepared, view: View) -> bytes:
         overrides: dict[str, Any] = {}
@@ -130,3 +156,4 @@ class ViewEngine:
 
 
 VIEW_FORMAT = {"policy_version": POLICY_VERSION, "stub_format": STUB_FORMAT}
+EXCERPT_FORMAT = RENDERER_VERSION

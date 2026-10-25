@@ -30,6 +30,8 @@ import logging
 import os
 import sqlite3
 
+from dataclasses import replace
+
 import anyio
 import httpx
 
@@ -38,7 +40,7 @@ from .errors import error_response
 from .fingerprint import fingerprint_v1, parse_retry_hint
 from .budget import BudgetError
 from .sse import SSEParser
-from .viewengine import VIEW_FORMAT, ViewEngine
+from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from .store import Store
 
 log = logging.getLogger(__name__)
@@ -168,11 +170,36 @@ class ArchiveHandler:
         except Exception:
             log.exception("bounded view build failed; forwarding unbounded")
             return True
-        if view.moved:
-            cause = ViewEngine.cause(plan.view_state, view.state)
-            await self.store.write(lambda c: ledger.record_view(
-                c, plan, view.state, budget=ViewEngine.snapshot(prepared.budget), cause=cause,
-                **VIEW_FORMAT))
+        selected = None
+        hosted = any(i.excerpt for i in plan.items if i.occ_id == plan.host_occ_id)
+        if plan.host_occ_id is not None and not hosted:
+            selected = await self.views.select(prepared, plan, view)
+
+        def commit(c):
+            # The view move and the excerpt selection land together, before inference.
+            if view.moved:
+                ledger.record_view(c, plan, view.state, budget=ViewEngine.snapshot(prepared.budget),
+                                   cause=ViewEngine.cause(plan.view_state, view.state),
+                                   **VIEW_FORMAT)
+            if selected is not None:
+                selection, rendered, charge, allocation = selected
+                return ledger.record_excerpts(
+                    c, plan, host_occ_id=plan.host_occ_id, selection=selection,
+                    rendered=rendered, token_charge=charge, allocation=allocation,
+                    base_view_n=ledger.latest_view(c, plan.branch_id)[1],
+                    base_watermark_seq=view.state.watermark_seq,
+                    base_collapse_seq=view.state.collapse_seq,
+                    renderer_version=EXCERPT_FORMAT, profile_id=self.views.profile.id)
+            return None
+
+        if view.moved or selected is not None:
+            block_id = await self.store.write(commit)
+            crash_point("after_excerpt_commit")
+            if selected is not None and selected[1]:
+                plan.items = [replace(i, excerpt=(block_id, selected[1], selected[2]))
+                              if i.occ_id == plan.host_occ_id else i for i in plan.items]
+                plan.view_state = view.state
+                view = await self.views.build(prepared, plan)
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
         return True
 

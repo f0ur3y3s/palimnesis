@@ -176,7 +176,8 @@ class Proxy:
 
         upstream = profile.load(self.settings.profile, self.settings.upstream_base_url)
         engine = ViewEngine(upstream, mode=self.settings.view,
-                            input_budget=self.settings.input_budget)
+                            input_budget=self.settings.input_budget,
+                            excerpts=self.settings.excerpt_source)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,
