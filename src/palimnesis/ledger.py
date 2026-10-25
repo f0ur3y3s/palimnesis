@@ -621,7 +621,7 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
     return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
-                 cache=cache)
+                 cache=cache, retry=True)
 
 
 def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) -> Plan | None:
@@ -660,16 +660,39 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
     attempt_id = _start_attempt(conn, request_id)
     _set_active(conn, branch_id, request_id)
     return _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome,
-                 cache=cache)
+                 cache=cache, retry=True)
 
 
 def _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome, *,
-          client_occs=None, cache=None, host_occ_id=None) -> Plan:
+          client_occs=None, cache=None, host_occ_id=None, retry=False) -> Plan:
     body, items = _upstream_body(conn, req, archived, outcome, client_occs, branch_id, cache)
     view_id, view_n, state = latest_view(conn, branch_id)
+    if retry:
+        host_occ_id = _unselected_host(conn, request_id, items)
     return Plan(session_id, branch_id, request_id, attempt_id, body, req.stream,
                 items=items, view_state=state, host_occ_id=host_occ_id,
                 view_id=view_id, view_n=view_n)
+
+
+def _unselected_host(conn, request_id: str, items) -> str | None:
+    """A retried request's host instruction when it has no excerpt row yet (D31).
+
+    A crash between acceptance and the excerpt commit, or a failed excerpt source,
+    leaves the instruction without a selection. No inference has happened for it,
+    so the retry selects now; a stored row is always reused instead."""
+    row = conn.execute(
+        "SELECT occ_id, role FROM occurrences WHERE request_id = ?"
+        " AND source IN ('client', 'client_import') ORDER BY seq DESC LIMIT 1",
+        (request_id,)).fetchone()
+    if row is None or row[1] != "user":
+        return None
+    if conn.execute("SELECT 1 FROM excerpt_blocks WHERE host_occ_id = ?", (row[0],)).fetchone():
+        return None
+    item = next((i for i in items if i.occ_id == row[0]), None)
+    content = item.message.get("content") if item is not None else None
+    if not is_instruction("user", content if isinstance(content, str) else ""):
+        return None
+    return row[0]
 
 
 def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,

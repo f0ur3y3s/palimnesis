@@ -233,3 +233,24 @@ def test_crash_after_the_excerpt_commit_reuses_the_stored_selection(upstream, tm
         assert _post(url, body).status_code == 200
 
     assert _rows(db, "SELECT count(*) FROM excerpt_blocks") == [(1,)]
+
+
+def test_a_retry_after_a_crash_before_the_excerpt_commit_selects_once(upstream, tmp_path):
+    # D31: the crash left the instruction accepted with no excerpt row; the retry
+    # (no inference has happened) selects for it, exactly once.
+    fake, upstream_url = upstream
+    db = tmp_path / "archive.db"
+    body = json.dumps({"model": "m", "stream": True, "max_completion_tokens": 8192,
+                       "messages": [{"role": "user", "content": "hello there"}]}).encode()
+    with palimnesis_process(upstream_url, db, crash_at="after_accept") as (url, proc):
+        with pytest.raises(httpx.TransportError):
+            _post(url, body)
+        assert proc.wait(timeout=10) == 77
+    assert _rows(db, "SELECT count(*) FROM excerpt_blocks") == [(0,)]
+
+    with palimnesis_process(upstream_url, db) as (url, _):
+        fake.respond_sse([b'data: {"choices":[{"index":0,"delta":{"content":"hi"},'
+                          b'"finish_reason":"stop"}]}\n\n', b"data: [DONE]\n\n"])
+        assert _post(url, body).status_code == 200
+
+    assert _rows(db, "SELECT status, reason FROM excerpt_blocks") == [("empty", "nothing_absent")]

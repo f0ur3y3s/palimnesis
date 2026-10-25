@@ -317,3 +317,62 @@ Changes. All are exact: views, counts and every R12 count are unchanged.
     - view render and count, bounded by the input budget.
   - **Why the original wording is dropped:** a parser cannot be flat in the size of its input.
   - **Phase 3 candidate:** incremental alignment against the BranchCache, so that accept is O(new messages).
+
+## D26 — Recall candidates: only what the base view dropped
+
+Candidates for a new instruction's excerpts are the blocks the base view no longer shows: every block of a collapsed message, and the replaced block of a stubbed one (a tool result, or reasoning). The base view already includes this request's moves, so spans evicted by this very request are candidates (A1).
+
+- **Excluded:** text still verbatim anywhere in the view, system messages and replaced context versions, superseded partials (they are not view items), ranges already quoted by an included excerpt block, and anything at or after the instruction.
+- **Excerpt text is never a candidate.** It is never archived as a block, so it is never indexed.
+- **Unmasked sessions** have no candidates and record `nothing_absent` without searching. Their upstream bodies stay byte-identical to the client's.
+
+## D27 — Chunk-level full-text index
+
+Migration 5 adds `fts_chunks` (contentless FTS5) and `chunk_map`. Every archived block is indexed in contiguous chunks of at most 24 lines and 1,536 code points, cut at a line end, else whitespace, else a safe cut. Chunks are indexed where blocks are, and existing archives are backfilled during the migration, which is the first migration that runs Python.
+
+Rejected: ranking whole blocks. BM25's length normalization buries one dense hit inside a long tool output (`test_a_dense_hit_inside_a_long_block_outranks_a_sparse_hit`).
+
+## D28 — Query policy q1
+
+The query is built from the instruction's own text and never passed through as FTS5 syntax.
+
+- Runs of `[\w.\-/:#@]` become terms of `unicode61` sub-tokens. A run that splits becomes a phrase.
+- Code-like terms come first: runs that split, or contain digits, internal capitals or backticks. Plain words follow in order of first occurrence.
+- Dropped: one-character words and a frozen stopword and filler list. "fix" and similar verbs stay, because IDF discounts common words.
+- At most 32 terms. Long messages contribute their first 12,000 and last 4,000 code points.
+- Each term is emitted as an FTS5 string joined by `OR`, so operators, prefixes, column filters and quotes in the text are only ever searched as words. A 2,000-case fuzz test against FTS5 confirms that.
+- An empty query records `empty_query`. This covers "continue", "ok" and punctuation only.
+- q2 (adding the previous instruction's terms for very short messages) is a development variant, not built yet.
+
+## D29 — Retrieval r1
+
+1. **Hits.** The top 64 chunks by BM25 among the candidate blocks. Ties break by newest source, then block index, start offset and chunk rowid, so the order is total.
+2. **Relevance floor.** A chunk must contain one code-like term or two distinct terms (`below_floor`).
+3. **Focus and context.** An item is focused on the chunk's matching lines, or its best line when those exceed the cap. It then grows by up to 4 context lines a side, alternately, within its block. Overlapping or touching ranges in one block merge, keeping the best rank.
+4. **Item cap.** `min(512, allocation − block overhead)`. The overhead is the rendered block header, item header and footer, plus room for the longest provenance. Below 32 tokens the reason is `zero_allocation`.
+5. **Packing.** Greedy in rank order: at most 8 items, 2 per source occurrence, at most 16 exact renders. An item that overshoots shrinks once by the measured excess and keeps at least 32 tokens; otherwise it is skipped. The charge never exceeds the allocation. If nothing fits, the reason is `no_fit`.
+6. **Rendering.** Chronological by source seq (D30). `source_sha256` is the SHA-256 of the excerpt's exact text, so an item can be checked against the archive range `[start, end)`.
+
+## D30 — Excerpt order within a block
+
+Items render in the order (source seq, source block, start). Phase 2 sorted by turn, then occurrence id; ids are random, so items within one turn were unordered. No stored rendering changes, since Phase 2 never stored a block with more than one item.
+
+## D31 — Retries select when no excerpt row exists
+
+A retried or keyed request hosts excerpts when its last new client message is a genuine instruction with no `excerpt_blocks` row. This happens when a crash fell between acceptance and the excerpt commit, or when the source failed. No inference has happened for it, so selecting then is safe. An existing row is always reused (`test_a_retry_after_a_crash_before_the_excerpt_commit_selects_once`).
+
+## D37 — Transcript capability gate for OpenCode 2.1.4: passed
+
+`docs/probes/opencode_transcripts.md` records the result.
+
+- **What passed.** With the shipped config and no extra rule, OpenCode's read, grep, glob and shell tools reached a transcript directory outside the working tree and outside any repository, without prompts or denials, with and without `--auto`. The exact needle was returned in 15 of 15 lookups.
+- **Why.** Every OpenCode agent starts from allow-all rules, including `external_directory`.
+- **Fallback (O5) not needed.**
+
+Consequences for the design:
+
+1. **Bounded lookups only.** The model addendum must require a search followed by a bounded read. Unbounded `read` pages up to 2,000 lines or 50 KB, and it overflowed a 64K context in the probe.
+2. **Point at the session directory.** The addendum names the session's own directory, never the transcripts root. OpenCode's grep searches hidden folders such as `.staging`.
+3. **LF only.** Projection files use LF line endings. CRLF leaks `\r` into grep previews.
+4. **Filesystem permissions are the only confinement.** OpenCode's shell tool bypasses `external_directory`, so permission rules confine nothing. Transcript privacy rests on filesystem permissions alone.
+5. **The allow rule is optional.** Adding one (`external_directory` and `read` on `<root>/*`, placed last) changes nothing under the default agents. It matters only for agents configured with ask or deny.
