@@ -598,7 +598,9 @@ def test_input_committed_before_upstream_sees_request(lc):
     r = lc.post(SID, body([SYSTEM, user("U1")]), headers={"Idempotency-Key": "k1"})
 
     assert r.status_code == 200
-    assert seen == {"requests": 1, "kinds": ["accepted_input", "attempt_started"],
+    # A1: the excerpt selection for the new instruction is durable before inference too.
+    assert seen == {"requests": 1, "kinds": ["accepted_input", "attempt_started",
+                                             "excerpts_selected"],
                     "roles": ["system", "user"], "bindings": [("k1", 1)]}
 
 
