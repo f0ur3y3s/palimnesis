@@ -51,11 +51,11 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
     serve.add_argument("--input-budget", type=int, metavar="TOKENS",
                        help="input budget cap (default 48000; never above capacity)")
     serve.add_argument("--query-policy", choices=["q1", "q2"], default="q1",
-                       help="proactive-recall query policy (development selection)")
-    serve.add_argument("--excerpt-renderer", choices=["x1", "x2"], default="x1",
-                       help="excerpt block rendering (development selection)")
+                       help="proactive-recall query policy (D43 froze the default)")
+    serve.add_argument("--excerpt-renderer", choices=["x1", "x2"], default="x2",
+                       help="excerpt block rendering (D43 froze the default)")
     serve.add_argument("--addendum", choices=["a3", "a4"], default="a3",
-                       help="transcript-search addendum (development selection)")
+                       help="transcript-search addendum (D43 froze the default)")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")

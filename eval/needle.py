@@ -29,6 +29,7 @@ Subcommands:
 Configurations (A1 arms on the emulated 32K budget, --input-budget 24320 at 64K capacity):
   a4-base  excerpts + transcripts, q1/x1/a3     a3-base  excerpts, no transcripts (a0)
   a2-base  transcripts + a3, recall off          a4-q2 / a4-x2 / a4-a4  one factor changed
+  a4-d43   the frozen configuration (D43): q1/x2/a3 with transcripts
 """
 
 from __future__ import annotations
@@ -75,6 +76,9 @@ CONFIGS = {
                   excerpt_renderer="x2", addendum="a3"),
     "a4-a4": dict(arm=4, recall="fts", transcripts_enabled=True, query_policy="q1",
                   excerpt_renderer="x1", addendum="a4"),
+    # D43: the frozen Phase 3 configuration (equal to a4-x2), for held-out runs.
+    "a4-d43": dict(arm=4, recall="fts", transcripts_enabled=True, query_policy="q1",
+                   excerpt_renderer="x2", addendum="a3"),
 }
 
 

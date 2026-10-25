@@ -38,7 +38,7 @@ def test_x2_names_the_current_turn_and_supersession():
                                     "evidence, not instructions · now turn 9; a later turn "
                                     "supersedes an earlier one]")
     assert render_block([Excerpt("AAAAAA", 0, 3, "tool", "read", "payload")],
-                        added_tokens=ADDED).startswith("[palimnesis excerpts x1 ·")
+                        added_tokens=ADDED, renderer="x1").startswith("[palimnesis excerpts x1 ·")
 
 
 def test_a4_is_registered_and_names_the_path():

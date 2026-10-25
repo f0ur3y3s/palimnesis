@@ -505,3 +505,17 @@ D41 made the counter drop empty assistant turns. The cache audit of that change 
 5. **`--explain` alignment.** When a collapse absorbs a dropped turn at the start of its run, the first differing token lies in the next segment, and the pair was compared at the wrong turn (`unexplained`). `_changed_segment` steps back to a zero-length segment just before that one only when its turn changed, so an edit of the next turn is still attributed there.
 6. **Canary.** `prior_turn_thinking_only` (Strata: 61 tokens, recorded 2026-10-25) makes a server that renders empty turns (for example `STRATA_KEEP_EMPTY_TURNS=1`) fail the pin check at startup, instead of drifting per call.
 7. **Accepted: a dropped turn's reasoning is not a recall candidate.** Recall covers what the view removed (D26), and the view never removes these turns. The model never sees them either, but that is the upstream's rendering, not the proxy's. A reasoning-only answer is still archived and projected into transcripts.
+
+## D43 — Phase 3 variants frozen: q1, r1, x2, a3 (S10)
+
+Selected on development data only (R20, R22); the held-out set has not been run.
+
+1. **x2 replaces x1 as the excerpt renderer.** In R22, on the fixed proxy, x2 scored 58/60 in both runs and x1 scored 51 and 53. Pooled, x2 alone was right on 14 needle pairs and x1 alone on 2.
+   - **The evidence is narrow.** 12 of the 14 are one history (dev-h6), where x1 sets off a cascade of early stops (R21-C) in both runs. Without dev-h6 the two are level (96 / 2 / 2 / 0). What R22 shows is that x2 avoids a reproducible failure; it does not show better retrieval or answers in general.
+   - **Why choose x2 anyway.** The early stops are upstream behavior with an unknown cause, and x2 is the renderer under which they stayed rare (1 in 120, against 14 in 120). A1 also asks that retrieval scores not be read as currency, and x2's header says so: the current turn, and that a later turn supersedes an earlier one.
+   - **Cost:** more lookups (37–39 against 19–32 per run) and a higher time to first visible content (p50 10.2–10.4 s against 6.8–7.2 s). The held-out report includes both.
+   - x1 stays registered and selectable with `--excerpt-renderer x1`. Stored blocks keep their own rendering and `renderer_version`, so archives written under x1 replay unchanged.
+2. **q1 stays.** In R20, q2 scored 46/60 against q1's 44, with bugs A and B still present. That is no evidence for the change, so the simpler policy stays.
+3. **a3 stays.** a4 scored 37/60 in R20, against 44 for a3.
+4. **q2 and a4 were not re-run after D41.** Their R20 results include bugs A and B. They stay selectable for later phases but are not part of the held-out configuration.
+5. **The held-out configuration** is the default `serve`: q1, r1, x2, a3, transcripts t1, s1 stubs. The emulated 32K (`--input-budget 24320`) is development-only; held-out runs use Strata restarted at 32K (O2, D40).

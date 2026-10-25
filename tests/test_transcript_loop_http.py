@@ -78,7 +78,7 @@ def test_a_grep_then_bounded_read_loop_keeps_excerpts_reasoning_and_prefix_acros
     steps = [_upstream_messages(fake, i) for i in range(3)] + [_upstream_messages(fake2, 0)]
     # The instruction's excerpt block is identical in every step, restart included.
     hosts = [_host(m)["content"] for m in steps]
-    assert NEEDLE in hosts[0] and "[palimnesis excerpts x1" in hosts[0]
+    assert NEEDLE in hosts[0] and "[palimnesis excerpts x2" in hosts[0]
     assert all(h == hosts[0] for h in hosts)
     # Archived reasoning of the earlier tool calls is restored (contracts §9).
     calls = [m for m in steps[3] if m.get("tool_calls")

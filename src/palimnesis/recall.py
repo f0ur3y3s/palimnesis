@@ -283,7 +283,7 @@ class FtsExcerpts:
     retrieval_version = RETRIEVAL_VERSION
 
     def __init__(self, store, counter, *, query_policy: str = QUERY_VERSION,
-                 renderer: str = "x1"):
+                 renderer: str = "x2"):
         if query_policy not in QUERY_POLICIES:
             raise ValueError(f"unknown query policy {query_policy!r}")
         self.store = store

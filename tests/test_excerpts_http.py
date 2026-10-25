@@ -86,7 +86,7 @@ def test_the_upstream_sees_the_block_but_the_archive_and_client_do_not(tmp_path)
 
     assert r.status_code == 200
     sent = json.loads(fake.requests[-1].body)["messages"]
-    assert sent[-1]["content"].startswith("now indent it\n\n[palimnesis excerpts x1")
+    assert sent[-1]["content"].startswith("now indent it\n\n[palimnesis excerpts x2")
     assert "use tabs, never spaces" in sent[-1]["content"]
     assert b"palimnesis excerpts" not in r.content
     c = sqlite3.connect(f"file:{settings.db_path}?mode=ro", uri=True)

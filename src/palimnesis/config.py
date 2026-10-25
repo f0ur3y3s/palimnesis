@@ -26,7 +26,7 @@ class Settings:
     # Development-selectable presentation (plan §5): query policy, excerpt renderer and
     # transcript addendum. Frozen after development selection.
     query_policy: str = "q1"
-    excerpt_renderer: str = "x1"
+    excerpt_renderer: str = "x2"
     addendum: str = "a3"
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.

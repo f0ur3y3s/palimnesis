@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-RENDERER_VERSION = "x1"
+RENDERER_VERSION = "x2"  # D43; x1 stays renderable for stored blocks
 _ESC = "\\"
 _OPEN = "[["
 
@@ -149,8 +149,8 @@ def render_block(excerpts: Sequence[Excerpt], *, added_tokens: Sequence[str],
                  renderer: str = RENDERER_VERSION, current_turn: int | None = None) -> str:
     """The frozen rendering of a selection; empty selections render nothing.
 
-    ``x2`` (a development variant) adds the current turn and that a later turn
-    supersedes an earlier one, since a high score does not make a statement current."""
+    ``x2`` (frozen by D43) adds the current turn and that a later turn supersedes an
+    earlier one, since a high score does not make a statement current."""
     if not excerpts:
         return ""
     if renderer not in RENDERERS:

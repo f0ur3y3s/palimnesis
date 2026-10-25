@@ -38,7 +38,7 @@ def test_a_needle_masked_by_this_request_is_quoted_back_to_the_upstream_only(tmp
     assert r.status_code == 200
     sent = fake.requests[-1].body
     upstream_user = _last_user(sent)
-    assert upstream_user.startswith(question + "\n\n[palimnesis excerpts x1")
+    assert upstream_user.startswith(question + "\n\n[palimnesis excerpts x2")
     assert NEEDLE in upstream_user
     assert NEEDLE not in r.text
     assert upstream_tokens(sent) <= 8000
