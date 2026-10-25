@@ -23,8 +23,16 @@ if the slot stays busy for more than 20 minutes. It also keeps each exact upstre
 came from an excerpt block.
 
 Subcommands:
-  run     --config NAME --out RUNDIR [--histories h1,h2] [--questions N] [--upstream URL|fake]
-  proxy   (internal) the proxy child
+  run        --config NAME --out RUNDIR [--histories h1,h2] [--questions N] [--upstream URL|fake]
+             [--driver emulator|opencode] [--set development|heldout]
+             [--reason TEXT] [--ws-root DIR] [--expect-n-ctx N]   (opencode driver)
+  preflight  [--set heldout] [--histories h1,h2]: imports through real OpenCode, fake upstream
+  proxy      (internal) the proxy child
+
+``--driver opencode`` (``eval/needle_opencode.py``) runs each history through real
+OpenCode 2.1.4 instead: ``opencode session import``, then one ``opencode run --session``
+per step, against the default ``serve`` budget (no ``--input-budget``). Held-out
+histories (``--set heldout``) run only that way (D44.2).
 
 Configurations (A1 arms on the emulated 32K budget, --input-budget 24320 at 64K capacity):
   a4-base  excerpts + transcripts, q1/x1/a3     a3-base  excerpts, no transcripts (a0)
@@ -57,6 +65,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / "eval" / "fixtures" / "opencode-2.1.4" / "live" / "exchanges"
 NEEDLES = ROOT / "eval" / "needles" / "dev"
+SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho")}  # --set: (dir, id prefix)
 INPUT_BUDGET = 24_320
 MAX_TOOLS = 8
 MAX_ROUNDS = 12
@@ -162,7 +171,14 @@ class SlotBusyTooLong(RuntimeError):
 
 class Tap:
     """ASGI forwarder between the proxy and Strata: gates inference on an idle slot,
-    records each upstream call (body to scratch, usage, timings, foreign activity)."""
+    records each upstream call (body to scratch, usage, timings, foreign activity).
+
+    With ``SlotGate(None)`` it is the front tap between a client and the proxy: no gate,
+    and each record holds the proxy's own response status and stream error, so a proxy
+    rejection is told apart from an upstream failure without reading logs.
+
+    Bodies are numbered after any already in ``bodies``, so a second tap on the same
+    directory never overwrites an earlier run's files."""
 
     def __init__(self, upstream: str, bodies: Path, gate: SlotGate):
         self.upstream, self.bodies, self.gate = upstream.rstrip("/"), bodies, gate
@@ -170,7 +186,10 @@ class Tap:
         self.client: httpx.AsyncClient | None = None
         self.last_after: int | None = None
         self.abort: str | None = None
+        self.inflight = 0  # inference calls not yet recorded in ``calls``
         bodies.mkdir(parents=True, exist_ok=True)
+        self.next_n = max((int(f.name[:4]) for f in bodies.glob("[0-9][0-9][0-9][0-9].json")),
+                          default=0)
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
@@ -203,19 +222,23 @@ class Tap:
         stop = asyncio.Event()
         samples: list = []
         if inference:
-            n = len(self.calls) + 1
-            rec = {"n": n, "t_arrival": time.time(), "req_bytes": len(body)}
+            self.inflight += 1
+            self.next_n += 1
+            n = self.next_n
+            rec = {"n": n, "t_arrival": time.time(), "req_bytes": len(body), "path": path}
             if self.gate.upstream is not None:
                 try:
                     pre = await asyncio.to_thread(self._gate_sync, n)
                 except SlotBusyTooLong as e:
                     self.abort = str(e)
+                    self.inflight -= 1
                     await self._reply(send, 503, b'{"error":{"message":"slot busy too long"}}')
                     return
                 rec.update(pre)
                 if self.last_after is not None and pre.get("activity") is not None:
                     rec["foreign_between"] = pre["activity"] - self.last_after
             (self.bodies / f"{n:04d}.json").write_bytes(bytes(body))
+            rec["t_dispatch"] = time.time()
 
             async def monitor():
                 while not stop.is_set():
@@ -231,7 +254,13 @@ class Tap:
             mon = asyncio.create_task(monitor()) if self.gate.upstream is not None else None
         url = f"{self.upstream}{path}" + (f"?{qs}" if qs else "")
         req = self.client.build_request(scope["method"], url, headers=headers, content=bytes(body))
-        resp = await self.client.send(req, stream=True)
+        try:
+            resp = await self.client.send(req, stream=True)
+        except Exception:
+            if inference:
+                stop.set()
+                self.inflight -= 1
+            raise
         out = bytearray()
         rec["t_upstream_headers"] = time.time()
         try:
@@ -242,6 +271,8 @@ class Tap:
                 if inference:
                     if "t_first_chunk" not in rec:
                         rec["t_first_chunk"] = time.time()
+                    if "t_first_content" not in rec and VISIBLE.search(chunk):
+                        rec["t_first_content"] = time.time()
                     out.extend(chunk)
                 await send({"type": "http.response.body", "body": chunk, "more_body": True})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
@@ -255,6 +286,7 @@ class Tap:
                     with contextlib.suppress(Exception):
                         await mon
                 rec["t_end"] = time.time()
+                rec["upstream_s"] = round(rec["t_end"] - rec["t_dispatch"], 3)
                 rec["status"] = resp.status_code
                 rec.update(parse_usage(bytes(out)))
                 # The raw upstream stream (scratch only), to tell upstream from relay defects.
@@ -270,6 +302,7 @@ class Tap:
                     1 for _, busy, queued, pt, _g in samples
                     if (queued or 0) > 0 or (busy and ours and pt not in (None, ours)))
                 self.calls.append(rec)
+                self.inflight -= 1
 
     def _activity_sync(self):
         with httpx.Client() as c:
@@ -285,6 +318,10 @@ class Tap:
         await send({"type": "http.response.body", "body": body})
 
 
+# A streamed delta the client shows: text content or a tool call (not reasoning).
+VISIBLE = re.compile(rb'"content": ?"[^"]|"tool_calls": ?\[')
+
+
 def parse_usage(raw: bytes) -> dict:
     out: dict = {}
     for line in raw.split(b"\n"):
@@ -294,6 +331,11 @@ def parse_usage(raw: bytes) -> dict:
             d = json.loads(line[6:])
         except ValueError:
             continue
+        for ch in d.get("choices") or []:
+            if ch.get("finish_reason"):
+                out["finish"] = ch["finish_reason"]
+        if d.get("error"):
+            out["stream_error"] = json.dumps(d["error"], ensure_ascii=False)[:300]
         if d.get("usage"):
             u = d["usage"]
             out["prompt_tokens"] = u.get("prompt_tokens")
@@ -331,8 +373,12 @@ def proxy_child(a) -> None:
     from palimnesis.server import uvicorn_config
 
     extra = json.loads(a.settings)
-    settings = Settings(upstream_base_url=a.upstream, db_path=Path(a.db), synchronous="FULL",
-                        input_budget=a.input_budget, **extra)
+    if extra.get("transcripts"):
+        extra["transcripts"] = Path(extra["transcripts"])
+    # --passthrough: `palimnesis serve --passthrough` (no archive); otherwise archive mode.
+    # No --input-budget: the default budget (48,000, never above capacity), as `serve`.
+    settings = Settings(upstream_base_url=a.upstream, db_path=None if a.passthrough else Path(a.db),
+                        synchronous="FULL", input_budget=a.input_budget, **extra)
     print(f"proxy child settings={settings}", flush=True)
     server = uvicorn.Server(uvicorn_config(create_app(settings), host="127.0.0.1", port=a.port,
                                            log_level="warning"))
@@ -349,8 +395,10 @@ def proxy_child(a) -> None:
 
 
 class ProxyProcess:
-    def __init__(self, run_dir: Path, upstream: str, settings: dict):
+    def __init__(self, run_dir: Path, upstream: str, settings: dict,
+                 input_budget: int | None = INPUT_BUDGET, passthrough: bool = False):
         self.run_dir, self.upstream, self.settings = run_dir, upstream, settings
+        self.input_budget, self.passthrough = input_budget, passthrough
         self.db = run_dir / "archive.db"
         self.port = free_port()
         self.proc: subprocess.Popen | None = None
@@ -362,12 +410,18 @@ class ProxyProcess:
 
     def start(self) -> None:
         self.starts += 1
-        stop = self.run_dir / f"STOP-{self.starts}"
-        log = open(self.run_dir / f"proxy-{self.starts}.log", "w", encoding="utf-8")
+        # Unique per start, and removed first: a stop file or log left by an earlier run
+        # in the same directory can neither stop this child nor be overwritten.
+        tag = f"{self.starts}-{os.getpid()}-{time.time_ns()}"
+        stop = self.run_dir / f"STOP-{tag}"
+        stop.unlink(missing_ok=True)
+        log = open(self.run_dir / f"proxy-{tag}.log", "a", encoding="utf-8")
         self.stop_file = stop
         self.proc = subprocess.Popen(
             [sys.executable, str(Path(__file__).resolve()), "proxy", "--port", str(self.port),
-             "--db", str(self.db), "--upstream", self.upstream, "--input-budget", str(INPUT_BUDGET),
+             "--db", str(self.db), "--upstream", self.upstream,
+             *(["--input-budget", str(self.input_budget)] if self.input_budget else []),
+             *(["--passthrough"] if self.passthrough else []),
              "--settings", json.dumps(self.settings), "--stop-file", str(stop)],
             stdout=log, stderr=subprocess.STDOUT, cwd=str(ROOT))
         deadline = time.time() + 90
@@ -807,10 +861,7 @@ def run_config(a) -> int:
     if out.exists() and not a.resume:
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
-    histories = sorted(NEEDLES.glob("dev-h*.json"))
-    if a.histories:
-        want = {f"dev-{h}" for h in a.histories.split(",")}
-        histories = [h for h in histories if h.stem in want]
+    histories = select_histories(a)
     live = a.upstream != "fake"
     stack = contextlib.ExitStack()
     fake = None
@@ -1016,22 +1067,48 @@ def run_config(a) -> int:
         meta["proxy_starts"] = proxy.starts
         qlog.close()
         clog.close()
-    # post-run checks: --explain and transcripts verify
-    ex = subprocess.run([sys.executable, str(ROOT / "eval" / "replay.py"), "--explain", str(proxy.db),
+    post_checks(out, proxy.db, cfg, meta)
+    return status
+
+
+def select_histories(a) -> list[Path]:
+    folder, prefix = SETS[getattr(a, "set", "development")]
+    histories = sorted((ROOT / "eval" / "needles" / folder).glob(f"{prefix}-h*.json"),
+                       key=lambda p: int(p.stem.rsplit("h", 1)[1]))
+    if a.histories:
+        want = {f"{prefix}-{h}" for h in a.histories.split(",")}
+        histories = [h for h in histories if h.stem in want]
+    return histories
+
+
+def verify_sessions(db: Path, sessions: list[str], root: Path | None = None) -> dict:
+    out = {}
+    for s in sessions:
+        cmd = [sys.executable, "-m", "palimnesis", "transcripts", "verify", s, "--db", str(db)]
+        if root is not None:
+            cmd += ["--root", str(root)]
+        v = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT))
+        out[s] = {"exit": v.returncode, "out": (v.stdout + v.stderr)[-600:]}
+    return out
+
+
+def post_checks(out: Path, db: Path, cfg: dict, meta: dict) -> None:
+    """``replay.py --explain`` on the archive and ``transcripts verify`` per session.
+    An existing ``meta.json`` (a ``--resume`` of the same directory) is kept under
+    ``earlier`` rather than overwritten."""
+    ex = subprocess.run([sys.executable, str(ROOT / "eval" / "replay.py"), "--explain", str(db),
                          "--json"], capture_output=True, text=True, cwd=str(ROOT))
     (out / "explain.json").write_text(ex.stdout, encoding="utf-8")
     meta["explain_exit"] = ex.returncode
     meta["explain_stderr"] = ex.stderr[-2000:]
-    meta["verify"] = {}
-    if cfg["transcripts_enabled"]:
-        for s in meta["sessions"]:
-            v = subprocess.run([sys.executable, "-m", "palimnesis", "transcripts", "verify", s,
-                                "--db", str(proxy.db)], capture_output=True, text=True, cwd=str(ROOT))
-            meta["verify"][s] = {"exit": v.returncode, "out": (v.stdout + v.stderr)[-600:]}
-    (out / "meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    meta["verify"] = verify_sessions(db, meta["sessions"]) if cfg["transcripts_enabled"] else {}
+    mp = out / "meta.json"
+    if mp.exists():
+        prev = json.loads(mp.read_text(encoding="utf-8"))
+        meta["earlier"] = prev.pop("earlier", []) + [prev]
+    mp.write_text(json.dumps(meta, indent=1), encoding="utf-8")
     print(f"explain exit {ex.returncode}; verify " +
           ", ".join(f"{k[-30:]}={v['exit']}" for k, v in meta["verify"].items()), flush=True)
-    return status
 
 
 def main() -> int:
@@ -1046,17 +1123,40 @@ def main() -> int:
     r.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     r.add_argument("--max-tools", type=int, default=MAX_TOOLS)
     r.add_argument("--resume", action="store_true")
+    r.add_argument("--driver", choices=["emulator", "opencode"], default="emulator",
+                   help="emulator (development default) or real OpenCode 2.1.4 (held-out, D44.2)")
+    r.add_argument("--set", choices=sorted(SETS), default="development")
+    r.add_argument("--reason", help="opencode driver: why this attempt reruns histories (D44.7)")
+    r.add_argument("--ws-root", help="opencode driver: workspace tree (default: <out>-ws, beside --out)")
+    r.add_argument("--expect-n-ctx", type=int, default=32768,
+                   help="opencode driver: refuse unless Strata /props reports this n_ctx")
+    f = sub.add_parser("preflight", help="every import through real OpenCode against the fake upstream")
+    f.add_argument("--set", choices=sorted(SETS), default="heldout")
+    f.add_argument("--histories")
     c = sub.add_parser("proxy")
     c.add_argument("--port", type=int, required=True)
     c.add_argument("--db", required=True)
     c.add_argument("--upstream", required=True)
-    c.add_argument("--input-budget", type=int, required=True)
+    c.add_argument("--input-budget", type=int)
+    c.add_argument("--passthrough", action="store_true")
     c.add_argument("--settings", required=True)
     c.add_argument("--stop-file", required=True)
     a = p.parse_args()
     if a.cmd == "proxy":
         proxy_child(a)
         return 0
+    if a.cmd == "preflight":
+        import needle_opencode
+
+        return needle_opencode.preflight(a)
+    if a.driver == "opencode":
+        if a.upstream == "fake":
+            p.error("--driver opencode needs a live upstream")
+        import needle_opencode
+
+        return needle_opencode.run(a)
+    if a.set == "heldout":
+        p.error("held-out needles run through real OpenCode only (D44.2): add --driver opencode")
     return run_config(a)
 
 

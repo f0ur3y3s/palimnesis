@@ -58,6 +58,45 @@ A failed or cut-short stream ends with an in-stream error event and `x-should-re
 - Config discovery walks up to the drive root and loads `~/.claude` and `~/.opencode`. Set `OPENCODE_DISABLE_PROJECT_CONFIG=true` for isolated runs.
 - `eval/fixtures/opencode-2.1.4/live/config/env.sh` is a complete isolated environment.
 
+### Scripted runs and session import (evaluation, S11)
+
+Recorded 2026-10-25 while building the real-OpenCode drivers (`eval/oc_harness.py`, `eval/needle_opencode.py`, `eval/tasks/run.py`). Raw probe data stayed in the session scratchpad.
+
+- **Pass the message on stdin, not as an argument** [verified, Windows]. Given one argument that contains spaces, `opencode run` keeps the quotes that `CreateProcess` quoting adds: `Say "hi"` reached the upstream as `"Say \"hi\""`, quotes and escapes included. Splitting the message into one argument per word avoided it. A message written to stdin, with no message argument, arrived byte-exact: 54,916 characters with newlines, tabs and non-ASCII. stdin then reaches EOF, as scripted runs require. The R9/R10/R14 scripts passed the message as one argument, so their messages most likely reached the model quoted [inferred, unverified].
+- **`--format json` events** [verified, 3 sessions]: `step_start`, `text`, `tool_use` (with `state.input`, `state.output` and `state.status`) and `step_finish`, one JSON object per line. A step that ends in tool calls gets `step_finish` with reason `tool-calls`; the turn's last step gets no `step_finish`. Its answer is therefore the text of the last step that started.
+- **Export format** (`opencode session export <id>`) [verified]. It is `{"info": …, "messages": […]}`.
+  - `info` holds `id`, `projectID`, `tokens`, `outcome`, `time`, and `location.directory`.
+  - Each message has a `type`:
+    - `user`: `text` and `files`.
+    - `assistant`, one per model step: `agent`, `model` (`id`, `providerID`), `finish` and `rawFinish`, `tokens`, and `content` parts. A part is `reasoning` (`text`, plus `native.reasoningField`), `text`, or `tool` (`id`, `name`, and `state` with `status`, `input`, a `content` list of text items and `metadata`).
+    - `idle`: closes a turn.
+  - Ids are 12 hex digits, the low 48 bits of `ms * 4096 + counter` (inverted for session ids, so they sort newest first), then 14 base-62 characters.
+  - For a git workspace, `projectID` is the repository's root commit [observed].
+- **Import** [verified]. `opencode session import --standalone --directory <workspace> <file>` accepts a hand-built document of that shape, keeps its session id (`Imported session: ses_…`), and `opencode run --session <id>` continues it. `eval/oc_harness.history_to_export` builds the document from Chat Completions messages.
+- **Resend fidelity** [verified against the fake upstream, 13 messages].
+  - Imported history goes upstream exactly as the source messages, including:
+    - tool calls (ids, names, compact argument JSON) and their results;
+    - two tool calls plus text in one step;
+    - reasoning, as `reasoning_content`;
+    - a reasoning-only assistant turn with `content: ""`;
+    - `content: null` on tool-call-only turns.
+  - The one difference: an assistant turn without reasoning is sent with `reasoning_content: ""`. Key order is `role`, `content`, `tool_calls`, `reasoning_content`.
+- **Through the proxy** [verified live, dev-h1, 2026-10-25]:
+  - The first request of the imported session is the whole history plus the first question: 101 messages, with `reasoning_content: ""` added to 50 assistant turns.
+  - Its 73 prior assistant and tool turns are archived as `client_import`.
+  - The Strata count matched `usage.prompt_tokens` on all 18 upstream calls, so the empty reasoning fields render as nothing.
+  - No request was rejected: OpenCode's resends of generated turns reconciled with the archive.
+- **Native compaction** (`compaction.auto` true, `limit.context` 32768, through `--passthrough`) [verified live, dev-t1, 2026-10-25].
+  - Compaction is an ordinary model request with the tools still offered. Its last user message is "You MUST summarize the conversation above…" the first time and "Update the existing checkpoint in the conversation above…" after that.
+  - When the reply did not fill the template, OpenCode sent one retry: "The previous response did not fill in the required summary template…".
+  - The next request replaces the history with one user message, `<conversation-checkpoint>…<summary>…</summary><recent-context>…</recent-context></conversation-checkpoint>`, followed by the turns since.
+  - The export records each one as a message of type `compaction`. In 8 turns there were 4 compactions and 5 compaction requests; the largest upstream input was 21,266 tokens.
+- **Unparsable tool arguments** [verified live, same run]. When the model emitted tool-call arguments that were not JSON, OpenCode did not run the call. It answered with a `tool.input-json` error that quotes the raw input, including any `</tool_call>` markup, and resent the call with `arguments: "{}"`.
+- **The model's shell sees the system Python.** Under `uv run`, the project's virtual environment comes first on PATH. The drivers remove it, along with `VIRTUAL_ENV`, so the model runs the same `python` as the hidden checks (3.14, no pytest) [verified with a scripted shell call, fake upstream].
+  - **Resolve the interpreter explicitly.** On Windows, `subprocess` looks up a bare `python` on the parent's PATH, not on the PATH passed in `env`. A check started as `["python", …]` from under `uv run` therefore ran the venv's Python 3.12 [observed]. The task runner resolves the path with `shutil.which` on the cleaned PATH. The R23 smoke checks ran under the venv interpreter; their tests use only the standard library.
+- **Environment allowlist** (`oc_harness.ENV_ALLOW`). OpenCode, the model's shell and the hidden checks inherit only system variables (`SYSTEMROOT`, `COMSPEC`, `PATHEXT`, processor and user names, program directories, `TZ`/`LANG`), the cleaned PATH, and `APPDATA`/`LOCALAPPDATA`. HOME, USERPROFILE, TEMP/TMP, XDG and the OpenCode variables point into the run's own tree.
+  - **Keep `LOCALAPPDATA` real.** The system `python` is a Python install manager alias, and it keeps its installs under `LOCALAPPDATA`. With `LOCALAPPDATA` isolated, one `python -c` in the model's shell made the install manager update itself (to 26.4) and download Python 3.15.1 into the isolated directory [observed 2026-10-25, fake upstream; no model involved].
+
 ### Request shape [verified]
 
 - Every request streams, with `stream_options.include_usage`. There are no non-streaming requests on the wire.

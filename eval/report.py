@@ -1,6 +1,14 @@
-"""Summarize Phase 3 needle runs from ``eval/needle.py`` (EMULATOR results).
+"""Summarize Phase 3 needle runs from ``eval/needle.py`` (emulator or real OpenCode).
 
     python eval/report.py RUNDIR [--configs a4-base,a3-base] [--fixtures eval/fixtures/phase3-dev]
+    python eval/report.py RUN --configs a4-d43 --set heldout [--designate ho-h3=2,...]
+    python eval/report.py --coding RUN [--designate ho-t3:a4=2,...]
+
+A run directory with ``attempts.json`` (``eval/attempts.py``; the OpenCode driver and
+the task runner) is read per history or task from its designated attempt, the latest by
+default; superseded attempts are listed with the reason. With ``--set heldout`` the needle
+gate (D44.4) is printed over all 12 histories x 10 questions: a needle with no row counts
+as a miss. ``--coding`` prints the coding gate (D44.5, D45.8).
 
 Per configuration: exact match with a 95% Wilson interval, partials, by-category counts,
 where the needle was on the question's first upstream call (verbatim in the view, in the
@@ -20,7 +28,9 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4"]
+ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43"]
+NEEDLE_GATE = 0.85  # D44.4
+BOOT_RESAMPLES, BOOT_SEED = 10_000, 44
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -40,7 +50,9 @@ def pct(xs, q):
     return xs[min(len(xs) - 1, int(round(q * (len(xs) - 1))))]
 
 
-def load(run: Path, config: str):
+def load(run: Path, config: str, designate: dict | None = None):
+    if (run / "attempts.json").exists():
+        return load_attempts(run, config, designate)
     d = run / config
     rows = [json.loads(l) for l in (d / "questions.jsonl").read_text(encoding="utf-8").splitlines() if l]
     meta = json.loads((d / "meta.json").read_text(encoding="utf-8")) if (d / "meta.json").exists() else {}
@@ -51,6 +63,201 @@ def load(run: Path, config: str):
     meta["_log_view_disabled"] = logs.count("bounded views disabled")
     meta["_log_unbounded"] = logs.count("forwarding unbounded")
     return rows, meta, explain
+
+
+def load_attempts(run: Path, config: str, designate: dict | None = None):
+    """Rows of the designated attempt per history; meta merged over those attempts."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import attempts as att
+
+    chosen, superseded = att.designate(att.load(run), "needles", config, designate)
+    rows, metas, pairs = [], [], []
+    for hid, a in sorted(chosen.items()):
+        d = Path(a["records"])
+        rows += [r for r in (json.loads(l) for l in (d / "questions.jsonl").read_text(encoding="utf-8").splitlines() if l)
+                 if r["history"] == hid]
+        if not any(m.get("_dir") == str(d) for m in metas):
+            m = json.loads((d / "meta.json").read_text(encoding="utf-8")) if (d / "meta.json").exists() else {}
+            m["_dir"] = str(d)
+            logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(d.glob("proxy-*.log")))
+            m["_log_view_disabled"] = logs.count("bounded views disabled")
+            m["_log_unbounded"] = logs.count("forwarding unbounded")
+            metas.append(m)
+            ex = d / "explain.json"
+            if ex.exists() and ex.read_text(encoding="utf-8").strip():
+                pairs += json.loads(ex.read_text(encoding="utf-8")).get("pairs", [])
+    meta = {"_log_view_disabled": sum(m["_log_view_disabled"] for m in metas),
+            "_log_unbounded": sum(m["_log_unbounded"] for m in metas),
+            "explain_exit": max((m.get("explain_exit") if m.get("explain_exit") is not None else 99 for m in metas), default=None),
+            "verify": {k: v for m in metas for k, v in (m.get("verify") or {}).items()},
+            "gate_events": [e for m in metas for e in m.get("gate_events") or []],
+            "history_errors": [e for m in metas for e in m.get("infra_failures") or []],
+            "proxy_starts": sum(m.get("proxy_starts") or 0 for m in metas),
+            "started": min((m.get("started", 0) for m in metas), default=0),
+            "finished": max((m.get("finished", 0) for m in metas), default=0),
+            "attempts": metas, "superseded": superseded,
+            "designated": {h: a["attempt"] for h, a in chosen.items()}}
+    explain = {"pairs": pairs, "summary": {"pairs": len(pairs)}}
+    return rows, meta, explain
+
+
+def expected_needles(set_name: str) -> dict[str, list[dict]]:
+    """{history id: [{id, category, answer}] per question} of a committed needle set."""
+    folder = {"heldout": "heldout", "development": "dev"}[set_name]
+    out = {}
+    for f in sorted((Path(__file__).resolve().parent / "needles" / folder).glob("*.json")):
+        h = json.loads(f.read_text(encoding="utf-8"))
+        out[h["id"]] = [{"id": s["id"], "category": s["category"], "answer": s["answer"]}
+                        for s in h["steps"] if s["kind"] == "question"]
+    return out
+
+
+def fill_missing(rows: list[dict], expected: dict[str, list[dict]]) -> tuple[list[dict], list[str]]:
+    """Every expected needle gets a row; a missing one is a miss (``not_run: missing``)."""
+    have = {(r["history"], r["step"]) for r in rows if r["kind"] == "question"}
+    missing = []
+    out = list(rows)
+    for hid, steps in expected.items():
+        for st in steps:
+            sid = st["id"]
+            if (hid, sid) not in have:
+                missing.append(f"{hid}/{sid}")
+                out.append({"history": hid, "session": None, "step": sid, "kind": "question",
+                            "category": st["category"], "not_run": "missing", "rounds": 0, "tool_calls": [],
+                            "lookups": 0, "prompt_tokens": 0, "completion_tokens": 0,
+                            "cached_tokens": 0, "calls": [], "errors": [{"status": None, "error": "missing"}],
+                            "total_s": 0.0, "answer": "", "answered": False, "gold": st["answer"],
+                            "exact": False, "exact_loose": False, "contains": False, "partial": False})
+    return out, missing
+
+
+def cluster_bootstrap(by_history: dict[str, list[bool]], resamples: int = BOOT_RESAMPLES,
+                      seed: int = BOOT_SEED) -> tuple[float, float]:
+    """History-clustered percentile bootstrap (D45 amendment): resample histories with
+    replacement ``resamples`` times (``random.Random(seed)``), take loose exact over all
+    needles of the resampled histories, and return the 2.5% and 97.5% percentiles
+    (linear interpolation between order statistics)."""
+    import random
+
+    hs = [v for _, v in sorted(by_history.items())]
+    if not hs:
+        return (0.0, 0.0)
+    rnd = random.Random(seed)
+    stats = []
+    for _ in range(resamples):
+        pick = [hs[rnd.randrange(len(hs))] for _ in hs]
+        n = sum(len(v) for v in pick)
+        stats.append(sum(sum(v) for v in pick) / n if n else 0.0)
+    stats.sort()
+
+    def q(p):
+        x = p * (len(stats) - 1)
+        lo = int(x)
+        hi = min(lo + 1, len(stats) - 1)
+        return stats[lo] + (stats[hi] - stats[lo]) * (x - lo)
+
+    return (q(0.025), q(0.975))
+
+
+def needle_gate(rows: list[dict], expected: dict[str, list[dict]]) -> dict:
+    """D44.4 on loose exact over every expected needle; missing rows count as misses."""
+    rows, missing = fill_missing(rows, expected)
+    allq = [r for r in rows if r["kind"] == "question" and r["history"] in expected]
+    seen, q = set(), []
+    for r in allq:  # one row per needle counts; any second row fails the gate
+        if (r["history"], r["step"]) not in seen:
+            seen.add((r["history"], r["step"]))
+            q.append(r)
+    by_h: dict[str, list[bool]] = {}
+    for r in q:
+        by_h.setdefault(r["history"], []).append(bool(r["exact_loose"]))
+    n = sum(len(v) for v in expected.values())
+    k = sum(bool(r["exact_loose"]) for r in q)
+    dupes = len(allq) - len(q)
+    return {"n": n, "rows": len(q), "duplicates": dupes, "loose": k, "strict": sum(bool(r["exact"]) for r in q),
+            "rate": k / n if n else 0.0, "wilson": wilson(k, n), "bootstrap": cluster_bootstrap(by_h),
+            "missing": missing, "not_run": sum(1 for r in q if r.get("not_run")),
+            "pass": n > 0 and dupes == 0 and k / n >= NEEDLE_GATE}
+
+
+HELDOUT_TASKS = ["ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5"]
+RESTART_TASK = "ho-t3"
+
+
+def load_task_results(run: Path, designate: dict | None = None) -> tuple[dict, list[dict]]:
+    """{(task, arm): result.json of the designated attempt}, superseded attempts."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import attempts as att
+
+    manifest = att.load(run)
+    out, sup = {}, []
+    for arm in (4, 1):
+        override = {k.split(":")[0]: v for k, v in (designate or {}).items() if k.endswith(f":a{arm}")}
+        chosen, superseded = att.designate(manifest, "task", f"a{arm}", override)
+        sup += [{**x, "arm": arm} for x in superseded]
+        for tid, a in chosen.items():
+            f = Path(a["records"]) / f"{tid}-a{arm}" / "result.json"
+            out[(tid, arm)] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
+    return out, sup
+
+
+def task_success(r: dict | None) -> bool:
+    return bool(r and not r.get("aborted") and (r.get("check") or {}).get("success"))
+
+
+def arm4_inputs_ok(r: dict) -> bool:
+    """D44.6 inputs of one arm-4 task run."""
+    scan = r.get("excerpt_scan") or {}
+    return bool((r.get("explain_gate") or {}).get("ok") and (r.get("verify") or {}).get("exit") == 0
+                and (r.get("over_budget") or {}).get("ok")
+                and all((v or {}).get("leaks", 1) == 0 for v in (scan.get("client"), scan.get("transcripts"))))
+
+
+def coding_gate(results: dict, tasks: list[str] = HELDOUT_TASKS) -> dict:
+    """D44.5: arm 4's successes are at least arm 1's over the held-out tasks, and the
+    restart task passes under arm 4 with its key constraint (D45.8). A missing or aborted
+    run is a failure until it is rerun."""
+    a4 = sum(task_success(results.get((t, 4))) for t in tasks)
+    a1 = sum(task_success(results.get((t, 1))) for t in tasks)
+    rt = results.get((RESTART_TASK, 4)) or {}
+    restart = bool(task_success(rt) and rt.get("restart_gate"))
+    inputs = all(arm4_inputs_ok(results.get((t, 4)) or {}) for t in tasks)
+    missing = [f"{t}:a{arm}" for t in tasks for arm in (4, 1) if (t, arm) not in results]
+    return {"arm4_successes": a4, "arm1_successes": a1, "restart_gate": restart,
+            "arm4_inputs_ok": inputs, "missing": missing, "pass": a4 >= a1 and restart}
+
+
+def print_coding(run: Path, designate: dict | None) -> None:
+    results, sup = load_task_results(run, designate)
+    print("| Task | Arm | Attempt | Success | Constraints (stub) | Restart gate | Turns | Tokens in/out | "
+          "Lookups | Latency s | Compaction calls | Proxy rejections | --explain | verify | Over budget | "
+          "Leaks:echoes client/transcripts | Aborted |")
+    print("|" + "---|" * 17)
+    for (tid, arm), r in sorted(results.items()):
+        c, st = r.get("check") or {}, r.get("stub_check") or {}
+        scan = r.get("excerpt_scan") or {}
+        leaks = "/".join(f"{(scan.get(k) or {}).get('leaks')}:{(scan.get(k) or {}).get('echoes')}"
+                         for k in ("client", "transcripts")) if scan else "n/a"
+        over = len((r.get("over_budget") or {}).get("over", [])) if r.get("over_budget") else "n/a"
+        print(f"| {tid} | {arm} | {r.get('attempt')} | {c.get('success')} | {c.get('constraints_held')}/"
+              f"{c.get('constraints_total')} ({st.get('constraints_held')}/{st.get('constraints_total')}) | "
+              f"{r.get('restart_gate')} | {len(r.get('turns') or [])} | {r.get('prompt_tokens', 0):,}/"
+              f"{r.get('completion_tokens', 0):,} | {r.get('lookups')} | {r.get('latency_s')} | "
+              f"{len(r.get('compaction_calls') or [])} | {r.get('proxy_rejections')} | "
+              f"{(r.get('explain_gate') or {}).get('ok', 'n/a')} | {(r.get('verify') or {}).get('exit', 'n/a')} | "
+              f"{over} | {leaks} | {r.get('aborted')} |")
+    g = coding_gate(results)
+    verdict = "PASS" if g["pass"] else "FAIL"
+    print(f"\nCoding gate (D44.5): arm 4 {g['arm4_successes']}/5 vs arm 1 {g['arm1_successes']}/5; "
+          f"restart task {RESTART_TASK} under arm 4 (success and its key constraint): {g['restart_gate']}; "
+          f"arm-4 gate inputs ok: {g['arm4_inputs_ok']}; missing runs: {g['missing'] or 'none'} -> {verdict}")
+    for x in sup:
+        print(f"superseded: {x['id']} arm {x['arm']} attempt {x['attempt']} ({x['status']}) by attempt "
+              f"{x['superseded_by']}: {x['reason']}")
 
 
 BUDGET = 24_320
@@ -229,7 +436,15 @@ def main() -> None:
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
     p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
+    p.add_argument("--set", choices=["development", "heldout"],
+                   help="print the needle gate over the whole committed set (missing = miss)")
+    p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
+    p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")
     a = p.parse_args()
+    designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
+    if a.coding:
+        print_coding(a.run, designate)
+        return
     if a.pair:
         ca, cb = a.pair.split(",")
         runs = [a.run] + [Path(x) for x in (a.pool or "").split(",") if x]
@@ -268,7 +483,25 @@ def main() -> None:
     configs = a.configs.split(",") if a.configs else [c for c in ORDER if (a.run / c / "questions.jsonl").exists()]
     res, rows_by = {}, {}
     for c in configs:
-        rows, meta, explain = load(a.run, c)
+        rows, meta, explain = load(a.run, c, designate)
+        if a.set:
+            expected = expected_needles(a.set)
+            if a.set == "heldout":  # D44.3: 12 histories x 10 questions
+                shape = {k: len(v) for k, v in expected.items()}
+                assert len(expected) == 12 and set(shape.values()) == {10}, shape
+            gate = needle_gate(rows, expected)
+            rows, _ = fill_missing(rows, expected)
+            lo, hi = gate["wilson"]
+            blo, bhi = gate["bootstrap"]
+            verdict = "PASS" if gate["pass"] else "FAIL"
+            print(f"{c} needle gate (D44.4, {a.set}): loose exact {gate['loose']}/{gate['n']} "
+                  f"({gate['rate']:.1%}), 95% Wilson {lo:.1%}-{hi:.1%}, history-clustered bootstrap "
+                  f"{blo:.1%}-{bhi:.1%} ({BOOT_RESAMPLES} resamples, seed {BOOT_SEED}); strict exact "
+                  f"{gate['strict']}; not run {gate['not_run']}, missing {len(gate['missing'])}, "
+                  f"duplicates {gate['duplicates']} -> {verdict} (>= {NEEDLE_GATE:.0%})")
+            for x in meta.get("superseded", []):
+                print(f"   superseded: {x['id']} attempt {x['attempt']} ({x['status']}) by attempt "
+                      f"{x['superseded_by']}: {x['reason']}")
         res[c] = summarize(rows, meta, explain)
         rows_by[c] = {r["step"]: r for r in rows if r["kind"] == "question"}
         if a.fixtures:

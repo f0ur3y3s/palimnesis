@@ -551,7 +551,13 @@ Written on 2026-10-25 while building the S11 tools, on development data only. No
 3. **Session identity without the plugin.** The provider's `baseURL` is `palimnesis session url <history|task>-<config>-<tag>`. One OpenCode session therefore maps to one named Palimnesis session, which `transcripts verify` and `--explain` can address. Requests carry no `X-Palimnesis-Kind`; the proxy does not read it.
 4. **Proxy settings.** The child runs the `serve` app with `serve`'s defaults (no `--input-budget`), except `deadline_s` 3600, as in the development runs. The reason: the D39 gate between the proxy and Strata holds a request while the slot is busy, and that wait counts against the deadline. This is the only difference from the `serve` defaults, and it is open for confirmation before the held-out run.
 5. **The model's environment.** The model's shell gets PATH without the project's virtual environment, so it runs the system Python. The hidden checks use the same interpreter.
-6. **Held-out histories** (`needle_gen.py --set heldout`, `build_heldout`). A separate builder with its own themes, word banks, file names, value formats and phrasing bank, on `build_history`'s skeleton. `build_history` is untouched, so the dev files regenerate byte-identically (tested).
+6. **Held-out histories** (`needle_gen.py --set heldout`, `build_heldout`). A separate builder with its own themes, word banks, file names, value formats and phrasing bank, on `build_history`'s skeleton.
+
+**Not everything is disjoint**:
+- The P1 deploy-log body comes from the shared `log_lines` templates, including the `2026-10-2x` timestamps and the probe, rollout, queue, reload, HTTP and GC lines.
+- Some values are shared or drawn from overlapping ranges: the default pooler port 5432 named in the pooler turn, the 420-test size of the verbose integration run, the fixture read timeouts (`<1–9>.0s`) and write timeouts (60–90 s), and the fallback range for the target read timeout. Four held-out answer values (`15s`, `22s`, `28s`, `2.5s`) also occur as values in the development set, which the model never sees during a held-out run.
+
+None of these is an answer, or the evidence for one. No four-word run of user, assistant, question or paste-wrapper text is shared (tested). `build_history` is untouched, so the dev files regenerate byte-identically (tested).
    - The held-out project tests use stdlib `unittest`, and Q7's command (`python -m unittest tests.test_<module>`) runs for real: it fails naming the constant and the requirement id, but not the required value.
    - The development histories' Q7 command is `pytest`, which the system Python lacks. Under real OpenCode, dev-h1 Q7 therefore failed in the smoke run. That affects development data only.
 7. **Coding tasks** (`eval/tasks/`, `run.py`).
@@ -564,6 +570,48 @@ Written on 2026-10-25 while building the S11 tools, on development data only. No
    - Upstream inputs over 24,320 tokens.
    - Client-visible excerpt text: excerpt markers in any archived client request.
    - The proxy log's "views disabled" and "forwarding unbounded" lines.
+
+9. **Amendments after the independent review (2026-10-25, before any held-out run).**
+   1. **Check scoring.**
+      - The hidden check runs under a small runner that writes one outcome per test id as JSON, so stderr output cannot break the result.
+      - The expected `test_f_*` and `test_c<N>_*` names are read from `HIDDEN`. A test with no outcome counts as failed.
+      - A check that outlives 300 s fails with `check_timeout`; `--explain` and `transcripts verify` still run.
+   2. **The needle gate's denominator.**
+      - Every question that never ran gets a miss row with `not_run` and the reason: an import failure, an unfaithful import, a driver exception, an abort, or a failed Strata check.
+      - With `--set heldout`, `report.py` asserts 12 histories × 10 questions, counts any missing needle as a miss, and fails the gate on a duplicate row.
+   3. **Attempts** (`eval/attempts.py`).
+      - Each driver or runner invocation is a new attempt: `RUN/records/attempt-NNN/` for its records, and `RUN-ws/attempt-NNN/` for its workspaces, OpenCode homes and transcripts root.
+      - An attempt directory is never reused or removed. A rerun of an id under the same configuration needs `--reason`. `--resume` is refused by the OpenCode driver.
+      - `RUN/attempts.json` records each attempt's number, ids, reason, timestamps, status, and its aborts and infrastructure failures.
+      - The report designates the latest attempt per history or task (`--designate` overrides) and lists each superseded attempt with its reason.
+      - In the shared proxy and tap code:
+        - stop files and proxy logs are unique per start (logs are appended, never truncated);
+        - tap bodies are numbered after any already in the directory;
+        - an existing `meta.json` is kept under `earlier`.
+   4. **History-clustered bootstrap.** 10,000 resamples of histories with replacement, `random.Random(44)`, loose exact over all needles of each resample. The interval is the 2.5th and 97.5th percentiles, with linear interpolation between order statistics. It is reported with the count, the 95% Wilson interval and strict exact.
+   5. **Nothing to read the answers from.**
+      - Records (`questions.jsonl` with gold, `calls.jsonl`, bodies, streams, `meta.json`, `result.json`, the archive) live only under `RUN/records/`. The transcripts root is given to the proxy explicitly, under `RUN-ws/attempt-NNN/`.
+      - A task's workspace is copied into the records tree after the session, and its hidden check is written into the copy only.
+      - `import.json` is deleted once imported; its SHA-256 is recorded.
+      - Each run lists any record, answer key or hidden-check text found under its workspace tree. A test asserts there is none.
+   6. **One task, one session.** A first turn with no session id, or a later turn that reports another session, aborts the task as an infrastructure failure.
+   7. **Restart gate.** ho-t3 under arm 4 passes only when every `test_f_*` and every `test_c2_*` passes.
+   8. **Gate inputs.**
+      - **Over budget:** every arm-4 upstream body is counted with the pinned counter (`tokens.default().count_messages`) against the input budget for the expected `n_ctx` (24,320 at 32K).
+      - **`--explain`:** it must exit 0, report 0 unexplained pairs, and report as many pairs as there are upstream calls after each session's first. A crash or a mismatch fails the input.
+      - **Excerpt leaks:** scanned in every client request and every proxy response (front tap), the OpenCode export, and the transcript files. A leak is the exact text of a stored block (`excerpt_blocks.rendered`), or of one of its items from `[[excerpt …]]` to `[[/excerpt]]`. Text that only quotes an excerpt marker is counted as an echo, which is reported and is not a gate failure.
+   9. **Provenance.**
+      - Every run records the git commit and whether the tree is dirty; held-out needles and tasks refuse a dirty tree.
+      - Strata's `/props` `n_ctx` and build are read before and after each history and task. A run refuses to start, or aborts, unless `n_ctx` equals `--expect-n-ctx` (default 32768; 65536 for the later 64K runs).
+      - Held-out needles refuse any configuration other than `a4-d43`, and refuse `--questions`.
+   10. **Import fidelity is enforced.** A first client body that differs from the history (beyond the `reasoning_content: ""` OpenCode adds), or prior turns not all archived as `client_import`, is an infrastructure failure under D44.7, and the history stops there. `needle.py preflight --set heldout` pushes every import through real OpenCode against the fake upstream (no proxy, no model, no Strata) and checks fidelity.
+   11. **Aborts** in the task runner are `aborted: <reason>` in `result.json`, with exit code 3, and no check runs.
+   12. **`deadline_s` 3600 is confirmed** (D45.4). Each upstream call records its upstream time, from dispatch after the gate to the end of the stream. Calls over 600 s are listed.
+   13. **Proxy rejections are visible.** A front tap between OpenCode and the proxy records the proxy's own status and any in-stream error per request. A failed front call while every upstream call succeeded counts as a proxy rejection.
+   14. **Reporting.**
+      - `a4-d43` is in `report.py`'s `ORDER`.
+      - `report.py --coding RUN` prints each run's constraint adherence next to the stub's own check result, followed by the D44.5 verdict: arm 4's successes against arm 1's over ho-t1..t5, plus the restart gate. A missing or aborted run counts as a failure.
+   15. **Environment allowlist** (`oc_harness.ENV_ALLOW`, details in `docs/harnesses.md`). `APPDATA` and `LOCALAPPDATA` stay real, because the system `python` (Python install manager) keeps its installs there. The hidden check's interpreter is resolved on the cleaned PATH, because Windows resolves a bare `python` on the parent's PATH.
 
 ## D46 — Added-token strings inside messages count as text (R23-A)
 

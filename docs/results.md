@@ -776,3 +776,22 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `
 - **Effect under arm 4.** Every request drifts while that text stays in view, so 3 in a row disable bounded views for the whole process (D22.4), after which bodies are forwarded unbounded. The local count is also low, the unsafe direction for the budget.
 - **Status.** Fixed by D46 before any held-out run. The smoke runs under arm 4 did not hit it.
 - **After the fix.** `p13` reads local equal to remote on all 7 cases (for example `x</tool_call>y` 104 / 104). The wider probe `p14_literal_tags.py` matches on all 171 cases: every added token in user, system, assistant, reasoning and tool text, plus tool definitions, tool arguments and the three exceptions.
+
+**Corrections after the review (2026-10-25).**
+- **The checks ran under the wrong Python.** The R23 hidden checks ran under the project venv's Python 3.12, not the system 3.14 the model used: Windows looked up the bare `python` on the runner's PATH. The checks use only the standard library, so the dev-t1 outcomes (4/4 and 3/3 under both arms) stand, but the interpreter differed. Fixed in D45.9.15.
+- **The arm 1 compaction count.** R23 reported "compactions=0" for arm 1 at first. That came from the runner's original detector, which looked for requests without tools. The corrected count, from the observed prompts, is 5 compaction requests (calls 6, 9, 10, 19, 34) and 4 checkpoints, as R23's table states.
+- **The R23 excerpt check was narrower than D44.6.** It looked only for excerpt markers in archived client requests. The amended scan (D45.9.8) also covers proxy responses, the OpenCode export and the transcripts. It has not been rerun on the R23 data.
+- **Other runner changes.** The runner now writes records and workspaces into separate trees, and writes the hidden check only into a copy (D45.9.5). The R23 runs used the earlier layout, which wrote `_check/` into the workspace after the session.
+
+**Plumbing check against the fake upstream (no Strata, no model; 2026-10-25).**
+- **The fake e2e run.** dev-t1 ran under both arms, and dev-h1 with 2 questions ran as two attempts, through real OpenCode, the front tap, the proxy and the fake upstream. The fake upstream answers "ok", and the slot gate was patched out.
+- **What it confirmed:**
+  - attempts, designation and the reason for the rerun;
+  - the explicit transcripts root;
+  - the `--explain` gate (2/2 pairs);
+  - verify;
+  - local budget counts;
+  - leak scans (0 leaks, 0 echoes);
+  - reachability (0 records found under the workspace trees);
+  - both reports (`--set development` and `--coding`).
+- **Preflight.** `needle.py preflight --set heldout --histories h1,h2` reported both imports faithful: 101/101 messages, 50 empty reasoning fields added. The questions were sent only to the fake upstream and were not read.
