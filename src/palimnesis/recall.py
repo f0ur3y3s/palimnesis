@@ -98,8 +98,33 @@ def _keep(subtokens: list[str]) -> bool:
     return word not in STOPWORDS
 
 
-def build_query(text: str) -> Query:
-    """The q1 query for one user instruction (pure, deterministic)."""
+QUERY_POLICIES = ("q1", "q2")
+Q2_BORROW = 8
+
+
+def build_query(text: str, previous: str | None = None, version: str = QUERY_VERSION) -> Query:
+    """The query for one user instruction (pure, deterministic).
+
+    ``q2`` (a development variant) borrows up to ``Q2_BORROW`` terms from the
+    ``previous`` instruction when this one yields fewer than 2 ("now do the same
+    for it"); otherwise it equals ``q1``."""
+    if version not in QUERY_POLICIES:
+        raise ValueError(f"unknown query policy {version!r}")
+    q = _build_query(text)
+    if version == "q1" or len(q.terms) >= 2 or not previous:
+        return q
+    p = _build_query(previous)
+    borrowed = [t for t in p.terms if t not in q.terms][:Q2_BORROW]
+    if not borrowed:
+        return q
+    code = [t for t in q.terms[:q.code_terms]] + [t for t in p.terms[:p.code_terms] if t in borrowed]
+    plain = [t for t in q.terms[q.code_terms:]] + [t for t in borrowed if t not in code]
+    terms = tuple((code + plain)[:MAX_TERMS])
+    match = " OR ".join('"' + t.replace('"', '""') + '"' for t in terms)
+    return Query(terms=terms, match=match, code_terms=min(len(code), len(terms)))
+
+
+def _build_query(text: str) -> Query:
     text = _bounded(text)
     backticked = {m.lower() for span in _BACKTICKED.findall(text) for m in _RUN.findall(span)}
     code: list[str] = []
@@ -255,12 +280,16 @@ def _quotable(text: str) -> str:
 class FtsExcerpts:
     """The Phase 3 excerpt source: q1 queries, r1 retrieval over the archive."""
 
-    query_version = QUERY_VERSION
     retrieval_version = RETRIEVAL_VERSION
 
-    def __init__(self, store, counter):
+    def __init__(self, store, counter, *, query_policy: str = QUERY_VERSION,
+                 renderer: str = "x1"):
+        if query_policy not in QUERY_POLICIES:
+            raise ValueError(f"unknown query policy {query_policy!r}")
         self.store = store
         self.counter = counter
+        self.query_version = query_policy
+        self.renderer = renderer
 
     async def select(self, plan, base_view, allocation: int):
         from .excerpts import Selection
@@ -278,7 +307,10 @@ class FtsExcerpts:
         found = candidates(plan.items, base_view.manifest, host.seq)
         if not found:
             return empty("nothing_absent")
-        query = build_query(_message_text(host.message))
+        previous = next((_message_text(i.message) for i in reversed(plan.items)
+                         if i.seq is not None and i.seq < host.seq
+                         and i.message.get("role") == "user"), None)
+        query = build_query(_message_text(host.message), previous, self.query_version)
         if not query.match:
             return empty("empty_query")
         cap = min(ITEM_CAP, allocation - self._overhead())
@@ -289,7 +321,8 @@ class FtsExcerpts:
         if not ranked:
             return empty(reason, query.match)
         prov = _Provenance(plan.items)
-        chosen = self._pack(ranked, allocation, prov)
+        current_turn = prov.numbers.get(host.seq, 0)
+        chosen = self._pack(ranked, allocation, prov, current_turn)
         if not chosen:
             return empty("no_fit", query.match)
         return Selection(query=query.match, query_version=self.query_version,
@@ -302,7 +335,8 @@ class FtsExcerpts:
         from .excerpts import Excerpt, render_block
 
         empty = render_block([Excerpt("x", 0, 0, "assistant", None, "")],
-                             added_tokens=self.counter.added_token_strings)
+                             added_tokens=self.counter.added_token_strings,
+                             renderer=self.renderer, current_turn=99_999)
         return self.counter.count(empty) + _HEADER_SLACK
 
     # -- retrieval (reader thread) ------------------------------------------------
@@ -350,7 +384,8 @@ class FtsExcerpts:
                 c.span = _fit(c.text, c.hit, c.span, cap, count)
         return merged, None
 
-    def _pack(self, ranked: list[_Candidate], allocation: int, prov) -> list[_Candidate]:
+    def _pack(self, ranked: list[_Candidate], allocation: int, prov,
+              current_turn: int = 0) -> list[_Candidate]:
         """Greedy in rank order against the exact count of the block as it will render,
         provenance included. An item that overshoots is shrunk once by the measured
         excess (it keeps at least ``MIN_ITEM_TOKENS``), else skipped; at most
@@ -366,7 +401,8 @@ class FtsExcerpts:
             renders += 1
             ordered = sorted(trial, key=lambda x: (x.seq, x.block_idx, x.span[0]))
             rendered = render_block([prov.excerpt(x) for x in ordered],
-                                    added_tokens=self.counter.added_token_strings)
+                                    added_tokens=self.counter.added_token_strings,
+                                    renderer=self.renderer, current_turn=current_turn)
             return count(rendered) - allocation
 
         for c in ranked:

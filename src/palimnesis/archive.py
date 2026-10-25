@@ -260,7 +260,8 @@ class ArchiveHandler:
                     base_view_n=view_n,
                     base_watermark_seq=view.state.watermark_seq,
                     base_collapse_seq=view.state.collapse_seq,
-                    renderer_version=EXCERPT_FORMAT, profile_id=self.views.profile.id)
+                    renderer_version=getattr(self.views, "excerpt_renderer", EXCERPT_FORMAT),
+                    profile_id=self.views.profile.id)
             return block_id, view_id, view_n
 
         if view.moved or selected is not None:

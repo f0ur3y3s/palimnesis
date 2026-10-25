@@ -110,9 +110,11 @@ class Prepared:
 
 class ViewEngine:
     def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
-                 input_budget: int | None = None, excerpts=None) -> None:
+                 input_budget: int | None = None, excerpts=None,
+                 excerpt_renderer: str = RENDERER_VERSION) -> None:
         self.profile = profile
         self.excerpts = excerpts if excerpts is not None else NoExcerpts()
+        self.excerpt_renderer = excerpt_renderer
         self.counter = profile.counter
         # Declared template rules the view builder does not implement: views stay off.
         self.unsupported_rules = unsupported_rules(profile.rules)
@@ -229,8 +231,17 @@ class ViewEngine:
             included=[charges[b] for b in base.included_excerpts if b in charges],
             policy=self.policy)
         selection = await self.excerpts.select(plan, base, allocation)
+        from .turns import turn_numbers
+
+        host = next((i for i in plan.items if i.occ_id == plan.host_occ_id), None)
+        numbers = turn_numbers(
+            [(i.seq, i.message.get("role", "")) for i in plan.items if i.seq is not None],
+            {i.seq: i.message.get("content") if isinstance(i.message.get("content"), str) else ""
+             for i in plan.items if i.seq is not None and i.message.get("role") == "user"})
         rendered = render_block(selection.excerpts(),
-                                added_tokens=self.counter.added_token_strings)
+                                added_tokens=self.counter.added_token_strings,
+                                renderer=self.excerpt_renderer,
+                                current_turn=numbers.get(host.seq, 0) if host and host.seq else 0)
         charge = self.counter.count(rendered) if rendered else 0
         if charge > allocation:  # a source overreaching its allocation selects nothing
             selection = replace(selection, items=(), reason="over_allocation")

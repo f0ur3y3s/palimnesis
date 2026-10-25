@@ -50,6 +50,12 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                             "enforces budgets")
     serve.add_argument("--input-budget", type=int, metavar="TOKENS",
                        help="input budget cap (default 48000; never above capacity)")
+    serve.add_argument("--query-policy", choices=["q1", "q2"], default="q1",
+                       help="proactive-recall query policy (development selection)")
+    serve.add_argument("--excerpt-renderer", choices=["x1", "x2"], default="x1",
+                       help="excerpt block rendering (development selection)")
+    serve.add_argument("--addendum", choices=["a3", "a4"], default="a3",
+                       help="transcript-search addendum (development selection)")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")
@@ -67,7 +73,9 @@ def _settings(args: argparse.Namespace) -> Settings:
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
                     db_path=db_path, synchronous=args.synchronous, view=args.view,
-                    input_budget=args.input_budget, transcripts=args.transcripts,
+                    input_budget=args.input_budget, query_policy=args.query_policy,
+                    excerpt_renderer=args.excerpt_renderer, addendum=args.addendum,
+                    transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 
 

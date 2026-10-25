@@ -190,11 +190,12 @@ class Proxy:
         files are published (D36, D37.2); None otherwise."""
         if self.projector is None:
             return None
-        from .affordances import ACTIVE, addendum_text
+        from .affordances import addendum_text
         from .projector import session_dir
 
-        root = self.projector.root
-        return lambda session: (ACTIVE["addendum"], addendum_text(session_dir(root, session)))
+        root, which = self.projector.root, self.settings.addendum
+        addendum_text("{path}", which)  # an unknown id fails at startup, not per request
+        return lambda session: (which, addendum_text(session_dir(root, session), which))
 
     def _start_projector(self, upstream):
         """Transcript files (Phase 3): on by default, beside the archive (contracts §14)."""
@@ -231,9 +232,12 @@ class Proxy:
         if excerpts is None and self.settings.recall == "fts":
             from .recall import FtsExcerpts
 
-            excerpts = FtsExcerpts(self.store, upstream.counter)
+            excerpts = FtsExcerpts(self.store, upstream.counter,
+                                   query_policy=self.settings.query_policy,
+                                   renderer=self.settings.excerpt_renderer)
         engine = ViewEngine(upstream, mode=self.settings.view,
-                            input_budget=self.settings.input_budget, excerpts=excerpts)
+                            input_budget=self.settings.input_budget, excerpts=excerpts,
+                            excerpt_renderer=self.settings.excerpt_renderer)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,

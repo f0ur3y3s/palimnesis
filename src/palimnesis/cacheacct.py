@@ -283,7 +283,9 @@ class Accountant:
             facts = self.profile.facts.facts
             call.identity = [self.profile.id, *(facts.identity if facts else ())]
             call.budget = ViewEngine.snapshot(prepared.budget)
-            call.formats = {**VIEW_FORMAT, "excerpt_format": EXCERPT_FORMAT,
+            call.formats = {**VIEW_FORMAT,
+                            "excerpt_format": getattr(self.views, "excerpt_renderer",
+                                                      EXCERPT_FORMAT),
                             "addendum": _sha(plan.addendum) if plan.addendum else None}
             call.archive_seq = max((i.seq for i in plan.items if i.seq is not None), default=0)
             call.oversized = tuple(sorted(view.state.oversized))
