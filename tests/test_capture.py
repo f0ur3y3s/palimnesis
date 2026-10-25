@@ -130,3 +130,18 @@ def test_response_write_failure_never_breaks_the_relayed_response(capturing_stac
 
     assert r.status_code == 200
     assert first + rest == b"data: 1\n\ndata: 2\n\ndata: [DONE]\n\n"
+
+
+def test_exchanges_within_one_clock_tick_keep_arrival_order(capturing_stack, monkeypatch):
+    # The Windows wall clock ticks every 15.6 ms, so arrivals can share a reading.
+    import palimnesis.capture as capture
+
+    monkeypatch.setattr(capture.time, "time_ns", lambda: 1_700_000_000_000_000_000)
+    s = capturing_stack
+    for i in range(5):
+        s.upstream.respond_json(b"{}")
+        httpx.post(f"{s.proxy_url}/s/sess-1/v1/chat/completions", content=b'{"n":%d}' % i)
+
+    assert _eventually(lambda: len(load_exchanges(s.settings.capture_dir)) == 5)
+    assert [ex.request_body for ex in load_exchanges(s.settings.capture_dir)] == [
+        b'{"n":%d}' % i for i in range(5)]

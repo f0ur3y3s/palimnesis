@@ -63,6 +63,7 @@ def _redact(headers: Headers) -> dict[str, str]:
 class CaptureRecorder:
     def __init__(self, capture_dir: Path) -> None:
         self._root = Path(capture_dir)
+        self._last_ns = 0
 
     async def record(
         self,
@@ -81,7 +82,9 @@ class CaptureRecorder:
 
         Capture fails open: a write error is logged and the relay continues.
         """
-        started_ns = time.time_ns()
+        # Strictly increasing, so arrivals within one wall-clock tick (15.6 ms on
+        # Windows) still load in arrival order.
+        started_ns = self._last_ns = max(time.time_ns(), self._last_ns + 1)
         folder = self._root / session / f"{started_ns:020d}-{uuid.uuid4().hex[:8]}"
         request_meta = {
             "session": session,
