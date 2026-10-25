@@ -18,7 +18,7 @@ What Palimnesis claims, per endpoint and harness. Anything absent is unsupported
 | Tokenizer | `Qwen/Qwen3.8-Flash-Next` `tokenizer.json`; 19/19 exact against server | §4 |
 | `n_ctx` | read at runtime (observed 32768, then 65536) | §0 |
 
-Other backends, such as llama.cpp, are not supported in v1. `--passthrough` relays to any OpenAI-compatible server, but counting, budgets and cache accounting are Strata-specific. Multi-backend support is a v2 item (D15).
+Backend specifics sit behind a backend-neutral upstream profile (D15 amended, D21). v1 ships one profile, `strata-0.1.48`. A llama.cpp profile, with its own probe suite, is later work. Until then, `--passthrough` relays to any OpenAI-compatible server, but bounded views, budgets and excerpts require a pinned profile.
 
 ## Endpoints
 
@@ -85,3 +85,11 @@ These are the limits of the first usable release. They are rejected or documente
 - **Archive growth is unbounded.** There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.
 - **Durability.** Process crashes are tested; power-loss durability is not claimed (Ph8).
 - **Per-request cost grows with history.** Accept reloads the whole branch (R8: TTFB p50 rises from 8 to 16 ms over 50 turns).
+
+## Known limits of Phase 2
+
+- **No excerpt retrieval yet.** Excerpt blocks are budgeted, stored, rendered and included, but the Phase 2 source selects nothing, so every recorded selection is empty. Proactive retrieval arrives in Phase 3 (A1).
+- **Masked detail is not recallable by the model.** Beyond stub previews it stays out of reach until Phase 3's excerpts and transcript files. The archive keeps everything exactly.
+- **No transcript-file fallback yet** (Phase 3, harness capability gate).
+- **Masking only on overflow.** Bounded views mask only when the history would cross the high watermark; below it the client's body is forwarded byte-identical. `--view off` keeps budgets and rejects over-budget history instead of masking.
+- **Watermark moves cost a deep re-read.** Strata keeps 6 checkpoints, so a move typically re-reads the post-move target (about T tokens). That is roughly 50 s warm at 48K; see results once `bench_view` and the live run are recorded.

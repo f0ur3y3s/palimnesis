@@ -6,8 +6,9 @@ Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve ·
 
 ## 1. Upstream facts are read, not assumed
 
-- `n_ctx`, `build_info` and the chat-template hash come from `GET /props` at startup and after every reconnect or upstream 5xx. **[defined, Ph2]**
-- A template or build differing from the pinned values (`capabilities.md`) disables rewriting; passthrough continues. **[defined, Ph2]**
+- `n_ctx`, `build_info` and the chat-template hash come from the upstream profile's facts reader (Strata: `GET /props`). They are read at startup and again after any transport error, 5xx, or context-window 400. **[enforced]**
+- **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). **[enforced]**
+- **Core is backend-neutral.** Backend specifics live behind `palimnesis.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
 - Counting renders the pinned template with the pinned tokenizer; `POST /v1/messages/count_tokens` cross-checks; per-call `usage` reconciles. Persistent drift raises `M` or rejects. **[defined, Ph2]**
 
 ## 2. Budgets
@@ -17,11 +18,24 @@ Before every upstream call, with `I` the rendered input:
 - `I ≤ input_budget`, where `input_budget = min(configured_input_budget, n_ctx − R − M)`.
 - `I + R + M ≤ n_ctx`.
 
-The upstream silently clamps oversized output limits, so Palimnesis enforces both itself. **[defined, Ph2]**
+The upstream silently clamps oversized output limits, so Palimnesis enforces both itself. The upstream output limit is set to the reserve whenever the client's limit is absent or larger (D14.11). **[enforced]**
 
-- **Floor.** If `F + min_recent + R + M > n_ctx` at startup, rewriting is refused with a message naming each term; passthrough continues. **[defined, Ph2]**
-- **Per request.** If `F + R + M > n_ctx`, return a structured pre-inference budget error. Never truncate system instructions, tool schemas or current user input. **[defined, Ph2]**
-- **Capacity change.** When `n_ctx` changes, budgets are recomputed before the next call; in-flight requests keep the budget they were admitted under. **[defined, Ph2]**
+- **Floor.** If `F + min_recent + R + M > n_ctx` at startup, or after an `n_ctx` change, bounded views are refused with a message naming each term. Archiving and forwarding continue. **[enforced]**
+- **Per request.** If the non-evictable input cannot fit, return `400 context_budget_exceeded` (`x-should-retry: false`) before acceptance, so nothing is archived. Never truncate system instructions, tool schemas or current user input. **[enforced]**
+- **Capacity change.** When `n_ctx` changes, budgets are recomputed before the next call; in-flight requests keep the budget they were admitted under. **[enforced]**
+- **Recall excerpts** (A1, D20).
+  - **Caps.** A per-message cap `min(2048, 4%·B_in)` and an active-view total `min(4096, 10%·B_in)`.
+  - **Effective total.** `min(Q, max(0, B_in − P − F − min_recent))`. It falls to zero before fixed input or the minimum recent window would give way.
+  - **Never squeezes anything else.** Excerpts never count in F, never consume R or M, never move the watermark, and never cause a budget error.
+  - **Catalog slot.** P is 0 until Phase 3B.
+
+  **[enforced]**
+- **Bounded view** (`palimnesis.view`, D14).
+  - The view is the full history until it would exceed `H = F + 0.9·C`. Then it masks oldest-first to `T = F + 0.5·C`, at group boundaries only, and `I ≤ B_in` always holds.
+  - Watermark and collapse boundaries are monotone and persisted in immutable `view_versions`, so a rebuild reproduces the same tokens.
+  - The builder makes no upstream calls.
+
+  **[enforced]**
 
 ## 3. Protocol preservation
 
@@ -68,7 +82,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | --- | --- | --- | --- |
 | Identity | 400 `session_*`, `invalid_session_id` | `x-should-retry: false` | **[enforced]** |
 | Unsupported feature or invalid body | 400 `unsupported_feature`, `invalid_body` | `x-should-retry: false` | **[enforced]** |
-| Budget | 400 | `x-should-retry: false` | [defined, Ph2] |
+| Budget | 400 `context_budget_exceeded` | `x-should-retry: false` | **[enforced]** |
 | Edited, truncated or forged history (D10.1) | 409 `history_divergence` | `x-should-retry: false` | **[enforced]** |
 | Different request while one is active (D10.2) | 409 `session_busy` | `x-should-retry: false` | **[enforced]** |
 | Matching request in progress | 409 `request_in_progress` | `x-should-retry: false` | **[enforced]** |
@@ -128,7 +142,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 9. Reasoning carryover
 
-**[defined, Ph3]**
+**[enforced for ordinary turns]**: archived reasoning is restored when the client omits it. The parts specific to hidden proxy continuations move to optional Phase 3B (A1).
 
 - The pinned template renders `reasoning_content` for **every** earlier assistant turn, and an empty think block where there is none. Palimnesis reconstructs archived reasoning for every rendered assistant turn so upstream input matches what the model saw, whether or not the client resends it.
 - A template revision that changes this rule is a pinned-value change (§1), not a runtime branch.
@@ -157,6 +171,13 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 - Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
 - An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically.
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.
+- **Excerpt blocks** (A1).
+  - **Storage.** Blocks are immutable rows (`excerpt_blocks`, `excerpt_items`), one per genuine user instruction. Each is committed with its selection before inference, and retries and restarts reuse the stored rendering.
+  - **Placement.** They appear only in the upstream copy of their host user message, never in the archive's copy of that message, the client response, the full-text index, or a system message.
+  - **Delimiters.** Payloads are escaped so they cannot close a block or contain special tokens.
+  - **Deletion** (Ph8) must cascade to these tables.
+
+  **[enforced]**
 
 ## 12. Capture
 
