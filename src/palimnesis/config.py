@@ -26,5 +26,9 @@ class Settings:
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.
     deadline_s: float = 600.0
+    # Transcript files root (Phase 3); None means "transcripts" beside the archive.
+    transcripts: Path | None = None
+    # False: no transcript files are published.
+    transcripts_enabled: bool = True
     # Upstream profile name (palimnesis.profile.REGISTRY).
     profile: str = DEFAULT_PROFILE
