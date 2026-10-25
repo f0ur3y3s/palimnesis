@@ -88,7 +88,9 @@ def test_exchanges_load_in_arrival_order(capturing_stack):
 
 
 def _eventually_exchanges(capture_dir, n: int = 1):
-    assert _eventually(lambda: len(load_exchanges(capture_dir)) == n)
+    # Generous: a disconnected exchange is written when the relay next notices the
+    # client is gone, which under full-suite load can take several seconds.
+    assert _eventually(lambda: len(load_exchanges(capture_dir)) == n, timeout=10.0)
     return load_exchanges(capture_dir)
 
 
