@@ -681,3 +681,48 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/`. They hold no 
 - **Paste prompts.** The paste turns first asked for analysis. The model wrote the pastes to files, and one lint count hit `length`, which exposed A. The pastes were changed to "reply 'noted'".
 - **Empty content.** v1 resent text-less, tool-less turns with null content; v2 resends "" as OpenCode does. B occurred under both.
 - **v1 results.** The v1 a4-base and a3-base runs scored 54/60 and 34/60 loose exact (`eval/fixtures/phase3-dev/v1/`). A partial a2-base run was discarded.
+
+## R22 — x1 against x2 on the fixed proxy, two runs each (S10, 2026-10-25, EMULATOR)
+
+**Setup.**
+- Code at `47e501e` (D41 fixes R21-A and R21-B), with the eval files from `8703656` and the uncommitted `eval/report.py` additions: `--drift`, `--pair`/`--pool` and early-stop examples.
+- Strata, hardware, dev set (dev-h1..h6), the emulator v2 and every R20 setting are unchanged: `--input-budget 24320` at 64K capacity, `deadline_s` 3,600, the D39 idle gate.
+- Strata ran in the systemd user scope `strata-64k`, restarted at 10:36Z after the R19 outage. No outage occurred during these runs.
+- **Run order:** interleaved a4-base, a4-x2, a4-base, a4-x2, 11:22–13:45Z. Each took 31–40 minutes and used fresh sessions and archives.
+- **Foreign traffic:** none observed (activity counters, 0 busy-before-request events, 0 queued samples). The runs are unaffected.
+
+**Before the first run:**
+- `eval/probes/p11_null_content_count.py` read local 68 / remote 68 for null, 68 / 68 for "" and 101 / 101 for "ok". This was 100 for null and "" before D41.
+- The smoke run (h1, 3 needles, arm 4) scored 3/3, with `--explain` exit 0 and `transcripts verify` passing.
+
+| Run | Config | Loose exact | 95% CI | Exact (ws/case) | Early stops (R21-C) | Count drift | "views disabled" / "forwarding unbounded" lines | `--explain` | verify | Lookups (questions) | TTFVC p50 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | a4-base (x1) | 51/60 | 74–92% | 51 | 7 | 0 of 132 calls | 0 / 0 | exit 0, 0 unexplained | 6/6 pass | 19 (8) | 6.8 |
+| 1 | a4-x2 | 58/60 | 89–99% | 56 | 1 | 0 of 130 calls | 0 / 0 | exit 0, 0 unexplained | 6/6 pass | 37 (18) | 10.2 |
+| 2 | a4-base (x1) | 53/60 | 78–94% | 53 | 7 | 0 of 129 calls | 0 / 0 | exit 0, 0 unexplained | 6/6 pass | 32 (14) | 7.2 |
+| 2 | a4-x2 | 58/60 | 89–99% | 58 | 0 | 0 of 141 calls | 0 / 0 | exit 0, 0 unexplained | 6/6 pass | 39 (16) | 10.4 |
+
+- **Count drift.** For every upstream body the gate recorded, `usage.prompt_tokens` equalled the pinned local count. That holds for all 532 calls in 24 sessions, including those after reasoning-only answers, so D41 holds live.
+- **Errors.** No errored needles, no upstream errors, and no stopped histories.
+- **Early stops** (gold → answer):
+  - Run 1 x1: `h2q2` fix/stockroom-double-76323 → ""; `h6q4` 6.0s → `6`; `h6q5` 15s → `1`; `h6q6` test_validate_legacy_event → `test_validate`; `h6q7` 768 → `7`; `h6q9` → ""; `h6q10` → "".
+  - Run 2 x1: `h6q4` → `6`, `h6q5` → "", `h6q6` → `test`, `h6q7` → `76`, `h6q8` → `pg-st`, `h6q9` → `r20`, `h6q10` → `plan`.
+  - Run 1 x2: `h3q6` test_store_fast_token → "".
+  - **Where they come from.** The raw upstream SSE has the same cut. For example, run 1 `h6q4` streamed the content `6` and then `finish_reason: "stop"`, after reasoning that ended `read_timeout = "6.0s". Reply with only the value.`; under x2 the same needle streamed `6`, `.`, `0`, `s`.
+
+**Pooled x1 against x2.** 120 needle pairs, with run 1 paired with run 1 and run 2 with run 2:
+
+| | x2 right | x2 wrong |
+| --- | --- | --- |
+| **x1 right** | 102 | 2 |
+| **x1 wrong** | 14 | 2 |
+
+- **Discordant pairs:** x1 only 2, x2 only 14. The exact McNemar two-sided p is 0.0042.
+- **Early stops** still concentrate under x1: 14 of 120, against 1 of 120 under x2. 14 of x1's 16 misses are early stops.
+- **Caveat: the effect is one history.**
+  - 12 of the 14 x2-only pairs are dev-h6 Q4–Q10, and they recur in both runs. The first early stop is at h6q4 in each run, and every later answer in that session is cut short.
+  - With dev-h6 excluded, the pooled table is 96 / 2 / 2 / 0 (p = 1.0).
+  - Pairs within a session are not independent, so the McNemar p overstates the evidence. It supports "x1 triggers a reproducible early-stop cascade in dev-h6, and x2 does not". It does not establish a general retrieval or answer-quality difference.
+- **Cost of x2.** More lookups (37–39 against 19–32) and a time to first visible content p50 of 10.2–10.4 s against 6.8–7.2 s.
+
+Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `run2/`.

@@ -106,8 +106,8 @@ def summarize(rows, meta, explain) -> dict:
         "errored": len(errored), "n_valid": len(valid),
         # Upstream early stops: a final answer that is empty or a strict prefix of the gold
         # value (the raw upstream stream shows the same text, so the relay is not the cause).
-        "early_stop": sum(1 for r in valid if r["answered"] and not r["exact_loose"] and (
-            not r["answer"].strip() or r["gold"].casefold().startswith(r["answer"].strip().strip("`").casefold()))),
+        "early_stop": len(early_stops(valid)),
+        "early_stop_examples": [(r["step"], r["gold"], r["answer"][:40]) for r in early_stops(valid)],
         "exact_loose_valid": sum(r["exact_loose"] for r in valid),
         "wilson_loose_valid": wilson(sum(r["exact_loose"] for r in valid), len(valid)),
         "view_disabled_events": meta.get("_log_view_disabled"),
@@ -155,6 +155,43 @@ def summarize(rows, meta, explain) -> dict:
     }
 
 
+def early_stops(rows) -> list[dict]:
+    return [r for r in rows if r["answered"] and not r["exact_loose"] and (
+        not r["answer"].strip()
+        or r["gold"].casefold().startswith(r["answer"].strip().strip("`").casefold()))]
+
+
+def drift(run: Path, config: str) -> dict:
+    """Per session: upstream ``usage.prompt_tokens`` against the pinned local count of the
+    exact upstream body the gate recorded; nonzero differences are listed."""
+    from palimnesis.upstreams.strata import tokens
+
+    counter = tokens.default()
+    d = run / config
+    out: dict = {}
+    for line in (d / "calls.jsonl").read_text(encoding="utf-8").splitlines():
+        c = json.loads(line)
+        if not c.get("n") or c.get("prompt_tokens") is None:
+            continue
+        body = json.loads((d / "bodies" / f"{c['n']:04d}.json").read_bytes())
+        local = counter.count_messages(**tokens.render_args_from_openai(body))
+        s = out.setdefault(c["session"], {"calls": 0, "nonzero": []})
+        s["calls"] += 1
+        if local != c["prompt_tokens"]:
+            s["nonzero"].append({"n": c["n"], "step": c["step"], "local": local,
+                                 "remote": c["prompt_tokens"]})
+    return out
+
+
+def mcnemar_exact(b: int, c: int) -> float:
+    """Two-sided exact McNemar p-value: binomial(b + c, 0.5) on the discordant pairs."""
+    n, k = b + c, min(b, c)
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, i) for i in range(k + 1)) / 2 ** n
+    return min(1.0, 2 * tail)
+
+
 def sanitize(r: dict, run: Path) -> dict:
     keep = ["history", "config", "arm", "step", "category", "restart_before", "gold", "answer",
             "exact", "exact_loose", "contains", "partial", "parts_found", "parts_total",
@@ -189,7 +226,45 @@ def main() -> None:
     p.add_argument("--configs")
     p.add_argument("--fixtures", type=Path)
     p.add_argument("--json", action="store_true")
+    p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
+    p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
+    p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
     a = p.parse_args()
+    if a.pair:
+        ca, cb = a.pair.split(",")
+        runs = [a.run] + [Path(x) for x in (a.pool or "").split(",") if x]
+        k = Counter()
+        es = Counter()
+        for run in runs:
+            ra, _, _ = load(run, ca)
+            rb, _, _ = load(run, cb)
+            qa = {r["step"]: r for r in ra if r["kind"] == "question"}
+            qb = {r["step"]: r for r in rb if r["kind"] == "question"}
+            es[ca] += len(early_stops([r for r in qa.values() if not r["errors"]]))
+            es[cb] += len(early_stops([r for r in qb.values() if not r["errors"]]))
+            for sid in qa:
+                if sid in qb:
+                    k[(qa[sid]["exact_loose"], qb[sid]["exact_loose"])] += 1
+        n = sum(k.values())
+        print(f"Pooled over {len(runs)} run(s), {n} needle pairs ({ca} rows, {cb} columns):")
+        print(f"| | {cb} right | {cb} wrong |")
+        print("|---|---|---|")
+        print(f"| {ca} right | {k[(True, True)]} | {k[(True, False)]} |")
+        print(f"| {ca} wrong | {k[(False, True)]} | {k[(False, False)]} |")
+        b, c = k[(True, False)], k[(False, True)]
+        print(f"discordant: {ca} only {b}, {cb} only {c}; exact McNemar two-sided p = {mcnemar_exact(b, c):.4g}")
+        print(f"early stops pooled: {dict(es)} of {n} needles each")
+        return
+    if a.drift:
+        configs = a.configs.split(",") if a.configs else [c for c in ORDER if (a.run / c / "calls.jsonl").exists()]
+        for c in configs:
+            dr = drift(a.run, c)
+            total = sum(v["calls"] for v in dr.values())
+            bad = {s: v["nonzero"] for s, v in dr.items() if v["nonzero"]}
+            print(f"{c}: {total} calls in {len(dr)} sessions; sessions with nonzero drift: {len(bad)}")
+            for s, cases in bad.items():
+                print(f"   {s}: {cases}")
+        return
     configs = a.configs.split(",") if a.configs else [c for c in ORDER if (a.run / c / "questions.jsonl").exists()]
     res, rows_by = {}, {}
     for c in configs:
@@ -247,7 +322,7 @@ def main() -> None:
         print(f"   CLEAN subset: {s['exact_clean']}/{s['n_clean']} loose exact ({lo4:.0%}–{hi4:.0%}); "
               f"needle in excerpt {s['excerpt_clean']}, absent {s['absent_clean']} (fallback used "
               f"{s['fallback_clean']}); lookups {s['lookups_clean']}")
-        print(f"   upstream early stops (empty or prefix answers) {s['early_stop']}")
+        print(f"   upstream early stops (empty or prefix answers) {s['early_stop']}: {s['early_stop_examples']}")
         print(f"   errored questions {s['errored']}; loose exact on the {s['n_valid']} without an error "
               f"{s['exact_loose_valid']} ({lo3:.0%}–{hi3:.0%}); view-disabled events "
               f"{s['view_disabled_events']}, unbounded forwards {s['unbounded_forward_events']}; "
