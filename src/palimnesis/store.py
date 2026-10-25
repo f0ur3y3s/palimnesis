@@ -256,12 +256,12 @@ BEGIN SELECT RAISE(ABORT, 'archive rows are immutable: view_versions'); END;
 
 MIGRATIONS: list[str] = [
     _SCHEMA_V1 + _immutability_triggers(),
-    # v2: derived full-text index (mnemon.search), filled from existing blocks.
+    # v2: derived full-text index (palimnesis.search), filled from existing blocks.
     "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);\n"
     "INSERT INTO fts_blocks (rowid, text) SELECT b.rowid, (SELECT group_concat("
     "CAST(s.bytes AS TEXT), '' ORDER BY s.seq) FROM segments s WHERE s.block_id = b.block_id)"
     " FROM blocks b;",
-    # v3: persisted view decisions (mnemon.view); immutable like the archive.
+    # v3: persisted view decisions (palimnesis.view); immutable like the archive.
     _VIEW_VERSIONS,
 ]
 
@@ -378,8 +378,8 @@ class Store:
         self.synchronous = synchronous
         in_memory = self.path == ":memory:"
         self._lock = None if in_memory else _FileLock(Path(self.path + ".lock"))
-        self._writer = ThreadPoolExecutor(1, thread_name_prefix="mnemon-db-writer")
-        self._reader = ThreadPoolExecutor(1, thread_name_prefix="mnemon-db-reader")
+        self._writer = ThreadPoolExecutor(1, thread_name_prefix="palimnesis-db-writer")
+        self._reader = ThreadPoolExecutor(1, thread_name_prefix="palimnesis-db-reader")
         self._write_conn = self._read_conn = None
         try:
             self._write_conn = self._writer.submit(self._open_writer).result()

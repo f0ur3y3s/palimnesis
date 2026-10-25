@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from mnemon import affordances, stubs
+from palimnesis import affordances, stubs
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
 
@@ -37,7 +37,7 @@ def test_stub_format_in_use_is_registered():
 
 def test_a1_is_the_plans_starting_addendum():
     assert affordances.REGISTRY["a1"].text == (
-        "Older content may appear as address stubs; use mnemon_recall for exact details "
+        "Older content may appear as address stubs; use palimnesis_recall for exact details "
         "and catalog or search tools when the needed address is unknown."
     )
     assert affordances.REGISTRY["a0"].text == "" and affordances.REGISTRY["a0"].empty

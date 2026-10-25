@@ -14,7 +14,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mnemon.capture import load_exchanges
+from palimnesis.capture import load_exchanges
 
 ROOT = Path(__file__).resolve().parents[1]
 STRATA_SSE = sorted((ROOT / "eval" / "probes" / "fixtures").glob("*.sse"))

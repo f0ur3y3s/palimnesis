@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from mnemon.addresses import Ambiguous, Hit, Unknown, issue_alias, resolve
-from mnemon.store import Store
+from palimnesis.addresses import Ambiguous, Hit, Unknown, issue_alias, resolve
+from palimnesis.store import Store
 
 
 @pytest.fixture

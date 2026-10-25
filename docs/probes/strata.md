@@ -19,7 +19,7 @@ Labels: **[verified]** means measured here. **[docs]** means it comes from the u
   - The stream ended with no error event and no `[DONE]` (`sse_oa_long_prefill_progress_TRUNCATED_server_died.sse`).
   - The configuration was unchanged on restart.
 - **The cause of both outages is unknown [unverified].** Exit code −15 is SIGTERM, and the first outage brought a configuration change, which points to the operator. The request that hit the first outage succeeded when repeated. I did not repeat `return_progress`.
-- **Mnemon must read `n_ctx` from `/props` and must not hard-code 32768.**
+- **Palimnesis must read `n_ctx` from `/props` and must not hard-code 32768.**
 - Other clients used the server during the probes. For the first 8 minutes a client looped requests of about 100 s each, and later clients sent requests now and then. Every probe tolerates queueing, and the cancellation numbers come from `/status` transitions and the server's own request records.
 - Prefill speed varies a lot because experts are offloaded to RAM. I measured about 512 tok/s steady, about 435 tok/s for a cold 20K prompt, and as low as about 137 tok/s right after a restart.
 
@@ -287,7 +287,7 @@ Method:
 
 During decode, release takes under 0.1 s for streaming. For non-streaming the disconnect is still detected without any write, and release takes under 0.5 s.
 
-I did not test cancellation during an internal continuation; that requires the Mnemon loop.
+I did not test cancellation during an internal continuation; that requires the Palimnesis loop.
 
 ## 10. Concurrency on one slot [verified]
 
@@ -315,7 +315,7 @@ Script: `p10_concurrency.py`. Fixture: `concurrency.json`.
 
 I also saw one unexplained result before the restart: `max_tokens: 8` produced `completion_tokens: 4`. After the restart it produced 8.
 
-## Implications for Mnemon
+## Implications for Palimnesis
 
 - **Counting strategy.**
   - Count locally with the pinned template (`fixtures/strata_chat_template.jinja`) and the `Qwen/Qwen3.8-Flash-Next` tokenizer, passing tools in the bare form. This matched exactly in 19 of 19 cases.
@@ -324,7 +324,7 @@ I also saw one unexplained result before the restart: `max_tokens: 8` produced `
   - At startup, hash `/props.chat_template` and `build_info`. On drift, refuse rewriting or fall back to the endpoint.
   - Effort level and `enable_thinking` change the count and the first system message, so they are part of the render key.
 - **Safe input budget.**
-  - The server refuses prompts at or above `n_ctx`, but silently clamps `max_tokens`. Mnemon must enforce `input + reserved_output + margin ≤ n_ctx` itself.
+  - The server refuses prompts at or above `n_ctx`, but silently clamps `max_tokens`. Palimnesis must enforce `input + reserved_output + margin ≤ n_ctx` itself.
   - At 32K capacity, the recommendation is: input budget = 32768 − R − M. R is the generation reserve, which must cover reasoning because the cap includes thinking; for example 8192. M is a margin of 256, which can be small because counting is exact. That gives a 24,320-token input budget.
   - The server currently runs at 65,536. Read `/props` `n_ctx` per process and revalidate it after any upstream error or reconnect.
 - **Cancellation release threshold.**
@@ -336,13 +336,13 @@ I also saw one unexplained result before the restart: `max_tokens: 8` produced `
   - Per call, use `usage.prompt_tokens_details.cached_tokens` (OpenAI) or `cache_read_input_tokens` (Anthropic). On the server side, `/metrics` `requests[].reused` and `prompt_read` are available.
   - Expected reuse is the last checkpoint at or before the first changed token, not the token LCP. An edit at a watermark re-reads from the nearest checkpoint, which is often a whole recent turn, and a deep edit falls back to the system root or zero.
   - Because effort changes rewrite the system preamble, they invalidate everything. Record "checkpoint-limited" as an explicit invalidation cause next to LCP.
-- **Client endpoints Mnemon can serve.**
+- **Client endpoints Palimnesis can serve.**
   - OpenAI Chat Completions.
-  - Anthropic Messages, plus `count_tokens`. Mnemon must translate the error envelope to Anthropic's `{"type":"error",...}`. In final usage `input_tokens` is 1, so recompute it as the sum of the three input fields.
+  - Anthropic Messages, plus `count_tokens`. Palimnesis must translate the error envelope to Anthropic's `{"type":"error",...}`. In final usage `input_tokens` is 1, so recompute it as the sum of the three input fields.
   - OpenAI Responses, stateless only.
   - Not servable: legacy `/v1/completions`, embeddings and tokenize.
-  - **Reasoning carryover:** the installed template keeps all earlier reasoning. Mnemon must reinsert archived `reasoning_content` for every earlier assistant turn, not only for current-turn tool steps, to match what the model saw and keep cache prefixes stable.
+  - **Reasoning carryover:** the installed template keeps all earlier reasoning. Palimnesis must reinsert archived `reasoning_content` for every earlier assistant turn, not only for current-turn tool steps, to match what the model saw and keep cache prefixes stable.
 - **Liveness, queueing and recovery.**
   - The server sends a keep-alive comment at least every about 10 s, both while queued and during prefill.
-  - Upstream queueing is invisible to clients, so Mnemon's own single-dispatch FIFO should be the only queue, with `/status` used as a guard because other clients share the server.
+  - Upstream queueing is invisible to clients, so Palimnesis's own single-dispatch FIFO should be the only queue, with `/status` used as a guard because other clients share the server.
   - A server death mid-stream closes the socket with no terminal event. Treat EOF without `[DONE]` or `message_stop` as an upstream failure.

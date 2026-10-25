@@ -1,11 +1,11 @@
-# OpenCode 2.1.4 live probe through the Mnemon passthrough (Phase 0)
+# OpenCode 2.1.4 live probe through the Palimnesis passthrough (Phase 0)
 
 Oct 24, 2026, 20:19–20:30 UTC.
 
 **Setup:**
 
 - OpenCode `v2.1.4` (Bun single-file binary, `%APPDATA%\npm\node_modules\@opencode\cli\bin\opencode.exe`).
-- The Mnemon passthrough (`mnemon serve`, uncommitted working tree on `main`), with capture on.
+- The Palimnesis passthrough (`palimnesis serve`, uncommitted working tree on `main`), with capture on.
 - Strata `0.1.48` at `http://192.168.1.173:8080`, model `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536 from `/props`.
 
 **Fixtures:** `eval/fixtures/opencode-2.1.4/live/`. Its README lists every exchange.
@@ -52,24 +52,24 @@ The exact `env.sh` is in `eval/fixtures/opencode-2.1.4/live/config/env.sh`.
 
 ```json
 {
-  "model": "mnemon/qwen3.8-flash-next-iq3_xxs",
+  "model": "palimnesis/qwen3.8-flash-next-iq3_xxs",
   "update": "disable",
   "share": "disabled",
   "compaction": { "auto": false },
   "agents": { "title": { "disabled": true } },
   "permissions": [{ "action": "subagent", "resource": "*", "effect": "deny" }],
   "providers": {
-    "mnemon": {
-      "name": "Mnemon",
+    "palimnesis": {
+      "name": "Palimnesis",
       "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
         "baseURL": "http://127.0.0.1:9011/s/static-fallback/v1",
-        "apiKey": "mnemon-local-dummy"
+        "apiKey": "palimnesis-local-dummy"
       },
       "compatibility": { "reasoningField": "reasoning_content" },
       "models": {
         "qwen3.8-flash-next-iq3_xxs": {
-          "name": "Qwen3.8 Flash Next (Strata via Mnemon)",
+          "name": "Qwen3.8 Flash Next (Strata via Palimnesis)",
           "capabilities": { "tools": true, "reasoning": { "supported": true } },
           "limit": { "context": 1000000, "output": 8192 }
         }
@@ -89,7 +89,7 @@ Notes on individual settings:
 - **`max_completion_tokens` stays constant.** OpenCode computes `min(limit.output || 32000, 256000)`, then reduces it to `limit.context − measured − 1.15·estimated` (floor 1024) when `limit.context > 0` (`session/model-request.ts` `outputLimit`) [source].
   - With `limit.context` 1,000,000 and `limit.output` 8192, the reduction never binds. **Every one of the 10 requests sent `max_completion_tokens: 8192`** [verified], while the prompt grew from 5004 to 10808 tokens.
   - Setting `limit.context: 0` should also disable the fit, because `outputLimit` returns the requested value when `limit.context <= 0` [source, unverified live]. That also makes the window "unknown" to OpenCode.
-  - Real capacity enforcement is Mnemon's job (plan, "Complete budgets").
+  - Real capacity enforcement is Palimnesis's job (plan, "Complete budgets").
 - **Compaction.** `compaction.auto: false` was set. History never neared a threshold in this probe, so the setting was not exercised live. It rests on the source reading in `harnesses.md` §6.
 - **Title generation.** `agents.title.disabled: true` was set, and no `title` request occurred (plugin log: 10/10 `kind: primary`).
   - From source, the title agent picks the provider's small model or a lower reasoning variant of the primary model, and gives up when neither exists (`session/context.ts` `selectTitle`). A custom model with no variants may never title even when enabled [unverified].
@@ -99,17 +99,17 @@ Notes on individual settings:
 
 ## 3. Session identity: the `model.request` plugin hook works [verified]
 
-`$OPENCODE_CONFIG_DIR/plugins/mnemon.ts` (fixture copy: `config/plugins/mnemon.ts`):
+`$OPENCODE_CONFIG_DIR/plugins/palimnesis.ts` (fixture copy: `config/plugins/palimnesis.ts`):
 
 ```ts
 export default {
-  id: "mnemon-session-url",
+  id: "palimnesis-session-url",
   setup: async (ctx: any) => {
     await ctx.session.hook("model.request", (event: any) => {
       event.baseURL = `${BASE}/s/${event.sessionID}/v1`
-      event.headers["X-Mnemon-Kind"] = event.kind
+      event.headers["X-Palimnesis-Kind"] = event.kind
       // (plus an appendFileSync log line)
-    }, { providerID: "mnemon" })
+    }, { providerID: "palimnesis" })
   },
 }
 ```
@@ -128,10 +128,10 @@ What the captures show:
   - The base `…/s/<id>/v1` joined with `/chat/completions` exactly as `harnesses.md` §2 predicted.
 - **OpenCode session IDs fit the proxy's validator.** The form is `ses_` plus 26 characters of `[0-9A-Za-z]` (30 characters in total), so no mapping was needed.
   - Note: `model-request.ts` tests `/^ses_[0-9a-f]{64}$/` for the prompt cache key, and this ID does not match. The cache key goes unused for custom providers anyway (§4).
-- **Resume works.** Turn 2 was a new `opencode run` process with `--session ses_e906…`. It routed to the same `/s/<id>/` path with no Mnemon-side session command.
-  - So `mnemon session new` is not needed for OpenCode: each new OpenCode session yields a fresh path ID, and a resumed one reuses it.
+- **Resume works.** Turn 2 was a new `opencode run` process with `--session ses_e906…`. It routed to the same `/s/<id>/` path with no Palimnesis-side session command.
+  - So `palimnesis session new` is not needed for OpenCode: each new OpenCode session yields a fresh path ID, and a resumed one reuses it.
   - Forks and child sessions get their own `sessionID` and therefore a separate path [source; forks and subagents not exercised].
-- **Side calls are tagged.** `X-Mnemon-Kind` carried `primary` on all 10 requests. The proxy captured it and stripped it before forwarding (`x-mnemon-*`). Title, compaction and generate calls would carry their own `kind`.
+- **Side calls are tagged.** `X-Palimnesis-Kind` carried `primary` on all 10 requests. The proxy captured it and stripped it before forwarding (`x-palimnesis-*`). Title, compaction and generate calls would carry their own `kind`.
 
 ## 4. Request shape [verified]
 
@@ -146,7 +146,7 @@ Request headers as received by the proxy, identical on all 10 requests apart fro
 | `user-agent` | `opencode/latest/2.1.4/cli` |
 | `b3` | `<trace>-<span>-1-<parent>`: **Zipkin tracing, not in harnesses.md** |
 | `traceparent` | `00-<trace>-<span>-01`: **W3C tracing, not in harnesses.md**. One trace ID spans a whole `opencode run`; the span changes per request. |
-| `x-mnemon-kind` | from the plugin |
+| `x-palimnesis-kind` | from the plugin |
 | `x-opencode-client` | `cli` |
 | `x-opencode-project` | the project ID, which is the throwaway repo's root commit hash |
 | `x-opencode-session`, `x-opencode-session-id`, `x-session-affinity`, `x-session-id` | the session ID (all equal for a root session) |
@@ -216,7 +216,7 @@ Request headers as received by the proxy, identical on all 10 requests apart fro
 
 Generated text differs on every run (Strata default temperature 1.0; `strata.md` §0). As the plan says, that is diagnostic only. Status, finish-reason sequence and stream framing are comparable.
 
-- `replay.py` drops the redacted `authorization` header and `x-mnemon-*` headers. It replays the rest, including `traceparent` and `b3`.
+- `replay.py` drops the redacted `authorization` header and `x-palimnesis-*` headers. It replays the rest, including `traceparent` and `b3`.
 - Reports: `eval/fixtures/opencode-2.1.4/live/reports/replay_{direct,proxy}.json`.
 
 ## 7. Contradictions and additions to `docs/probes/harnesses.md` (OpenCode section)
@@ -250,7 +250,7 @@ Generated text differs on every run (Strata default temperature 1.0; `strata.md`
 
 No proxy bug blocked this probe.
 
-- Path routing, prefix stripping, header forwarding (minus hop-by-hop and `x-mnemon-*`), streaming relay and capture all behaved as documented.
+- Path routing, prefix stripping, header forwarding (minus hop-by-hop and `x-palimnesis-*`), streaming relay and capture all behaved as documented.
 - Through the proxy, request bodies reached Strata byte-identical.
 
 Observations for later phases (not bugs):

@@ -253,7 +253,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ("text", "Partial answer ATTEMPT"),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],
@@ -275,7 +275,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ("reasoning", "Thinking about ATTEMPT"),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],
@@ -313,7 +313,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ("text", "\n\nPartial answer ATTEMPT \n"),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],
@@ -361,7 +361,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ("text", "Partial answer ATTEMPT"),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],
@@ -413,7 +413,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],
@@ -442,7 +442,7 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ),
                     (
                         "error",
-                        "mnemon: upstream stream failed",
+                        "palimnesis: upstream stream failed",
                         "upstream_stream_failed",
                     ),
                 ],

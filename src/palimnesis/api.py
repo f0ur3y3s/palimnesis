@@ -24,7 +24,7 @@ from .store import Store
 log = logging.getLogger(__name__)
 
 SESSION_PREFIX = b"/s/"
-SESSION_HEADER = b"x-mnemon-session"
+SESSION_HEADER = b"x-palimnesis-session"
 
 # Hop-by-hop headers (RFC 9110 §7.6.1) plus framing the relay recomputes.
 _HOP_BY_HOP = frozenset(
@@ -46,7 +46,7 @@ _REQUEST_ONLY = frozenset({b"host", b"content-length"})
 def _filter_headers(
     headers: list[tuple[bytes, bytes]], drop: frozenset[bytes] = frozenset()
 ) -> list[tuple[bytes, bytes]]:
-    """Drop hop-by-hop headers, any named in Connection, and Mnemon's own."""
+    """Drop hop-by-hop headers, any named in Connection, and Palimnesis's own."""
     listed = {
         token.strip().lower()
         for name, value in headers
@@ -59,7 +59,7 @@ def _filter_headers(
         if (lower := name.lower()) not in _HOP_BY_HOP
         and lower not in listed
         and lower not in drop
-        and not lower.startswith(b"x-mnemon-")
+        and not lower.startswith(b"x-palimnesis-")
     ]
 
 
@@ -72,11 +72,11 @@ def split_session_prefix(raw_path: bytes) -> tuple[str | None, bytes]:
 
 
 def _session_header(headers: list[tuple[bytes, bytes]]) -> str | None:
-    """The X-Mnemon-Session value; repeated headers must agree."""
+    """The X-Palimnesis-Session value; repeated headers must agree."""
     values = {value for key, value in headers if key.lower() == SESSION_HEADER}
     if len(values) > 1:
         raise SessionError(
-            "session_mismatch", "Repeated X-Mnemon-Session headers carry different values."
+            "session_mismatch", "Repeated X-Palimnesis-Session headers carry different values."
         )
     return values.pop().decode("latin-1") if values else None
 
@@ -140,7 +140,7 @@ class Proxy:
         if self.client is None:
             raise RuntimeError(
                 "Proxy has no upstream client: run it under a server with ASGI "
-                "lifespan enabled (see mnemon.server.uvicorn_config)."
+                "lifespan enabled (see palimnesis.server.uvicorn_config)."
             )
         raw_path = scope.get("raw_path") or scope["path"].encode("latin-1")
         path_session, upstream_path = split_session_prefix(raw_path)
@@ -217,7 +217,7 @@ class Proxy:
                 api_path,
                 502,
                 "upstream_unreachable",
-                "Mnemon could not reach the upstream server.",
+                "Palimnesis could not reach the upstream server.",
                 type_="api_error",
                 retry=True,
             )

@@ -344,7 +344,7 @@ def _field(value: bytes | None) -> bytes:
 def content_sha256(message: Message) -> str:
     """SHA-256 over role and blocks (kind, ids, name, exact bytes); envelope details
     such as key order or null-vs-absent content do not contribute."""
-    h = hashlib.sha256(b"mnemon.content.v1\n")
+    h = hashlib.sha256(b"palimnesis.content.v1\n")
     h.update(_field(message.role.encode()))
     h.update(_field(str(len(message.blocks)).encode()))
     for b in message.blocks:
@@ -403,7 +403,7 @@ def render_messages(
 ) -> bytes:
     """A body with the client's top-level fields in their order, ``messages``
     replaced, and ``overrides`` replacing settings in place (absent ones are
-    appended at the end). Used for bounded views (mnemon.view)."""
+    appended at the end). Used for bounded views (palimnesis.view)."""
     overrides = dict(overrides or {})
     doc: dict[str, Any] = {}
     for key in req.top_level_order:

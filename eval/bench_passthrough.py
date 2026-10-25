@@ -24,8 +24,8 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
-from mnemon.api import create_app  # noqa: E402
-from mnemon.config import Settings  # noqa: E402
+from palimnesis.api import create_app  # noqa: E402
+from palimnesis.config import Settings  # noqa: E402
 from tests.fake_upstream import FakeUpstream  # noqa: E402
 from tests.servers import serve  # noqa: E402
 
@@ -67,7 +67,7 @@ def run(n: int, body_kb: int) -> dict:
         k: {"direct": [], "proxy": []} for k in ("json_total", "sse_first_byte", "sse_total")
     }
     with serve(fake.app()) as upstream_url:
-        with serve(create_app(Settings(upstream_base_url=upstream_url)), mnemon=True) as proxy_url:
+        with serve(create_app(Settings(upstream_base_url=upstream_url)), palimnesis=True) as proxy_url:
             targets = {
                 "direct": f"{upstream_url}/v1/chat/completions",
                 "proxy": f"{proxy_url}/s/bench/v1/chat/completions",

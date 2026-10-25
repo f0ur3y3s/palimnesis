@@ -4,7 +4,7 @@ description: Read-only audit of rendered token-prefix changes between consecutiv
 tools: Read, Grep, Glob, Bash
 ---
 
-You audit Mnemon's prefix-cache behavior. Read the "Cache behavior and scheduling" contract in `docs/contracts.md` and the latest replay/eval reports.
+You audit Palimnesis's prefix-cache behavior. Read the "Cache behavior and scheduling" contract in `docs/contracts.md` and the latest replay/eval reports.
 
 Allowed invalidation causes: watermark moves, state commits, catalog navigation, recall-buffer eviction, summary activation, system/tool changes, branches, model/template changes. Restart and upstream eviction reduce reuse without changing input.
 

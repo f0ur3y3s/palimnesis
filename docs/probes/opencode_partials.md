@@ -4,7 +4,7 @@ Oct 24, 2026 · Phase 1 slice 0 · fake upstream only
 
 ## What this is
 
-This probe answers one question for D10.3, D10.4 and D10.12: when Mnemon ends a stream after partial output, what does OpenCode 2.1.4 send on the next request in that session? "Next request" means OpenCode's own Continue resend, if any, and then the next user turn.
+This probe answers one question for D10.3, D10.4 and D10.12: when Palimnesis ends a stream after partial output, what does OpenCode 2.1.4 send on the next request in that session? "Next request" means OpenCode's own Continue resend, if any, and then the next user turn.
 
 Every result comes from a real `opencode.exe` v2.1.4 talking to the deterministic fault server. No live Strata server was involved.
 
@@ -15,7 +15,7 @@ Markers:
 ## Setup
 
 **Server.** `eval/probes/opencode_fault_server.py`, extended with:
-- `("error", message, code)`: the code is now configurable. Every scenario here sends `data: {"error": {"message": "mnemon: upstream stream failed", "type": "server_error", "code": "upstream_stream_failed"}}`.
+- `("error", message, code)`: the code is now configurable. Every scenario here sends `data: {"error": {"message": "palimnesis: upstream stream failed", "type": "server_error", "code": "upstream_stream_failed"}}`.
 - `("tool_call", id, name, [fragments])`: streams one tool call at index 0.
 - `--raw-dir`: writes the exact bytes of each request body.
 - The `pp_*` scenarios. In each, attempt 1 fails as described and every later attempt gets a normal answer, `OK from fault server`, with `finish_reason: stop`.
@@ -33,7 +33,7 @@ Each run then does:
 2. `opencode run --standalone -m <model> --session <id> "Next question: what is 3+3?"`, where `<id>` is the `x-opencode-session-id` of turn 1's first request.
 
 **Config.**
-- `v2`, the default: the shipped `integrations/opencode/opencode.json` (`providers.mnemon`, `compatibility.reasoningField: reasoning_content`, `limit.output: 8192`) plus `plugins/mnemon.ts`. `MNEMON_PROXY_ORIGIN` points at the fault server, so every request goes to `/s/<sessionID>/v1/chat/completions` with `X-Mnemon-Kind: primary`, exactly as with Mnemon.
+- `v2`, the default: the shipped `integrations/opencode/opencode.json` (`providers.palimnesis`, `compatibility.reasoningField: reasoning_content`, `limit.output: 8192`) plus `plugins/palimnesis.ts`. `PALIMNESIS_PROXY_ORIGIN` points at the fault server, so every request goes to `/s/<sessionID>/v1/chat/completions` with `X-Palimnesis-Kind: primary`, exactly as with Palimnesis.
 - `v1`: the fault probe's config, with provider `fault` and no `reasoningField`. It is used only for the `_v1` runs.
 
 **Fixtures.** `eval/fixtures/opencode-2.1.4/partials/<run>/` holds:
@@ -53,7 +53,7 @@ Each run then does:
 - **Key order.** An assistant message is `role, content, tool_calls?, reasoning_content?`. A tool message is `role, tool_call_id, content`.
 - **Turn 2 needs no rewrite.** No synthetic message and no error text appear in assistant content. The only error text that reaches history is the synthetic tool result in tool-call runs (E, E2, E3).
 - **Session and trace.**
-  - The `/s/<id>/` prefix and `x-opencode-session-id` are the same for turn 1, the Continue and turn 2. `X-Mnemon-Kind` is `primary` on all of them.
+  - The `/s/<id>/` prefix and `x-opencode-session-id` are the same for turn 1, the Continue and turn 2. `X-Palimnesis-Kind` is `primary` on all of them.
   - The `traceparent` trace-id is shared by a turn and its Continue, but turn 2 gets a **new trace-id**. This closes the open question in `opencode_faults.md`.
 - The user prompts arrive wrapped in literal double quotes (`"\"First question…\""`). This is how `opencode run` passes its message argument on Windows, and it matches the live fixtures. It does not affect the results.
 
@@ -71,7 +71,7 @@ Abbreviations:
 
 | | |
 | --- | --- |
-| Turn 1 requests | 1 (no retry, no Continue). Prints `T` and `Error: mnemon: upstream stream failed`; exit 1. |
+| Turn 1 requests | 1 (no retry, no Continue). Prints `T` and `Error: palimnesis: upstream stream failed`; exit 1. |
 | Turn 2 messages | `S, U1, {"role":"assistant","content":"Thinking about attempt-1Partial answer attempt-1","reasoning_content":""}, U2` |
 | Partial present? | Yes. `content` = `R + T`, no separator. `reasoning_content` is `""` (v2) or absent (v1). |
 | Synthetic or error text? | None. |
@@ -122,7 +122,7 @@ The streamed arguments were `{"filePath": "notes.tx`: invalid, unterminated JSON
 | --- | --- | --- | --- |
 | Turn 1 requests | 1. Output: `Error`, `✗ Read failed`, `Error`; exit 1. | 1. Output adds the text. | **2: a Continue.** The tool-call delta alone counts as output; the faults doc only showed this for text and reasoning. |
 | Assistant message | `{"role":"assistant","content":null,"tool_calls":[{"id":"call_fault_1","type":"function","function":{"name":"read","arguments":"{}"}}],"reasoning_content":""}` | Same, with `content` = `"Thinking about attempt-1Let me look attempt-1"` | Same as E |
-| Then | `{"role":"tool","tool_call_id":"call_fault_1","content":"{\"error\":{\"type\":\"provider.internal\",\"message\":\"mnemon: upstream stream failed\",\"status\":200,\"response\":{\"body\":\"<the SSE error data payload, verbatim>\"}},\"content\":[]}"}` | Same | Tool message whose content is `{"error":{"type":"provider.invalid-output","message":"OpenAI Chat stream ended without finish_reason","status":200},"content":[]}`, then `user INT` |
+| Then | `{"role":"tool","tool_call_id":"call_fault_1","content":"{\"error\":{\"type\":\"provider.internal\",\"message\":\"palimnesis: upstream stream failed\",\"status\":200,\"response\":{\"body\":\"<the SSE error data payload, verbatim>\"}},\"content\":[]}"}` | Same | Tool message whose content is `{"error":{"type":"provider.invalid-output","message":"OpenAI Chat stream ended without finish_reason","status":200},"content":[]}`, then `user INT` |
 | Turn 2 messages | `S, U1, assistant(tool_calls), tool(error), U2` | Same | `S, U1, assistant(tool_calls), tool(error), user INT, OKA, U2` |
 | Prior history bytes | Identical | Identical | Identical |
 
@@ -130,7 +130,7 @@ Facts drawn from these runs:
 - The tool call keeps its streamed `id` and `name`.
 - Its `arguments` become `"{}"`: the partial fragments are dropped. Whether arguments that were complete, valid JSON before the failure would be kept is UNVERIFIED.
 - The tool was never executed.
-- OpenCode writes a synthetic tool result that embeds the failure. For an error event, that includes Mnemon's exact error-event data payload as `response.body`.
+- OpenCode writes a synthetic tool result that embeds the failure. For an error event, that includes Palimnesis's exact error-event data payload as `response.body`.
 
 ### Control: completed reasoning answer (`Z_control_reason_text_ok`, `Z2_control_ws_reason_text_ok`)
 
@@ -139,7 +139,7 @@ Turn 2 carries `{"role":"assistant","content":"Complete answer attempt-1","reaso
 ## Reconciliation rules implied
 
 Definitions:
-- `D` is the concatenation, in emission order, of the reasoning deltas and then the content deltas that Mnemon wrote to the client for the archived partial generation.
+- `D` is the concatenation, in emission order, of the reasoning deltas and then the content deltas that Palimnesis wrote to the client for the archived partial generation.
 - `|R|` is the length of the reasoning part of `D`.
 - An *error-event ending* is an SSE error event followed by a clean end, sent with `x-should-retry: false`.
 
@@ -154,7 +154,7 @@ Definitions:
    - The assistant message has `content == D[:k]`, or `null` when `k == 0`.
    - It has `tool_calls == [{"id": <streamed id>, "type": "function", "function": {"name": <streamed name>, "arguments": "{}"}}]`. Match on id and name; the arguments are always the literal `"{}"`, not the streamed prefix.
    - `reasoning_content` is `""` or absent.
-   - It is followed by a client-authored `role: "tool"` message for that `tool_call_id` whose content is OpenCode's error JSON. Accept that message as ordinary appended client content. Do not require particular bytes: they embed Mnemon's error payload, or OpenCode's own message for a bare close.
+   - It is followed by a client-authored `role: "tool"` message for that `tool_call_id` whose content is OpenCode's error JSON. Accept that message as ordinary appended client content. Do not require particular bytes: they embed Palimnesis's error payload, or OpenCode's own message for a bare close.
 3. **Next turn after an error-event ending (A, B, E).** The request is an **extension**, not a resend:
    - `visible parent (byte-identical) + U_failed (unchanged) + partial (rules 1–2) [+ tool result] + new user message`.
    - There is no synthetic user message.

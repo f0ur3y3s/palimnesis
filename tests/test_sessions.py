@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from mnemon.sessions import SessionError, resolve_session
+from palimnesis.sessions import SessionError, resolve_session
 
 
 def test_path_identifier_alone_is_the_session():

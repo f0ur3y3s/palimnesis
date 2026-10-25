@@ -29,7 +29,7 @@ def default_db_path() -> Path:
         base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    return base / "mnemon" / "mnemon.db"
+    return base / "palimnesis" / "palimnesis.db"
 
 
 def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
@@ -60,8 +60,8 @@ def _settings(args: argparse.Namespace) -> Settings:
 
 
 def serve_settings(argv: list[str]) -> Settings:
-    """The Settings `mnemon serve` would run with for these arguments."""
-    parser = argparse.ArgumentParser(prog="mnemon serve")
+    """The Settings `palimnesis serve` would run with for these arguments."""
+    parser = argparse.ArgumentParser(prog="palimnesis serve")
     _add_serve_arguments(parser)
     return _settings(parser.parse_args(argv))
 
@@ -100,7 +100,7 @@ def _session_url(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="mnemon")
+    parser = argparse.ArgumentParser(prog="palimnesis")
     commands = parser.add_subparsers(dest="command", required=True)
 
     def address(p: argparse.ArgumentParser) -> None:

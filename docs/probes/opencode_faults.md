@@ -44,7 +44,7 @@ Markers:
 
 Title generation is off, so every request in the fixtures is a primary step.
 
-**Endpoint.** OpenCode points directly at the fault server (`http://127.0.0.1:<port>/v1`) in the main matrix. Four runs go through `uv run mnemon serve --upstream <fault server>` with base `http://127.0.0.1:<port>/s/<session>/v1`: `ok_proxy`, `s500_proxy`, `partial_abort_then_ok_proxy` and `chunk_timeout5s_keepalive_proxy`. The session prefix was preserved, and each behaved the same as its direct counterpart.
+**Endpoint.** OpenCode points directly at the fault server (`http://127.0.0.1:<port>/v1`) in the main matrix. Four runs go through `uv run palimnesis serve --upstream <fault server>` with base `http://127.0.0.1:<port>/s/<session>/v1`: `ok_proxy`, `s500_proxy`, `partial_abort_then_ok_proxy` and `chunk_timeout5s_keepalive_proxy`. The session prefix was preserved, and each behaved the same as its direct counterpart.
 
 ### Isolation (VERIFIED)
 
@@ -59,7 +59,7 @@ Each run's DB, logs, cache and state were written only under `<scratchpad>/openc
 | `OPENCODE_DISABLE_PROJECT_CONFIG=1`, `OPENCODE_DISABLE_CLAUDE_CODE=1` | Stop the upward config walk and `.claude` skill loading (`core/src/config/discovery.ts`) |
 | `OPENCODE_DISABLE_MODELS_FETCH=1`, `OPENCODE_DISABLE_AUTOUPDATE=1` | No network side traffic |
 | `--standalone` | Spawns a private `opencode serve --stdio --port 0` child instead of attaching to the user's background service (`cli/src/services/server-connection.ts`) |
-| **`PWD=<run>/work`** | `opencode run` takes its session directory from `process.env.PWD` before `cwd` (`cli/src/run/run.ts:74`). A PWD inherited from Git Bash pointed the session at the mnemon checkout. |
+| **`PWD=<run>/work`** | `opencode run` takes its session directory from `process.env.PWD` before `cwd` (`cli/src/run/run.ts:74`). A PWD inherited from Git Bash pointed the session at the palimnesis checkout. |
 | **stdin at EOF** | `run.ts:77` reads stdin to EOF when it is not a TTY. An open pipe hangs the run after server bootstrap. |
 
 The last two rows are pitfalls not listed in `docs/probes/opencode_live.md`.
@@ -80,7 +80,7 @@ A first pass ran before the PWD fix. Those requests carried `Working directory: 
 | `s502` | 11 | 2.0, 4.3, 7.7, 10.8, … ≤ 11.9 (≈87 s) | identical | error, exit 1 |
 | `s503` | 11 | 1.9, 4.2, 8.8, 9.0, … ≤ 11.2 (≈80 s) | identical | error, exit 1 |
 | `s503_then_ok` | 3 | 2.0, 4.2 | identical | `OK from fault server`, no error, exit 0 |
-| `s500_proxy` (through `mnemon serve`) | 11 | 1.7, 3.4, 8.6, … (≈82 s) | identical | error, exit 1 |
+| `s500_proxy` (through `palimnesis serve`) | 11 | 1.7, 3.4, 8.6, … (≈82 s) | identical | error, exit 1 |
 
 The schedule matches `$OC/packages/core/src/model-retry.ts` (SOURCE): exponential from 2 s, capped at 10 s per gap, `Schedule.jittered` (0.8–1.2×), and `recurs(10)`. Observed gaps fall between 1.6 s and 12.6 s.
 
@@ -123,7 +123,7 @@ A role chunk with empty content does **not** count as output started. OpenCode r
 | `partial_eof` (text, clean EOF, every attempt) | 11 | 2.2, 3.5, 6.5, 10.9, … (≈85 s) | **+2 messages each time:** `assistant: "Partial answer attempt-N"`, then `user: "The previous response was interrupted. Continue from where you left off without repeating completed content."` | All 11 partial texts printed; 10 step errors and a final error; exit 1 |
 | `partial_eof_then_ok` | 2 | 1.7 | +2 as above | `Partial answer attempt-1` / `OK from fault server`, plus `Error: … without finish_reason`; **exit 1 despite recovery** |
 | `partial_abort_then_ok` (text, 1 s, RST) | 2 | 2.7 | +2 as above | partial text and OK, `Error: … ECONNRESET`, exit 1 |
-| `partial_abort_then_ok_proxy` (upstream RST through `mnemon serve`) | 2 | 3.1 | +2 as above | same. The proxy turns the upstream RST into a client-side ECONNRESET. |
+| `partial_abort_then_ok_proxy` (upstream RST through `palimnesis serve`) | 2 | 3.1 | +2 as above | same. The proxy turns the upstream RST into a client-side ECONNRESET. |
 | `partial_eof_noretry` (+ `x-should-retry: false`) | 2 | 1.8 | +2 as above | **Continue still happens**; exit 1 |
 | `partial_reasoning_then_ok` (`reasoning_content` then text) | 2 | 2.4 | +2. The assistant message is `content: "Thinking about attempt-1Partial answer attempt-1"`, with **no `reasoning_content` field**. | partial text and OK, exit 1 |
 | `reasoning_only_then_ok` (reasoning only, no text) | 2 | 2.1 | +2. The assistant message is `content: "Thinking about attempt-1"`. | OK, exit 1 |
@@ -166,7 +166,7 @@ This corrects `harnesses.md` §8, which says the stream must end with a known `f
 | `chunk_timeout5s_idle_role_noretry` (+ `x-should-retry: false` on the 200) | 5000 | **1** | — | timeout error, exit 1. The client-side timeout is not retried either. |
 | `chunk_timeout5s_keepalive` (`: keep-alive` every 2 s for 15 s, before any data event) | 5000 | **1** | 8 comments, then the full answer at 16 s | OK, exit 0 |
 | `chunk_timeout5s_keepalive_after_role` (comments after the role chunk) | 5000 | 1 | Same | OK, exit 0 |
-| `chunk_timeout5s_keepalive_proxy` (comments relayed by `mnemon serve`) | 5000 | 1 | Same | OK, exit 0 |
+| `chunk_timeout5s_keepalive_proxy` (comments relayed by `palimnesis serve`) | 5000 | 1 | Same | OK, exit 0 |
 | `total_timeout10s_keepalive` (comments for 15 s) | `options.timeout: 10000` | **4** | Client closed at **10.03 s** each time despite the comments | `Error: Timed out waiting for the response to complete`, exit 1 |
 
 **SSE comment lines count as read activity.** The idle timer runs on raw response bytes before SSE framing (`$OC/packages/ai/src/route/transport/http.ts:119-124`).
@@ -232,7 +232,7 @@ Other configuration facts:
 
   ```js
   export default {
-    id: "mnemon-retry-off",
+    id: "palimnesis-retry-off",
     setup: async (ctx) => {
       await ctx.session.hook("retry", (event) => { event.decision = { retry: false } })
     },
@@ -248,33 +248,33 @@ Other configuration facts:
 2. §3: "Up to 10 retries" is confirmed: 11 attempts, ≈80–100 s with every attempt failing. Continues share that budget. The `length` continuation is separate: at most 2, with no delay.
 3. §3: 409 is retryable (confirmed). `retry-after-ms` works. `retry-after` is a floor (max with the backoff), not a replacement.
 4. §3: `x-should-retry` sent on a **200 stream response** also governs failures inside that stream (error event, missing `finish_reason`, RST, client chunk timeout) before output. It does not govern Continue, except when the failure is an in-stream error event, which the header does control.
-5. §4: The read-idle timer counts SSE comments. Previously INFERRED, now VERIFIED, direct and through `mnemon serve`.
+5. §4: The read-idle timer counts SSE comments. Previously INFERRED, now VERIFIED, direct and through `palimnesis serve`.
 6. §7: Reasoning from interrupted messages is flattened into `content`, concatenated with the visible text without a separator. Previously source-only, now VERIFIED.
 7. New: `opencode run` uses `PWD` for its directory and reads non-TTY stdin to EOF. Both matter for scripted harness runs.
 8. New, about user visibility: `opencode run` exits 1 whenever any step failed, even when a Continue later succeeded. A pre-output retry that later succeeds exits 0 with no error shown.
 
-## Implications for Mnemon
+## Implications for Palimnesis
 
-**OpenCode behavior Mnemon has to design around:**
+**OpenCode behavior Palimnesis has to design around:**
 - OpenCode sends no idempotency key.
 - It resends **identical bodies** after any pre-output failure, up to 10 times over about 80–100 s; timeouts retry at most 3 times.
 - After **any** streamed text or reasoning, a bare close, RST, missing `finish_reason` or read timeout produces a **Continue**. That is a different request: it extends the visible parent with the failed assistant message, its reasoning flattened into the text, plus a fixed synthetic user message. `x-should-retry` cannot stop this.
-- The client closes its socket at each timeout, so Mnemon's disconnect handling sees every abandoned attempt.
+- The client closes its socket at each timeout, so Palimnesis's disconnect handling sees every abandoned attempt.
 
 ### Status codes and headers to use
 
 | Situation | Response | Why (fixture) |
 | --- | --- | --- |
-| **Overload (queue full)** | `429` with `retry-after: <seconds>` (or `retry-after-ms`) set to a realistic queue-drain estimate of at least 2 s. Do **not** send `x-should-retry: false`. Use an error message such as `"mnemon: queue full"`. | OpenCode waits max(backoff, header) and resends the identical body, up to 10 times (`s429_ra15_then_ok`: 15.0 s gap). Nothing was accepted, so the resend is a fresh admission, not a duplicate. Add `x-should-retry: false` only when the overload is not expected to clear within roughly 90 s (`s429_noretry`: 1 attempt). |
-| **In-progress duplicate** (same session, visible parent and fingerprint as an outstanding attempt) | `409` with `x-should-retry: false` and a clear `error.message`. Cancel the old attempt when its connection drops. | OpenCode only resends after giving up on its previous connection, so the original attempt is orphaned. Without the header, 409 is retried 10 times (`s409`); with it, there is one attempt (`s409_noretry`). If Mnemon instead wants OpenCode to retry once cancellation cleanup finishes, use `503` with `retry-after: <cleanup seconds>` (a verified floor, `s503_ra12_then_ok`). The `retry-after` floor for 409 is untested. |
-| **Ambiguous completed retry** (identical body arrives after Mnemon committed a completed response that never reached the client) | `409` with `x-should-retry: false` and a documented error code in the body, for example `mnemon_ambiguous_completion`. | Never regenerate silently. The header makes this one visible failure (`s409_noretry`), and the user re-prompts. A Continue request (synthetic interrupted message plus a failed partial assistant message) is **not** a duplicate. It extends the visible parent and must be reconciled as an append, with the flattened reasoning text mapped back to the archived partial generation. |
-| **Upstream failure before Mnemon sends response headers** | `502` or `503` with `x-should-retry: false` when Mnemon has already retried internally or the failure is permanent. Use `503` with `retry-after` when an OpenCode-driven resend is wanted. | 5xx is otherwise retried 10 times (`s500`, `s502`, `s503`). |
-| **Upstream failure after a 200 stream started** | Always end with an SSE error event, `data: {"error":{"message":…,"type":"server_error"}}`, followed by a clean end of the chunked body. Never a bare close, an RST, or a missing `finish_reason`. Put `x-should-retry: false` on **every** streaming 200 response. | With the header, a pre-output failure is not resent (`error_event_noretry`). After visible output, the message fails with its partial text kept and no Continue (`partial_error_event_noretry`). This leaves internal retry to Mnemon, which can dedupe and cancel, and keeps the harness transcript linear. Without the header, OpenCode resends or Continues. |
-| **Token allowance exhausted** | `finish_reason: "length"` as planned. | OpenCode automatically sends up to 2 continuation requests with the synthetic output-limit message (`length`). Mnemon will see these as ordinary appended turns. The per-request allowance therefore covers each of up to 3 consecutive OpenCode requests, not the logical answer. |
+| **Overload (queue full)** | `429` with `retry-after: <seconds>` (or `retry-after-ms`) set to a realistic queue-drain estimate of at least 2 s. Do **not** send `x-should-retry: false`. Use an error message such as `"palimnesis: queue full"`. | OpenCode waits max(backoff, header) and resends the identical body, up to 10 times (`s429_ra15_then_ok`: 15.0 s gap). Nothing was accepted, so the resend is a fresh admission, not a duplicate. Add `x-should-retry: false` only when the overload is not expected to clear within roughly 90 s (`s429_noretry`: 1 attempt). |
+| **In-progress duplicate** (same session, visible parent and fingerprint as an outstanding attempt) | `409` with `x-should-retry: false` and a clear `error.message`. Cancel the old attempt when its connection drops. | OpenCode only resends after giving up on its previous connection, so the original attempt is orphaned. Without the header, 409 is retried 10 times (`s409`); with it, there is one attempt (`s409_noretry`). If Palimnesis instead wants OpenCode to retry once cancellation cleanup finishes, use `503` with `retry-after: <cleanup seconds>` (a verified floor, `s503_ra12_then_ok`). The `retry-after` floor for 409 is untested. |
+| **Ambiguous completed retry** (identical body arrives after Palimnesis committed a completed response that never reached the client) | `409` with `x-should-retry: false` and a documented error code in the body, for example `palimnesis_ambiguous_completion`. | Never regenerate silently. The header makes this one visible failure (`s409_noretry`), and the user re-prompts. A Continue request (synthetic interrupted message plus a failed partial assistant message) is **not** a duplicate. It extends the visible parent and must be reconciled as an append, with the flattened reasoning text mapped back to the archived partial generation. |
+| **Upstream failure before Palimnesis sends response headers** | `502` or `503` with `x-should-retry: false` when Palimnesis has already retried internally or the failure is permanent. Use `503` with `retry-after` when an OpenCode-driven resend is wanted. | 5xx is otherwise retried 10 times (`s500`, `s502`, `s503`). |
+| **Upstream failure after a 200 stream started** | Always end with an SSE error event, `data: {"error":{"message":…,"type":"server_error"}}`, followed by a clean end of the chunked body. Never a bare close, an RST, or a missing `finish_reason`. Put `x-should-retry: false` on **every** streaming 200 response. | With the header, a pre-output failure is not resent (`error_event_noretry`). After visible output, the message fails with its partial text kept and no Continue (`partial_error_event_noretry`). This leaves internal retry to Palimnesis, which can dedupe and cancel, and keeps the harness transcript linear. Without the header, OpenCode resends or Continues. |
+| **Token allowance exhausted** | `finish_reason: "length"` as planned. | OpenCode automatically sends up to 2 continuation requests with the synthetic output-limit message (`length`). Palimnesis will see these as ordinary appended turns. The per-request allowance therefore covers each of up to 3 consecutive OpenCode requests, not the logical answer. |
 
 Cautions:
-- `x-should-retry: false` on every stream also disables OpenCode's own resend after a client-side idle timeout before output (`chunk_timeout5s_idle_role_noretry`). That is acceptable only if Mnemon's keepalives make such timeouts impossible, which the next section requires.
-- A Mnemon process crash mid-stream still produces an RST, which triggers a Continue whenever output had started. Only the plugin `retry` hook prevents that. The Phase 1 reconciliation must accept the Continue shape regardless.
+- `x-should-retry: false` on every stream also disables OpenCode's own resend after a client-side idle timeout before output (`chunk_timeout5s_idle_role_noretry`). That is acceptable only if Palimnesis's keepalives make such timeouts impossible, which the next section requires.
+- A Palimnesis process crash mid-stream still produces an RST, which triggers a Continue whenever output had started. Only the plugin `retry` hook prevents that. The Phase 1 reconciliation must accept the Continue shape regardless.
 - Keep proxy error messages clear of OpenCode's classifier patterns (`$OC/packages/ai/src/provider-error.ts`):
   - Context-overflow phrases such as "too many tokens" or "exceeds the context window" trigger overflow handling.
   - Quota phrases such as "usage limit" or "quota exceeded" on a 429 make it non-retryable.
@@ -283,18 +283,18 @@ Cautions:
 ### Keepalive interval
 
 **Recommendation: one SSE comment every 15 s from the moment the 200 headers are sent**, through queue wait, prefill and internal recall, until the first visible delta.
-- Comments are verified to reset OpenCode's read-idle timer, both direct and through `mnemon serve`.
+- Comments are verified to reset OpenCode's read-idle timer, both direct and through `palimnesis serve`.
 - 15 s is 60× under the 900 s default `chunkTimeout`, and still 2× under a 30 s value a user might set.
-- Send the 200 status line promptly at admission, well inside the 300 s header timeout. A header timeout causes up to 3 identical resends of a request Mnemon may still be working on.
+- Send the 200 status line promptly at admission, well inside the 300 s header timeout. A header timeout causes up to 3 identical resends of a request Palimnesis may still be working on.
 
 ### Request-wide deadline
 
-OpenCode has **no total deadline** by default: `timeout` is unset, and keepalives keep the idle timer alive indefinitely. Mnemon's deadline is therefore the only bound on a logical request.
+OpenCode has **no total deadline** by default: `timeout` is unset, and keepalives keep the idle timer alive indefinitely. Palimnesis's deadline is therefore the only bound on a logical request.
 
 **Recommendation: a request-wide deadline of 600 s by default, measured from arrival and including queue wait**, configurable.
 - On expiry, cancel the upstream attempt and finish the stream with an SSE error event. With `x-should-retry: false` on the response, OpenCode makes no resend or Continue.
-- 600 s ends a stuck request well before the ≈15 min a silent upstream would take to hit OpenCode's 900 s idle limit. Because Mnemon's keepalives hide upstream silence from the client, Mnemon is the only component that can stop a stuck request.
-- If a user sets the provider's `timeout`, document that Mnemon's deadline must be no more than `timeout` minus a 10 s cleanup and error-delivery margin.
+- 600 s ends a stuck request well before the ≈15 min a silent upstream would take to hit OpenCode's 900 s idle limit. Because Palimnesis's keepalives hide upstream silence from the client, Palimnesis is the only component that can stop a stuck request.
+- If a user sets the provider's `timeout`, document that Palimnesis's deadline must be no more than `timeout` minus a 10 s cleanup and error-delivery margin.
 - The value is a policy choice, not a measured client limit. Revisit it once Strata generation rates for the longest allowed `max_completion_tokens` are measured.
 
 ## Not covered

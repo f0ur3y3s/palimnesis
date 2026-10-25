@@ -28,7 +28,7 @@ def test_post_body_reaches_upstream_unchanged_with_session_prefix_stripped(stack
     assert got.body == body
 
 
-def test_client_headers_and_query_are_forwarded_but_mnemon_headers_are_not(stack):
+def test_client_headers_and_query_are_forwarded_but_palimnesis_headers_are_not(stack):
     stack.upstream.respond_json(b"{}")
 
     httpx.post(
@@ -38,7 +38,7 @@ def test_client_headers_and_query_are_forwarded_but_mnemon_headers_are_not(stack
             "authorization": "Bearer local",
             "x-stainless-retry-count": "0",
             "anthropic-version": "2023-06-01",
-            "x-mnemon-session": "sess-1",
+            "x-palimnesis-session": "sess-1",
         },
     )
 
@@ -47,7 +47,7 @@ def test_client_headers_and_query_are_forwarded_but_mnemon_headers_are_not(stack
     assert got.headers["authorization"] == "Bearer local"
     assert got.headers["x-stainless-retry-count"] == "0"
     assert got.headers["anthropic-version"] == "2023-06-01"
-    assert "x-mnemon-session" not in got.headers
+    assert "x-palimnesis-session" not in got.headers
     assert got.headers["host"] == stack.upstream_url.removeprefix("http://")
 
 
@@ -69,7 +69,7 @@ def test_header_only_session_routes_unprefixed_paths(stack):
     r = httpx.post(
         f"{stack.proxy_url}/v1/chat/completions",
         content=b"{}",
-        headers={"x-mnemon-session": "sess-1"},
+        headers={"x-palimnesis-session": "sess-1"},
     )
 
     assert r.status_code == 200
@@ -81,7 +81,7 @@ def test_mismatched_path_and_header_session_is_rejected_before_upstream(stack):
     r = httpx.post(
         f"{stack.proxy_url}/s/sess-1/v1/chat/completions",
         content=b"{}",
-        headers={"x-mnemon-session": "sess-2"},
+        headers={"x-palimnesis-session": "sess-2"},
     )
 
     assert r.status_code == 400
@@ -274,7 +274,7 @@ def test_repeated_session_headers_that_disagree_are_rejected(stack):
     r = httpx.post(
         f"{stack.proxy_url}/v1/chat/completions",
         content=b"{}",
-        headers=[("x-mnemon-session", "sess-1"), ("x-mnemon-session", "sess-2")],
+        headers=[("x-palimnesis-session", "sess-1"), ("x-palimnesis-session", "sess-2")],
     )
 
     assert r.status_code == 400
@@ -283,8 +283,8 @@ def test_repeated_session_headers_that_disagree_are_rejected(stack):
 
 
 async def test_proxy_refuses_requests_without_lifespan_startup():
-    from mnemon.api import create_app
-    from mnemon.config import Settings
+    from palimnesis.api import create_app
+    from palimnesis.config import Settings
 
     app = create_app(Settings(upstream_base_url="http://127.0.0.1:1"))
     scope = {

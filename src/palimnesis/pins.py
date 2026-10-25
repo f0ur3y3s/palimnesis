@@ -1,6 +1,6 @@
 """Vendored upstream pins: the chat template and tokenizer Strata renders with.
 
-A pin lives in ``mnemon/pins_data/<name>/`` (inside the package, so it ships in the
+A pin lives in ``palimnesis/pins_data/<name>/`` (inside the package, so it ships in the
 wheel) as ``chat_template.jinja``, ``tokenizer.json`` and ``PIN.json``. ``PIN.json``
 records the build it was taken from, each file's SHA-256, the tokenizer revision and
 Strata's message preprocessing rules. Every file is verified on load; the manifest
@@ -47,7 +47,7 @@ class Pin:
 
 
 def pin_dir(name: str = DEFAULT_PIN) -> Path:
-    return Path(str(resources.files("mnemon") / "pins_data" / name))
+    return Path(str(resources.files("palimnesis") / "pins_data" / name))
 
 
 def _read(directory: Path, filename: str) -> bytes:

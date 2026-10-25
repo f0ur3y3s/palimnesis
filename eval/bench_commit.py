@@ -48,10 +48,10 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
-from mnemon import archive, ledger, rawarchive
-from mnemon.api import create_app
-from mnemon.config import Settings
-from mnemon.store import Store
+from palimnesis import archive, ledger, rawarchive
+from palimnesis.api import create_app
+from palimnesis.config import Settings
+from palimnesis.store import Store
 from tests.fake_upstream import FakeUpstream
 from tests.servers import serve
 
@@ -218,9 +218,9 @@ def relay_delay(workdir: Path, deltas: int, paced_n: int, burst_n: int, gap_s: f
                                                   synchronous="NORMAL")),
         }
         with (
-            serve(apps["passthrough"], mnemon=True) as pt,
-            serve(apps["archive_FULL"], mnemon=True) as af,
-            serve(apps["archive_NORMAL"], mnemon=True) as an,
+            serve(apps["passthrough"], palimnesis=True) as pt,
+            serve(apps["archive_FULL"], palimnesis=True) as af,
+            serve(apps["archive_NORMAL"], palimnesis=True) as an,
         ):
             urls = {"passthrough": pt, "archive_FULL": af, "archive_NORMAL": an}
             with httpx.Client(timeout=120) as client:
@@ -306,7 +306,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dir", type=Path, help="directory for the databases (default: temp)")
     args = parser.parse_args(argv)
     report = {"environment": environment()}
-    with tempfile.TemporaryDirectory(prefix="mnemon-bench-commit-", dir=args.dir) as tmp:
+    with tempfile.TemporaryDirectory(prefix="palimnesis-bench-commit-", dir=args.dir) as tmp:
         report["environment"]["db_dir"] = tmp
         report["commit"] = asyncio.run(commit_latency(Path(tmp), args.n, args.warmup))
         report["relay"] = relay_delay(Path(tmp), args.deltas, args.relay_n, args.burst_n,

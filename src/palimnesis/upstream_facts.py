@@ -38,7 +38,7 @@ from . import pins, tokens
 
 PROPS_TIMEOUT_S = 1.0
 COUNT_TOKENS_TIMEOUT_S = 5.0
-CANARY_MODEL = "mnemon-canary"
+CANARY_MODEL = "palimnesis-canary"
 
 _TH = "Let me think about this carefully step by step with many words of reasoning here."
 _WEATHER = {

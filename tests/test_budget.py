@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from mnemon.budget import BudgetError, BudgetPolicy, check_fixed, check_floor, plan_budget
+from palimnesis.budget import BudgetError, BudgetPolicy, check_fixed, check_floor, plan_budget
 
 POLICY = BudgetPolicy()
 

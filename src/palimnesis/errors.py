@@ -20,7 +20,7 @@ def error_response(
     """``retry`` sets ``x-should-retry``, which the supported harness SDKs honor."""
     if is_anthropic_path(path):
         # Anthropic's error object has no code field; carry it in the message.
-        body = {"type": "error", "error": {"type": type_, "message": f"mnemon {code}: {message}"}}
+        body = {"type": "error", "error": {"type": type_, "message": f"palimnesis {code}: {message}"}}
     else:
         body = {"error": {"message": message, "type": type_, "code": code, "param": None}}
     return JSONResponse(

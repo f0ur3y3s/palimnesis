@@ -35,10 +35,10 @@ KILL_AFTER_S = 150
 RETRY_OFF_PLUGIN = """\
 // Session retry hook: veto every automatic retry/continuation decision.
 export default {
-  id: "mnemon-retry-off",
+  id: "palimnesis-retry-off",
   setup: async (ctx) => {
     await ctx.session.hook("retry", (event) => {
-      console.error(`[mnemon-retry-off] attempt=${event.attempt} decision=${JSON.stringify(event.decision)} error=${JSON.stringify(event.error)}`)
+      console.error(`[palimnesis-retry-off] attempt=${event.attempt} decision=${JSON.stringify(event.decision)} error=${JSON.stringify(event.error)}`)
       event.decision = { retry: false }
     })
   },
@@ -254,7 +254,7 @@ def run_one(name: str, root: Path, port: int) -> dict:
                 [
                     "uv",
                     "run",
-                    "mnemon",
+                    "palimnesis",
                     "serve",
                     "--upstream",
                     upstream,

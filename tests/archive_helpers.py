@@ -18,8 +18,8 @@ from pathlib import Path
 
 import httpx
 
-from mnemon.api import create_app
-from mnemon.config import Settings
+from palimnesis.api import create_app
+from palimnesis.config import Settings
 
 from .fake_upstream import FakeUpstream
 from .servers import serve
@@ -100,7 +100,7 @@ def lifecycle_stack(tmp_path: Path) -> Iterator[LifecycleStack]:
 
     with serve(hooked) as upstream_url:
         settings = Settings(upstream_base_url=upstream_url, db_path=db_path)
-        with serve(create_app(settings), mnemon=True) as proxy_url:
+        with serve(create_app(settings), palimnesis=True) as proxy_url:
             holder.append(LifecycleStack(fake, proxy_url, db_path))
             yield holder[0]
 

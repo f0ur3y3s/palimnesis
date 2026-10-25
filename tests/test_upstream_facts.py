@@ -12,8 +12,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mnemon import pins, tokens, upstream_facts
-from mnemon.upstream_facts import UpstreamState
+from palimnesis import pins, tokens, upstream_facts
+from palimnesis.upstream_facts import UpstreamState
 
 from .fake_upstream import FakeUpstream
 from .servers import serve

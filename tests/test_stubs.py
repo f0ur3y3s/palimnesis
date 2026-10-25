@@ -1,4 +1,4 @@
-"""mnemon.stubs: versioned stub text and Unicode-safe exact chunking (plan slice 6).
+"""palimnesis.stubs: versioned stub text and Unicode-safe exact chunking (plan slice 6).
 
 Counters are deterministic fakes; the real tokenizer is injected by the view.
 """
@@ -11,7 +11,7 @@ import re
 
 import pytest
 
-from mnemon import stubs
+from palimnesis import stubs
 
 
 def byte_tokens(text: str) -> int:
@@ -146,7 +146,7 @@ def test_stub_s1_golden_text():
                                   head_tokens=4, tail_tokens=2)
 
     assert stub == (
-        "[mnemon s1 §K7Q2MX.0 tool_result · 80 tok · 40 lines · sha df8192]\n"
+        "[palimnesis s1 §K7Q2MX.0 tool_result · 80 tok · 40 lines · sha df8192]\n"
         "row 00\n"
         "row 01\n"
         "…[74 tok not shown]…\n"
@@ -160,7 +160,7 @@ def test_stub_s1_header_uses_thousands_separators_and_defaults():
     stub = stubs.tool_result_stub("K7Q2MX", 3, text, count=word_tokens)
 
     assert stub.splitlines()[0] == (
-        f"[mnemon s1 §K7Q2MX.3 tool_result · 18,432 tok · 1 line · "
+        f"[palimnesis s1 §K7Q2MX.3 tool_result · 18,432 tok · 1 line · "
         f"sha {hashlib.sha256(text.encode()).hexdigest()[:6]}]"
     )
     assert "…[18,144 tok not shown]…" in stub  # 18,432 − 192 head − 96 tail
@@ -170,7 +170,7 @@ def test_stub_that_fits_shows_everything_without_omission_marker():
     stub = stubs.tool_result_stub("K7Q2MX", 0, "short\noutput", count=word_tokens)
 
     assert stub == (
-        "[mnemon s1 §K7Q2MX.0 tool_result · 2 tok · 2 lines · sha "
+        "[palimnesis s1 §K7Q2MX.0 tool_result · 2 tok · 2 lines · sha "
         f"{hashlib.sha256(b'short' + b'\n' + b'output').hexdigest()[:6]}]\n"
         "short\noutput"
     )
@@ -178,7 +178,7 @@ def test_stub_that_fits_shows_everything_without_omission_marker():
 
 def test_stub_of_empty_text_is_header_only():
     assert stubs.tool_result_stub("K7Q2MX", 0, "", count=word_tokens) == (
-        "[mnemon s1 §K7Q2MX.0 tool_result · 0 tok · 0 lines · sha e3b0c4]"
+        "[palimnesis s1 §K7Q2MX.0 tool_result · 0 tok · 0 lines · sha e3b0c4]"
     )
 
 
@@ -186,7 +186,7 @@ def test_reasoning_stub_names_its_kind():
     text = "think " * 500
     stub = stubs.reasoning_stub("ABCDEF", 1, text, count=word_tokens)
 
-    assert stub.startswith("[mnemon s1 §ABCDEF.1 reasoning · 500 tok · 1 line · sha ")
+    assert stub.startswith("[palimnesis s1 §ABCDEF.1 reasoning · 500 tok · 1 line · sha ")
     assert "tok not shown]…" in stub
 
 
@@ -274,7 +274,7 @@ def test_crlf_is_never_split_by_a_preview():
     # Head: 4 chars "a\r\na" snap back to the line end. Tail: the 4-char suffix
     # "\na\r\n" would split a CRLF, so it moves forward to "a\r\n".
     assert stub == (
-        "[mnemon s1 §K7Q2MX.0 tool_result · 300 tok · 100 lines · sha 516a01]\n"
+        "[palimnesis s1 §K7Q2MX.0 tool_result · 300 tok · 100 lines · sha 516a01]\n"
         "a\r\n"
         "…[294 tok not shown]…\n"
         "a\r\n"
@@ -292,9 +292,9 @@ def test_bare_ref():
 
 def test_span_note_text():
     assert stubs.span_note("AAAAAA", "BBBBBB", 37, tokens=12345) == (
-        "[mnemon s1 span §AAAAAA–§BBBBBB · 37 messages · 12,345 tok · "
+        "[palimnesis s1 span §AAAAAA–§BBBBBB · 37 messages · 12,345 tok · "
         "archived exactly; not shown]"
     )
     assert stubs.span_note("AAAAAA", "AAAAAA", 1) == (
-        "[mnemon s1 span §AAAAAA · 1 message · archived exactly; not shown]"
+        "[palimnesis s1 span §AAAAAA · 1 message · archived exactly; not shown]"
     )

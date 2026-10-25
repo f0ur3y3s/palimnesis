@@ -1,6 +1,6 @@
 # Capability matrix
 
-What Mnemon claims, per endpoint and harness. Anything absent is unsupported and, once rewriting exists, rejected with `unsupported_feature`. Status values:
+What Palimnesis claims, per endpoint and harness. Anything absent is unsupported and, once rewriting exists, rejected with `unsupported_feature`. Status values:
 
 - **passthrough**: relayed unchanged.
 - **supported (Ph N)**: rewritten and archived from that phase.
@@ -22,7 +22,7 @@ Other backends, such as llama.cpp, are not supported in v1. `--passthrough` rela
 
 ## Endpoints
 
-Modes: archive mode (`mnemon serve`, the default, with `--db`) archives and reconciles chat requests; `--passthrough` relays everything unchanged.
+Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and reconciles chat requests; `--passthrough` relays everything unchanged.
 
 | Client endpoint | `--passthrough` | Archive mode | Notes |
 | --- | --- | --- | --- |

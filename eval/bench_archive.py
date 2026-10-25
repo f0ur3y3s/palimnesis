@@ -3,7 +3,7 @@
 Usage:
     python eval/bench_archive.py [--turns 10,50,100,200] [--e2e-turns 50] [--json]
 
-Part 1 replays request bodies straight through ``mnemon.rawarchive.put_raw``
+Part 1 replays request bodies straight through ``palimnesis.rawarchive.put_raw``
 into a fresh store per run, for delta variant 1 (prefix + suffix) and
 variant 2 (prefix + middle + suffix length):
 
@@ -51,11 +51,11 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
-from mnemon import ledger, rawarchive
-from mnemon.api import create_app
-from mnemon.capture import load_exchanges
-from mnemon.config import Settings
-from mnemon.store import Store
+from palimnesis import ledger, rawarchive
+from palimnesis.api import create_app
+from palimnesis.capture import load_exchanges
+from palimnesis.config import Settings
+from palimnesis.store import Store
 from tests.fake_upstream import FakeUpstream
 from tests.servers import serve
 
@@ -322,7 +322,7 @@ def run_e2e(workdir: Path, turns: int, checkpoints: list[int]) -> dict:
     sse_bytes = 0
     with serve(fake.app()) as upstream_url:
         app = create_app(Settings(upstream_base_url=upstream_url, db_path=path))
-        with serve(app, mnemon=True) as proxy_url:
+        with serve(app, palimnesis=True) as proxy_url:
             url = f"{proxy_url}/s/{SESSION}/v1/chat/completions"
             with httpx.Client(timeout=60) as client:
                 for n in range(turns):
@@ -481,7 +481,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, help="also write the JSON report here")
     args = parser.parse_args(argv)
     turn_counts = [int(x) for x in args.turns.split(",")]
-    with tempfile.TemporaryDirectory(prefix="mnemon-bench-archive-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="palimnesis-bench-archive-") as tmp:
         report = run(turn_counts, args.e2e_turns, args.repeats, Path(tmp))
     if args.out:
         args.out.write_text(json.dumps(report, indent=2))

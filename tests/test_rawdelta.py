@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemon.rawdelta import (
+from palimnesis.rawdelta import (
     Delta,
     DeltaError,
     choose,

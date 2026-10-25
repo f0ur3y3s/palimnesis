@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemon.sse import ChatStream, SSEParser
+from palimnesis.sse import ChatStream, SSEParser
 
 FIXTURES = Path(__file__).resolve().parents[1] / "eval" / "probes" / "fixtures"
 OPENAI_STREAMS = sorted(FIXTURES.glob("sse_oa_*.sse"))

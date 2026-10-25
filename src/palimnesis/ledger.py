@@ -59,7 +59,7 @@ class Plan:
     upstream_body: bytes
     stream: bool
     replay: dict | None = None  # a committed non-streaming response to deliver as is
-    # Upstream messages in order, each with its archived occurrence (mnemon.view).
+    # Upstream messages in order, each with its archived occurrence (palimnesis.view).
     items: list = field(default_factory=list)
     view_state: Any = None  # the branch's persisted ViewState when planned
 
@@ -505,7 +505,7 @@ def accept(
             raise Rejection(409, "request_in_progress",
                             "An identical request is still being answered in this session.")
         raise Rejection(409, "session_busy",
-                        "Another request is in progress in this session; Mnemon serializes "
+                        "Another request is in progress in this session; Palimnesis serializes "
                         "requests per session.")
 
     if idem_key is not None:
@@ -546,7 +546,7 @@ def _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome: Pre
         raise Rejection(
             409, "ambiguous_retry",
             "This request repeats one this session already answered (fully or partly), but "
-            "the answer is missing from the resent history. Mnemon will not generate it "
+            "the answer is missing from the resent history. Palimnesis will not generate it "
             "again silently.",
         )
     request_id = row[0]
@@ -611,7 +611,7 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
         index = outcome.matched + next(i for i, m in enumerate(new) if m.role == "assistant")
         raise Rejection(
             409, "history_divergence",
-            f"Message {index} is an assistant turn Mnemon did not generate. Start a new "
+            f"Message {index} is an assistant turn Palimnesis did not generate. Start a new "
             "session to continue from edited history.",
         )
     previous = conn.execute(

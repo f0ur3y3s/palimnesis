@@ -1,21 +1,21 @@
 # Harnesses
 
-Setup and verified behavior per supported harness. Evidence lives in `docs/probes/`; this file holds what a user needs and what Mnemon relies on. Other harnesses are compared in `docs/probes/harnesses.md` and arrive in Phase 4B.
+Setup and verified behavior per supported harness. Evidence lives in `docs/probes/`; this file holds what a user needs and what Palimnesis relies on. Other harnesses are compared in `docs/probes/harnesses.md` and arrive in Phase 4B.
 
 ## OpenCode 2.1.4 (first harness; Chat Completions)
 
 ### Setup
 
-1. Run the proxy: `uv run mnemon serve --upstream http://<strata-host>:8080`. It archives to `%LOCALAPPDATA%\mnemon\mnemon.db` by default (`--db PATH` to choose, `--passthrough` to relay without archiving). One proxy process owns an archive at a time.
-2. Copy `integrations/opencode/opencode.json` and `integrations/opencode/plugins/mnemon.ts` into your OpenCode config directory (`$OPENCODE_CONFIG_DIR`, or the global config dir), keeping the `plugins/` subfolder. Merge with an existing config rather than replacing it.
-3. If the proxy is not on `127.0.0.1:9000`, set `MNEMON_PROXY_ORIGIN` and change `providers.mnemon.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`.
+1. Run the proxy: `uv run palimnesis serve --upstream http://<strata-host>:8080`. It archives to `%LOCALAPPDATA%\palimnesis\palimnesis.db` by default (`--db PATH` to choose, `--passthrough` to relay without archiving). One proxy process owns an archive at a time.
+2. Copy `integrations/opencode/opencode.json` and `integrations/opencode/plugins/palimnesis.ts` into your OpenCode config directory (`$OPENCODE_CONFIG_DIR`, or the global config dir), keeping the `plugins/` subfolder. Merge with an existing config rather than replacing it.
+3. If the proxy is not on `127.0.0.1:9000`, set `PALIMNESIS_PROXY_ORIGIN` and change `providers.palimnesis.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`.
 4. Start or resume chats normally: `opencode`, `opencode run …`, `opencode run --session <id> …`.
 
 ### Session identity
 
-The plugin's `model.request` hook rewrites each request's base URL to `/s/<OpenCode sessionID>/v1`. A new OpenCode session is a new Mnemon session, and resuming an OpenCode session resumes its Mnemon session, across processes [verified, `docs/probes/opencode_live.md`]. `mnemon session new` is not needed for OpenCode.
+The plugin's `model.request` hook rewrites each request's base URL to `/s/<OpenCode sessionID>/v1`. A new OpenCode session is a new Palimnesis session, and resuming an OpenCode session resumes its Palimnesis session, across processes [verified, `docs/probes/opencode_live.md`]. `palimnesis session new` is not needed for OpenCode.
 
-`X-Mnemon-Kind` carries the request kind (`primary`, `title`, `compaction`, `generate`) for the proxy; it is never forwarded upstream.
+`X-Palimnesis-Kind` carries the request kind (`primary`, `title`, `compaction`, `generate`) for the proxy; it is never forwarded upstream.
 
 If the plugin fails to load, requests reach the unprefixed `…/v1` base URL. The proxy then rejects them with `session_required`; it never merges chats.
 
@@ -26,14 +26,14 @@ If the plugin fails to load, requests reach the unprefixed `…/v1` base URL. Th
 | `compaction.auto: false` | Native compaction would rewrite history; this also disables compaction on overflow. Manual `/compact` still works and creates a discontinuity. |
 | `agents.title.disabled: true` | Title generation runs concurrently with the first request. |
 | deny `subagent` | Child sessions share their parent's affinity headers and run concurrently. |
-| `limit.context: 1000000`, `limit.output: 8192` | OpenCode shrinks `max_completion_tokens` as its own history estimate approaches `limit.context`. A large context keeps it constant (8192 on every request, verified), so Mnemon's allowance is the true limit. |
+| `limit.context: 1000000`, `limit.output: 8192` | OpenCode shrinks `max_completion_tokens` as its own history estimate approaches `limit.context`. A large context keeps it constant (8192 on every request, verified), so Palimnesis's allowance is the true limit. |
 | `compatibility.reasoningField: reasoning_content` | Matches Strata's reasoning field; OpenCode echoes it on every prior assistant turn. |
 
 ### Interrupted streams
 
-A failed or cut-short stream ends with an in-stream error event and `x-should-retry: false`, so OpenCode does not loop on retries. Its next request in that session resends the partial answer flattened into `content`. Mnemon accepts this as acknowledging the partial and sends the upstream the reasoning and text split apart again (`docs/probes/opencode_partials.md`, D10.3).
+A failed or cut-short stream ends with an in-stream error event and `x-should-retry: false`, so OpenCode does not loop on retries. Its next request in that session resends the partial answer flattened into `content`. Palimnesis accepts this as acknowledging the partial and sends the upstream the reasoning and text split apart again (`docs/probes/opencode_partials.md`, D10.3).
 
-### Unsupported while using Mnemon (no config switch exists)
+### Unsupported while using Palimnesis (no config switch exists)
 
 - **Undo, redo, revert, `fork`, `timeline`, `/btw`:** each changes visible history. Phase 1 rejects the divergent request with a defined error.
 - **Manual `/compact`:** avoid it.

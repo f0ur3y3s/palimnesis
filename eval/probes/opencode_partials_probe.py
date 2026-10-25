@@ -10,9 +10,9 @@ The session id is read from the ``x-opencode-session-id`` header of turn 1's fir
 The fault server writes each request body's exact bytes to ``req-NN.json``.
 
 Configs:
-    v2  the shipped integrations/opencode/opencode.json (providers.mnemon, reasoningField
-        reasoning_content) plus plugins/mnemon.ts, with MNEMON_PROXY_ORIGIN pointed at the
-        fault server, so requests go to /s/<sessionID>/v1 exactly as with Mnemon.
+    v2  the shipped integrations/opencode/opencode.json (providers.palimnesis, reasoningField
+        reasoning_content) plus plugins/palimnesis.ts, with PALIMNESIS_PROXY_ORIGIN pointed at the
+        fault server, so requests go to /s/<sessionID>/v1 exactly as with Palimnesis.
     v1  the opencode_fault_probe.py config (provider "fault", no reasoningField).
 
 Usage:
@@ -150,11 +150,11 @@ def run_one(name: str, root: Path, port: int) -> dict:
     env = isolated_env(home)
     if cfg_kind == "v2":
         config = json.loads((INTEGRATION / "opencode.json").read_text(encoding="utf-8"))
-        config["providers"]["mnemon"]["settings"]["baseURL"] = f"{origin}/v1"
+        config["providers"]["palimnesis"]["settings"]["baseURL"] = f"{origin}/v1"
         config.update({"share": "disabled", "update": "disable"})
         (cfg_dir / "plugins").mkdir()
-        shutil.copy(INTEGRATION / "plugins" / "mnemon.ts", cfg_dir / "plugins")
-        env["MNEMON_PROXY_ORIGIN"] = origin
+        shutil.copy(INTEGRATION / "plugins" / "palimnesis.ts", cfg_dir / "plugins")
+        env["PALIMNESIS_PROXY_ORIGIN"] = origin
         model = config["model"]
     else:
         config = v1_config(f"{origin}/v1", {})

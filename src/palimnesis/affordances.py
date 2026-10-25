@@ -25,7 +25,7 @@ class Affordance:
 
 
 S1 = Affordance("s1", "stub", 2, (
-    f"[mnemon {STUB_FORMAT} §{{alias}}.{{block}} {{kind}} · {{tokens}} tok · {{lines}} lines"
+    f"[palimnesis {STUB_FORMAT} §{{alias}}.{{block}} {{kind}} · {{tokens}} tok · {{lines}} lines"
     " · sha {sha6}]\n"
     "{head preview}\n"
     "…[{omitted} tok not shown]…\n"
@@ -34,7 +34,7 @@ S1 = Affordance("s1", "stub", 2, (
 ))
 
 S2 = Affordance("s2", "stub", 3, (
-    "[mnemon s2 §{alias}.{block} {kind} · {tokens} tok · {lines} lines · sha {sha6}]\n"
+    "[palimnesis s2 §{alias}.{block} {kind} · {tokens} tok · {lines} lines · sha {sha6}]\n"
     "{head preview}\n"
     "…[{omitted} tok not shown]…\n"
     "{tail preview}\n"
@@ -42,51 +42,51 @@ S2 = Affordance("s2", "stub", 3, (
 ))
 
 S3 = Affordance("s3", "stub", 3, (
-    "[mnemon s3 §{alias}.{block} {kind} · {tokens} tok · {lines} lines · sha {sha6}]\n"
+    "[palimnesis s3 §{alias}.{block} {kind} · {tokens} tok · {lines} lines · sha {sha6}]\n"
     "{head preview}\n"
     "…[{omitted} tok not shown]…\n"
     "{tail preview}\n"
     "[archived exactly · omitted part: "
-    'mnemon_recall(id="§{alias}.{block}", offset={head_length}, limit={omitted_length})]'
+    'palimnesis_recall(id="§{alias}.{block}", offset={head_length}, limit={omitted_length})]'
 ))
 
 A0 = Affordance("a0", "addendum", 2, "", empty=True)
 
 A1 = Affordance("a1", "addendum", 3, (
-    "Older content may appear as address stubs; use mnemon_recall for exact details "
+    "Older content may appear as address stubs; use palimnesis_recall for exact details "
     "and catalog or search tools when the needed address is unknown."
 ))
 
 A2 = Affordance("a2", "addendum", 3, (
     "Older content may appear as address stubs like §K7Q2MX.0; an address never changes "
-    "meaning. When a stub's preview is not enough to act correctly, call mnemon_recall "
+    "meaning. When a stub's preview is not enough to act correctly, call palimnesis_recall "
     "with its address. When you need something old but have no address, page "
-    "mnemon_catalog or search with mnemon_grep. Do not recall what the preview already shows."
+    "palimnesis_catalog or search with palimnesis_grep. Do not recall what the preview already shows."
 ))
 
 T1 = Affordance("t1", "tools", 3, (
-    "mnemon_recall(id, offset?, limit?): Exact archived content for an address such as "
+    "palimnesis_recall(id, offset?, limit?): Exact archived content for an address such as "
     "§K7Q2MX.0. Long items continue from next_offset.\n"
-    "mnemon_catalog(cursor?, page?): Archived messages, 20 per page, oldest first; each "
+    "palimnesis_catalog(cursor?, page?): Archived messages, 20 per page, oldest first; each "
     "line is §alias seq role kind tokens flags preview.\n"
-    "mnemon_grep(query, mode, scope?, cursor?): Search archived content; mode is text "
+    "palimnesis_grep(query, mode, scope?, cursor?): Search archived content; mode is text "
     "(full-text) or regex (RE2). Results carry addresses."
 ))
 
 T2 = Affordance("t2", "tools", 3, (
-    "mnemon_recall(id, offset?, limit?): Returns the exact archived content behind an "
+    "palimnesis_recall(id, offset?, limit?): Returns the exact archived content behind an "
     "address shown in a stub, such as §K7Q2MX.0 (message K7Q2MX, block 0) or §K7Q2MX "
     "(whole message). Use it when a stub's preview leaves out a detail you need: an "
     "exact value, a line of output, an earlier decision. Results are chunked; pass "
     "next_offset as offset to continue. Content is returned verbatim, whitespace "
     "included. An unknown address returns an error with suggestions, never other "
     "content.\n"
-    "mnemon_catalog(cursor?, page?): Lists every archived message of this conversation, "
+    "palimnesis_catalog(cursor?, page?): Lists every archived message of this conversation, "
     "20 per page, oldest first, including masked ones. Each line is: §alias seq role kind "
     "tokens flags preview, where flags are masked, superseded or internal. Call with no "
     "arguments for page 1, pass the returned cursor for the next page, or pass page to "
     "jump. Use it to find an address when you know roughly when something happened.\n"
-    "mnemon_grep(query, mode, scope?, cursor?): Searches archived content. mode text "
+    "palimnesis_grep(query, mode, scope?, cursor?): Searches archived content. mode text "
     "matches words (full-text); mode regex takes RE2 syntax (no backreferences or "
     "lookaround). Results list the address and a short excerpt; pass the cursor for "
     "more. Use it when you know a distinctive string but not where it appeared."

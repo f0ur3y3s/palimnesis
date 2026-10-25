@@ -1,10 +1,10 @@
-# Mnemon: Lossless Context Proxy — Implementation Plan
+# Palimnesis: Lossless Context Proxy — Implementation Plan
 
 Oct 24, 2026 · @Daniel · Revised after design review and implementation notes
 
 ## Overview
 
-Mnemon is a local proxy between an agent harness and Strata. It archives accepted conversation content, presents a bounded view to the model, and provides exact, addressable retrieval of content removed from that view.
+Palimnesis is a local proxy between an agent harness and Strata. It archives accepted conversation content, presents a bounded view to the model, and provides exact, addressable retrieval of content removed from that view.
 
 ARC motivates observation masking and addressable recall; LCM motivates immutable history and optional summary DAGs; The Complexity Trap supports deterministic masking; RaMem informs contextual retrieval. The implementation contracts below are the specification. Papers motivate mechanisms; they do not resolve proxy protocol or lifecycle decisions.
 
@@ -57,7 +57,7 @@ Test client timeouts during prefill, recall and after partial visible text, usin
 
 Prefer explicit identity in the configured base URL: OpenAI-style base http://127.0.0.1:9000/s/<session>/v1 and Anthropic-style base http://127.0.0.1:9000/s/<session>, producing session-prefixed API routes. Verify path preservation and endpoint joining for each pinned harness; do not assume all clients preserve arbitrary prefixes. Strip the session prefix before forwarding upstream.
 
-Also accept X-Mnemon-Session. If path and header identifiers disagree, reject the request rather than silently choosing one. Validate opaque identifiers, limit their length, and treat path IDs as routing identifiers rather than authentication secrets; avoid unnecessary URL logging. Define branch identity and optional idempotency keys separately.
+Also accept X-Palimnesis-Session. If path and header identifiers disagree, reject the request rather than silently choosing one. Validate opaque identifiers, limit their length, and treat path IDs as routing identifiers rather than authentication secrets; avoid unnecessary URL logging. Define branch identity and optional idempotency keys separately.
 
 Provide session creation/resume commands that print the appropriate base URL. Starting an unrelated chat requires a fresh session URL; deliberately resuming uses the existing one. Do not configure one permanent session URL for all new chats. A system-prompt/first-message hash is only a lookup hint, never proof of identity: independent sessions can start identically.
 
@@ -164,7 +164,7 @@ Bind to loopback by default. Preserve role/provenance during recall; do not prom
 
 ### Model-facing recall affordances
 
-Make recall behavior an explicit workstream in Phases 2–3. Design and version stub previews, address syntax, tool descriptions, error/continuation hints and a short system addendum. A starting addendum is: "Older content may appear as address stubs; use mnemon_recall for exact details and catalog or search tools when the needed address is unknown."
+Make recall behavior an explicit workstream in Phases 2–3. Design and version stub previews, address syntax, tool descriptions, error/continuation hints and a short system addendum. A starting addendum is: "Older content may appear as address stubs; use palimnesis_recall for exact details and catalog or search tools when the needed address is unknown."
 
 A/B a small predeclared set of variants on development needles and coding tasks. Measure exact-answer retention, appropriate recall, unnecessary calls, invalid IDs, task success, added tokens and latency. Use labeled situations where recall is needed and where it is unnecessary. Keep prompts and tools fixed within each paired run, since wording changes affect both behavior and the cached prefix. Select variants on development data, then freeze them before held-out evaluation. Do not tune on the final test set.
 
@@ -223,7 +223,7 @@ Deliver deterministic masking, complete counting, component budgets, bounded cat
 
 ## Phase 3 — Exact recall and end-to-end streaming
 
-Deliver mnemon_recall(id, offset?, limit?), bounded catalog tools, mnemon_grep(query, mode, scope?, cursor?), interception and per-turn iteration/materialization caps. Reserve mnemon\_ names and reject collisions.
+Deliver palimnesis_recall(id, offset?, limit?), bounded catalog tools, palimnesis_grep(query, mode, scope?, cursor?), interception and per-turn iteration/materialization caps. Reserve palimnesis\_ names and reject collisions.
 
 Full-text mode uses FTS5. Regex mode defaults to google-re2, with RE2 syntax documented and unsupported constructs rejected explicitly. Verify package installation on supported Python/Windows targets early. RE2 avoids catastrophic backtracking through linear-time matching, but still cap pattern length, compilation memory, scanned bytes, results and total request work; check cancellation between bounded scan units.
 
@@ -254,7 +254,7 @@ One documented harness can start/resume through a session URL, stream visible pr
 
 ## Phase 4A — Pinned state
 
-Deliver versioned goal, constraints, decisions, current step, dead ends and useful addresses; mnemon_state_update; default 800-token cap. Archive state versions and supporting addresses. Define conflicts/provenance. Drop low-priority entries deterministically while originals remain retrievable. State aids navigation rather than replacing authoritative instructions.
+Deliver versioned goal, constraints, decisions, current step, dead ends and useful addresses; palimnesis_state_update; default 800-token cap. Archive state versions and supporting addresses. Define conflicts/provenance. Drop low-priority entries deterministically while originals remain retrievable. State aids navigation rather than replacing authoritative instructions.
 
 Optional fallback refresh follows background scheduling rules. This workstream depends on Phase 3 and is independently releasable from Phase 4B.
 
@@ -276,7 +276,7 @@ Expand to both endpoints and Pi, OpenCode and Claude Code, recording exact versi
 
 ## Phase 5 — Summary DAG (optional)
 
-Deliver asynchronous summaries over immutable spans, hierarchical nodes, proxy-assigned coverage, mnemon_describe and durable resumable jobs. Activate at explicit view-version boundaries. Failed/stale jobs leave deterministic masking usable.
+Deliver asynchronous summaries over immutable spans, hierarchical nodes, proxy-assigned coverage, palimnesis_describe and durable resumable jobs. Activate at explicit view-version boundaries. Failed/stale jobs leave deterministic masking usable.
 
 Escalate detailed summary → smaller bullets → deterministic bounded representation. Bound attempts and validate serialized size/coverage. Summaries remain fallible navigation aids; originals remain exact.
 
@@ -290,7 +290,7 @@ Escalate detailed summary → smaller bullets → deterministic bounded represen
 
 ## Phase 6 — Semantic retrieval and reinstatement (optional)
 
-Deliver CPU embeddings, rebuildable incremental index, hybrid ranking and mnemon_search(query, scope?, cursor?). Bounded results include role, branch, sequence, address, neighboring turns and summary coverage. Index off the request path; expose freshness and lexical fallback while catching up.
+Deliver CPU embeddings, rebuildable incremental index, hybrid ranking and palimnesis_search(query, scope?, cursor?). Bounded results include role, branch, sequence, address, neighboring turns and summary coverage. Index off the request path; expose freshness and lexical fallback while catching up.
 
 This adapts RaMem's contextual evidence principles, rather than implementing its complete long-term-memory framework.
 
@@ -304,7 +304,7 @@ This adapts RaMem's contextual evidence principles, rather than implementing its
 
 ## Phase 7 — Candidate evaluation
 
-Evaluate a release candidate using infrastructure started in Phase 0 and focused evaluation throughout Phases 3–6. This is a provisional evidence checkpoint, not the final release decision: deferred Phase 8 lifecycle behavior and its fault matrix are not yet required to be implemented. Mark those checks pending rather than passing them or blocking Phase 7 on future work. Keep existing contract failures blocking for capabilities already claimed. Compare native compaction with Mnemon using the same model, actual capacity, output reservation, tasks, initial repo and available seeds. Isolate stores/reset repositories. Record commit, versions, hardware, cache warmness and all proxy-side calls. Temperature zero alone does not guarantee reproducibility.
+Evaluate a release candidate using infrastructure started in Phase 0 and focused evaluation throughout Phases 3–6. This is a provisional evidence checkpoint, not the final release decision: deferred Phase 8 lifecycle behavior and its fault matrix are not yet required to be implemented. Mark those checks pending rather than passing them or blocking Phase 7 on future work. Keep existing contract failures blocking for capabilities already claimed. Compare native compaction with Palimnesis using the same model, actual capacity, output reservation, tasks, initial repo and available seeds. Isolate stores/reset repositories. Record commit, versions, hardware, cache warmness and all proxy-side calls. Temperature zero alone does not guarantee reproducibility.
 
 **Test families**
 

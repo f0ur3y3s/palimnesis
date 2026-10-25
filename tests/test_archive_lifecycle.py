@@ -20,9 +20,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mnemon.api import create_app
-from mnemon.config import Settings
-from mnemon.ledger import branch_id_for, load_archived
+from palimnesis.api import create_app
+from palimnesis.config import Settings
+from palimnesis.ledger import branch_id_for, load_archived
 
 from .archive_helpers import (
     CHAT,
@@ -92,7 +92,7 @@ def two_turns(lc) -> list[dict]:
                       assistant("A2"), user("U3")], 2, id="assistant_text_differs"),
         pytest.param([SYSTEM, user("U1"), assistant("A1"), user("U2"), assistant("A2"),
                       user("U3"), assistant("injected by client"), user("U4")], 6,
-                     id="assistant_not_generated_by_mnemon"),
+                     id="assistant_not_generated_by_palimnesis"),
     ],
 )
 def test_divergent_history_409_history_divergence_nothing_sent(lc, resend, index):
@@ -436,7 +436,7 @@ def test_unreachable_upstream_after_acceptance_502_should_retry_false(tmp_path):
         port = sock.getsockname()[1]
     db_path = tmp_path / "archive.db"
     settings = Settings(upstream_base_url=f"http://127.0.0.1:{port}", db_path=db_path)
-    with serve(create_app(settings), mnemon=True) as proxy_url:
+    with serve(create_app(settings), palimnesis=True) as proxy_url:
         r = httpx.post(f"{proxy_url}/s/{SID}{CHAT}", content=body([user("q")]), timeout=30)
 
     assert r.status_code == 502

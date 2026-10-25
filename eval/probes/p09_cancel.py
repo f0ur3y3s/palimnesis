@@ -11,7 +11,7 @@ Modes: prefill-stream, decode-stream, prefill-nonstream, decode-nonstream.
 Usage: python p09_cancel.py <mode> <cancel_after_ms> [trials]   or   python p09_cancel.py baseline [n]
 Appends results to fixtures/cancel_trials.jsonl.
 
-Set MNEMON_PROXY=http://127.0.0.1:<port> to send the cancelled request through a Mnemon proxy
+Set PALIMNESIS_PROXY=http://127.0.0.1:<port> to send the cancelled request through a Palimnesis proxy
 (session "cancel-probe"); /status polling and the tiny follow-up still go to Strata directly.
 """
 
@@ -31,7 +31,7 @@ from strata_common import BASE, FIXTURES, MODEL, filler, recent_requests, save_b
 U = urlparse(BASE)
 HOST, PORT = U.hostname, U.port or 80
 LOG = FIXTURES / "cancel_trials.jsonl"
-PROXY = os.environ.get("MNEMON_PROXY")
+PROXY = os.environ.get("PALIMNESIS_PROXY")
 PREFILL_WORDS = 9000  # ~20K tokens per count_tokens
 
 

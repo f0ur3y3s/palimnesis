@@ -1,20 +1,20 @@
 {
-  "model": "mnemon/qwen3.8-flash-next-iq3_xxs",
+  "model": "palimnesis/qwen3.8-flash-next-iq3_xxs",
   "compaction": { "auto": false },
   "agents": { "title": { "disabled": true } },
   "permissions": [{ "action": "subagent", "resource": "*", "effect": "deny" }],
   "providers": {
-    "mnemon": {
-      "name": "Mnemon",
+    "palimnesis": {
+      "name": "Palimnesis",
       "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
         "baseURL": "http://127.0.0.1:9000/v1",
-        "apiKey": "mnemon-local"
+        "apiKey": "palimnesis-local"
       },
       "compatibility": { "reasoningField": "reasoning_content" },
       "models": {
         "qwen3.8-flash-next-iq3_xxs": {
-          "name": "Qwen3.8 Flash Next (Strata via Mnemon)",
+          "name": "Qwen3.8 Flash Next (Strata via Palimnesis)",
           "capabilities": { "tools": true, "reasoning": { "supported": true } },
           "limit": { "context": 1000000, "output": 8192 }
         }

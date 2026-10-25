@@ -7,8 +7,8 @@ from typing import Iterator
 
 import pytest
 
-from mnemon.api import create_app
-from mnemon.config import Settings
+from palimnesis.api import create_app
+from palimnesis.config import Settings
 
 from .fake_upstream import FakeUpstream
 from .servers import serve
@@ -56,7 +56,7 @@ def dead_upstream_stack() -> Iterator[Stack]:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     settings = Settings(upstream_base_url=f"http://127.0.0.1:{port}")
-    with serve(create_app(settings), mnemon=True) as proxy_url:
+    with serve(create_app(settings), palimnesis=True) as proxy_url:
         yield Stack(FakeUpstream(), settings.upstream_base_url, proxy_url, settings)
 
 
@@ -65,5 +65,5 @@ def _stack(**overrides) -> Iterator[Stack]:
     fake = FakeUpstream()
     with serve(fake.app()) as upstream_url:
         settings = Settings(upstream_base_url=upstream_url, **overrides)
-        with serve(create_app(settings), mnemon=True) as proxy_url:
+        with serve(create_app(settings), palimnesis=True) as proxy_url:
             yield Stack(fake, upstream_url, proxy_url, settings)

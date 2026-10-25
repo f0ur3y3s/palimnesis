@@ -34,7 +34,7 @@ Fixed overhead `F` ≈ 5.0K tokens (system + tool schemas + a one-line user mess
 
 ## R3 — Passthrough overhead after the raw-ASGI rewrite (Phase 0, 2026-10-24, uncommitted)
 
-Same command, workload and hardware as R1, with the proxy under its production uvicorn config (`mnemon.server`).
+Same command, workload and hardware as R1, with the proxy under its production uvicorn config (`palimnesis.server`).
 
 | Metric | Direct p95 | Proxy p95 | Paired overhead p50 / p95 |
 | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ Same command, workload and hardware as R1, with the proxy under its production u
 | SSE first byte | 1.07 ms | 3.67 ms | 2.22 / 2.82 ms |
 | SSE total | 1.35 ms | 4.91 ms | 3.12 / 3.79 ms |
 
-The target of p95 overhead under 5 ms is met. A live smoke test of `mnemon serve` against Strata relayed `/v1/models` with Strata's `Server` and `Date` headers once, and rejected an unsessioned request with 400 and `x-should-retry: false`.
+The target of p95 overhead under 5 ms is met. A live smoke test of `palimnesis serve` against Strata relayed `/v1/models` with Strata's `Server` and `Date` headers once, and rejected an unsessioned request with 400 and `x-should-retry: false`.
 
 ## R4 — Phase 0 gate (2026-10-24)
 
@@ -58,14 +58,14 @@ The target of p95 overhead under 5 ms is met. A live smoke test of `mnemon serve
 
 Carried into Phase 1:
 
-- Rewritten streams send `x-should-retry: false`, which also stops OpenCode's resend after its own idle timeout. Until Mnemon's keepalives land (Ph3), this relies on Strata's ~10 s keepalive comments; Phase 1 must relay or emit comments while waiting.
+- Rewritten streams send `x-should-retry: false`, which also stops OpenCode's resend after its own idle timeout. Until Palimnesis's keepalives land (Ph3), this relies on Strata's ~10 s keepalive comments; Phase 1 must relay or emit comments while waiting.
 - Add a test that no capture is written without `--capture-dir`, and cover capture fail-open on the response-write path.
 - `Proxy` assumes lifespan startup created the HTTP client; fail clearly if it runs without lifespan.
 - Measured cancellation-to-slot-release through the proxy against live Strata (direct numbers: `docs/probes/strata.md` §9).
 
 ## R5 — Cancellation to slot release through the proxy, live Strata (Phase 1 carry-over, 2026-10-24)
 
-`MNEMON_PROXY=http://127.0.0.1:9078 python eval/probes/p09_cancel.py <mode> <ms> <n>` against `mnemon serve` (post-`phase-0` working tree) and Strata 0.1.48, `n_ctx` 65536, no queue at cancel. Only the cancelled request goes through the proxy; `/status` polling and the follow-up go direct. Records are appended to `eval/probes/fixtures/cancel_trials.jsonl` with `via_proxy`.
+`PALIMNESIS_PROXY=http://127.0.0.1:9078 python eval/probes/p09_cancel.py <mode> <ms> <n>` against `palimnesis serve` (post-`phase-0` working tree) and Strata 0.1.48, `n_ctx` 65536, no queue at cancel. Only the cancelled request goes through the proxy; `/status` polling and the follow-up go direct. Records are appended to `eval/probes/fixtures/cancel_trials.jsonl` with `via_proxy`.
 
 | Mode | Cancel after | Release via proxy (s) | Direct, `strata.md` §9 (s) |
 | --- | --- | --- | --- |
@@ -176,7 +176,7 @@ The raw-delta comparison reproduces R6 exactly. v2 meets D10.7 and is the defaul
 - Strata 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536, cold cache at request 1.
 - OpenCode 2.1.4 with the isolated `live/config` setup, `--standalone`, `PWD` set to a throwaway repo, stdin at EOF.
 - Hardware as R6. Archive `synchronous=FULL`, v2 deltas.
-- Topology: OpenCode → Mnemon archive (an ASGI tap around `create_app`, under the CLI's uvicorn config) → a Mnemon `--passthrough` instance with `--capture-dir` → Strata. A second instance was needed because `--capture-dir` writes nothing in archive mode.
+- Topology: OpenCode → Palimnesis archive (an ASGI tap around `create_app`, under the CLI's uvicorn config) → a Palimnesis `--passthrough` instance with `--capture-dir` → Strata. A second instance was needed because `--capture-dir` writes nothing in archive mode.
 
 Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/`: its README, `summary.json` and the scripts.
 
@@ -213,7 +213,7 @@ Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/`: its README, `summar
 **Finding (lifecycle gap).** A client-side kill makes the session permanently unusable.
 
 - OpenCode persisted the interrupted assistant as a single empty reasoning part. On the next run it omitted the message entirely, so the request had two consecutive `user` messages.
-- Mnemon archived the 143-character partial. `reconcile` (`src/mnemon/transcript.py:180`) rejects the omission per D10.4, and every later request in the session gets the same 409.
+- Palimnesis archived the 143-character partial. `reconcile` (`src/palimnesis/transcript.py:180`) rejects the omission per D10.4, and every later request in the session gets the same 409.
 - D10.4's premise ("OpenCode never omits a partial once output has streamed") was measured only for server-side stream failures. D10.3 and D10.12 do not cover this case: the client sent no flattened Continue, and the attempt is `cancelled`, not abandoned.
 
 The Phase 1 green light for this harness therefore holds for linear use with server-side failures, but not for user interrupts.
@@ -246,7 +246,7 @@ Evidence is in `eval/fixtures/opencode-2.1.4/archive-live/` (README §R10, `summ
 - Events: `cancelled` on each interrupted request; the normal five-event sequence on every other request.
 - TTFB overhead was 0–15 ms on warm requests and 32.9 ms on the first request of the process.
 
-**Observations (not Mnemon defects).**
+**Observations (not Palimnesis defects).**
 
 - **The orphaned question gets answered.** With the partial gone, the model sees two consecutive user turns and answers the interrupted question too. In B this took 4,345 completion tokens and 99.9 s on the shared slot.
 - **Cache reuse after that long turn was low.** The next request reported `cached_tokens` 5026 of a 9406-token prompt, roughly the earlier prompt only. The likely cause is checkpoint-limited reuse after a long generation (contracts §10). This is a cache-auditor item.

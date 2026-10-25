@@ -21,7 +21,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mnemon.capture import REDACTED, Exchange, load_exchanges  # noqa: E402
+from palimnesis.capture import REDACTED, Exchange, load_exchanges  # noqa: E402
 
 _NOT_REPLAYED = frozenset(
     {"host", "content-length", "connection", "transfer-encoding", "keep-alive"}
@@ -32,7 +32,7 @@ def _replay_headers(ex: Exchange, overrides: dict[str, str]) -> dict[str, str]:
     headers = {
         k: v
         for k, v in ex.request_headers.items()
-        if v != REDACTED and k not in _NOT_REPLAYED and not k.startswith("x-mnemon-")
+        if v != REDACTED and k not in _NOT_REPLAYED and not k.startswith("x-palimnesis-")
     }
     headers.update(overrides)
     return headers

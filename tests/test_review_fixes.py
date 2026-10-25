@@ -9,9 +9,9 @@ import time
 import httpx
 import pytest
 
-from mnemon import ledger
-from mnemon.ledger import branch_id_for, load_archived
-from mnemon.store import Store
+from palimnesis import ledger
+from palimnesis.ledger import branch_id_for, load_archived
+from palimnesis.store import Store
 
 from .archive_helpers import (
     CONTINUE_TEXT, DONE, answer, body, chunk, eventually, lifecycle_stack, sse_data, user,
@@ -175,8 +175,8 @@ def test_events_after_the_finish_chunk_are_bounded(lc):
 
 # Migration: a v1 archive opened by this version gains a populated full-text index.
 def test_v1_archive_migrates_and_indexes_existing_blocks(tmp_path):
-    from mnemon import store as store_module
-    from mnemon.search import search_text
+    from palimnesis import store as store_module
+    from palimnesis.search import search_text
 
     path = tmp_path / "old.db"
     conn = sqlite3.connect(path, isolation_level=None)

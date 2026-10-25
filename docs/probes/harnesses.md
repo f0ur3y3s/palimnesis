@@ -59,11 +59,11 @@ Environment fact: `~/.pi/agent/models.json` already has a `strata` provider (`op
 
 **Anthropic path.** Pi uses `@anthropic-ai/sdk` through `client.beta.messages.create` (`anthropic-messages.js` line 444).
 - So `http://127.0.0.1:9000/s/<session>` becomes `…/s/<session>/v1/messages?beta=true`.
-- **The prefix is preserved, but Mnemon must accept the `?beta=true` query.**
+- **The prefix is preserved, but Palimnesis must accept the `?beta=true` query.**
 
 **Custom headers.**
 - Provider- and model-level `headers` are merged last, so they override SDK defaults (openai-completions.js lines 556–559; anthropic-messages.js lines 823–826).
-- `"X-Mnemon-Session": "$MNEMON_SESSION"` works.
+- `"X-Palimnesis-Session": "$PALIMNESIS_SESSION"` works.
 - The extension hook `before_provider_headers` can rewrite headers per request.
 
 **Native session headers.**
@@ -72,7 +72,7 @@ Environment fact: `~/.pi/agent/models.json` already has a `strata` provider (`op
 - They are omitted when `cacheRetention` is `"none"`, and compaction and branch-summary calls force that value, so those calls never carry them.
 
 **Per-session URL.** `baseUrl` is static per config. A per-session URL needs one of:
-- a separate `PI_CODING_AGENT_DIR` (with its own models.json) per Mnemon session, or
+- a separate `PI_CODING_AGENT_DIR` (with its own models.json) per Palimnesis session, or
 - an extension that computes the URL (INFERRED).
 
 `/new`, `/fork`, `/clone` and `/resume` change Pi's internal session ID without changing the URL.
@@ -242,7 +242,7 @@ Environment fact: `~/.config/opencode/opencode.json` exists. It was not read.
 - A bare `/s/<session>` base would POST to `/s/<session>/messages`.
 - `?beta=true` is added only when the provider ID is `anthropic` (INFERRED from `model-resolver.ts`).
 
-**Custom headers.** Supported at provider, model, variant and agent level, merged case-insensitively (`Provider.mergeHeaders`). `X-Mnemon-Session` passes through. OpenCode's own per-request headers win on a name clash.
+**Custom headers.** Supported at provider, model, variant and agent level, merged case-insensitively (`Provider.mergeHeaders`). `X-Palimnesis-Session` passes through. OpenCode's own per-request headers win on a name clash.
 
 **Headers OpenCode always sends** (`session/model-request.ts`, confirmed in the bundle):
 - `x-opencode-session-id`, the true session ID.
@@ -372,7 +372,7 @@ Environment fact: `~/.config/opencode/opencode.json` exists. It was not read.
 **Anthropic Messages only.**
 - The bundle contains no `chat/completions` string (spot-checked: 0 occurrences).
 - The gateway protocol docs (code.claude.com/docs/en/llm-gateway-protocol) list only Anthropic Messages, Bedrock InvokeModel and Vertex rawPredict.
-- **Mnemon would have to serve Anthropic Messages, including SSE, and translate to Strata's OpenAI-compatible API.**
+- **Palimnesis would have to serve Anthropic Messages, including SSE, and translate to Strata's OpenAI-compatible API.**
 
 **Configuration** (shell env or the settings.json `"env"` block):
 - `ANTHROPIC_BASE_URL`. The provider remains `firstParty`.
@@ -400,7 +400,7 @@ Environment fact: `~/.config/opencode/opencode.json` exists. It was not read.
 - `DISABLE_GROWTHBOOK`
 - `skipWebFetchPreflight`
 
-**Custom headers.** `ANTHROPIC_CUSTOM_HEADERS` takes newline-separated `Name: value` lines (parser `hAe()` splits on `\r?\n` and the first `:`). It is merged after defaults, so `X-Mnemon-Session` passes through.
+**Custom headers.** `ANTHROPIC_CUSTOM_HEADERS` takes newline-separated `Name: value` lines (parser `hAe()` splits on `\r?\n` and the first `:`). It is merged after defaults, so `X-Palimnesis-Session` passes through.
 
 **Headers always sent:**
 - `X-Claude-Code-Session-Id`
@@ -500,7 +500,7 @@ Proper SSE `ping` events, rather than comments, are the safer keepalive (INFERRE
 
 **Client blocking limit, even with compaction off:** Claude Code refuses to send ("Prompt is too long") at about window − min(maxOutput, 20000) − 3000 estimated tokens. Set `CLAUDE_CODE_MAX_CONTEXT_TOKENS`.
 
-**Separate from compaction:** by default the request carries `context_management` (`clear_thinking_20251015`, `clear_tool_uses_20250919`) with beta `context-management-2025-06-27`, even for unknown models. These are server-side edit instructions. Mnemon can ignore them, or the client can drop them with `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`.
+**Separate from compaction:** by default the request carries `context_management` (`clear_thinking_20251015`, `clear_tool_uses_20250919`) with beta `context-management-2025-06-27`, even for unknown models. These are server-side edit instructions. Palimnesis can ignore them, or the client can drop them with `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`.
 
 ### 7. Reasoning
 
@@ -521,7 +521,7 @@ Proper SSE `ping` events, rather than comments, are the safer keepalive (INFERRE
 
 **Signature rejection.** A 400 matching signature-error wording (e.g. "signature in thinking block") makes Claude Code strip all thinking blocks for the rest of the session.
 
-**Implication for Mnemon:**
+**Implication for Palimnesis:**
 - Emit an opaque, verifiable signature,
 - omit thinking blocks, or
 - deliberately trigger the strip path.
@@ -583,15 +583,15 @@ Ratings are qualitative (Good / Fair / Poor) and reflect static findings only.
 | Criterion | Pi 1.4.0 | OpenCode 2.1.4 | Claude Code 2.1.310 |
 | --- | --- | --- | --- |
 | **Normal supported workflow is linear** (plan Phase 0) | **Good.** There are no built-in subagents, no title or summary side calls, and cache warming is inert or switchable. Non-linear features are explicit user commands (`/tree`, `/fork`). Residual: the default agent retry replays after a partial stream (switchable via `retry.enabled: false`), and `/tree` cannot be turned off without an extension. | **Fair.** Linear once title generation is disabled and the `subagent` tool is denied, both by config. Residual: the Continue-after-partial retry adds a synthetic user turn after a failed partial and can only be stopped with a plugin; background shell jobs inject later notices; undo/revert and fork have no switch. | **Fair to Poor.** Linear only after roughly ten env and settings switches (subagents, fork mode, background tasks, title, away summary, memory, WebFetch/WebSearch). Residual: non-streaming fallback resends (switchable), error-recovery history rewrites (not switchable), `/rewind` (no switch), and behaviour that depends on feature flags. |
-| **Path-prefix preservation** | **Good** for both styles, matching the plan's URLs exactly. Mnemon must accept `?beta=true` on the Anthropic path. | **Good** for OpenAI style. **Fair** for Anthropic style: the base must be `…/s/<id>/v1`, not the plan's `…/s/<id>`. | **Good** for the Anthropic style in the plan; the OpenAI style is not applicable. Also sends `HEAD /s/<id>/api/hello`, and optionally `count_tokens` and `models`. |
-| **Protocol fit with OpenAI-compatible Strata** | **Good.** Native Chat Completions with configurable `reasoning_content` handling, Qwen chat-template knobs and a `max_tokens` field override. Several defaults (`developer` role, `store`, `reasoning_effort`, `max_completion_tokens`) need compat settings or Strata tolerance. | **Good.** Native Chat Completions with configurable reasoning field and `max_tokens` field. Strict `finish_reason`/`[DONE]` expectations need to be met. Fewer extra fields than Pi by default. | **Poor.** Anthropic Messages only, so Mnemon must translate Anthropic↔OpenAI, including SSE event lifecycles, thinking signatures, mid-conversation system messages, `context_management` and beta fields. The plan lists Anthropic Messages as a goal, so this work is eventually needed for 4B anyway, but it is a large Phase 0 dependency. |
-| **Setup effort** | **Low to moderate.** One models.json provider plus `compaction.enabled: false`, `retry.enabled: false` (or a decision on retries), `cacheWarming: "off"`, and compat flags. A per-session URL needs a config dir per session or a small extension. Cancelling `/tree` and `/fork` needs an extension if enforcement is wanted. | **Moderate.** Provider config plus `compaction.auto: false`, title disable and subagent deny. A plugin is needed for a per-session URL path and to stop the Continue retry. The v1/v2 config split and stale docs add verification cost. | **High.** Anthropic-protocol translation in Mnemon, plus a long env list: base URL, auth token, model, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`, compaction, side-call and subagent switches, `DISABLE_EXPERIMENTAL_BETAS`, `DISABLE_NONSTREAMING_FALLBACK`, traffic and GrowthBook switches. Also guarding against falling back to a claude.ai login. |
+| **Path-prefix preservation** | **Good** for both styles, matching the plan's URLs exactly. Palimnesis must accept `?beta=true` on the Anthropic path. | **Good** for OpenAI style. **Fair** for Anthropic style: the base must be `…/s/<id>/v1`, not the plan's `…/s/<id>`. | **Good** for the Anthropic style in the plan; the OpenAI style is not applicable. Also sends `HEAD /s/<id>/api/hello`, and optionally `count_tokens` and `models`. |
+| **Protocol fit with OpenAI-compatible Strata** | **Good.** Native Chat Completions with configurable `reasoning_content` handling, Qwen chat-template knobs and a `max_tokens` field override. Several defaults (`developer` role, `store`, `reasoning_effort`, `max_completion_tokens`) need compat settings or Strata tolerance. | **Good.** Native Chat Completions with configurable reasoning field and `max_tokens` field. Strict `finish_reason`/`[DONE]` expectations need to be met. Fewer extra fields than Pi by default. | **Poor.** Anthropic Messages only, so Palimnesis must translate Anthropic↔OpenAI, including SSE event lifecycles, thinking signatures, mid-conversation system messages, `context_management` and beta fields. The plan lists Anthropic Messages as a goal, so this work is eventually needed for 4B anyway, but it is a large Phase 0 dependency. |
+| **Setup effort** | **Low to moderate.** One models.json provider plus `compaction.enabled: false`, `retry.enabled: false` (or a decision on retries), `cacheWarming: "off"`, and compat flags. A per-session URL needs a config dir per session or a small extension. Cancelling `/tree` and `/fork` needs an extension if enforcement is wanted. | **Moderate.** Provider config plus `compaction.auto: false`, title disable and subagent deny. A plugin is needed for a per-session URL path and to stop the Continue retry. The v1/v2 config split and stale docs add verification cost. | **High.** Anthropic-protocol translation in Palimnesis, plus a long env list: base URL, auth token, model, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`, compaction, side-call and subagent switches, `DISABLE_EXPERIMENTAL_BETAS`, `DISABLE_NONSTREAMING_FALLBACK`, traffic and GrowthBook switches. Also guarding against falling back to a claude.ai login. |
 
 ### Neutral trade-off notes
 
 **Pi**
 - Has the fewest default side calls and the smallest gap between "installed" and "linear".
-- Its retry model (replay the same prefix and omit the failed attempt) is the easiest of the three for Mnemon's keyless-duplicate policy to recognise: it looks like a resend of the same visible parent.
+- Its retry model (replay the same prefix and omit the failed attempt) is the easiest of the three for Palimnesis's keyless-duplicate policy to recognise: it looks like a resend of the same visible parent.
 - The costs:
   - user-facing tree and fork commands that cannot be disabled without an extension;
   - no native per-session URL;
@@ -606,7 +606,7 @@ Ratings are qualitative (Good / Fair / Poor) and reflect static findings only.
   - an Anthropic base convention that differs from the plan's (`/v1` included).
 
 **Claude Code**
-- Is the most feature-rich and the most explicit about request classes: hint headers and agent IDs let Mnemon tag side calls rather than only suppress them.
+- Is the most feature-rich and the most explicit about request classes: hint headers and agent IDs let Palimnesis tag side calls rather than only suppress them.
 - Its Anthropic-only protocol would make the Anthropic adapter and the translation layer a Phase 0 prerequisite rather than a Phase 4B expansion.
 - Its default behaviour includes the largest number of non-linear and non-streaming paths, several of which are flag-dependent and some of which (rewind, error-recovery rewrites) have no switch.
 
@@ -616,7 +616,7 @@ Ratings are qualitative (Good / Fair / Poor) and reflect static findings only.
 - No total stream deadline.
 - Retries driven by `x-should-retry` and 5xx/429.
 
-So Mnemon's error responses for duplicate or in-progress requests should carry `x-should-retry: false` and avoid 5xx/429 where a retry is unwanted. This is honoured by all three, except for OpenCode's Continue path. The plan's 429 overload response will be retried by all three under their default policies.
+So Palimnesis's error responses for duplicate or in-progress requests should carry `x-should-retry: false` and avoid 5xx/429 where a retry is unwanted. This is honoured by all three, except for OpenCode's Continue path. The plan's 429 overload response will be retried by all three under their default policies.
 
 ## Items to confirm with captured fixtures in Phase 0
 
@@ -626,7 +626,7 @@ So Mnemon's error responses for duplicate or in-progress requests should carry `
    - Pi `retry.enabled: false`
    - OpenCode `retry` hook
    - Claude Code `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1`
-4. Whether `/tree` (Pi), revert (OpenCode) and `/rewind` (Claude Code) produce requests that Mnemon's Phase 1 divergence detection rejects cleanly.
+4. Whether `/tree` (Pi), revert (OpenCode) and `/rewind` (Claude Code) produce requests that Palimnesis's Phase 1 divergence detection rejects cleanly.
 5. Whether the per-session URL mechanism works end to end:
    - Pi: a separate `PI_CODING_AGENT_DIR` or an extension.
    - OpenCode: the `model.request` hook.

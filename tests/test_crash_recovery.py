@@ -1,5 +1,5 @@
-"""Process-crash recovery (GL6): a real `mnemon serve` subprocess is killed at
-deterministic points (MNEMON_CRASH_AT → os._exit) and restarted on the same
+"""Process-crash recovery (GL6): a real `palimnesis serve` subprocess is killed at
+deterministic points (PALIMNESIS_CRASH_AT → os._exit) and restarted on the same
 archive. Committed input, output batches and prepared responses survive;
 interrupted attempts are abandoned, never resumed silently (D10.12).
 """
@@ -19,8 +19,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mnemon.capture import load_exchanges
-from mnemon.ledger import branch_id_for, load_archived
+from palimnesis.capture import load_exchanges
+from palimnesis.ledger import branch_id_for, load_archived
 
 from .fake_upstream import FakeUpstream
 from .servers import serve
@@ -38,13 +38,13 @@ def _free_port() -> int:
 
 
 @contextmanager
-def mnemon_process(upstream_url: str, db: Path, crash_at: str | None = None):
+def palimnesis_process(upstream_url: str, db: Path, crash_at: str | None = None):
     port = _free_port()
-    env = {k: v for k, v in os.environ.items() if k != "MNEMON_CRASH_AT"}
+    env = {k: v for k, v in os.environ.items() if k != "PALIMNESIS_CRASH_AT"}
     if crash_at:
-        env["MNEMON_CRASH_AT"] = crash_at
+        env["PALIMNESIS_CRASH_AT"] = crash_at
     proc = subprocess.Popen(
-        [sys.executable, "-m", "mnemon", "serve", "--upstream", upstream_url,
+        [sys.executable, "-m", "palimnesis", "serve", "--upstream", upstream_url,
          "--db", str(db), "--port", str(port)],
         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
     )
@@ -99,7 +99,7 @@ def _post(url: str, body: bytes, headers=None) -> httpx.Response:
 def test_crash_after_input_commit_then_identical_resend_gets_a_new_attempt(upstream, tmp_path):
     fake, upstream_url = upstream
     db = tmp_path / "archive.db"
-    with mnemon_process(upstream_url, db, crash_at="after_accept") as (url, proc):
+    with palimnesis_process(upstream_url, db, crash_at="after_accept") as (url, proc):
         with pytest.raises(httpx.TransportError):
             _post(url, L0.request_body)
         assert proc.wait(timeout=10) == 77
@@ -108,7 +108,7 @@ def test_crash_after_input_commit_then_identical_resend_gets_a_new_attempt(upstr
     kinds = [k for (k,) in _rows(db, "SELECT kind FROM events ORDER BY event_id")]
     assert kinds == ["accepted_input", "attempt_started"]
 
-    with mnemon_process(upstream_url, db) as (url, _):
+    with palimnesis_process(upstream_url, db) as (url, _):
         fake.respond_sse([L0.response_body])
         r = _post(url, L0.request_body)
 
@@ -132,7 +132,7 @@ def test_crash_after_a_batch_commit_keeps_the_partial_and_refuses_silent_regener
         b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n',
         b"data: [DONE]\n\n",
     ])
-    with mnemon_process(upstream_url, db, crash_at="after_batch_1") as (url, proc):
+    with palimnesis_process(upstream_url, db, crash_at="after_batch_1") as (url, proc):
         with pytest.raises(httpx.TransportError):
             _post(url, body)
         assert proc.wait(timeout=10) == 77
@@ -140,7 +140,7 @@ def test_crash_after_a_batch_commit_keeps_the_partial_and_refuses_silent_regener
     [*_, partial] = _history(db)
     assert (partial.source, partial.text, partial.complete) == ("generated", "one ", False)
 
-    with mnemon_process(upstream_url, db) as (url, _):
+    with palimnesis_process(upstream_url, db) as (url, _):
         r = _post(url, body)
 
     assert r.status_code == 409
@@ -156,12 +156,12 @@ def test_crash_after_prepared_response_replays_it_by_key_without_inference(upstr
                                       "message": {"role": "assistant", "content": "hello"}}]}).encode()
     fake.respond_json(answer)
     key = {"Idempotency-Key": "k-1"}
-    with mnemon_process(upstream_url, db, crash_at="after_prepare") as (url, proc):
+    with palimnesis_process(upstream_url, db, crash_at="after_prepare") as (url, proc):
         with pytest.raises(httpx.TransportError):
             _post(url, body, key)
         assert proc.wait(timeout=10) == 77
 
-    with mnemon_process(upstream_url, db) as (url, _):
+    with palimnesis_process(upstream_url, db) as (url, _):
         keyed = _post(url, body, key)
         keyless = _post(url, body)
 
@@ -183,7 +183,7 @@ def test_crash_after_the_terminal_commit_before_forwarding_accepts_the_continue(
         (0.3, b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
               b"data: [DONE]\n\n"),
     ])
-    with mnemon_process(upstream_url, db, crash_at="after_batch_3") as (url, proc):
+    with palimnesis_process(upstream_url, db, crash_at="after_batch_3") as (url, proc):
         with pytest.raises(httpx.TransportError):
             _post(url, body)
         assert proc.wait(timeout=10) == 77
@@ -194,7 +194,7 @@ def test_crash_after_the_terminal_commit_before_forwarding_accepts_the_continue(
         {"role": "user", "content": "The previous response was interrupted. Continue from "
                                     "where you left off without repeating completed content."},
     ]}).encode()
-    with mnemon_process(upstream_url, db) as (url, _):
+    with palimnesis_process(upstream_url, db) as (url, _):
         fake.respond_sse([b'data: {"choices":[{"index":0,"delta":{"content":"."},"finish_reason":"stop"}]}\n\n',
                           b"data: [DONE]\n\n"])
         r = _post(url, cont)

@@ -16,7 +16,7 @@ Each entry is one line: ``§alias seq role kind tokens flags preview``.
   a later context version that replaced it) and ``internal``
   (``occurrences.view``), or ``-`` when none apply.
 - ``preview`` is whitespace-collapsed content of at most 48 code points, cut
-  on a safe boundary (``mnemon.stubs``) and shortened until the line fits c.
+  on a safe boundary (``palimnesis.stubs``) and shortened until the line fits c.
 
 Cursors are ``cat1.<branch-hash>.<seq>.<p>``: the exclusive lower seq bound
 of a page, scoped to one branch and page size. A page reads at most p+1

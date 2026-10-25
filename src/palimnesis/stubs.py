@@ -219,7 +219,7 @@ def _stub(kind: str, alias: str, block: int, text: str, count: Count,
           head_tokens: int, tail_tokens: int) -> str:
     _check_alias(alias)
     sha = hashlib.sha256(_bytes(text)).hexdigest()[:6]
-    header = (f"[mnemon {STUB_FORMAT} {bare_ref(alias, block)} {kind} · {count(text):,} tok · "
+    header = (f"[palimnesis {STUB_FORMAT} {bare_ref(alias, block)} {kind} · {count(text):,} tok · "
               f"{_plural(_lines(text), 'line')} · sha {sha}]")
     if not text:
         return header
@@ -259,5 +259,5 @@ def span_note(first_alias: str, last_alias: str, n_messages: int, *,
     span = bare_ref(first_alias) if first_alias == last_alias else (
         f"{bare_ref(first_alias)}–{bare_ref(last_alias)}")
     size = "" if tokens is None else f" · {tokens:,} tok"
-    return (f"[mnemon {STUB_FORMAT} span {span} · {_plural(n_messages, 'message')}{size} · "
+    return (f"[palimnesis {STUB_FORMAT} span {span} · {_plural(n_messages, 'message')}{size} · "
             f"{HINT_S1}]")

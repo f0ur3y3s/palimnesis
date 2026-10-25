@@ -52,8 +52,8 @@ _EOF = object()
 
 
 def crash_point(name: str) -> None:
-    """Deterministic process death for crash-recovery tests (``MNEMON_CRASH_AT``)."""
-    if os.environ.get("MNEMON_CRASH_AT") == name:
+    """Deterministic process death for crash-recovery tests (``PALIMNESIS_CRASH_AT``)."""
+    if os.environ.get("PALIMNESIS_CRASH_AT") == name:
         os._exit(CRASH_EXIT_CODE)
 
 
@@ -71,7 +71,7 @@ class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
                  forward_headers, views=None) -> None:
         self.store = store
-        self.views = views  # mnemon.viewengine.ViewEngine, or None for no bounded views
+        self.views = views  # palimnesis.viewengine.ViewEngine, or None for no bounded views
         self.client = client
         self.upstream_base = upstream_base
         self.forward_headers = forward_headers  # filtered client headers for upstream
@@ -123,7 +123,7 @@ class ArchiveHandler:
             # Only a transient database condition is worth a client retry.
             transient = isinstance(e, sqlite3.OperationalError)
             response = error_response(api_path, 503, "archive_unavailable",
-                                      "Mnemon could not archive the request.", type_="api_error",
+                                      "Palimnesis could not archive the request.", type_="api_error",
                                       retry=transient)
             if transient:
                 response.headers["retry-after"] = "2"
@@ -201,7 +201,7 @@ class ArchiveHandler:
             await self.store.write(lambda c: ledger.finish_attempt(
                 c, gen, "attempt_failed", reason="upstream_unreachable", error=type(e).__name__))
             await error_response(api_path, 502, "upstream_unreachable",
-                                 "Mnemon could not reach the upstream server.",
+                                 "Palimnesis could not reach the upstream server.",
                                  type_="api_error")(scope, receive, send)
             return
         try:
@@ -273,7 +273,7 @@ class ArchiveHandler:
             log.warning("non-streaming response could not be archived: %s", e)
             await self._upstream_failed(
                 scope, receive, send, gen, api_path, "archive_failed",
-                "Mnemon could not archive the upstream response.")
+                "Palimnesis could not archive the upstream response.")
             return
         crash_point("after_prepare")
         await send({"type": "http.response.start", "status": 200, "headers": headers})
@@ -379,7 +379,7 @@ class ArchiveHandler:
                     log.exception("could not record relay failure")
                 await send({"type": "http.response.body", "more_body": True,
                             "body": _error_event("archive_unavailable",
-                                                 "Mnemon could not archive the response.")})
+                                                 "Palimnesis could not archive the response.")})
             finally:
                 tg.cancel_scope.cancel()
         await send({"type": "http.response.body", "body": b"", "more_body": False})

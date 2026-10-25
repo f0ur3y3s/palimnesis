@@ -14,7 +14,7 @@ Planner output, 2026-10-24, after `phase-1`. Decisions are recorded at the end a
 
 ## Modules
 
-### `mnemon.pins`
+### `palimnesis.pins`
 
 Vendored `pins/strata-0.1.48/` holding:
 - `chat_template.jinja` (sha256 `12827f…`);
@@ -23,7 +23,7 @@ Vendored `pins/strata-0.1.48/` holding:
 
 All of it is verified when loaded.
 
-### `mnemon.tokens`
+### `palimnesis.tokens`
 
 - `render(messages, tools, effort, enable_thinking)`: jinja2 `ImmutableSandboxedEnvironment` with HF `tojson` (`ensure_ascii=False`, no key sorting). This is p02's renderer, moved into the package.
 - `count(text)`.
@@ -31,13 +31,13 @@ All of it is verified when loaded.
 - Startup self-test of fragment additivity, falling back to full counts.
 - The final count before dispatch is always exact.
 
-### `mnemon.upstream_facts`
+### `palimnesis.upstream_facts`
 
 - `GET /props` at startup. Facts are marked stale after a transport error, a 5xx, or a context-window 400, and re-read before the next build. They are fetched lazily if the upstream is unreachable at startup.
 - A pin mismatch puts the proxy in **view-disabled mode**: archive and forward the client body as in Phase 1, with diagnostics.
 - A startup canary compares local counts with `POST /v1/messages/count_tokens`.
 
-### `mnemon.budget` (pure)
+### `palimnesis.budget` (pure)
 
 - `R_req = min(client limit or R_cap, R_cap)`.
 - `B_in = min(configured, n_ctx − R_req − M_eff)`.
@@ -46,7 +46,7 @@ All of it is verified when loaded.
 - The upstream `max_completion_tokens` is set to `R_req` when absent or above the cap, so Strata's silent clamp never fires.
 - The budget snapshot rides on the `Plan`.
 
-### `mnemon.view` (pure; ARC and Complexity Trap)
+### `palimnesis.view` (pure; ARC and Complexity Trap)
 
 `build(archived_branch, prev_view_version, facts, budget, policy, counter) -> View`. It takes no HTTP client.
 
@@ -75,14 +75,14 @@ Rules:
   - internal occurrences are spliced at their aligned position, except those of superseded attempts.
 - **Output:** `View(messages, manifest, tokens, view_version, components)`, where the manifest lists `(occ_id, form, token_range)`.
 
-### `mnemon.stubs` (pure)
+### `palimnesis.stubs` (pure)
 
-- Format `s1`: `[mnemon s1 §K7Q2MX.0 tool_result · 18,432 tok · 412 lines · sha 3f9a1c]`, a head preview of at most 192 tokens, `…[N tok not shown]…`, and a tail preview of at most 96 tokens.
+- Format `s1`: `[palimnesis s1 §K7Q2MX.0 tool_result · 18,432 tok · 412 lines · sha 3f9a1c]`, a head preview of at most 192 tokens, `…[N tok not shown]…`, and a tail preview of at most 96 tokens.
 - `chunks(text, max_tokens)` yields `{offset, length, total_length, encoding, sha256, next_offset}`.
 - Cuts land on code-point boundaries and back off over combining marks, ZWJ and variation selectors.
 - Sizing is by binary search over character cuts, so no U+FFFD is ever produced.
 
-### `mnemon.watermark` (pure)
+### `palimnesis.watermark` (pure)
 
 Units are exact rendered tokens.
 
@@ -92,14 +92,14 @@ Units are exact rendered tokens.
 - Hard rule: `I ≤ B_in`.
 - Each move inserts an immutable `view_versions` row (migration 3).
 
-### `mnemon.catalog`
+### `palimnesis.catalog`
 
 - Entries cover every occurrence, flagged (masked, superseded, internal): `§alias seq role kind tokens flags preview`.
 - A page holds p entries of at most c tokens each.
 - Opaque keyset cursors over `UNIQUE(branch_id, seq)` read at most p+1 rows. `first`, `next` and `page(k)` are provided, so every entry is reachable in ⌈N/p⌉ pages.
-- CLI: `mnemon catalog`.
+- CLI: `palimnesis catalog`.
 
-### `mnemon.cacheacct`
+### `palimnesis.cacheacct`
 
 - For each upstream call, an immutable `upstream_call` event records:
   - `view_id`, local I, `prompt_tokens`, `cached_tokens`, `prompt_ms`;

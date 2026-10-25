@@ -2,7 +2,7 @@
 
 Each body is stored against the previous raw body of the same session and
 branch (the raw-storage parent, distinct from the logical conversation
-parent) using ``mnemon.rawdelta``, with snapshots per its policy. Retrieval
+parent) using ``palimnesis.rawdelta``, with snapshots per its policy. Retrieval
 walks the chain back to its snapshot and decodes forward, verifying every
 step's length and SHA-256: a damaged or missing ancestor raises rather than
 yielding different bytes. Both functions run inside the caller's transaction.

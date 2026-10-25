@@ -12,43 +12,43 @@ Planner output from 2026-10-24, after `phase-0`. The R4 carry-overs (lifespan gu
 
 Two test seams: HTTP through the fake upstream, and pure or store-level functions.
 
-**`mnemon.store`**
+**`palimnesis.store`**
 - `Store.open(path, synchronous="FULL")`. Each connection sets WAL, `synchronous`, `foreign_keys`, `recursive_triggers` and `busy_timeout`, and reads them back; any mismatch refuses startup.
 - Migrations are versioned with `PRAGMA user_version`.
 - One writer thread runs bounded `BEGIN IMMEDIATE` transactions (`await store.write(fn)`); there is a separate read connection.
 - An authorizer denies DDL outside migrations, and a lock file allows one process per database.
 - `diagnostics()` reports the active modes.
 
-**`mnemon.rawdelta` + `RawArchive`**
+**`palimnesis.rawdelta` + `RawArchive`**
 - Pure codec: `encode(parent, body, variant)` and `decode(delta, parent)`.
   - v1 stores prefix length and suffix bytes.
   - v2 stores prefix length, the changed middle and the suffix length.
   - Bounds, total length and SHA-256 are verified on decode.
 - Snapshots are taken when there is no usable parent, at depth 32, on a system or tool change, and when the delta is not smaller than a snapshot.
 
-**`mnemon.chat`**
+**`palimnesis.chat`**
 - `parse(body) -> ChatRequest` produces typed messages with blocks (`text`, `reasoning`, `tool_call`, `tool_result`) and an envelope holding key order, `content` form and top-level fields. It raises `Unsupported(code, field)` or `InvalidBody`.
 - `render(view, client_messages)` splices internal occurrences into the client's own message objects.
 
-**`mnemon.transcript`**
+**`palimnesis.transcript`**
 - Pure `reconcile(resend, visible)` returns one of: `Extend`, `Prefix`, `ContinueAfterPartial`, `SupersededPartial` or `Divergence(index, reason)`.
 - `model_view(branch)` returns the visible and internal occurrences.
 
-**`mnemon.ledger`**
+**`palimnesis.ledger`**
 - `fingerprint_v1`.
 - `accept(...)` is one transaction covering the raw body, request row, occurrences and blocks, aliases, the idempotency binding and the attempt.
 - Duplicate classification.
 - `parse_retry_hint`.
 - Startup recovery appends `attempt_abandoned(restart)`.
 
-**`mnemon.relay`**
+**`palimnesis.relay`**
 - An incremental OpenAI SSE parser that keeps the exact bytes of each event.
 - A batcher flushes at ≥ 25 ms, ≥ 16 KiB or a terminal event, over a bounded queue. It commits each batch before forwarding its original bytes.
 - Comments are forwarded promptly; the finish chunk is held until `[DONE]`.
 - A failure after the 200 sends an in-stream error event, and every streaming 200 carries `x-should-retry: false`.
 - Non-streaming responses are committed as `prepared_responses` before delivery.
 
-**`mnemon.addresses`**
+**`palimnesis.addresses`**
 - `issue` assigns a stored alias that is never reassigned.
 - `resolve` returns `Hit`, `Ambiguous(candidates)` or `Unknown(suggestions)`.
 
@@ -107,7 +107,7 @@ Fixtures:
 | GL2: growth report | `eval/bench_archive.py` (10 → 200 turns, repetitive and random, per-table bytes, FTS and index overhead, reconstruction time by depth, v1 vs v2) | E |
 | GL2: admission limit | `test_oversized_body_rejected` (413); disk budget deferred to Ph8 | H |
 | GL3: no merging | `test_identical_first_requests_in_two_sessions_stay_separate`, `test_archive_path_rejects_mismatch_before_archiving` | H / L0 |
-| GL3: divergence | `test_edited_earlier_user_message_409_history_divergence`, `test_truncated_history_resend_with_new_user_409`, `test_assistant_not_generated_by_mnemon_409` | H / L mutated |
+| GL3: divergence | `test_edited_earlier_user_message_409_history_divergence`, `test_truncated_history_resend_with_new_user_409`, `test_assistant_not_generated_by_palimnesis_409` | H / L mutated |
 | GL3: conflicting concurrent requests | `test_second_different_request_while_active_409_session_busy` | H |
 | GL4: exact block round-trip | `test_blocks_round_trip` (empty, null vs absent, multibyte, CRLF, lone surrogate, tool args, reasoning), `test_live_messages_round_trip_json_equal` | P+S |
 | GL4: aliases | `test_forced_hash_collision_extends_second_alias_first_unchanged`, `test_ambiguous_prefix_returns_candidates`, `test_unknown_alias_suggests_never_substitutes`, `test_alias_scoped_to_session` | S |
@@ -140,7 +140,7 @@ Fixtures:
 
 | # | Slice | Depends on |
 | --- | --- | --- |
-| 0 | Probe: OpenCode's next prompt after a Mnemon-ended partial stream | — |
+| 0 | Probe: OpenCode's next prompt after a Palimnesis-ended partial stream | — |
 | 1 | Store: open, pragmas, writer thread, triggers, authorizer | — |
 | 2 | Raw delta v1 and v2 + `RawArchive` | 1 |
 | 3 | `chat.parse`/`render`, rejection list, live round-trip | — |
@@ -161,7 +161,7 @@ Fixtures:
 
 ## Risks
 
-- **Next-turn shape after a Mnemon-ended partial is unverified.** Slice 0 probes it.
+- **Next-turn shape after a Palimnesis-ended partial is unverified.** Slice 0 probes it.
 - **FULL fsync latency on Windows.** `bench_commit` sets the batch defaults before any weaker durability option is considered.
 - **Re-serialization drift.** Mitigated by the verbatim message splice and JSON-equality tests; byte equality is reported as a diagnostic.
 - **Trigger bypass.** Raw DDL from outside the app's connections cannot be stopped by triggers; this limit is documented.

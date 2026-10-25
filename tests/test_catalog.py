@@ -1,4 +1,4 @@
-"""mnemon.catalog: bounded keyset pages over every occurrence of a branch (slice 8, GL4)."""
+"""palimnesis.catalog: bounded keyset pages over every occurrence of a branch (slice 8, GL4)."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ import sqlite3
 
 import pytest
 
-from mnemon import addresses, catalog, ledger
-from mnemon.chat import parse
-from mnemon.fingerprint import fingerprint_v1
-from mnemon.store import Store
+from palimnesis import addresses, catalog, ledger
+from palimnesis.chat import parse
+from palimnesis.fingerprint import fingerprint_v1
+from palimnesis.store import Store
 
 P, C = catalog.PAGE_SIZE, catalog.ENTRY_TOKENS
 
@@ -220,7 +220,7 @@ def test_catalog_flags_masked_superseded_internal(tmp_path):
         "INSERT INTO occurrences VALUES ('occ_internal', ?, 4, NULL, 'assistant', 'internal',"
         " 'internal_tool', NULL, NULL, '{}', '')", (BRANCH,))
     conn.execute("INSERT INTO blocks VALUES ('blk_internal', 'occ_internal', 0, 'tool_call',"
-                 " 'utf-8', '{\"id\": \"c1\", \"name\": \"mnemon_recall\"}')")
+                 " 'utf-8', '{\"id\": \"c1\", \"name\": \"palimnesis_recall\"}')")
     conn.execute("INSERT INTO segments VALUES ('blk_internal', 0, ?)", (b'{"id": "X"}',))
     alias = addresses.issue_alias(conn, "s1", "occ_internal")
     conn.execute("INSERT INTO events (kind, payload, at) VALUES ('partial_superseded', ?, 0)",
@@ -232,4 +232,4 @@ def test_catalog_flags_masked_superseded_internal(tmp_path):
     assert [e.flags for e in entries] == [("masked",), ("superseded",), (), ("internal",)]
     assert entries[0].text.split()[5] == "masked"
     assert entries[2].text.split()[5] == "-"
-    assert entries[3].text == f'§{alias} 4 assistant tool_call 2 internal mnemon_recall({{"id": "X"}})'
+    assert entries[3].text == f'§{alias} 4 assistant tool_call 2 internal palimnesis_recall({{"id": "X"}})'

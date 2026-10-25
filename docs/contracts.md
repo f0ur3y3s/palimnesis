@@ -1,6 +1,6 @@
 # Contracts
 
-The specification for proxy behavior. Rules are stated over values read at runtime; measured numbers live in `docs/results.md` and probe reports, defaults in `src/mnemon/config.py`. Each clause is **[enforced]** (tested now), **[defined]** (specified; phase noted) or **[pending]** (awaiting named evidence).
+The specification for proxy behavior. Rules are stated over values read at runtime; measured numbers live in `docs/results.md` and probe reports, defaults in `src/palimnesis/config.py`. Each clause is **[enforced]** (tested now), **[defined]** (specified; phase noted) or **[pending]** (awaiting named evidence).
 
 Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve · `M` safety margin · `F` non-evictable input (system, tool schemas, current user input, generation preamble) · `A` request-wide generation allowance · `D` request-wide deadline.
 
@@ -17,7 +17,7 @@ Before every upstream call, with `I` the rendered input:
 - `I ≤ input_budget`, where `input_budget = min(configured_input_budget, n_ctx − R − M)`.
 - `I + R + M ≤ n_ctx`.
 
-The upstream silently clamps oversized output limits, so Mnemon enforces both itself. **[defined, Ph2]**
+The upstream silently clamps oversized output limits, so Palimnesis enforces both itself. **[defined, Ph2]**
 
 - **Floor.** If `F + min_recent + R + M > n_ctx` at startup, rewriting is refused with a message naming each term; passthrough continues. **[defined, Ph2]**
 - **Per request.** If `F + R + M > n_ctx`, return a structured pre-inference budget error. Never truncate system instructions, tool schemas or current user input. **[defined, Ph2]**
@@ -25,7 +25,7 @@ The upstream silently clamps oversized output limits, so Mnemon enforces both it
 
 ## 3. Protocol preservation
 
-- **Passthrough** relays request and response bytes unchanged. It drops hop-by-hop headers, headers named in `Connection`, and `x-mnemon-*` headers, and adds none of its own. It relays every method (including `HEAD` and `OPTIONS`), the raw query string, repeated response headers, and the upstream's `Date` and `Server`, and streams SSE chunks as they arrive. A client disconnect at any stage (body read, waiting for upstream headers, streaming) closes the upstream request. **[enforced]**
+- **Passthrough** relays request and response bytes unchanged. It drops hop-by-hop headers, headers named in `Connection`, and `x-palimnesis-*` headers, and adds none of its own. It relays every method (including `HEAD` and `OPTIONS`), the raw query string, repeated response headers, and the upstream's `Date` and `Server`, and streams SSE chunks as they arrive. A client disconnect at any stage (body read, waiting for upstream headers, streaming) closes the upstream request. **[enforced]**
 - **Unreachable upstream** (connect or transport failure before response headers) returns `502`, code `upstream_unreachable`, in the endpoint's error shape. In passthrough nothing is archived, so it carries `x-should-retry: true`. **[enforced]**
 - **Archive mode** (`--db`, the default) rewrites `POST /v1/chat/completions` only. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. **[enforced]**
 - **Rewriting** accepts only requests inside `capabilities.md` (allowlist rules in D11). Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`, and nothing is archived. Fields are never dropped silently. **[enforced]**
@@ -34,7 +34,7 @@ The upstream silently clamps oversized output limits, so Mnemon enforces both it
 
 ## 4. Session identity
 
-- A session comes from the `/s/<id>/` path prefix, the `X-Mnemon-Session` header, or both.
+- A session comes from the `/s/<id>/` path prefix, the `X-Palimnesis-Session` header, or both.
 - Disagreement is rejected (`session_mismatch`); absence is rejected (`session_required`).
 - IDs are 1–128 characters of `[A-Za-z0-9._-]`, start alphanumeric, and contain no `..` and no trailing `.`. Anything else is `invalid_session_id`, including percent-encoded characters.
 - `/s/` is a reserved prefix: `/s/<id>` with no further path routes to the upstream root, and upstream paths beginning with `/s/` are unreachable.
@@ -42,9 +42,9 @@ The upstream silently clamps oversized output limits, so Mnemon enforces both it
 All of the above are **[enforced]**.
 
 - IDs are routing keys, not secrets. The proxy binds to loopback by default; URLs and bodies stay out of operational logs.
-- Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Mnemon session]**
+- Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Palimnesis session]**
 - **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
-- **Reconciliation** (D10.3–D10.5, `mnemon.transcript`). Each resend is compared position by position with the archived visible history:
+- **Reconciliation** (D10.3–D10.5, `palimnesis.transcript`). Each resend is compared position by position with the archived visible history:
   - Client messages match by content hash.
   - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments.
   - A changed system message before the first non-system message is a new context version, not a divergence.
@@ -60,7 +60,7 @@ Per-harness facts (header wait, read-idle, total deadline, retry triggers, behav
 - **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph3]**
 - **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. **[defined, Ph3]**
 - **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[enforced]**
-- **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Mnemon, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
+- **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Palimnesis, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
 
 Proxy-originated statuses, chosen so a harness never retries into a duplicate generation. Statuses and `x-should-retry` behavior were verified against OpenCode 2.1.4 (`docs/probes/opencode_faults.md`).
 
@@ -85,7 +85,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 6. Idempotency and request fingerprints
 
-**[enforced]** (`mnemon.fingerprint`, `mnemon.ledger`)
+**[enforced]** (`palimnesis.fingerprint`, `palimnesis.ledger`)
 
 - **Key.** An optional `Idempotency-Key` header, scoped to (session, branch) and bound atomically to a fingerprint before inference. None of the current harnesses send one.
 - **Fingerprint v1.** SHA-256 of canonical JSON over: endpoint, session, branch, `model`, generation settings, `tools`, `tool_choice`, the full visible message list (which stands for the visible parent, D10.17), and every other top-level field not listed as transport-only. The parent occurrence ID is stored on the request row.
@@ -130,7 +130,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 **[defined, Ph3]**
 
-- The pinned template renders `reasoning_content` for **every** earlier assistant turn, and an empty think block where there is none. Mnemon reconstructs archived reasoning for every rendered assistant turn so upstream input matches what the model saw, whether or not the client resends it.
+- The pinned template renders `reasoning_content` for **every** earlier assistant turn, and an empty think block where there is none. Palimnesis reconstructs archived reasoning for every rendered assistant turn so upstream input matches what the model saw, whether or not the client resends it.
 - A template revision that changes this rule is a pinned-value change (§1), not a runtime branch.
 - Reasoning-effort and thinking toggles alter the first system message, so they are full-prefix invalidation causes.
 

@@ -10,9 +10,9 @@ import random
 
 import pytest
 
-from mnemon import tokens
-from mnemon.budget import BudgetError, BudgetPolicy, plan_budget
-from mnemon.view import ViewItem, ViewPolicy, ViewState, build
+from palimnesis import tokens
+from palimnesis.budget import BudgetError, BudgetPolicy, plan_budget
+from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
 
 TOOLS = [{"type": "function", "function": {"name": "read", "description": "read a file",
                                            "parameters": {"type": "object", "properties": {
@@ -91,10 +91,10 @@ def test_crossing_the_high_watermark_masks_oldest_tool_outputs_down_to_the_targe
     assert view.tokens <= budget.input_budget
     fixed, capacity = view.fixed_tokens, view.capacity
     assert view.tokens <= fixed + 0.50 * capacity + 1
-    masked = [m for m in view.messages if m["role"] == "tool" and m["content"].startswith("[mnemon s1")]
+    masked = [m for m in view.messages if m["role"] == "tool" and m["content"].startswith("[palimnesis s1")]
     assert masked and all("tool_result" in m["content"] for m in masked)
     # oldest first: masked tool messages precede every verbatim one
-    flags = [m["content"].startswith("[mnemon") for m in view.messages if m["role"] == "tool"]
+    flags = [m["content"].startswith("[palimnesis") for m in view.messages if m["role"] == "tool"]
     assert flags == sorted(flags, reverse=True)
     # the current user message and the newest group stay verbatim
     assert view.messages[-1] == {"role": "user", "content": "now summarize"}
@@ -170,7 +170,7 @@ def test_reasoning_in_the_masked_region_becomes_a_reasoning_stub(counter):
     view = _view(counter, s)
 
     stubbed = [m for m in view.messages if m["role"] == "assistant"
-               and str(m.get("reasoning_content", "")).startswith("[mnemon s1")]
+               and str(m.get("reasoning_content", "")).startswith("[palimnesis s1")]
     assert stubbed and all("reasoning" in m["reasoning_content"] for m in stubbed)
 
 
@@ -185,7 +185,7 @@ def test_many_small_turns_collapse_into_a_span_note_within_budget(counter):
 
     assert view.tokens <= budget.input_budget
     assert view.messages[0]["role"] == "system"
-    assert view.messages[1]["role"] == "user" and view.messages[1]["content"].startswith("[mnemon s1 span")
+    assert view.messages[1]["role"] == "user" and view.messages[1]["content"].startswith("[palimnesis s1 span")
     assert view.messages[-1]["content"] == "final question"
     assert view.state.collapse_seq > 0
 
@@ -197,7 +197,7 @@ def test_oversized_newest_tool_output_is_stubbed_in_place(counter):
     view = _view(counter, s, budget=budget)
 
     assert view.tokens <= budget.input_budget
-    assert view.messages[-1]["role"] == "tool" and view.messages[-1]["content"].startswith("[mnemon s1")
+    assert view.messages[-1]["role"] == "tool" and view.messages[-1]["content"].startswith("[palimnesis s1")
     assert view.state.oversized == frozenset({"occ4"})
 
 
@@ -253,8 +253,8 @@ def test_a_long_agentic_turn_after_one_user_message_collapses_within_budget(coun
 
     assert view.tokens <= 8000
     assert view.messages[1] == {"role": "user", "content": "refactor the project"}
-    assert view.messages[2]["content"].startswith("[mnemon s1 span")
-    assert view.messages[-1] == s.items[-1].message or view.messages[-1]["content"].startswith("[mnemon")
+    assert view.messages[2]["content"].startswith("[palimnesis s1 span")
+    assert view.messages[-1] == s.items[-1].message or view.messages[-1]["content"].startswith("[palimnesis")
 
 
 def test_a_message_kept_verbatim_inside_the_masked_region_stays_kept_on_later_turns(counter):

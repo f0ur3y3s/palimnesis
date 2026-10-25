@@ -1,7 +1,7 @@
 """Session identity resolution.
 
 Identifiers are opaque routing keys, not secrets. They arrive in the URL path
-(``/s/<id>/...``) and/or the ``X-Mnemon-Session`` header; when both are present
+(``/s/<id>/...``) and/or the ``X-Palimnesis-Session`` header; when both are present
 they must agree, so the proxy never silently picks one history over another.
 """
 
@@ -39,13 +39,13 @@ def resolve_session(path_id: str | None, header_id: str | None) -> str:
         raise SessionError(
             "session_required",
             "No session identifier: use a /s/<session>/ base URL or the "
-            "X-Mnemon-Session header.",
+            "X-Palimnesis-Session header.",
         )
     if path_id is not None and header_id is not None:
         if _validate(path_id) != _validate(header_id):
             raise SessionError(
                 "session_mismatch",
-                "The session in the URL path and the X-Mnemon-Session header differ.",
+                "The session in the URL path and the X-Palimnesis-Session header differ.",
             )
         return path_id
     return _validate(path_id if path_id is not None else header_id)

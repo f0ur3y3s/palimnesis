@@ -12,8 +12,8 @@ import json
 
 import pytest
 
-from mnemon.chat import parse
-from mnemon.transcript import Archived, Divergence, Extend, Prefix, reconcile
+from palimnesis.chat import parse
+from palimnesis.transcript import Archived, Divergence, Extend, Prefix, reconcile
 
 
 def client(*messages) -> tuple:
@@ -141,7 +141,7 @@ def test_non_json_tool_arguments_must_match_exactly():
     assert isinstance(result, Divergence) and result.index == 2
 
 
-def test_assistant_message_mnemon_never_generated_diverges():
+def test_assistant_message_palimnesis_never_generated_diverges():
     archive = _archive(SYS, U1, U2)  # archived as client-sent users only
     result = reconcile(client(SYS, U1, {"role": "assistant", "content": "hi"}, U2), archive)
 
@@ -184,7 +184,7 @@ def test_identical_user_text_twice_is_two_positions_not_a_match_shortcut():
 
 def test_hidden_internal_occurrences_are_not_part_of_the_visible_history():
     hidden_call = Archived.generated("occ-h", text="", reasoning="", tool_calls=(
-        {"id": "m1", "name": "mnemon_recall", "arguments": "{}"},), complete=True, view="internal")
+        {"id": "m1", "name": "palimnesis_recall", "arguments": "{}"},), complete=True, view="internal")
     hidden_result = Archived("occ-r", role="tool", source="internal_tool", view="internal",
                              content_sha256="x")
     archive = _archive(SYS, U1, hidden_call, hidden_result, generated(text="done"))

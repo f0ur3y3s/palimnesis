@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemon.chat import (
+from palimnesis.chat import (
     Block,
     InvalidBody,
     Unsupported,

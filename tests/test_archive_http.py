@@ -2,7 +2,7 @@
 
 HTTP seam with the fake upstream replaying recorded Strata responses. The
 archive database is the product's durable output, so tests inspect it
-read-only through ``mnemon.ledger`` readers on a plain SQLite connection.
+read-only through ``palimnesis.ledger`` readers on a plain SQLite connection.
 """
 
 from __future__ import annotations
@@ -16,10 +16,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mnemon.capture import load_exchanges
-from mnemon.ledger import branch_id_for, load_archived
-from mnemon.rawarchive import get_raw
-from mnemon.sse import ChatStream, SSEParser
+from palimnesis.capture import load_exchanges
+from palimnesis.ledger import branch_id_for, load_archived
+from palimnesis.rawarchive import get_raw
+from palimnesis.sse import ChatStream, SSEParser
 
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = load_exchanges(ROOT / "eval/fixtures/opencode-2.1.4/live/exchanges")

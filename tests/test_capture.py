@@ -6,7 +6,7 @@ import shutil
 
 import httpx
 
-from mnemon.capture import load_exchanges
+from palimnesis.capture import load_exchanges
 
 from .test_passthrough import SSE, _eventually
 

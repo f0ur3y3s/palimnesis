@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemon.fingerprint import FINGERPRINT_VERSION, fingerprint_v1, parse_retry_hint
+from palimnesis.fingerprint import FINGERPRINT_VERSION, fingerprint_v1, parse_retry_hint
 
 L0 = next(
     (Path(__file__).resolve().parents[1] / "eval/fixtures/opencode-2.1.4/live/exchanges").glob(
