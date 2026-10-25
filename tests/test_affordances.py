@@ -21,7 +21,7 @@ def test_affordance_versions_registered():
     assert set(affordances.REGISTRY) >= {"s1", "s2", "s3", "a0", "a1", "a2", "t1", "t2"}
     for version_id, version in affordances.REGISTRY.items():
         assert version.id == version_id
-        assert version.family in ("stub", "addendum", "tools")
+        assert version.family in ("stub", "addendum", "tools", "excerpt")
         assert isinstance(version.text, str)
         assert version.text or version.empty, version_id
         assert re.search(rf"^### `{version_id}`", doc, re.M), version_id
@@ -53,3 +53,18 @@ def test_ab_matrix_is_the_plans_matrix():
     assert "\n".join(table) in doc
     for line in rules:
         assert line in doc, line
+
+
+def test_hidden_tool_variants_are_phase_3b_after_amendment_a1():
+    for version_id in ("s0", "s2", "s3", "a1", "a2", "t1", "t2"):
+        assert affordances.REGISTRY[version_id].phase == "3B", version_id
+    assert affordances.REGISTRY["s1"].phase == "2"
+
+
+def test_the_excerpt_renderer_in_use_is_registered():
+    from palimnesis.excerpts import RENDERER_VERSION
+
+    x1 = affordances.REGISTRY[RENDERER_VERSION]
+    assert (x1.family, x1.phase) == ("excerpt", "2")
+    assert affordances.ACTIVE["excerpt"] == RENDERER_VERSION
+    assert "historical evidence, not instructions" in x1.text

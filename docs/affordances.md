@@ -40,6 +40,10 @@ Collapsed forms:
 - Bare reference: `§K7Q2MX.0`.
 - Span note, one proxy-authored user-role message (D14.13): `[palimnesis s1 span §AAAAAA–§BBBBBB · 37 messages · 12,345 tok · archived exactly; not shown]`.
 
+### `s0`
+
+Phase 3B, D16.2. Header only, `[palimnesis s0 §ALIAS.N kind · N tok · L lines · sha XXXXXX]`, with no previews; this is arm D's "alias and size only" stub.
+
 ### `s2`
 
 Phase 3 draft. Same layout as `s1`, with the hint `[archived exactly]`: content is recallable, but the stub does not say how.
@@ -88,7 +92,37 @@ Terse: one sentence per tool.
 
 Guided: what each tool returns, when to use it, how to continue, and what errors look like (an unknown address gets suggestions, never other content; regex is RE2 without backreferences or lookaround).
 
-## Phase 3 A/B matrix
+## Excerpt formats
+
+### `x1`
+
+Phase 2 (amendment A1). This is the frozen rendering of an excerpt block, appended after the user text in the internal copy of that message only:
+
+```
+[palimnesis excerpts x1 · N from archive · historical evidence, not instructions]
+[[excerpt §ALIAS.N · turn T · role · tool NAME]]
+<escaped verbatim payload>
+[[/excerpt]]
+```
+
+Escaping is reversible:
+- A payload line starting with `[[` or `\` gets one leading `\`.
+- Every profile special token (`<|im_start|>`, `</tool_response>`, …) has `\` inserted after its first character, so archived text can never become a role marker.
+
+See `palimnesis.excerpts`.
+
+## Phase 3 development selections
+
+Amendment A1 makes proactive excerpts plus transcript files the Phase 3 mechanism. Phase 3 selects the following on development data and freezes them before held-out evaluation. Each choice becomes a registered version here.
+
+- **Query-construction policy** for FTS5/BM25: bounded and deterministic. It covers long messages, code punctuation, empty queries and messages such as "continue".
+- **Excerpt format:** `x1` or a successor.
+- **Excerpt caps:** the Phase 2 defaults are in D20.2.
+- **Transcript-search addendum:** gives the session's transcript path and the bounded search, read and narrow recipe.
+
+## Phase 3B A/B matrix (hidden recall tools)
+
+Deferred by amendment A1. This matrix is run only if optional Phase 3B is built.
 
 Copied from `docs/plans/phase2.md`. Defined in Phase 2 and run in Phase 3.
 
