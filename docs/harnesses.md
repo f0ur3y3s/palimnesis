@@ -11,6 +11,18 @@ Setup and verified behavior per supported harness. Evidence lives in `docs/probe
 3. If the proxy is not on `127.0.0.1:9000`, set `PALIMNESIS_PROXY_ORIGIN` and change `providers.palimnesis.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`.
 4. Start or resume chats normally: `opencode`, `opencode run …`, `opencode run --session <id> …`.
 
+### Recall and transcript files (Phase 3)
+
+- **Proactive excerpts** need no harness setup. Each new instruction gets a block of archived evidence in the upstream copy of the message only.
+- **Transcript files** are written to `%LOCALAPPDATA%\palimnesis	ranscripts\<session>\` (`--transcripts DIR` to move them, `--no-transcripts` to turn them off). Once a session first hides anything, the model is told that directory and to grep, then read with an offset and limit (addendum a3).
+- **OpenCode reaches the directory with the shipped config.** No rule is needed: its default agents allow `external_directory`, `read`, `grep`, `glob` and `shell` outside the project (verified live, D37). If you run an agent configured with ask or deny rules, add these last in `permissions`:
+  ```json
+  {"action": "external_directory", "resource": "C:/Users/<you>/AppData/Local/palimnesis/transcripts/*", "effect": "allow"},
+  {"action": "read", "resource": "C:/Users/<you>/AppData/Local/palimnesis/transcripts/*", "effect": "allow"}
+  ```
+- **Permission rules do not confine the files.** OpenCode's shell tool bypasses `external_directory`, so the transcripts' privacy rests on filesystem permissions: the per-user ACL of `%LOCALAPPDATA%`.
+- **Do not point the model at the root.** OpenCode's grep searches hidden folders, including the root's `.staging`. The addendum names the session directory only.
+
 ### Session identity
 
 The plugin's `model.request` hook rewrites each request's base URL to `/s/<OpenCode sessionID>/v1`. A new OpenCode session is a new Palimnesis session, and resuming an OpenCode session resumes its Palimnesis session, across processes [verified, `docs/probes/opencode_live.md`]. `palimnesis session new` is not needed for OpenCode.

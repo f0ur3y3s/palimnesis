@@ -36,7 +36,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 
 | Harness | Version | Endpoint | Status | Setup |
 | --- | --- | --- | --- | --- |
-| OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3) | `harnesses.md` |
+| OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37) | `harnesses.md` |
 | Pi | 1.4.0 | Chat Completions / Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
 | Claude Code | 2.1.310 | Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
 
