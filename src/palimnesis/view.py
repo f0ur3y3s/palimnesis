@@ -23,6 +23,18 @@ Mechanisms (docs/papers.md):
   capacity and ``F`` the non-evictable input. Unchanged views keep the
   upstream's prefix cache.
 
+- **Excerpt blocks** (amendment A1, D20). An item may carry a frozen excerpt
+  block that is appended to its user message in the view only. Rules:
+  - R1: a block is included whole iff its host is at or after the watermark,
+    not collapsed, not omitted, and its charge fits the per-message cap.
+  - R2: omission is monotone.
+  - R3: omissions happen only at threshold events, as blocks behind the new
+    watermark and then the oldest until ``Σ ≤ Q_eff − q_msg``.
+  - R4: every block is omitted before the view is declared too large.
+
+  Excerpt charges never count toward the watermark thresholds, so excerpts
+  never move the watermark themselves.
+
 Invariants:
 - ``I ≤ input_budget`` always, or ``BudgetError``.
 - The watermark and collapse boundaries are monotone and fall on group
@@ -40,9 +52,10 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Sequence
 
 from .budget import Budget, BudgetError, check_fixed
+from .excerpts import attach
 from .stubs import reasoning_stub, span_note, tool_result_stub
 
-POLICY_VERSION = "v1"
+POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
 
 
 @dataclass(frozen=True)
@@ -60,6 +73,8 @@ class ViewItem:
     seq: int | None
     alias: str | None
     blocks: Mapping[str, int] = field(default_factory=dict)  # kind → block index for §ALIAS.N
+    # Frozen excerpt block pinned to this user message: (block_id, rendered, charge).
+    excerpt: tuple[str, str, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -71,6 +86,7 @@ class ViewState:
     # (system, then-current user message). They stay kept, so a persisted
     # boundary means the same view on every later rebuild.
     kept: frozenset[str] = frozenset()
+    omitted_excerpts: frozenset[str] = frozenset()  # excerpt block ids, monotone (R2)
 
 
 @dataclass(frozen=True)
@@ -82,6 +98,11 @@ class View:
     fixed_tokens: int
     capacity: int
     manifest: tuple[tuple[str, str], ...]  # (occ_id, verbatim|stub|collapsed)
+    included_excerpts: tuple[str, ...] = ()
+    excerpt_charge: int = 0
+    # Occurrences this build newly masked or collapsed: the spans retrieval
+    # must cover because they are leaving the active view now (A1 Phase 3).
+    evicted_now: tuple[str, ...] = ()
 
 
 def _group_starts(items: Sequence[ViewItem]) -> list[int]:
@@ -159,11 +180,14 @@ class _Builder:
         inside = {self.items[i].occ_id for i in self.fixed if i < reach and self.items[i].occ_id}
         return replace(state, kept=state.kept | inside)
 
-    def apply(self, state: ViewState) -> tuple[list[dict], tuple[tuple[str, str], ...]]:
+    def apply(self, state: ViewState):
+        """(messages, manifest, included excerpt block ids, their total charge)."""
         watermark = self.seq_index(state.watermark_seq) if state.watermark_seq else 0
         collapse = self.seq_index(state.collapse_seq) if state.collapse_seq else 0
         messages: list[dict] = []
         manifest: list[tuple[str, str]] = []
+        included: list[str] = []
+        charge = 0
         # Each contiguous run of collapsed items (fixed messages break runs and
         # stay in place) becomes one span note at the run's position.
         runs: dict[int, list[int]] = {}
@@ -189,12 +213,56 @@ class _Builder:
                 i < watermark or item.occ_id in state.oversized)
             if maskable:
                 message, changed = self.masked_message(i)
-                messages.append(message)
                 manifest.append((item.occ_id, "stub" if changed else "verbatim"))
             else:
-                messages.append(item.message)
+                message = item.message
                 manifest.append((item.occ_id, "verbatim"))
-        return messages, tuple(manifest)
+            if self.excerpt_included(i, watermark, state):
+                block_id, rendered, block_charge = item.excerpt
+                message = attach(message, rendered)
+                included.append(block_id)
+                charge += block_charge
+            messages.append(message)
+        return messages, tuple(manifest), tuple(included), charge
+
+    def excerpt_included(self, index: int, watermark: int, state: ViewState) -> bool:
+        excerpt = self.items[index].excerpt
+        return (excerpt is not None and bool(excerpt[1]) and index >= watermark
+                and excerpt[0] not in state.omitted_excerpts
+                and excerpt[2] <= self.budget.excerpt_per_message)
+
+    def with_collapse(self, state: ViewState, seq: int) -> ViewState:
+        """A collapse move to ``seq``. It may absorb messages kept earlier (they are
+        no longer fixed); the move itself is the recorded cause of that change."""
+        absorbed = {item.occ_id for i, item in enumerate(self.items)
+                    if item.seq is not None and item.seq < seq and i not in self.fixed}
+        return self.keep_fixed(replace(state, collapse_seq=seq, kept=state.kept - absorbed))
+
+    def omit_for_event(self, state: ViewState, fixed: int) -> ViewState:
+        """R3: at a threshold event, omit blocks behind the watermark or collapsed,
+        then the oldest included until Σ ≤ Q_eff − q_msg (room for the next one)."""
+        watermark = self.seq_index(state.watermark_seq) if state.watermark_seq else 0
+        collapse = self.seq_index(state.collapse_seq) if state.collapse_seq else 0
+        omitted = set(state.omitted_excerpts)
+        live = []
+        for i, item in enumerate(self.items):
+            if item.excerpt is None or item.excerpt[0] in omitted:
+                continue
+            if i < max(watermark, collapse):
+                omitted.add(item.excerpt[0])
+            elif self.excerpt_included(i, watermark, state):
+                live.append(item.excerpt)
+        b = self.budget
+        q_eff = min(b.recall_excerpts,
+                    max(0, b.input_budget - b.catalog - fixed - self.policy.min_recent))
+        limit = max(0, q_eff - b.excerpt_per_message)
+        total = sum(e[2] for e in live)
+        for block_id, _, block_charge in live:  # chronological: oldest first
+            if total <= limit:
+                break
+            omitted.add(block_id)
+            total -= block_charge
+        return replace(state, omitted_excerpts=frozenset(omitted))
 
     # -- policy ---------------------------------------------------------------
 
@@ -222,8 +290,8 @@ class _Builder:
         best = None
         while lo <= hi:
             mid = (lo + hi) // 2
-            messages, _ = self.apply(make_state(candidates[mid]))
-            if self.count(messages) <= target:
+            messages, _, _, charge = self.apply(make_state(candidates[mid]))
+            if self.count(messages) - charge <= target:
                 best, hi = candidates[mid], mid - 1
             else:
                 lo = mid + 1
@@ -246,10 +314,19 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     high = fixed + policy.high * capacity
     target = fixed + policy.target * capacity
 
-    messages, manifest = b.apply(state)
+    def view(st: ViewState, moved: bool, base_manifest=()) -> View:
+        messages, manifest, included, charge = b.apply(st)
+        base = dict(base_manifest)
+        evicted = tuple(occ for occ, form in manifest
+                        if moved and form != "verbatim" and base.get(occ) == "verbatim")
+        return View(messages, b.count(messages), st, moved, fixed, capacity, manifest,
+                    included, charge, evicted)
+
+    messages, manifest, _, charge = b.apply(state)
     total = b.count(messages)
-    if total <= high and total <= budget.input_budget:
-        return View(messages, total, state, False, fixed, capacity, manifest)
+    if total - charge <= high and total <= budget.input_budget:
+        return view(state, False)
+    base_manifest = manifest
 
     # Advance the watermark over group starts, oldest first.
     old_w = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
@@ -261,21 +338,29 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             replace(state, watermark_seq=_seq(b.items, i))), target)
         new_state = replace(state, watermark_seq=_seq(b.items, found if found is not None
                                                        else candidates[-1]))
-    messages, manifest = b.apply(new_state)
+    messages, _, _, charge = b.apply(new_state)
     total = b.count(messages)
 
     # Collapse the oldest masked span when stubs alone do not reach the target.
-    if total > target:
+    if total - charge > target:
         old_c = b.seq_index(new_state.collapse_seq) if new_state.collapse_seq else 0
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
         candidates = [s for s in b.starts if old_c < s <= w_index]
         if candidates:
-            found = b.search(candidates, lambda i: b.keep_fixed(
-                replace(new_state, collapse_seq=_seq(b.items, i))), target)
-            new_state = replace(new_state, collapse_seq=_seq(b.items, found if found is not None
-                                                             else candidates[-1]))
-            messages, manifest = b.apply(new_state)
-            total = b.count(messages)
+            found = b.search(candidates,
+                             lambda i: b.with_collapse(new_state, _seq(b.items, i)), target)
+            new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
+                                                        else candidates[-1]))
+
+    # A threshold event: excerpt omissions are scheduled with it (R3).
+    new_state = b.omit_for_event(b.keep_fixed(new_state), fixed)
+    messages, _, included, charge = b.apply(new_state)
+    total = b.count(messages)
+
+    if total > budget.input_budget and included:  # R4: excerpts go first
+        new_state = replace(new_state, omitted_excerpts=new_state.omitted_excerpts | set(included))
+        messages, _, included, charge = b.apply(new_state)
+        total = b.count(messages)
 
     # Oversized newest output: stub the largest unmasked tool results in place.
     if total > budget.input_budget:
@@ -287,23 +372,22 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
         for i in unmasked:
             new_state = replace(new_state, oversized=new_state.oversized | {b.items[i].occ_id})
-            messages, manifest = b.apply(new_state)
+            messages, _, _, _ = b.apply(new_state)
             total = b.count(messages)
             if total <= budget.input_budget:
                 break
-    if new_state != state:
-        new_state = b.keep_fixed(new_state)
-        messages, manifest = b.apply(new_state)
-        total = b.count(messages)
-    if total > budget.input_budget:
+    new_state = b.keep_fixed(new_state)
+    result = view(new_state, new_state != state, base_manifest)
+    if result.tokens > budget.input_budget:
         raise BudgetError(
-            f"the view needs {total} tokens after masking everything maskable; the input "
-            f"budget is {budget.input_budget}",
-            {"view": total, "input_budget": budget.input_budget, "fixed": fixed},
+            f"the view needs {result.tokens} tokens after masking everything maskable; the "
+            f"input budget is {budget.input_budget}",
+            {"view": result.tokens, "input_budget": budget.input_budget, "fixed": fixed},
         )
-    return View(messages, total, new_state, new_state != state, fixed, capacity, manifest)
+    return result
 
 
 def view_state_json(state: ViewState) -> str:
     return json.dumps({"watermark_seq": state.watermark_seq, "collapse_seq": state.collapse_seq,
-                       "oversized": sorted(state.oversized), "kept": sorted(state.kept)})
+                       "oversized": sorted(state.oversized), "kept": sorted(state.kept),
+                       "omitted_excerpts": sorted(state.omitted_excerpts)})

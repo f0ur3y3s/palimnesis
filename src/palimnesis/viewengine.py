@@ -109,11 +109,17 @@ class ViewEngine:
 
     @staticmethod
     def cause(old, new) -> str:
+        """Recorded cause(s) of a view move, comma-separated (contracts §10)."""
+        causes = []
+        if new.watermark_seq != old.watermark_seq:
+            causes.append("watermark_move")
         if new.collapse_seq != old.collapse_seq:
-            return "collapse"
+            causes.append("collapse")
         if new.oversized != old.oversized:
-            return "oversized_output"
-        return "watermark_move"
+            causes.append("oversized_output")
+        if new.omitted_excerpts != old.omitted_excerpts:
+            causes.append("excerpt_omitted")
+        return ",".join(causes) or "view_state"
 
     @staticmethod
     def snapshot(budget: Budget) -> dict:

@@ -451,7 +451,8 @@ def latest_view(conn: sqlite3.Connection, branch_id: str):
     if isinstance(masks, list):  # oversized only
         masks = {"oversized": masks, "kept": []}
     return view_id, n, ViewState(watermark, collapse, frozenset(masks["oversized"]),
-                                 frozenset(masks["kept"]))
+                                 frozenset(masks["kept"]),
+                                 frozenset(masks.get("omitted_excerpts", [])))
 
 
 def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: str,
@@ -463,7 +464,8 @@ def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: 
         "INSERT INTO view_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (view_id, plan.branch_id, n + 1, plan.request_id, policy_version, stub_format,
          state.watermark_seq, state.collapse_seq,
-         json.dumps({"oversized": sorted(state.oversized), "kept": sorted(state.kept)}),
+         json.dumps({"oversized": sorted(state.oversized), "kept": sorted(state.kept),
+                     "omitted_excerpts": sorted(state.omitted_excerpts)}),
          json.dumps(budget), cause, time.time()))
     _event(conn, plan.request_id, plan.attempt_id, "view_version", view_id=view_id, n=n + 1,
            cause=cause, watermark_seq=state.watermark_seq, collapse_seq=state.collapse_seq)

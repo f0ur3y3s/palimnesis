@@ -101,7 +101,7 @@ def test_history_over_the_budget_is_masked_within_it_and_the_view_is_recorded(tm
     assert upstream_tokens(sent) <= 8000
     assert "[palimnesis s1" in sent.decode()
     [(n, cause)] = rows(settings, "SELECT n, cause FROM view_versions")
-    assert n == 1 and cause in ("watermark_move", "collapse")
+    assert n == 1 and cause and set(cause.split(",")) <= {"watermark_move", "collapse"}
     # the archive keeps the full history (plus the generated answer) regardless of the view
     assert rows(settings, "SELECT count(*) FROM occurrences")[0][0] == len(json.loads(data)["messages"]) + 1
 
