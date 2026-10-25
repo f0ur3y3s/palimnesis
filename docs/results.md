@@ -519,3 +519,165 @@ Code at the `phase-2` tag. Full suite: 882 passed.
 | Items per selection, median | 1 |
 
 **Target** (p95 ≤ 50 ms at 1M tokens, contracts §13): met. A 200K-token run gave p50 2.8 ms and p95 6.8 ms, so cost grows with archive size but stays far inside the bound. The hit rate measures retrieval of an exact identifier only, not answer quality; the needle evaluation does that.
+
+## R19 — Phase 3 development needle set and the O3 hybrid emulator (S10, 2026-10-25)
+
+**These are EMULATOR results, not real OpenCode.** Two parts of the plan were not run in development:
+- **Arm 1 (native compaction)** needs real OpenCode.
+- **The ±50% cap variants (D20.2)** are not exposed as settings.
+
+**Code and environment.**
+- **Proxy code:** `d1c9589`. Its `src/` and `tests/` are identical to `954c6a4`. The eval files were uncommitted: `eval/needle.py`, `eval/needle_gen.py`, `eval/report.py` and `eval/needles/dev/`.
+- **Client host:** as R6 (Windows 11 Pro 26200, Intel64 Family 6 Model 204, Python 3.12.13, tokenizers 0.23.3, SQLite 3.53.1).
+- **Strata:** 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536, one slot, on an RTX 3060 12 GB with preset "IQ3_XXS 64K" (D40).
+- **Emulated 32K:** `--input-budget 24320` at 64K capacity (O2), giving `Q` 2,432 and `q_msg` 972.
+- **Deadline:** `deadline_s` was raised to 3,600, because the slot gate may hold a request.
+- **Pin and canary:** the profile pin `strata-0.1.48@cf3b5a426570` and the canary matched at every proxy start, and again after the outage.
+
+**Development set** (`eval/needles/dev/dev-h1..h6.json`, built by `needle_gen.py` with seeds 3100–3105).
+- **Histories.** Six templated, OpenCode-shaped Python coding sessions of about 43–46K tokens each, plus OpenCode's ~5K-token head. Each history is imported as the session's first request, so its prior assistant and tool turns are `client_import`.
+- **Steps.**
+  - Q1 is the host of the import request.
+  - The rest follow in order: P1, Q2, Q3, P2, Q4, Q5, P3, Q6, Q7, Q8, a proxy restart, Q9, Q10.
+  - The P steps are 3.7–8K-token pastes answered with "reply 'noted'". They give later questions several eviction events.
+- **Needles.** 10 per history, covering A1's categories:
+  - identifier ×2;
+  - superseded;
+  - irrelevant matches;
+  - vague ×2;
+  - oversized read (a 420-line verbose log);
+  - mid-task (the constant is named only in a scripted `pytest` output);
+  - multi-fact (host:port/db, gathered from three turns);
+  - restart plus multiple evictions (a value from P1).
+- **Scoring.**
+  - "Exact" is equality after whitespace and case normalization.
+  - "Loose" additionally strips wrapping backticks, quotes and a trailing period.
+  - Partials are recorded separately.
+- **Needle location.** Taken from the tapped upstream body of the question's first upstream call: verbatim in the view, in the excerpt block, or absent.
+- **Lookup.** A tool call aimed at the transcript directory.
+
+**Emulator** (`eval/needle.py`, v2).
+- **Request shape.**
+  - It replays OpenCode 2.1.4's captured system prompt, with the `<env>` paths set to its own workspace, and the 11 captured tools.
+  - Requests use the captured top-level shape and stream.
+  - History is resent without `reasoning_content`, as asked; the proxy restores it.
+- **Message content.**
+  - Content is null only on tool-call-only turns. Otherwise it is the text, or "" when there is none, per the 2.1.4 bundle's OpenAI Chat conversion (`ze`).
+  - That conversion also echoes `reasoning_content` when `compatibility.reasoningField` is set. The upstream body is the same either way.
+- **Tools.**
+  - `read` and `grep` follow the 2.1.4 bundle: its output formats, 2,000-line / 50 KB pages, and ripgrep with `--hidden` and 100 matches.
+  - `glob` is emulated, and `edit` and `write` are confined to the workspace.
+  - `shell` runs only allow-listed read-only commands under Git Bash, or the history's scripted `pytest`.
+  - At most 8 tool calls run per question.
+  - On a length stop, OpenCode's two synthetic continuations are sent.
+- **Unverified:** the long-line suffix, the shell truncation preview, and glob and grep ordering (sorted by path).
+
+**D39 pacing.**
+- An in-process gate sat between the proxy and Strata. Before each inference request it waited for `/status` to show `busy` false and `queued` 0, and the driver did the same.
+- The gate counted foreign requests from `/v1/status` `activity.requests`.
+- The notice that the other application had stopped arrived at 2026-10-25 04:44Z, before every run here.
+- No foreign activity was observed in any run: the activity counters agreed, and there were 0 busy-before-request events and 0 queued samples. All runs are labelled unaffected.
+
+**Outage (10:07–10:36Z).** Strata stopped because its launcher's SSH lifeline ended, not because of these runs.
+- **a4-a4.** Its first attempt, started 10:06:04Z, had completed 1 needle when the outage killed it. That attempt is discarded as an infrastructure failure and counts in no denominator.
+- **Rerun.** After the pin and canary check, a4-a4 was rerun from scratch, 10:37–11:07Z, with a cold prompt cache.
+- **Other configurations.** All finished before 10:06:04Z; a4-base ran 06:43–07:19Z and completed. No completed run has a connection-error request.
+
+**Smoke run** (h1, 3 needles, arm 4): 3/3 exact. `--explain` exited 0 and `transcripts verify` passed.
+
+## R20 — Phase 3 development matrix at emulated 32K (S10, 2026-10-25, EMULATOR)
+
+**Setup.**
+- Each configuration ran 6 histories × 10 needles. Runs were sequential, 06:43–11:07Z, at 30–59 minutes each.
+- **Configurations:**
+  - `a2-base`: transcripts plus a3, recall off;
+  - `a3-base`: excerpts with `--no-transcripts`;
+  - `a4-base`: q1/x1/a3;
+  - the variants each change one factor of `a4-base`.
+- **Columns:**
+  - "Loose exact" counts all 60 needles; the CI is a 95% Wilson interval.
+  - "Clean" excludes a needle when any earlier step of its session errored, or when one of its upstream bodies exceeded 24,320 tokens (the R21 defects).
+
+| Config | Exact (ws/case) | Loose exact | 95% CI | Clean loose / n | Errored (R21-B) | Upstream early stops (R21-C) | Needle in view / excerpt / absent | Fallback when absent | Lookups (questions); unnecessary | Prompt / completion tokens, all steps | TTFVC p50 / p90 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| a4-base (q1/x1/a3) | 38 | 44 | 61–83% | 31/32 | 12 | 2 | 18 / 31 / 5 | 5/5 | 27 (9); 16 | 2,356,126 / 12,429 | 7.4 / 75.0 |
+| a3-base (no transcripts) | 33 | 35 | 46–70% | 23/33 | 11 | 9 | 18 / 31 / 5 | 0/5 | 0 | 2,280,871 / 16,069 | 6.5 / 94.8 |
+| a2-base (no excerpts) | 56 | **59** | 91–100% | 59/60 | 0 | 0 | 13 / 0 / 47 | 47/47 | 133 (48); 2 | 3,311,913 / 38,144 | 49.1 / 88.6 |
+| a4-q2 | 45 | 46 | 65–86% | 44/50 | 5 | 5 | 9 / 40 / 8 | 8/8 | 30 (9); 8 | 2,098,389 / 13,898 | 7.3 / 83.0 |
+| a4-x2 | 57 | **58** | 89–99% | 58/60 | 0 | 0 | 9 / 44 / 9 | 9/9 | 33 (15); 6 | 2,428,859 / 16,355 | 8.2 / 68.0 |
+| a4-a4 | 36 | 37 | 49–73% | 25/30 | 12 | 4 | 16 / 32 / 5 | 5/5 | 23 (8); 12 | 2,133,511 / 12,401 | 8.1 / 80.0 |
+
+**Paired against a4-base**, per needle (both / only a4-base / only the variant / neither):
+
+| Variant | All 60 | Clean in both |
+| --- | --- | --- |
+| a4-x2 | 43 / 1 / 15 / 1 | 30 / 1 / 1 / 0 |
+| a4-q2 | 37 / 7 / 9 / 7 | 24 / 6 / 0 / 0 |
+| a4-a4 | 29 / 15 / 8 / 8 | 8 / 5 / 0 / 0 |
+
+The configurations differ mostly through R21-B and R21-C, not through retrieval.
+
+**Retrieval.**
+- In arms 3 and 4 the needle was in an excerpt for 31–44 of 60 questions.
+- Arm 2 found 46 of 47 absent needles by transcript lookup. Compared with a4-base it cost 2.2 lookups per needle, 1.4× the prompt tokens, 3× the completion tokens, and a time to first visible content (TTFVC) p50 of 49 s against 7 s.
+
+**Lookups.** Every arm with transcripts looked a needle up whenever it was absent. Unnecessary lookups, made when the needle was already in context, numbered 2–16 per configuration.
+
+**`--explain`** exited 0 with 0 unexplained pairs on all 6 archives.
+- `append` reuse was 1.17M cached against 1.16M estimated tokens for a4-base, and 2.63M against 2.60M for a2-base, the largest.
+- `collapse` reuse matched its estimate exactly.
+- `view_disabled` calls reused about 0.7M tokens against an estimate of 0 in a4-base, a3-base and a4-a4.
+
+**`transcripts verify`** passed on all 30 transcript-enabled sessions.
+
+**Variant evidence.** Development only; nothing is frozen here.
+- **x2 over x1.** Suggestive, but each configuration was run once at temperature 1.0.
+  - x2 had 0 early stops and 0 errored needles.
+  - The four x1 configurations had 20 early stops in 240 needles (a3-base 9, a4-q2 5, a4-a4 4, a4-base 2). Each one seeded the R21-B cascade.
+  - On needles clean in both runs, x2 and x1 tie (30 / 1 / 1 / 0). The gain is in how the model answers, not in what was retrieved.
+- **q2:** no measurable effect. Its 6 clean-pair losses follow the early-stop and cascade pattern. Keep q1.
+- **a4:** thin evidence (13 clean pairs) and no gain. Its 5 losses follow the same pattern. Keep a3.
+- **Caveats.** The set is templated and most questions name their identifier, so clean accuracy sits near the ceiling everywhere except arm 3.
+
+Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/`. They hold no bodies, and paths appear as `<RUN>` or `<HOME>`.
+
+## R21 — Defects found by the development runs (S10, 2026-10-25; A and B fixed by D41)
+
+**A. A failed view build forwards an unbounded body upstream.**
+- **Where.** `archive.py:234` (and `:135`) logs "bounded view build failed; forwarding unbounded" and then sends the client's whole history.
+- **Trigger.** Any rendering error. Live, it was a generated tool call whose arguments were not a JSON object, truncated by `finish_reason: "length"`. When the client resent that call, the pinned template raised `RenderError`.
+- **Effect.**
+  - The upstream body was far over the input budget, and Strata answered 400 on every later request of the session ("prompt 85,430 tokens … context 65,536").
+  - The proxy should have returned a structured error consistent with GL1 instead.
+- **Repro.** `uv run python eval/probes/repro_unbounded_after_bad_args.py`. With a 12,000-token budget, request 2 forwards all 64 client messages (100,398 bytes).
+
+**B. A reasoning-only turn causes count drift, which disables views for the whole process.**
+- **Drift.** For a prior assistant turn with null or "" content and no tool calls, Strata does not render its `reasoning_content`, but the pinned local counter does.
+  - `eval/probes/p11_null_content_count.py`, 3 tiny idle-gated requests:
+
+    | Content | Local | Remote |
+    | --- | --- | --- |
+    | null | 100 | 68 |
+    | "" | 100 | 68 |
+    | "ok" | 101 | 101 |
+
+  - Live drifts were 83 and 16 tokens.
+- **Cascade.**
+  1. Every later request in that session drifts.
+  2. After 3 in a row, "bounded views disabled: 3 consecutive count drifts" takes effect for every session in the process until a restart.
+  3. Bodies are then forwarded unbounded. Strata returns 400 once a body exceeds its 64K context; smaller histories run unmasked.
+  4. The restart before Q9 re-enables views, but the session drifts again within 3 requests.
+- **Incidence.** Errored needles: a4-base 12, a3-base 11, a4-a4 12, a4-q2 5. Later answers were contaminated too: the model also answered the earlier questions left unanswered.
+- **Real OpenCode is affected.** OpenCode sends "" for such turns (bundle `ze`), so this occurs whenever the model answers only in its reasoning.
+
+**C. Upstream early stops.** Seen with Strata 0.1.48 and this model; cause unverified.
+- **Symptom.** `finish_reason: "stop"` arrives with the answer cut mid-value (`r2026.`, `2.`, `test`), or with no content after the answer appeared in the reasoning.
+- **Not the relay.** The raw upstream SSE saved by the gate shows the same text.
+- **Pattern.** 20 of 240 needles under x1, against 0 of 60 under x2 and 0 of 60 without excerpts.
+  - One unverified hypothesis: speculative or prompt-lookup decoding that copies the answer from the excerpt.
+- **Link to B.** Every reasoning-only answer triggers B.
+
+**Earlier attempts.** These used emulator v1, 05:14–06:41Z, and are superseded by R20.
+- **Paste prompts.** The paste turns first asked for analysis. The model wrote the pastes to files, and one lint count hit `length`, which exposed A. The pastes were changed to "reply 'noted'".
+- **Empty content.** v1 resent text-less, tool-less turns with null content; v2 resends "" as OpenCode does. B occurred under both.
+- **v1 results.** The v1 a4-base and a3-base runs scored 54/60 and 34/60 loose exact (`eval/fixtures/phase3-dev/v1/`). A partial a2-base run was discarded.
