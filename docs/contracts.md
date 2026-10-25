@@ -72,7 +72,7 @@ Per-harness facts (header wait, read-idle, total deadline, retry triggers, behav
 
 - **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued. **[defined, Ph3]**
 - **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph3]**
-- **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. **[defined, Ph3]**
+- **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. At `D` after acceptance the upstream response is closed, releasing its slot, and the attempt is recorded as failed (`deadline_exceeded`). A client that stopped reading cannot hold the upstream past `D`. Queueing before acceptance is the upstream's (Strata queues FIFO; proxy admission is deferred to Phase 4B, O4). **[enforced after acceptance]**
 - **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[enforced]**
 - **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Palimnesis, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
 
@@ -93,8 +93,9 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
 | Upstream non-200 after acceptance | relayed status and body | `x-should-retry: false` | **[enforced]** |
 | Upstream unreachable in passthrough | 502 `upstream_unreachable` | `x-should-retry: true` | **[enforced]** |
-| Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) | [defined, Ph3] |
-| Deadline expired before first byte | 504 | `x-should-retry: false` | [defined, Ph3] |
+| Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) | [defined, Ph4B] (O4) |
+| Deadline expired before first byte | 504 `deadline_exceeded` | `x-should-retry: false` | **[enforced]** |
+| Deadline expired after the stream started | in-stream `deadline_exceeded` event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
 | Failure after stream start | endpoint's in-stream error event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
 
 ## 6. Idempotency and request fingerprints

@@ -160,7 +160,7 @@ class Proxy:
                     self.archive = ArchiveHandler(
                         self.store, self.client, self.upstream_base,
                         lambda headers: _filter_headers(headers, drop=_REQUEST_ONLY),
-                        views=await self._view_engine(),
+                        views=await self._view_engine(), deadline_s=self.settings.deadline_s,
                     )
                 await send({"type": "lifespan.startup.complete"})
             elif message["type"] == "lifespan.shutdown":

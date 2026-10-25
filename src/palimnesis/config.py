@@ -23,5 +23,8 @@ class Settings:
     excerpt_source: object | None = None
     # Proactive recall (A1 Phase 3): "fts" retrieves from the archive, "off" never does.
     recall: str = "fts"
+    # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
+    # inference and delivery after acceptance.
+    deadline_s: float = 600.0
     # Upstream profile name (palimnesis.profile.REGISTRY).
     profile: str = DEFAULT_PROFILE

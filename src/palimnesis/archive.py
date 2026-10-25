@@ -19,7 +19,13 @@ Order of operations (contracts §3, §5, §11; D10):
    deliver it.
 
 Queues between the upstream reader and the committer are bounded, so a slow
-database or client applies backpressure to upstream reads.
+database or client applies backpressure to upstream reads. The request-wide
+deadline ``D`` (contracts §5) bounds how long that can last: at ``D`` after
+arrival the upstream response is closed, releasing its slot, the attempt is
+recorded as failed with ``deadline_exceeded``, and the client gets a 504 if no
+response has started, else the in-stream error event. Final sends to a
+client that stopped reading get ``FINAL_SEND_S`` before the connection is
+abandoned.
 """
 
 from __future__ import annotations
@@ -50,6 +56,7 @@ CRASH_EXIT_CODE = 77
 MAX_EVENTS_AFTER_FINISH = 32
 BATCH_MAX_BYTES = 16 * 1024
 READ_QUEUE_CHUNKS = 64
+FINAL_SEND_S = 2.0
 _EOF = object()
 
 
@@ -71,8 +78,9 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
-                 forward_headers, views=None) -> None:
+                 forward_headers, views=None, deadline_s: float = 600.0) -> None:
         self.store = store
+        self.deadline_s = deadline_s
         self.views = views  # palimnesis.viewengine.ViewEngine, or None for no bounded views
         self.client = client
         self.upstream_base = upstream_base
@@ -86,6 +94,7 @@ class ArchiveHandler:
 
     async def __call__(self, scope, receive, send, *, session: str, api_path: str,
                        headers: list[tuple[bytes, bytes]], body: bytes, association: str) -> None:
+        expires = anyio.current_time() + self.deadline_s
         try:
             req = chat.parse(body)
         except chat.Unsupported as e:
@@ -136,15 +145,26 @@ class ArchiveHandler:
             return
 
         gen = ledger.Generation(plan)
+        started = False
+
+        async def tracked(message) -> None:
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
         try:
             crash_point("after_accept")
             if plan.replay is not None:
                 await self._send_replay(send, plan.replay)
                 return
-            if prepared is not None and not await self._bound(scope, receive, send, req, gen,
-                                                              prepared, api_path):
-                return
-            await self._run(scope, receive, send, gen, api_path, headers)
+            with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
+                if prepared is not None and not await self._bound(scope, receive, tracked, req,
+                                                                  gen, prepared, api_path):
+                    return
+                await self._run(scope, receive, tracked, gen, api_path, headers)
+            if window.cancelled_caught and not gen.delivered:
+                await self._expired(scope, receive, send, gen, api_path, started)
         except BaseException:
             # Cancellation (client disconnect) or an unexpected failure: record it
             # if storage allows, never claim success. ledger.interrupt runs after
@@ -224,6 +244,24 @@ class ArchiveHandler:
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
         plan.view, plan.prepared = view, prepared
         return True
+
+    async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
+        """Deadline D passed after acceptance; the upstream is already closed."""
+        with anyio.CancelScope(shield=True):
+            try:
+                await self.store.write(lambda c: ledger.expire(c, gen))
+            except Exception:
+                log.exception("could not record the expired attempt")
+        with anyio.move_on_after(FINAL_SEND_S, shield=True):
+            if not started:
+                await error_response(api_path, 504, "deadline_exceeded",
+                                     "The request did not complete within its deadline.",
+                                     type_="api_error")(scope, receive, send)
+                return
+            await send({"type": "http.response.body", "more_body": True,
+                        "body": _error_event("deadline_exceeded",
+                                             "The request did not complete within its deadline.")})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def _send_replay(self, send, replay: dict) -> None:
         headers = [(k.encode("latin-1"), v.encode("latin-1")) for k, v in replay["headers"]]

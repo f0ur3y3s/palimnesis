@@ -871,6 +871,22 @@ def interrupt(conn: sqlite3.Connection, gen: Generation) -> None:
         finish_attempt(conn, gen, "cancelled", forwarded=gen.forwarded)
 
 
+def expire(conn: sqlite3.Connection, gen: Generation) -> None:
+    """Record that the request deadline ended the attempt (contracts §5). Like
+    ``interrupt``, it runs after any terminal write already queued."""
+    terminal = conn.execute(
+        "SELECT 1 FROM events WHERE attempt_id = ? AND kind IN (%s)"
+        % ",".join("?" * len(TERMINAL_EVENTS)),
+        (gen.plan.attempt_id, *TERMINAL_EVENTS),
+    ).fetchone()
+    if terminal:
+        record_delivery(conn, gen.plan, "delivery_failed", bytes_forwarded=gen.forwarded,
+                        reason="deadline_exceeded")
+    else:
+        finish_attempt(conn, gen, "attempt_failed", reason="deadline_exceeded",
+                       forwarded=gen.forwarded)
+
+
 def prepare_response(conn: sqlite3.Connection, gen: Generation, status: int,
                      headers: list[tuple[str, str]], body: bytes) -> None:
     conn.execute("INSERT INTO prepared_responses VALUES (?, ?, ?, ?)",
