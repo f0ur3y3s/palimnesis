@@ -15,6 +15,7 @@ import httpx
 
 from . import ledger, profile
 from .archive import ArchiveHandler
+from .budget import BudgetError, check_floor
 from .capture import CaptureRecorder
 from .config import Settings
 from .errors import error_response
@@ -81,6 +82,52 @@ def _session_header(headers: list[tuple[bytes, bytes]]) -> str | None:
     return values.pop().decode("latin-1") if values else None
 
 
+class FlooredViews:
+    """A ``ViewEngine`` gated by the startup floor (contracts §2, D14.9).
+
+    Bounded views need room for the smallest fixed input (an empty conversation, no
+    tools), the minimum recent window, the generation reserve and the margin. The
+    floor is checked against ``n_ctx`` at startup and again whenever a facts refresh
+    reports a different ``n_ctx``; while it fails, ``ready`` is false, so the proxy
+    archives and forwards unbounded, and the failing terms are logged once per
+    ``n_ctx``. Everything else is delegated to the engine.
+    """
+
+    def __init__(self, engine) -> None:
+        self._engine = engine
+        self._floor_n_ctx: int | None = None
+        self.floor_error: BudgetError | None = None
+
+    def __getattr__(self, name):
+        return getattr(self._engine, name)
+
+    def check(self) -> bool:
+        """Recompute the floor if ``n_ctx`` changed; True when bounded views fit."""
+        facts = self._engine.profile.facts.facts
+        if facts is None:
+            return False
+        if facts.n_ctx != self._floor_n_ctx:
+            self._floor_n_ctx = facts.n_ctx
+            counter = self._engine.profile.counter
+            try:
+                check_floor(facts.n_ctx,
+                            fixed_min=counter.count_messages([{"role": "user", "content": ""}]),
+                            client_limit=None, policy=self._engine.policy)
+            except BudgetError as e:
+                self.floor_error = e
+                log.warning("bounded views disabled: the startup floor fails: %s (terms: %s)",
+                            e, ", ".join(f"{k}={v}" for k, v in e.terms.items()))
+            else:
+                if self.floor_error is not None:
+                    log.warning("bounded views re-enabled: n_ctx %d meets the floor",
+                                facts.n_ctx)
+                self.floor_error = None
+        return self.floor_error is None
+
+    async def ready(self, client) -> bool:
+        return await self._engine.ready(client) and self.check()
+
+
 class Proxy:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -135,11 +182,14 @@ class Proxy:
                         "view builder does not implement: %s", upstream.id,
                         ", ".join(engine.unsupported_rules))
             return engine
+        floored = FlooredViews(engine)
         await upstream.facts.refresh(self.client)
         if not upstream.facts.pinned_ok:
             log.warning("bounded views disabled until the upstream matches the pin: %s",
                         upstream.facts.diagnostics())
-        return engine
+        else:
+            floored.check()
+        return floored
 
     async def _http(self, scope, receive, send) -> None:
         if self.client is None:
