@@ -462,3 +462,20 @@ The user advised on 2026-10-25 that the Strata server on bazzite also serves ano
 - **Labelling.** Foreign traffic during a run is recorded. Latency, prefill and prompt-cache figures from such runs are labelled as possibly affected by it, not reported as clean. Foreign requests can evict cached prefixes, so measured reuse is a lower bound.
 - **No restarts without asking.** The held-out step's restart with `n_ctx` 32768 (O2) would disrupt the other application, so it needs the user's go-ahead first. The fallback is emulating 32K with `--input-budget 24320` at 64K capacity, with native compaction (arm 1) given a matching `limit.context`, labelled as emulated.
 - **Update (2026-10-25).** The user reports the other application has been stopped. Runs after this notice are labelled unaffected unless foreign activity is actually observed. The idle-slot check stays in place, and so does the rule against restarting Strata without asking.
+
+## D40 — Restarting Strata at 32K for held-out runs
+
+The user granted SSH access to bazzite (alias `bazzite`) on 2026-10-25 and asked for the server to be restarted at 32K for the held-out runs (O2).
+
+- **How Strata runs.** Its own launcher (`~/.local/share/strata/terminal/0.1.49/strata.py launch`) serves the saved preset "IQ3_XXS 64K" (`~/.local/state/strata/launch/iq3_xxs-64k.json`): engine 0.1.48, `--max-context 65536`, `--kv int8`, MTP, `--expert-cache auto`, vision off, parallel 1, port 8080.
+- **Restart command:** `strata.py launch --preset "IQ3_XXS 64K" --context 32k --parallel 1 --restart --no-tui --yes`. Its `--plan` dry run shows the running configuration in every respect except the context.
+  - The override applies to that start only; the saved preset stays 64K.
+  - `--parallel 1` is pinned because the launcher's default, "fit to card", could fit a second slot at the smaller context.
+- **Rejected: the old `iq3_xxs-32k` profile** from 2026-10-23. It has vision on (CPU reader), no expert cache and, per `docs/probes/strata.md` §0, different defaults with the conversation cache off. Those differences would confound held-out latency and cache reuse with more than the context size.
+- **Sequence.**
+  1. Wait for the development evaluation, which runs on the 64K server, to finish. Nothing is restarted mid-run.
+  2. Restart with the command above.
+  3. Check that `/props` and `/v1/status` report `n_ctx` 32768, and that the build, template hash and canary still match the pinned profile. Bounded views turn off otherwise.
+  4. Run the held-out evaluation.
+  5. Restore with `strata.py launch --preset "IQ3_XXS 64K" --restart --no-tui --yes` and check that `n_ctx` is 65536.
+- **Observed and not changed:** the launcher warns that the server runs on the LAN with no API key ("anyone who can reach this port can use the model and its tools"). This is the user's existing configuration.
