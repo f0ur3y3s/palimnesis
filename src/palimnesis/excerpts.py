@@ -40,6 +40,54 @@ class Excerpt:
     text: str
 
 
+@dataclass(frozen=True)
+class SelectedExcerpt:
+    """One retrieved excerpt with its exact source boundaries (code points)."""
+
+    rank: int
+    score: float
+    source_occ_id: str
+    source_alias: str | None
+    source_block: int
+    start: int
+    end: int
+    source_sha256: str
+    turn_number: int
+    role: str
+    tool_name: str | None
+    text: str
+
+
+@dataclass(frozen=True)
+class Selection:
+    """What an excerpt source chose for one accepted user message (A1 Phase 3)."""
+
+    query: str
+    query_version: str
+    retrieval_version: str
+    archive_cutoff_seq: int
+    items: tuple[SelectedExcerpt, ...]
+
+    def excerpts(self) -> list[Excerpt]:
+        """Items in chronological order for rendering. Ranking decided which
+        survived; chronology only orders them (A1)."""
+        ordered = sorted(self.items, key=lambda i: (i.turn_number, i.source_occ_id, i.start))
+        return [Excerpt(i.source_alias or "", i.source_block, i.turn_number, i.role,
+                        i.tool_name, i.text) for i in ordered]
+
+
+class NoExcerpts:
+    """The Phase 2 excerpt source: selects nothing (retrieval arrives in Phase 3)."""
+
+    query_version = "none"
+    retrieval_version = "none"
+
+    async def select(self, plan, base_view, allocation: int) -> Selection:
+        return Selection(query="", query_version=self.query_version,
+                         retrieval_version=self.retrieval_version, archive_cutoff_seq=0,
+                         items=())
+
+
 def _token_escape(text: str, added_tokens: Sequence[str]) -> str:
     firsts = {t[0] for t in added_tokens if t}
     out: list[str] = []

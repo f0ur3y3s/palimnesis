@@ -802,3 +802,80 @@ def _abandon(conn, branch_id: str, request_id: str, reason: str) -> None:
     ).fetchone()
     _event(conn, request_id, attempt[0] if attempt else None, "attempt_abandoned", reason=reason)
     _set_active(conn, branch_id, None)
+
+
+# --- excerpt blocks (amendment A1) -------------------------------------------
+
+
+@dataclass(frozen=True)
+class ExcerptBlock:
+    block_id: str
+    host_occ_id: str
+    status: str
+    rendered: str
+    token_charge: int
+    allocation: int
+    query: str
+    query_version: str
+    retrieval_version: str
+    renderer_version: str
+    archive_cutoff_seq: int
+    base_view_n: int
+    items: tuple = ()
+
+
+def record_excerpts(conn: sqlite3.Connection, plan: Plan, *, host_occ_id: str, selection,
+                    rendered: str, token_charge: int, allocation: int, base_view_n: int,
+                    base_watermark_seq: int, base_collapse_seq: int, renderer_version: str,
+                    profile_id: str) -> str:
+    """Persist one host message's excerpt selection and frozen rendering (immutable)."""
+    block_id = new_id("exb")
+    status = "selected" if selection.items else "empty"
+    conn.execute(
+        "INSERT INTO excerpt_blocks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (block_id, plan.branch_id, host_occ_id, plan.request_id, selection.archive_cutoff_seq,
+         base_view_n, base_watermark_seq, base_collapse_seq, selection.query,
+         selection.query_version, selection.retrieval_version, renderer_version, profile_id,
+         allocation, token_charge, rendered,
+         hashlib.sha256(rendered.encode("utf-8", "surrogatepass")).hexdigest(), status, None,
+         time.time()))
+    for idx, item in enumerate(selection.items):
+        conn.execute(
+            "INSERT INTO excerpt_items VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (block_id, idx, item.rank, item.score, item.source_occ_id, item.source_alias,
+             item.source_block, item.start, item.end, item.source_sha256, item.turn_number,
+             item.role, item.tool_name))
+    _event(conn, plan.request_id, plan.attempt_id, "excerpts_selected", block_id=block_id,
+           host_occ_id=host_occ_id, status=status, items=len(selection.items),
+           token_charge=token_charge)
+    return block_id
+
+
+_BLOCK_COLUMNS = ("block_id, host_occ_id, status, rendered, token_charge, allocation_tokens,"
+                  " query, query_version, retrieval_version, renderer_version,"
+                  " archive_cutoff_seq, base_view_n")
+_ITEM_COLUMNS = ('rank, score, source_occ_id, source_alias, source_block, start, "end",'
+                 " source_sha256, turn_number, role, tool_name")
+
+
+def _block(conn, row) -> ExcerptBlock:
+    from .excerpts import SelectedExcerpt
+
+    items = tuple(
+        SelectedExcerpt(*r, text="")
+        for r in conn.execute(
+            f"SELECT {_ITEM_COLUMNS} FROM excerpt_items WHERE block_id = ? ORDER BY idx",
+            (row[0],)))
+    return ExcerptBlock(*row, items=items)
+
+
+def excerpt_block(conn: sqlite3.Connection, host_occ_id: str) -> ExcerptBlock | None:
+    row = conn.execute(f"SELECT {_BLOCK_COLUMNS} FROM excerpt_blocks WHERE host_occ_id = ?",
+                       (host_occ_id,)).fetchone()
+    return _block(conn, row) if row else None
+
+
+def excerpt_blocks(conn: sqlite3.Connection, branch_id: str) -> dict[str, ExcerptBlock]:
+    """Every excerpt block of the branch, by host occurrence."""
+    return {row[1]: _block(conn, row) for row in conn.execute(
+        f"SELECT {_BLOCK_COLUMNS} FROM excerpt_blocks WHERE branch_id = ?", (branch_id,))}

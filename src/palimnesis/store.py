@@ -206,9 +206,9 @@ CREATE TABLE branch_heads (
 """
 
 
-def _immutability_triggers() -> str:
+def _immutability_triggers(unique_keys: dict[str, list[tuple[str, ...]]] | None = None) -> str:
     statements = []
-    for table, keys in _UNIQUE_KEYS.items():
+    for table, keys in (unique_keys or _UNIQUE_KEYS).items():
         message = f"archive rows are immutable: {table}"
         for verb in ("UPDATE", "DELETE"):
             statements.append(
@@ -254,6 +254,53 @@ WHEN EXISTS (SELECT 1 FROM view_versions WHERE branch_id = NEW.branch_id AND n =
 BEGIN SELECT RAISE(ABORT, 'archive rows are immutable: view_versions'); END;
 """
 
+# v4: excerpt blocks pinned to accepted user messages (amendment A1, D20).
+_EXCERPT_KEYS = {
+    "excerpt_blocks": [("block_id",), ("host_occ_id",)],
+    "excerpt_items": [("block_id", "idx")],
+}
+_EXCERPTS = """
+CREATE TABLE excerpt_blocks (
+    block_id TEXT PRIMARY KEY,
+    branch_id TEXT NOT NULL REFERENCES branches,
+    host_occ_id TEXT NOT NULL UNIQUE REFERENCES occurrences,
+    request_id TEXT REFERENCES requests,
+    archive_cutoff_seq INTEGER NOT NULL,
+    base_view_n INTEGER NOT NULL,
+    base_watermark_seq INTEGER NOT NULL,
+    base_collapse_seq INTEGER NOT NULL,
+    query TEXT NOT NULL,
+    query_version TEXT NOT NULL,
+    retrieval_version TEXT NOT NULL,
+    renderer_version TEXT NOT NULL,
+    profile_id TEXT NOT NULL,
+    allocation_tokens INTEGER NOT NULL,
+    token_charge INTEGER NOT NULL,
+    rendered TEXT NOT NULL,
+    rendered_sha256 TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('selected', 'empty')),
+    reason TEXT,
+    created_at REAL NOT NULL
+) STRICT;
+
+CREATE TABLE excerpt_items (
+    block_id TEXT NOT NULL REFERENCES excerpt_blocks,
+    idx INTEGER NOT NULL,
+    rank INTEGER NOT NULL,
+    score REAL NOT NULL,
+    source_occ_id TEXT NOT NULL REFERENCES occurrences,
+    source_alias TEXT,
+    source_block INTEGER NOT NULL,
+    start INTEGER NOT NULL,
+    "end" INTEGER NOT NULL,
+    source_sha256 TEXT NOT NULL,
+    turn_number INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    tool_name TEXT,
+    PRIMARY KEY (block_id, idx)
+) STRICT;
+"""
+
 MIGRATIONS: list[str] = [
     _SCHEMA_V1 + _immutability_triggers(),
     # v2: derived full-text index (palimnesis.search), filled from existing blocks.
@@ -263,6 +310,7 @@ MIGRATIONS: list[str] = [
     " FROM blocks b;",
     # v3: persisted view decisions (palimnesis.view); immutable like the archive.
     _VIEW_VERSIONS,
+    _EXCERPTS + _immutability_triggers(_EXCERPT_KEYS),
 ]
 
 _DENIED_ACTIONS = frozenset(
