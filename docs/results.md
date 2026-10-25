@@ -503,3 +503,19 @@ Code at the `phase-2` tag. Full suite: 882 passed.
 - Proactive retrieval and transcript files (A1).
 - The view-policy items in D24.2 and D24.3, with bench_view data.
 - Incremental accept (D25).
+
+## R18 — Proactive-recall selection latency at 1M archived tokens (Phase 3, 2026-10-25)
+
+`python eval/bench_recall.py --tokens 1000000 --queries 40 --json` on `f4151ac`. Hardware as R6; profile `strata-0.1.48`.
+
+- **Session.** One synthetic OpenCode-shaped session of 1,002,646 tokens: 449 tool outputs of 300–6,000 tokens, each with one planted identifier.
+- **Queries.** Each of the 40 queries is a new instruction naming one planted identifier. Every block except the newest 12 messages is absent from the view, the worst case where everything is a candidate.
+- **What is timed.** `FtsExcerpts.select` through the real store and the pinned counter, at an allocation of 1,920 tokens.
+
+| Metric | Value |
+| --- | --- |
+| Selection p50 / p95 / max | 10.4 / **12.0** / 14.6 ms |
+| Planted identifier in the selection | 40 / 40 |
+| Items per selection, median | 1 |
+
+**Target** (p95 ≤ 50 ms at 1M tokens, contracts §13): met. A 200K-token run gave p50 2.8 ms and p95 6.8 ms, so cost grows with archive size but stays far inside the bound. The hit rate measures retrieval of an exact identifier only, not answer quality; the needle evaluation does that.

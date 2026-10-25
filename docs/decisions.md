@@ -332,6 +332,8 @@ Migration 5 adds `fts_chunks` (contentless FTS5) and `chunk_map`. Every archived
 
 Rejected: ranking whole blocks. BM25's length normalization buries one dense hit inside a long tool output (`test_a_dense_hit_inside_a_long_block_outranks_a_sparse_hit`).
 
+Adapted from Eunoe, which indexes 6-line windows of tool results with the tool call's description folded into each. Palimnesis's chunks are larger, so a hit keeps more of its context before the ±4 lines are added. They cover every block kind, including user text and reasoning, because A1 retrieves any absent span. Call arguments are indexed as their own blocks rather than folded into results. These sizes are development-selectable.
+
 ## D28 — Query policy q1
 
 The query is built from the instruction's own text and never passed through as FTS5 syntax.

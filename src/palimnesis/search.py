@@ -10,7 +10,10 @@ the index from the immutable archive at any time.
 ``CHUNK_LINES`` lines and ``CHUNK_CHARS`` code points, mapped back to exact
 code-point ranges by ``chunk_map``. Proactive recall ranks chunks, not
 blocks: BM25's length normalization would otherwise bury one dense hit
-inside a long tool output.
+inside a long tool output. Chunked ranking follows Eunoe (docs/papers.md),
+adapted: Eunoe indexes 6-line windows of tool results with the call's
+description folded into each; these chunks are larger, cover every block
+kind, and index call arguments as their own blocks.
 
 This is lexical search (FTS5, ``unicode61`` tokens), not regex.
 """

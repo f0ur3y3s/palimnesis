@@ -29,8 +29,9 @@ ordinary tools when proactive recall misses. Adaptations (docs/plans/phase3.md Â
   status and a 100-character instruction preview.
 
 Files are LF-separated UTF-8; a CR inside a payload is payload text, so readers that
-need exact payloads split on LF only (``extract`` does). Eunoe's own folding and its
-per-message transcript layout are not taken.
+need exact payloads split on LF only (``extract`` does). From Eunoe (docs/papers.md) t1
+takes the per-turn layout (``index.md`` plus ``turn-NNNN.md``); its subagent transcript
+files, its ``## User`` / ``### [tool i/n]`` headings and its context folding are not taken.
 """
 
 from __future__ import annotations

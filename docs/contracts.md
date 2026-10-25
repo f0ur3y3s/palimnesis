@@ -196,7 +196,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 - **Query.** Built by the frozen policy q1 from the instruction's own text; user text never reaches FTS5 as syntax (D28). **[enforced]**
 - **Selection.** Retrieval r1 (D29): ranking decides which items survive, the block renders chronologically, and its exact token charge never exceeds the allocation. **[enforced]**
 - **Persistence.** The selection, its versions (query, retrieval, renderer), archive cutoff, base view, source ranges with the SHA-256 of each excerpt, the frozen rendering, its charge, and the reason when empty are committed before inference. Requests and restarts reuse them. A source failure writes nothing and the request proceeds without excerpts. **[enforced]**
-- **Latency.** Selection p95 ≤ 50 ms with 1M archived tokens in the session (`eval/bench_recall.py`). **[measured]**
+- **Latency.** Selection p95 ≤ 50 ms with 1M archived tokens in the session (`eval/bench_recall.py`; R18). **[defined]**
 
 ## 14. Transcript projection
 
