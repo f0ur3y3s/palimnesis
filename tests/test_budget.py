@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.budget import BudgetError, BudgetPolicy, check_fixed, check_floor, plan_budget
+from palimnesis.budget import (
+    BudgetError,
+    BudgetPolicy,
+    check_fixed,
+    check_floor,
+    excerpt_allocation,
+    excerpt_capacity,
+    plan_budget,
+)
 
 POLICY = BudgetPolicy()
 
@@ -20,11 +28,36 @@ def test_input_budget_is_capped_by_capacity_minus_reserve_and_margin(n_ctx, inpu
     assert b.input_budget + b.reserve + b.margin <= n_ctx
 
 
-def test_catalog_and_recall_slots_are_reserved_from_the_input_budget():
+@pytest.mark.parametrize(
+    ("n_ctx", "per_message", "total"),
+    [(32768, 972, 2432), (65536, 1920, 4096)],  # D20.2
+)
+def test_excerpt_caps_scale_with_the_input_budget(n_ctx, per_message, total):
+    b = plan_budget(n_ctx, client_limit=8192, policy=POLICY)
+
+    assert (b.excerpt_per_message, b.recall_excerpts) == (per_message, total)
+
+
+def test_catalog_slot_is_zero_until_phase_3b():
+    assert plan_budget(65536, client_limit=8192, policy=POLICY).catalog == 0  # D20.3
+
+
+def test_excerpt_capacity_falls_to_zero_before_fixed_input_or_recent_window_suffer():
     b = plan_budget(32768, client_limit=8192, policy=POLICY)
 
-    # D14.4: P = min(1024, 5% of 24,320) = 1024; Q = min(4096, 10% of 24,320) = 2432
-    assert (b.catalog, b.recall) == (1024, 2432)
+    # Q_eff = min(Q, max(0, B_in - P - F - min_recent)) (D20.2)
+    assert excerpt_capacity(b, fixed_tokens=5000, policy=POLICY) == 2432
+    assert excerpt_capacity(b, fixed_tokens=19000, policy=POLICY) == 24320 - 19000 - 4096
+    assert excerpt_capacity(b, fixed_tokens=21000, policy=POLICY) == 0
+
+
+def test_excerpt_allocation_is_the_per_message_cap_within_what_is_left():
+    b = plan_budget(32768, client_limit=8192, policy=POLICY)
+
+    assert excerpt_allocation(b, fixed_tokens=5000, included=(), policy=POLICY) == 972
+    assert excerpt_allocation(b, fixed_tokens=5000, included=(900, 900), policy=POLICY) == 632
+    assert excerpt_allocation(b, fixed_tokens=5000, included=(1500, 900), policy=POLICY) == 32
+    assert excerpt_allocation(b, fixed_tokens=5000, included=(2432,), policy=POLICY) == 0
 
 
 @pytest.mark.parametrize(

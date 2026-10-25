@@ -8,8 +8,13 @@ upstream at runtime:
   cap, so the upstream's silent clamp can never take effect.
 - ``input_budget`` is ``min(configured cap, n_ctx − R − M)``, so
   ``input + R + M ≤ n_ctx`` always holds.
-- ``catalog`` P and ``recall`` Q are reserved slots inside the input budget
-  (D14.4); in Phase 2 they render empty.
+- ``catalog`` P is a reserved slot for model-facing catalog pages: 0 until
+  optional Phase 3B (D20.3).
+- ``recall_excerpts`` Q is the active-view total for pinned excerpt blocks
+  (amendment A1), with ``excerpt_per_message`` the cap per accepted user
+  message (D20.2). Excerpts never count in the fixed input, never touch the
+  reserve or margin, and their effective capacity falls to zero before
+  anything else gives way (``excerpt_capacity``).
 
 Non-evictable input (system, tool schemas, current user turn, preamble) that
 cannot fit is a ``BudgetError``, never truncation.
@@ -26,10 +31,12 @@ class BudgetPolicy:
     reserve_cap: int = 8_192
     margin: int = 256
     min_recent: int = 4_096
-    catalog_cap: int = 1_024
+    catalog_cap: int = 0  # D20.3: no model-facing catalog until Phase 3B
     catalog_share: float = 0.05
     recall_cap: int = 4_096
     recall_share: float = 0.10
+    excerpt_message_cap: int = 2_048
+    excerpt_message_share: float = 0.04
 
 
 @dataclass(frozen=True)
@@ -39,7 +46,8 @@ class Budget:
     margin: int
     input_budget: int
     catalog: int
-    recall: int
+    recall_excerpts: int
+    excerpt_per_message: int
     rewrite_limit: int | None  # value to send upstream, or None to keep the client's
 
 
@@ -68,7 +76,9 @@ def plan_budget(n_ctx: int, *, client_limit: int | None, policy: BudgetPolicy,
         margin=margin,
         input_budget=input_budget,
         catalog=min(policy.catalog_cap, int(policy.catalog_share * input_budget)),
-        recall=min(policy.recall_cap, int(policy.recall_share * input_budget)),
+        recall_excerpts=min(policy.recall_cap, int(policy.recall_share * input_budget)),
+        excerpt_per_message=min(policy.excerpt_message_cap,
+                                int(policy.excerpt_message_share * input_budget)),
         rewrite_limit=rewrite,
     )
 
@@ -101,3 +111,18 @@ def check_floor(n_ctx: int, *, fixed_min: int, client_limit: int | None,
             f"upstream context is {n_ctx}",
             terms,
         )
+
+
+def excerpt_capacity(budget: Budget, *, fixed_tokens: int, policy: BudgetPolicy) -> int:
+    """Effective excerpt total ``min(Q, max(0, B_in − P − F − min_recent))`` (D20.2):
+    excerpts yield to the fixed input and the minimum recent window."""
+    room = budget.input_budget - budget.catalog - fixed_tokens - policy.min_recent
+    return min(budget.recall_excerpts, max(0, room))
+
+
+def excerpt_allocation(budget: Budget, *, fixed_tokens: int, included: tuple[int, ...] | list[int],
+                       policy: BudgetPolicy) -> int:
+    """Tokens available to a new user message's excerpt block, given the charges of
+    blocks already included in the active view; may be zero."""
+    left = excerpt_capacity(budget, fixed_tokens=fixed_tokens, policy=policy) - sum(included)
+    return max(0, min(budget.excerpt_per_message, left))

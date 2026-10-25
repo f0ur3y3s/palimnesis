@@ -242,7 +242,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     b = _Builder(items, tools, render_kwargs, budget, policy, counter)
     fixed = b.fixed_tokens()
     check_fixed(budget, fixed_tokens=fixed)
-    capacity = budget.input_budget - budget.catalog - budget.recall - fixed
+    capacity = budget.input_budget - budget.catalog - budget.recall_excerpts - fixed
     high = fixed + policy.high * capacity
     target = fixed + policy.target * capacity
 

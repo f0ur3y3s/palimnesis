@@ -119,7 +119,8 @@ class ViewEngine:
     def snapshot(budget: Budget) -> dict:
         return {"n_ctx": budget.n_ctx, "reserve": budget.reserve, "margin": budget.margin,
                 "input_budget": budget.input_budget, "catalog": budget.catalog,
-                "recall": budget.recall}
+                "recall_excerpts": budget.recall_excerpts,
+                "excerpt_per_message": budget.excerpt_per_message}
 
 
 VIEW_FORMAT = {"policy_version": POLICY_VERSION, "stub_format": STUB_FORMAT}
