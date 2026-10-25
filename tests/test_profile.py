@@ -54,6 +54,13 @@ class ToyCounter:
     def render_args(self, body):
         return body.get("tools") or None, {}
 
+    def encode(self, text: str) -> list[int]:
+        return [ord(c) for c in text]
+
+    def layout(self, messages, tools=None, **kw) -> profile.Layout:
+        ids = tuple(self.encode(json.dumps([messages, tools], ensure_ascii=False)))
+        return profile.Layout(ids, (profile.Segment("unmapped", (), 0, len(ids)),))
+
 
 class ToyFacts:
     def __init__(self) -> None:
@@ -251,8 +258,11 @@ async def test_strata_profile_bundles_counter_facts_crosscheck_cache_errors_rule
     assert p.errors.staleness_reason(503) == "upstream_5xx"
 
     assert p.rules == profile.TemplateRules(reasoning_every_turn=True, leading_system_only=True)
-    with pytest.raises(NotImplementedError):
-        p.cache_model.expected(None, "")
+    # Cache-reuse model (docs/probes/strata.md §7; probed in tests/test_cacheacct.py).
+    layout = p.counter.layout([{"role": "user", "content": "Q1"}], enable_thinking=False)
+    assert len(layout.ids) == 14 and layout.segments[-1].kind == "generation"
+    assert p.cache_model.expected(None, layout) == 0
+    assert p.cache_model.expected(layout, layout) == layout.generation_start
 
 
 def test_usage_parsed_through_profile():

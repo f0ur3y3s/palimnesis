@@ -10,6 +10,10 @@ counted in ``props_requests`` rather than ``requests``. When ``count_tokens_hand
 is set (by default an exact local count, like Strata), ``POST /v1/messages/count_tokens``
 is answered by it and recorded in ``count_tokens_requests``; with ``None`` that route is
 scripted like any other.
+
+``respond_counted`` queues an answer whose final chunk (or response) carries Strata-shaped
+``usage`` and ``timings``: ``prompt_tokens`` is the exact local count of the request body
+the fake receives (as Strata reports it, docs/probes/strata.md §4), plus ``drift``.
 """
 
 from __future__ import annotations
@@ -53,6 +57,8 @@ class _Scripted:
     chunks: list[tuple[float, bytes]] | None = None
     delay: float = 0.0
     extra_headers: list[tuple[str, str]] = field(default_factory=list)
+    # Builds the response from the received request body (``respond_counted``).
+    build: Callable[[bytes], list[bytes] | bytes] | None = None
 
 
 def _local_count(body: dict) -> int:
@@ -60,6 +66,12 @@ def _local_count(body: dict) -> int:
     from palimnesis.upstreams.strata.facts import anthropic_to_render_args
 
     return tokens.default().count_messages(**anthropic_to_render_args(body))
+
+
+def _chat_count(body: dict) -> int:
+    from palimnesis.upstreams.strata import tokens
+
+    return tokens.default().count_messages(**tokens.render_args_from_openai(body))
 
 
 @dataclass
@@ -120,6 +132,49 @@ class FakeUpstream:
         hdrs = {"content-type": "text/event-stream", **(headers or {})}
         self._script.append(_Scripted(status=status, headers=hdrs, chunks=timed))
 
+    def respond_counted(
+        self,
+        text: str = "ok",
+        *,
+        drift: int = 0,
+        cached: int | Callable[[int], int] = 0,
+        prompt_ms: float = 1.0,
+        stream: bool = True,
+        tool_call: tuple[str, str, str] | None = None,
+    ) -> None:
+        """Queue an answer with usage counted from the request it answers.
+
+        ``prompt_tokens`` = the pinned-template count of the received Chat Completions
+        body + ``drift``; ``cached`` is a number or a function of that count. With
+        ``tool_call=(id, name, arguments)`` the answer is that one call (streaming only)."""
+
+        def build(raw: bytes) -> list[bytes] | bytes:
+            prompt = _chat_count(json.loads(raw)) + drift
+            reused = cached(prompt) if callable(cached) else cached
+            usage = {"prompt_tokens": prompt, "completion_tokens": 1, "total_tokens": prompt + 1,
+                     "prompt_tokens_details": {"cached_tokens": reused}}
+            timings = {"cache_n": reused, "prompt_n": prompt - reused, "prompt_ms": prompt_ms}
+            if not stream:
+                return json.dumps({"choices": [{"index": 0, "finish_reason": "stop", "message": {
+                    "role": "assistant", "content": text}}], "usage": usage,
+                    "timings": timings}).encode()
+            finish = "tool_calls" if tool_call else "stop"
+            final = {"choices": [{"index": 0, "delta": {}, "finish_reason": finish}],
+                     "usage": usage, "timings": timings}
+            delta = {"choices": [{"index": 0, "delta": {"content": text}}]}
+            if tool_call:
+                call_id, name, arguments = tool_call
+                delta = {"choices": [{"index": 0, "delta": {"tool_calls": [{
+                    "index": 0, "id": call_id, "type": "function",
+                    "function": {"name": name, "arguments": arguments}}]}}]}
+            return [b"data: " + json.dumps(delta).encode() + b"\n\n",
+                    b"data: " + json.dumps(final).encode() + b"\n\n",
+                    b"data: [DONE]\n\n"]
+
+        hdrs = {"content-type": "text/event-stream" if stream else "application/json"}
+        self._script.append(_Scripted(status=200, headers=hdrs, build=build,
+                                      chunks=[] if stream else None))
+
     def app(self) -> FastAPI:
         app = FastAPI()
 
@@ -157,6 +212,13 @@ class FakeUpstream:
                 scripted = self._script.pop(0) if self._script else None
             if scripted is None:
                 return Response(b'{"error":"unscripted"}', status_code=599)
+            if scripted.build is not None:
+                built = scripted.build(body)
+                if isinstance(built, bytes):
+                    scripted = _Scripted(scripted.status, scripted.headers, body=built)
+                else:
+                    scripted = _Scripted(scripted.status, scripted.headers,
+                                         chunks=[(0.0, c) for c in built])
             if scripted.chunks is None:
                 if not await self._work(request, scripted.delay):
                     return Response(status_code=499)

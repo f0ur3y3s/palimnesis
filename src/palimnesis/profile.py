@@ -55,6 +55,52 @@ class Usage:
 
 
 @dataclass(frozen=True)
+class Segment:
+    """One rendered turn of a prompt: its kind, the messages it renders and its tokens.
+
+    ``kind`` is ``head`` (leading system messages, tool schemas and settings preamble),
+    ``user``, ``assistant``, ``tool`` (a run of tool results), ``generation`` (the
+    generation prompt) or ``unmapped`` (the profile could not map this turn)."""
+
+    kind: str
+    messages: tuple[int, ...]  # indices into the rendered messages
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
+class Layout:
+    """A prompt as the upstream tokenizes it, split into rendered turns."""
+
+    ids: tuple[int, ...]
+    segments: tuple[Segment, ...]
+
+    @property
+    def generation_start(self) -> int:
+        """Where the generation prompt starts (the end when there is none)."""
+        last = self.segments[-1] if self.segments else None
+        return last.start if last is not None and last.kind == "generation" else len(self.ids)
+
+    def segment_at(self, position: int) -> int | None:
+        """Index of the segment holding token ``position`` (None past the end)."""
+        for i, s in enumerate(self.segments):
+            if s.start <= position < s.end:
+                return i
+        return None
+
+
+def common_prefix(a: Sequence[int], b: Sequence[int]) -> int:
+    """Length of the longest common prefix of two token sequences."""
+    n = min(len(a), len(b))
+    i, step = 0, 1024
+    while i + step <= n and tuple(a[i:i + step]) == tuple(b[i:i + step]):
+        i += step
+    while i < n and a[i] == b[i]:
+        i += 1
+    return i
+
+
+@dataclass(frozen=True)
 class TemplateRules:
     # Every earlier assistant turn renders with its reasoning (so masked reasoning is stubbed).
     reasoning_every_turn: bool
@@ -95,6 +141,15 @@ class Counter(Protocol):
         """``(tools, kw)`` for ``count_messages`` from a Chat Completions body."""
         ...
 
+    def encode(self, text: str) -> list[int]:
+        """Token ids of ``text`` as the upstream tokenizes it (``len == count(text)``)."""
+        ...
+
+    def layout(self, messages: Sequence[Mapping[str, Any]],
+               tools: Sequence[Mapping[str, Any]] | None = None, **kw: Any) -> Layout:
+        """The rendered prompt's token ids split into turns (``len(ids) == count_messages``)."""
+        ...
+
 
 @runtime_checkable
 class FactsReader(Protocol):
@@ -133,8 +188,10 @@ class CrossCheck(Protocol):
 
 @runtime_checkable
 class CacheReuseModel(Protocol):
-    def expected(self, previous_render: str | None, render: str) -> int:
-        """Prompt tokens the upstream should reuse for ``render`` after ``previous_render``."""
+    def expected(self, previous: Layout | None, current: Layout) -> int:
+        """Estimated prompt tokens the upstream reuses for ``current`` right after it
+        served ``previous`` (an estimate: other clients, restarts and eviction can lower
+        the real figure)."""
         ...
 
 

@@ -29,7 +29,7 @@ from typing import Any
 from . import chat, search
 from .addresses import issue_alias
 from .chat import ChatRequest, Message
-from .rawarchive import put_raw
+from .rawarchive import get_raw, put_raw
 from .transcript import Archived, Divergence, Extend, Prefix, reconcile
 from .turns import is_instruction
 
@@ -66,6 +66,11 @@ class Plan:
     # The genuine new user instruction this request carries, which gets an excerpt
     # selection (A1); None for tool-result requests and retries.
     host_occ_id: str | None = None
+    # The bounded view sent upstream and its viewengine.Prepared (None: view-disabled).
+    view: Any = None
+    prepared: Any = None
+    view_id: str | None = None  # the branch's view version the upstream body renders
+    view_n: int = 0
 
 
 @dataclass
@@ -82,6 +87,9 @@ class Generation:
     delivered: bool = False
     delivery_started: bool = False
     progress_recorded: int = 0
+    # The upstream response object carrying usage (final chunk or body), for accounting.
+    usage_payload: dict | None = None
+    call_outcome: str = "incomplete"
 
 
 # --- reading -----------------------------------------------------------------
@@ -192,6 +200,11 @@ class BranchCache:
         """occ_id → (seq, alias) for the branch as last loaded."""
         return {e.row[0]: (e.row[7], e.row[8]) for e in self._branches.get(branch_id, (0, []))[1]}
 
+    def supersessions(self, branch_id: str) -> dict[str, str]:
+        """occ_id → the occurrence it supersedes, for the branch as last loaded."""
+        return {e.row[0]: e.supersedes for e in self._branches.get(branch_id, (0, []))[1]
+                if e.supersedes}
+
 
 def _entry(conn: sqlite3.Connection, row) -> _Entry:
     archived, settled = _archived(conn, row)
@@ -199,14 +212,16 @@ def _entry(conn: sqlite3.Connection, row) -> _Entry:
 
 
 def load_archived(conn: sqlite3.Connection, branch_id: str,
-                  cache: BranchCache | None = None) -> list[Archived]:
-    """The branch's occurrences in order, superseded context versions replaced."""
-    if cache is not None:
+                  cache: BranchCache | None = None, *, max_seq: int | None = None) -> list[Archived]:
+    """The branch's occurrences in order, superseded context versions replaced.
+
+    ``max_seq`` reads the branch as it stood when its newest occurrence had that seq."""
+    if cache is not None and max_seq is None:
         entries = cache.load(conn, branch_id)
     else:
         entries = [_entry(conn, row) for row in conn.execute(
-            f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE branch_id = ? ORDER BY seq",
-            (branch_id,))]
+            f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE branch_id = ? AND seq <= ?"
+            " ORDER BY seq", (branch_id, max_seq if max_seq is not None else 2**62))]
     history: list[Archived] = []
     position: dict[str, int] = {}
     for entry in entries:
@@ -425,6 +440,26 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
                 " ON a.target_id = o.occ_id WHERE o.occ_id = ?", (occ,)).fetchone()
             if row:
                 addresses[occ] = (row[0], row[1])
+    # A context version stands where the occurrence it supersedes stood, so it carries
+    # that position's seq: view boundaries are seqs and assume items in seq order.
+    if branch_id is None:
+        parents = {}
+    elif cache is not None:
+        parents = cache.supersessions(branch_id)
+    else:
+        parents = dict(conn.execute(
+            "SELECT occ_id, json_extract(envelope, '$.supersedes') FROM occurrences"
+            " WHERE branch_id = ? AND json_extract(envelope, '$.supersedes') IS NOT NULL",
+            (branch_id,)).fetchall())
+    for occ in list(parents):
+        root = occ
+        while root in parents:
+            root = parents[root]
+        if root not in addresses:
+            row = conn.execute("SELECT seq FROM occurrences WHERE occ_id = ?", (root,)).fetchone()
+            addresses[root] = (row[0] if row else None, None)
+        if occ in addresses:
+            addresses[occ] = (addresses[root][0], addresses[occ][1])
     items = []
     blocks = {host: (b.block_id, b.rendered, b.token_charge)
               for host, b in excerpt_blocks(conn, branch_id).items()
@@ -463,10 +498,33 @@ def latest_view(conn: sqlite3.Connection, branch_id: str):
                                  frozenset(masks.get("omitted_excerpts", [])))
 
 
+def view_at(conn: sqlite3.Connection, branch_id: str, n: int):
+    """(view_id, ViewState) of view version ``n`` of the branch; (None, default) for 0."""
+    from .view import ViewState
+
+    row = conn.execute(
+        "SELECT view_id, watermark_seq, collapse_seq, oversized FROM view_versions"
+        " WHERE branch_id = ? AND n = ?", (branch_id, n)).fetchone()
+    if row is None:
+        return None, ViewState()
+    view_id, watermark, collapse, masks = row
+    masks = json.loads(masks)
+    if isinstance(masks, list):
+        masks = {"oversized": masks, "kept": []}
+    return view_id, ViewState(watermark, collapse, frozenset(masks["oversized"]),
+                              frozenset(masks["kept"]),
+                              frozenset(masks.get("omitted_excerpts", [])))
+
+
 def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: str,
                 stub_format: str, budget: dict, cause: str) -> str:
-    """Persist a new view version for the plan's branch (immutable, numbered)."""
+    """Persist a new view version for the plan's branch (immutable, numbered). A budget
+    differing from the previous version's adds ``capacity_budget_change`` to the cause."""
     _, n, _ = latest_view(conn, plan.branch_id)
+    previous = conn.execute("SELECT budget FROM view_versions WHERE branch_id = ? AND n = ?",
+                            (plan.branch_id, n)).fetchone()
+    if previous is not None and json.loads(previous[0]) != budget             and "capacity_budget_change" not in cause.split(","):
+        cause = f"{cause},capacity_budget_change"
     view_id = new_id("view")
     conn.execute(
         "INSERT INTO view_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -608,9 +666,10 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
 def _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, outcome, *,
           client_occs=None, cache=None, host_occ_id=None) -> Plan:
     body, items = _upstream_body(conn, req, archived, outcome, client_occs, branch_id, cache)
-    _, _, state = latest_view(conn, branch_id)
+    view_id, view_n, state = latest_view(conn, branch_id)
     return Plan(session_id, branch_id, request_id, attempt_id, body, req.stream,
-                items=items, view_state=state, host_occ_id=host_occ_id)
+                items=items, view_state=state, host_occ_id=host_occ_id,
+                view_id=view_id, view_n=view_n)
 
 
 def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
@@ -798,6 +857,51 @@ def prepare_response(conn: sqlite3.Connection, gen: Generation, status: int,
 
 def record_delivery(conn: sqlite3.Connection, plan: Plan, kind: str, **payload) -> None:
     _event(conn, plan.request_id, plan.attempt_id, kind, **payload)
+
+
+def record_event(conn: sqlite3.Connection, plan: Plan, kind: str, **payload) -> None:
+    """An immutable attempt event (cache accounting, count drift)."""
+    _event(conn, plan.request_id, plan.attempt_id, kind, **payload)
+
+
+def last_upstream_call(conn: sqlite3.Connection, branch_id: str) -> tuple[str, dict] | None:
+    """(request_id, payload) of the branch's newest ``upstream_call`` event."""
+    row = conn.execute(
+        "SELECT request_id, payload FROM events WHERE kind = 'upstream_call'"
+        " AND json_extract(payload, '$.branch_id') = ? ORDER BY event_id DESC LIMIT 1",
+        (branch_id,)).fetchone()
+    return (row[0], json.loads(row[1])) if row else None
+
+
+def context_versions(conn: sqlite3.Connection, request_id: str, occ_ids) -> set[tuple[str, str]]:
+    """(new occ, superseded occ) of the ``context_version`` events ``request_id`` recorded
+    or whose new occurrence is one of ``occ_ids``."""
+    out = set()
+    for occ_id, old in conn.execute(
+            "SELECT json_extract(payload, '$.occ_id'), json_extract(payload, '$.supersedes')"
+            " FROM events WHERE kind = 'context_version' AND request_id = ?", (request_id,)):
+        out.add((occ_id, old))
+    for occ_id in occ_ids:
+        for (old,) in conn.execute(
+                "SELECT json_extract(payload, '$.supersedes') FROM events"
+                " WHERE kind = 'context_version' AND json_extract(payload, '$.occ_id') = ?",
+                (occ_id,)):
+            out.add((occ_id, old))
+    return out
+
+
+def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: int):
+    """(request, upstream items) of an earlier request as planned when the branch's newest
+    occurrence had ``max_seq``: the deterministic re-render after a restart (D14.8)."""
+    (raw_id,) = conn.execute("SELECT raw_id FROM requests WHERE request_id = ?",
+                             (request_id,)).fetchone()
+    req = chat.parse(get_raw(conn, raw_id))
+    archived = load_archived(conn, branch_id, max_seq=max_seq)
+    outcome = reconcile(req.messages, archived)
+    if isinstance(outcome, Divergence):
+        raise ValueError(f"request {request_id} no longer reconciles: {outcome.reason}")
+    _, items = _upstream_body(conn, req, archived, outcome, None, branch_id)
+    return req, items
 
 
 def recover(conn: sqlite3.Connection) -> int:

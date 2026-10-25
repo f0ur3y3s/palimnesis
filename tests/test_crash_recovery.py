@@ -67,20 +67,31 @@ def palimnesis_process(upstream_url: str, db: Path, crash_at: str | None = None)
             proc.wait(timeout=10)
 
 
+def _read(db: Path, fn):
+    """Read the archive the way an outside observer would, right after a kill.
+
+    A process killed mid-WAL leaves its -shm needing recovery, which a read-only
+    connection cannot perform, and Windows may still hold the dead process's
+    handles for a moment: retry briefly on that transient error only."""
+    deadline = time.monotonic() + 5
+    while True:
+        c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        try:
+            return fn(c)
+        except sqlite3.OperationalError as e:
+            if "disk I/O error" not in str(e) or time.monotonic() > deadline:
+                raise
+        finally:
+            c.close()
+        time.sleep(0.1)
+
+
 def _rows(db: Path, sql: str, *params):
-    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    try:
-        return c.execute(sql, params).fetchall()
-    finally:
-        c.close()
+    return _read(db, lambda c: c.execute(sql, params).fetchall())
 
 
 def _history(db: Path):
-    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    try:
-        return load_archived(c, branch_id_for(SESSION))
-    finally:
-        c.close()
+    return _read(db, lambda c: load_archived(c, branch_id_for(SESSION)))
 
 
 @pytest.fixture
@@ -115,7 +126,8 @@ def test_crash_after_input_commit_then_identical_resend_gets_a_new_attempt(upstr
     assert r.status_code == 200 and r.content == L0.response_body
     assert _rows(db, "SELECT count(*) FROM requests") == [(1,)]
     assert _rows(db, "SELECT n FROM attempts ORDER BY n") == [(1,), (2,)]
-    kinds = [k for (k,) in _rows(db, "SELECT kind FROM events ORDER BY event_id")]
+    kinds = [k for (k,) in _rows(db, "SELECT kind FROM events ORDER BY event_id")
+             if k != "upstream_call"]  # cache accounting follows delivery (contracts §10)
     assert "attempt_abandoned" in kinds and kinds[-1] == "delivery_completed"
     assert [(a.role, a.source) for a in _history(db)] == [
         ("system", "client"), ("user", "client"), ("assistant", "generated")]

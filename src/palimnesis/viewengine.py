@@ -21,11 +21,19 @@ Per request:
 Counting and facts come from the ``palimnesis.profile.UpstreamProfile``;
 nothing here depends on a particular backend. CPU-heavy steps (rendering,
 counting) run in worker threads.
+
+Count drift (contracts §1.3): ``drift`` (a ``DriftMonitor``) is told the local count
+and the upstream's ``usage.prompt_tokens`` of every accounted call. A difference raises
+the margin to ``M_eff = min(2048, M + 2·max recent |drift|)``, so later budgets (and the
+excerpt caps derived from them) shrink; three consecutive drifts, or one over 1024,
+disable the view for the rest of the process (logged, and reported by ``diagnostics``).
 """
 
 from __future__ import annotations
 
 import json
+import logging
+from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any
 
@@ -44,6 +52,51 @@ from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
 from .profile import UpstreamProfile, unsupported_rules
 from .stubs import STUB_FORMAT
 from .view import POLICY_VERSION, View, ViewPolicy, build
+
+
+log = logging.getLogger(__name__)
+
+DRIFT_WINDOW = 8  # calls whose drift sets the margin
+MARGIN_CAP = 2_048
+DRIFT_DISABLE_CONSECUTIVE = 3
+DRIFT_DISABLE_OVER = 1_024
+
+
+class DriftMonitor:
+    """Reconciles local counts with the upstream's per-call usage (contracts §1.3)."""
+
+    def __init__(self, margin: int) -> None:
+        self.margin = margin
+        self.recent: deque[int] = deque(maxlen=DRIFT_WINDOW)
+        self.consecutive = 0
+        self.disabled_reason: str | None = None
+
+    @property
+    def extra_margin(self) -> int:
+        """``M_eff − M``, with ``M_eff = min(2048, M + 2·max recent |drift|)``."""
+        worst = max(self.recent, default=0)
+        return max(0, min(MARGIN_CAP, self.margin + 2 * worst) - self.margin)
+
+    def observe(self, local: int, upstream: int) -> dict | None:
+        """Record one call; returns the drift record when the counts differ."""
+        drift = upstream - local
+        self.recent.append(abs(drift))
+        if drift == 0:
+            self.consecutive = 0
+            return None
+        self.consecutive += 1
+        if self.disabled_reason is None:
+            if abs(drift) > DRIFT_DISABLE_OVER:
+                self.disabled_reason = f"count drift {drift} exceeds {DRIFT_DISABLE_OVER}"
+            elif self.consecutive >= DRIFT_DISABLE_CONSECUTIVE:
+                self.disabled_reason = f"{self.consecutive} consecutive count drifts"
+        return {"local": local, "upstream": upstream, "drift": drift,
+                "consecutive": self.consecutive, "margin": self.margin + self.extra_margin,
+                "disabled": self.disabled_reason is not None}
+
+    def diagnostics(self) -> dict:
+        return {"recent": list(self.recent), "consecutive": self.consecutive,
+                "margin": self.margin + self.extra_margin, "disabled_reason": self.disabled_reason}
 
 
 @dataclass(frozen=True)
@@ -65,10 +118,28 @@ class ViewEngine:
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
         self.view_policy = ViewPolicy()
-        self.extra_margin = 0
+        self.drift = DriftMonitor(self.policy.margin)
+
+    @property
+    def extra_margin(self) -> int:
+        return self.drift.extra_margin
+
+    def observe_usage(self, local: int, upstream: int) -> dict | None:
+        """Reconcile one call's local count with its usage; the drift record, if any."""
+        was_disabled = self.drift.disabled_reason is not None
+        record = self.drift.observe(local, upstream)
+        if record is not None and not was_disabled and self.drift.disabled_reason:
+            log.warning("bounded views disabled: %s (diagnostics: %s)",
+                        self.drift.disabled_reason, self.diagnostics())
+        return record
+
+    def diagnostics(self) -> dict:
+        return {"profile": self.profile.id, "mode": self.mode,
+                "unsupported_rules": list(self.unsupported_rules),
+                "drift": self.drift.diagnostics(), "facts": self.profile.facts.diagnostics()}
 
     async def ready(self, client) -> bool:
-        if self.unsupported_rules:
+        if self.unsupported_rules or self.drift.disabled_reason:
             return False
         await self.profile.facts.refresh(client)
         return self.profile.facts.pinned_ok

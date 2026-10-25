@@ -39,10 +39,12 @@ import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from tokenizers import Tokenizer
 
+from ...profile import Layout, Segment
 from . import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
 DEFAULT_CACHE_SIZE = 65536
+IDS_CACHE_SIZE = 8192  # fragments whose token ids are memoized (cache accounting)
 
 
 class RenderError(ValueError):
@@ -145,6 +147,7 @@ class Tokens:
         self._added_token_strings = tuple(
             t["content"] for t in json.loads(tokenizer_json).get("added_tokens", ()))
         self._cache: OrderedDict[bytes, int] = OrderedDict()
+        self._ids: OrderedDict[bytes, tuple[int, ...]] = OrderedDict()
         self._cache_size = cache_size
         self._lock = threading.Lock()
         self.fragments_ok = self._additivity_self_test()
@@ -199,6 +202,73 @@ class Tokens:
         tokenized; they count as U+FFFD. Any difference from the upstream's own
         count is caught by per-call usage reconciliation."""
         return len(self._tokenizer.encode(_tokenizable(text), add_special_tokens=False).ids)
+
+    def encode(self, text: str) -> list[int]:
+        """Token ids of ``text`` (``add_special_tokens=False``; lone surrogates as U+FFFD)."""
+        return list(self._tokenizer.encode(_tokenizable(text), add_special_tokens=False).ids)
+
+    def _fragment_ids(self, fragment: str) -> tuple[int, ...]:
+        key = hashlib.sha256(fragment.encode("utf-8", "surrogatepass")).digest()
+        with self._lock:
+            hit = self._ids.get(key)
+            if hit is not None:
+                self._ids.move_to_end(key)
+                return hit
+        ids = tuple(self.encode(fragment))
+        with self._lock:
+            self._ids[key] = ids
+            if len(self._ids) > IDS_CACHE_SIZE:
+                self._ids.popitem(last=False)
+        return ids
+
+    def layout(
+        self,
+        messages: Sequence[Mapping[str, Any]],
+        tools: Sequence[Mapping[str, Any]] | None = None,
+        *,
+        effort: str | None = None,
+        enable_thinking: bool | None = None,
+        add_generation_prompt: bool = True,
+    ) -> Layout:
+        """The render's token ids split into the template's turns.
+
+        The render is cut before each ``<|im_start|>`` (as for counting). The template
+        opens one turn for the head (leading system messages, tools, effort preamble),
+        one per user or assistant message, one per run of tool results and one for the
+        generation prompt; a message whose own text contains ``<|im_start|>`` adds a
+        cut per occurrence. When the cuts do not add up, every turn is ``unmapped``."""
+        text = self.render(messages, tools, effort=effort, enable_thinking=enable_thinking,
+                           add_generation_prompt=add_generation_prompt)
+        fragments = split_fragments(text, self._split_tokens)
+        if self.fragments_ok:
+            pieces = [self._fragment_ids(f) for f in fragments]
+        else:  # additivity failed: exact ids for the whole, fragment counts as boundaries
+            whole = tuple(self.encode(text))
+            pieces, at = [], 0
+            for f in fragments:
+                n = self.count(f)
+                pieces.append(whole[at:at + n])
+                at += n
+            if pieces and at < len(whole):
+                pieces[-1] += whole[at:]
+        units = _turn_units(messages, tools, text.startswith("<|im_start|>system"),
+                            add_generation_prompt)
+        ids: list[int] = []
+        segments: list[Segment] = []
+        if sum(n for _, _, n in units) == len(fragments):
+            k = 0
+            for kind, members, n in units:
+                start = len(ids)
+                for piece in pieces[k:k + n]:
+                    ids.extend(piece)
+                k += n
+                segments.append(Segment(kind, members, start, len(ids)))
+        else:
+            for piece in pieces:
+                start = len(ids)
+                ids.extend(piece)
+                segments.append(Segment("unmapped", (), start, len(ids)))
+        return Layout(tuple(ids), tuple(segments))
 
     def count_cached(self, text: str) -> int:
         """Exact count of any text through the LRU (for repeated previews and sizing)."""
@@ -280,6 +350,37 @@ _LONE_SURROGATE = re.compile("[\\ud800-\\udfff]")
 
 def _tokenizable(text: str) -> str:
     return _LONE_SURROGATE.sub("�", text) if _LONE_SURROGATE.search(text) else text
+
+
+def _cuts(value: Any) -> int:
+    return json.dumps(value, ensure_ascii=False).count(SPLIT_TOKENS[0])
+
+
+def _turn_units(messages: Sequence[Mapping[str, Any]], tools, has_head: bool,
+                generation: bool) -> list[tuple[str, tuple[int, ...], int]]:
+    """(kind, message indices, fragment count) per template turn, in render order."""
+    num_sys = 0
+    while num_sys < len(messages) and messages[num_sys].get("role") in ("system", "developer"):
+        num_sys += 1
+    units: list[tuple[str, tuple[int, ...], int]] = []
+    if has_head:
+        cuts = 1 + _cuts(list(messages[:num_sys])) + (_cuts([bare_tool(t) for t in tools])
+                                                      if tools else 0)
+        units.append(("head", tuple(range(num_sys)), cuts))
+    i = num_sys
+    while i < len(messages):
+        role = messages[i].get("role")
+        j = i + 1
+        if role == "tool":
+            while j < len(messages) and messages[j].get("role") == "tool":
+                j += 1
+        members = tuple(range(i, j))
+        units.append((role if role in ("user", "assistant", "tool") else "unmapped", members,
+                      1 + _cuts([messages[k] for k in members])))
+        i = j
+    if generation:
+        units.append(("generation", (), 1))
+    return units
 
 
 def split_fragments(text: str, split_tokens: Sequence[str] = SPLIT_TOKENS) -> list[str]:

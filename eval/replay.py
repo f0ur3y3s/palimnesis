@@ -2,18 +2,25 @@
 
 Usage:
     python eval/replay.py CAPTURE_DIR --target URL [--header name=value]... [--json]
+    python eval/replay.py --explain DB_PATH [--session S] [--json]
 
 TARGET is the base the captured API path is appended to: an upstream origin for
 a direct baseline (http://192.168.1.173:8080) or a session base for the proxy
 (http://127.0.0.1:9000/s/<session>). Exchanges replay sequentially, oldest
 first. Generated-text equality is diagnostic only; compare status, event
 structure and finish reasons for comparability.
+
+``--explain`` reads an archive instead (contracts §10): for each pair of consecutive
+upstream calls on a session's branch it reports the token LCP, the cached tokens the
+upstream reported, the reuse estimate, the recorded cause and the reuse class. It exits 1
+if any cause is ``unexplained``.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -122,10 +129,37 @@ def replay(capture_dir: Path, target: str, overrides: dict[str, str]) -> dict:
     }
 
 
+def explain(db_path: Path, session: str | None = None) -> dict:
+    """Consecutive upstream-call pairs per branch from an archive's ``upstream_call`` events."""
+    c = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        calls = [json.loads(p) for (p,) in c.execute(
+            "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
+    finally:
+        c.close()
+    if session is not None:
+        calls = [x for x in calls if x["branch_id"].startswith(f"{session}/")]
+    pairs = [{"session": x["branch_id"].rsplit("/", 1)[0], "prev_call_id": x["prev_call_id"],
+              "call_id": x["call_id"], "lcp_tokens": x["lcp_tokens"],
+              "cached_tokens": x["cached_tokens"], "expected_reuse_est": x["expected_reuse_est"],
+              "cause": x["cause"], "reuse_class": x["reuse_class"]}
+             for x in calls if x["prev_call_id"] is not None]
+    classes: dict[str, int] = {}
+    for pair in pairs:
+        if pair["reuse_class"] is not None:
+            classes[pair["reuse_class"]] = classes.get(pair["reuse_class"], 0) + 1
+    unexplained = sum("unexplained" in pair["cause"].split(",") for pair in pairs)
+    return {"pairs": pairs, "summary": {"calls": len(calls), "pairs": len(pairs),
+                                        "unexplained": unexplained, "classes": classes}}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("capture_dir", type=Path)
-    parser.add_argument("--target", required=True)
+    parser.add_argument("capture_dir", type=Path, nargs="?")
+    parser.add_argument("--target")
+    parser.add_argument("--explain", type=Path, metavar="DB_PATH",
+                        help="report cache accounting for an archive instead of replaying")
+    parser.add_argument("--session", help="with --explain: only this session")
     parser.add_argument(
         "--header",
         action="append",
@@ -135,6 +169,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="print the full JSON report")
     args = parser.parse_args(argv)
+    if args.explain is not None:
+        report = explain(args.explain, args.session)
+        if args.json:
+            print(json.dumps(report, indent=2))
+        else:
+            for p in report["pairs"]:
+                print(f"{p['session']} {p['prev_call_id']} -> {p['call_id']}: lcp={p['lcp_tokens']}"
+                      f" cached={p['cached_tokens']} est={p['expected_reuse_est']} (estimate)"
+                      f" cause={p['cause']} class={p['reuse_class']}")
+            print(report["summary"])
+        return 1 if report["summary"]["unexplained"] else 0
+    if args.capture_dir is None or args.target is None:
+        parser.error("CAPTURE_DIR and --target are required unless --explain is given")
     overrides = dict(h.split("=", 1) for h in args.header)
     overrides = {k.lower(): v for k, v in overrides.items()}
 

@@ -35,7 +35,7 @@ from dataclasses import replace
 import anyio
 import httpx
 
-from . import chat, ledger
+from . import cacheacct, chat, ledger
 from .errors import error_response
 from .fingerprint import fingerprint_v1, parse_retry_hint
 from .budget import BudgetError
@@ -80,6 +80,9 @@ class ArchiveHandler:
         # Request IDs being relayed by this process (see ledger.accept).
         self.live: set[str] = set()
         self.branches = ledger.BranchCache()
+        # Cache accounting and count drift (contracts §10, §1.3) for bounded views.
+        self.accounts = (cacheacct.Accountant(views.profile, store, views)
+                         if views is not None else None)
 
     async def __call__(self, scope, receive, send, *, session: str, api_path: str,
                        headers: list[tuple[bytes, bytes]], body: bytes, association: str) -> None:
@@ -181,19 +184,21 @@ class ArchiveHandler:
                 ledger.record_view(c, plan, view.state, budget=ViewEngine.snapshot(prepared.budget),
                                    cause=ViewEngine.cause(plan.view_state, view.state),
                                    **VIEW_FORMAT)
+            view_id, view_n, _ = ledger.latest_view(c, plan.branch_id)
+            block_id = None
             if selected is not None:
                 selection, rendered, charge, allocation = selected
-                return ledger.record_excerpts(
+                block_id = ledger.record_excerpts(
                     c, plan, host_occ_id=plan.host_occ_id, selection=selection,
                     rendered=rendered, token_charge=charge, allocation=allocation,
-                    base_view_n=ledger.latest_view(c, plan.branch_id)[1],
+                    base_view_n=view_n,
                     base_watermark_seq=view.state.watermark_seq,
                     base_collapse_seq=view.state.collapse_seq,
                     renderer_version=EXCERPT_FORMAT, profile_id=self.views.profile.id)
-            return None
+            return block_id, view_id, view_n
 
         if view.moved or selected is not None:
-            block_id = await self.store.write(commit)
+            block_id, plan.view_id, plan.view_n = await self.store.write(commit)
             crash_point("after_excerpt_commit")
             if selected is not None and selected[1]:
                 plan.items = [replace(i, excerpt=(block_id, selected[1], selected[2]))
@@ -201,6 +206,7 @@ class ArchiveHandler:
                 plan.view_state = view.state
                 view = await self.views.build(prepared, plan)
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
+        plan.view, plan.prepared = view, prepared
         return True
 
     async def _send_replay(self, send, replay: dict) -> None:
@@ -220,9 +226,20 @@ class ArchiveHandler:
         upstream_headers.append((b"accept-encoding", b"identity"))
         request = httpx.Request("POST", self.upstream_base.copy_with(raw_path=target),
                                 headers=upstream_headers, content=plan.upstream_body)
+        call = (self.accounts.begin(plan, self.views.mode) if self.accounts is not None
+                else None)
+        try:
+            await self._call(scope, receive, send, gen, api_path, request)
+        finally:
+            if call is not None:
+                await self.accounts.finish(plan, call, gen.usage_payload, gen.call_outcome)
+
+    async def _call(self, scope, receive, send, gen, api_path, request) -> None:
+        plan = gen.plan
         try:
             upstream = await self.client.send(request, stream=True)
         except httpx.TransportError as e:
+            gen.call_outcome = "transport_error"
             if self.views is not None:
                 facts, errors = self.views.profile.facts, self.views.profile.errors
                 facts.mark_stale(errors.staleness_reason(None))
@@ -234,6 +251,7 @@ class ArchiveHandler:
             return
         try:
             if upstream.status_code != 200:
+                gen.call_outcome = "upstream_status"
                 await self._relay_upstream_error(scope, receive, send, gen, upstream, api_path)
             elif plan.stream:
                 await self._stream(send, gen, upstream)
@@ -288,6 +306,8 @@ class ArchiveHandler:
                                         "The upstream returned a malformed response.")
             return
 
+        gen.usage_payload, gen.call_outcome = message, "ok"
+
         def commit(c):
             ledger.commit_batch(c, gen, parts, 0)
             ledger.finish_attempt(c, gen, "turn_complete", finish_reason=finish,
@@ -325,7 +345,7 @@ class ArchiveHandler:
         parser = SSEParser()
         pending: list = []  # events awaiting commit + forward
         held: list = []  # the finish chunk and anything after it, until [DONE]
-        state = {"finish": None, "usage": None, "done": False, "error": None}
+        state = {"finish": None, "usage": None, "usage_chunk": None, "done": False, "error": None}
         batches = {"n": 0}
 
         async def flush(terminal: bool = False) -> None:
@@ -386,6 +406,7 @@ class ArchiveHandler:
                     if outcome is None and sum(len(e.raw) for e in pending) >= BATCH_MAX_BYTES:
                         await flush()
                 if outcome == "done":
+                    gen.usage_payload, gen.call_outcome = state["usage_chunk"], "ok"
                     await flush(terminal=True)
                 else:
                     await flush()
@@ -436,6 +457,7 @@ class ArchiveHandler:
             return
         if chunk.get("usage"):
             state["usage"] = chunk["usage"]
+            state["usage_chunk"] = chunk
         for choice in chunk.get("choices") or []:
             if choice.get("finish_reason"):
                 state["finish"] = choice["finish_reason"]
