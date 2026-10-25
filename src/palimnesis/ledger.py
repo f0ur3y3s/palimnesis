@@ -956,8 +956,8 @@ def record_excerpts(conn: sqlite3.Connection, plan: Plan, *, host_occ_id: str, s
          base_view_n, base_watermark_seq, base_collapse_seq, selection.query,
          selection.query_version, selection.retrieval_version, renderer_version, profile_id,
          allocation, token_charge, rendered,
-         hashlib.sha256(rendered.encode("utf-8", "surrogatepass")).hexdigest(), status, None,
-         time.time()))
+         hashlib.sha256(rendered.encode("utf-8", "surrogatepass")).hexdigest(), status,
+         None if selection.items else getattr(selection, "reason", None), time.time()))
     for idx, item in enumerate(selection.items):
         conn.execute(
             "INSERT INTO excerpt_items VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

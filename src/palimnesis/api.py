@@ -175,9 +175,13 @@ class Proxy:
         from .viewengine import ViewEngine
 
         upstream = profile.load(self.settings.profile, self.settings.upstream_base_url)
+        excerpts = self.settings.excerpt_source
+        if excerpts is None and self.settings.recall == "fts":
+            from .recall import FtsExcerpts
+
+            excerpts = FtsExcerpts(self.store, upstream.counter)
         engine = ViewEngine(upstream, mode=self.settings.view,
-                            input_budget=self.settings.input_budget,
-                            excerpts=self.settings.excerpt_source)
+                            input_budget=self.settings.input_budget, excerpts=excerpts)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,

@@ -11,3 +11,4 @@ captures/
 eval/fixtures/opencode-2.1.4/faults/
 eval/fixtures/opencode-2.1.4/partials/*
 !eval/fixtures/opencode-2.1.4/partials/summary.txt
+.claude/worktrees/

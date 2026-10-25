@@ -57,6 +57,7 @@ class SelectedExcerpt:
     role: str
     tool_name: str | None
     text: str
+    source_seq: int = 0  # the source occurrence's seq: orders the block chronologically
 
 
 @dataclass(frozen=True)
@@ -68,11 +69,12 @@ class Selection:
     retrieval_version: str
     archive_cutoff_seq: int
     items: tuple[SelectedExcerpt, ...]
+    reason: str | None = None  # why nothing was selected, when nothing was
 
     def excerpts(self) -> list[Excerpt]:
         """Items in chronological order for rendering. Ranking decided which
-        survived; chronology only orders them (A1)."""
-        ordered = sorted(self.items, key=lambda i: (i.turn_number, i.source_occ_id, i.start))
+        survived; chronology only orders them (A1, D30)."""
+        ordered = sorted(self.items, key=lambda i: (i.source_seq, i.source_block, i.start))
         return [Excerpt(i.source_alias or "", i.source_block, i.turn_number, i.role,
                         i.tool_name, i.text) for i in ordered]
 

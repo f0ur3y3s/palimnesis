@@ -223,7 +223,7 @@ class ViewEngine:
                                 added_tokens=self.counter.added_token_strings)
         charge = self.counter.count(rendered) if rendered else 0
         if charge > allocation:  # a source overreaching its allocation selects nothing
-            selection = replace(selection, items=())
+            selection = replace(selection, items=(), reason="over_allocation")
             rendered, charge = "", 0
         return selection, rendered, charge, allocation
 

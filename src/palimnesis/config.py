@@ -19,8 +19,9 @@ class Settings:
     view: str = "on"
     # Input budget cap in tokens; None means the default (48,000, D14.3).
     input_budget: int | None = None
-    # Excerpt source for new user messages (A1). None means the Phase 2 default,
-    # which selects nothing; Phase 3 supplies proactive retrieval.
+    # Excerpt source for new user messages (A1). None means the one ``recall`` names.
     excerpt_source: object | None = None
+    # Proactive recall (A1 Phase 3): "fts" retrieves from the archive, "off" never does.
+    recall: str = "fts"
     # Upstream profile name (palimnesis.profile.REGISTRY).
     profile: str = DEFAULT_PROFILE

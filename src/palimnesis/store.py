@@ -301,7 +301,7 @@ CREATE TABLE excerpt_items (
 ) STRICT;
 """
 
-MIGRATIONS: list[str] = [
+MIGRATIONS: list[str | tuple[str, str]] = [
     _SCHEMA_V1 + _immutability_triggers(),
     # v2: derived full-text index (palimnesis.search), filled from existing blocks.
     "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);\n"
@@ -311,6 +311,12 @@ MIGRATIONS: list[str] = [
     # v3: persisted view decisions (palimnesis.view); immutable like the archive.
     _VIEW_VERSIONS,
     _EXCERPTS + _immutability_triggers(_EXCERPT_KEYS),
+    # v5: derived chunk-level full-text index for proactive recall (D27), backfilled.
+    ("CREATE VIRTUAL TABLE fts_chunks USING fts5(text, content='', contentless_delete=1);\n"
+     "CREATE TABLE chunk_map (rowid INTEGER PRIMARY KEY, block_rowid INTEGER NOT NULL,"
+     " start INTEGER NOT NULL, \"end\" INTEGER NOT NULL) STRICT;\n"
+     "CREATE INDEX chunk_map_block ON chunk_map (block_rowid);",
+     "palimnesis.search:backfill_chunks"),
 ]
 
 _DENIED_ACTIONS = frozenset(
@@ -387,11 +393,17 @@ def _connect(path: str, synchronous: str) -> sqlite3.Connection:
 
 def _migrate(conn: sqlite3.Connection) -> None:
     version = conn.execute("PRAGMA user_version").fetchone()[0]
-    for target, script in enumerate(MIGRATIONS[version:], start=version + 1):
+    for target, migration in enumerate(MIGRATIONS[version:], start=version + 1):
+        script, backfill = migration if isinstance(migration, tuple) else (migration, None)
         conn.execute("BEGIN IMMEDIATE")
         try:
             for statement in _split_statements(script):
                 conn.execute(statement)
+            if backfill is not None:  # "module:function", run in the same transaction
+                import importlib
+
+                module, name = backfill.split(":")
+                getattr(importlib.import_module(module), name)(conn)
             conn.execute(f"PRAGMA user_version = {target}")
             conn.execute("COMMIT")
         except BaseException:
