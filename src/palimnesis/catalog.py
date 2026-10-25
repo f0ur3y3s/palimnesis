@@ -1,8 +1,10 @@
 """Bounded, paged catalog of every occurrence on a branch.
 
-Implements ARC's paged catalog (docs/papers.md): the model can reach every
-archived item through pages of bounded size, ``first``/``next`` cursors and
-direct ``page(k)``, so N items need ⌈N/p⌉ pages. Adaptations (D14.7): pages
+Implements ARC's paged catalog (docs/papers.md): every archived item is
+reachable through pages of bounded size, ``first``/``next`` cursors and
+direct ``page(k)``, so N items need ⌈N/p⌉ pages. After amendment A1 the
+catalog is internal: an inspection command and the future transcript
+index's source. Model-facing navigation is optional Phase 3B (D19, D20.3). Adaptations (D14.7): pages
 hold p = 20 entries of at most c = 48 tokens each under an injected
 ``count``, not characters; entries cover every occurrence, including masked,
 superseded and internal ones, flagged as such.

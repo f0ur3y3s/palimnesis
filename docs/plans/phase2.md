@@ -66,7 +66,7 @@ Rules:
 - **Masking tiers, oldest first, before watermark W:**
   1. Tool results over ρ = 64 tokens become stubs; shorter ones stay inline (ARC).
   2. Reasoning becomes a reasoning stub.
-  3. When M_mask overflows, older stubs collapse to bare `§ALIAS` references, then into one proxy-authored user-role span note.
+  3. When stubs alone cannot reach the target, the oldest masked span collapses into one proxy-authored user-role span note naming its alias range. *As built, ARC's intermediate bare-id tier is skipped (D16.6).*
 - **Oversized newest output** is masked in place with a head/tail stub. It is already archived, because accept commits first.
 - **Non-evictable overflow** gets a structured error, never truncation.
 - **Reasoning carryover (§9).** Archived reasoning is rendered for every assistant turn:
@@ -211,17 +211,17 @@ Arms:
 **Follows ARC:**
 - stubs with id, metadata and previews;
 - ρ inline threshold;
-- deterministic truncation and collapse to bare ids;
+- deterministic, LLM-free masking and collapse (the bare-id tier is skipped, D16.6);
 - the K decomposition;
 - the paged catalog;
-- proactive exact counting.
+- proactive budgeting before each call. *Correction:* ARC's proactive mode estimates prompt length; exact counting with the pinned template is a Palimnesis adaptation.
 
 **Follows Complexity Trap:** deterministic observation masking, keeping actions.
 
 **Documented adaptations:**
 - Hysteresis watermarks instead of a per-turn rolling window, to protect prefix and checkpoint reuse.
 - Reasoning stubs and span collapse, because the template renders all reasoning and bare ids forever are unbounded.
-- P and Q are reserved but empty in Phase 2.
+- *Superseded by A1:* P reserves nothing until Phase 3B (D20.3); Q is the `recall_excerpts` allocation (D20.2), empty in production only because the Phase 2 source selects nothing.
 - Token budgets instead of character budgets.
 
 ## Decisions

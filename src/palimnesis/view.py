@@ -16,7 +16,9 @@ Mechanisms (docs/papers.md):
   (contracts §9).
 - **Span collapse** (ARC's bounded catalog, adapted). When stubs alone cannot
   reach the target, the oldest masked span becomes one user-role note naming
-  its alias range (D14.13). The catalog keeps every entry reachable.
+  its alias range (D14.13). Every entry stays addressed and listed in the
+  internal catalog; model-facing catalog navigation is deferred to optional
+  Phase 3B (A1, D19, D20.3), and ARC's bare-id tier is skipped (D16.6).
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable

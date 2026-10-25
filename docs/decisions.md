@@ -178,6 +178,7 @@ Choices made while implementing `palimnesis.stubs`, `palimnesis.catalog` and `pa
    - `page(k)` relies on per-branch seqs being dense from 1 and raises if that breaks.
    - "Superseded" covers replaced context versions as well as `partial_superseded` partials.
 5. **Masking must pay.** Texts within the preview caps (about 65–288 tokens) produce stubs no smaller than the original. The watermark logic stubs an item only when the stub is smaller.
+6. **ARC's bare-id tier is skipped** (paper-fidelity review, Phase 2). ARC first collapses older stubs to bare `§id` references, then further. Palimnesis goes from s1 stubs straight to one span note naming the first and last alias of the run. Per-message bare references grow without bound, and that growth is what span collapse exists to stop. The middle aliases remain addressable and listed in the internal catalog, and the Phase 3 transcript files will expose them. `stubs.bare_ref` stays available for that.
 
 ## D17 — The project is named Palimnesis (user amendment 1, 2026-10-24)
 
