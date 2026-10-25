@@ -227,3 +227,32 @@ Arms:
 ## Decisions
 
 Resolved as D14 in `docs/decisions.md`.
+
+## Delta (after A1 and amended D15, 2026-10-24)
+
+Slices 1–8 and 11 stand as built. The remaining work is the new slices A–F, plus updates to slices 9, 10, the CLI, measurements and docs.
+
+### Findings
+
+- **Special-token injection.** The tokenizer extracts added tokens such as `<|im_start|>` from raw text, so excerpt escaping must cover the profile's added-token strings as well as the block delimiters.
+- **Kept messages accumulate.** User messages in `ViewState.kept` never collapse, which conflicts with A1's "older spans may leave the active view". A later collapse move must be able to absorb them.
+- **Floor check unwired.** `check_floor` is never called at startup.
+- **Selection seam needed.** Phase 3 must persist its excerpt selection before inference, so Phase 2 provides that seam.
+
+### Slices
+
+| # | Slice | Depends on |
+| --- | --- | --- |
+| A | Upstream-profile seam: `palimnesis/profile.py` Protocols (Counter, FactsReader, CrossCheck, CacheReuseModel, ErrorMap, TemplateRules), Strata moved to `palimnesis/upstreams/strata/`, boundary tests | — |
+| B | Budget `recall_excerpts` (per-message and total caps, `Q_eff` falling to zero, excluded from thresholds and F) | A |
+| C | Migration 4 (`excerpt_blocks`, `excerpt_items`, immutable), `excerpts.py` renderer x1 with reversible escaping, `turns.py` | A |
+| D | View inclusion policy R1–R4 (whole-block, monotone omission at threshold events only, all omitted before a BudgetError), `omitted_excerpts`, `evicted_now`, `kept` collapse fix | B, C |
+| E | `ExcerptSource` seam (`NoExcerpts` / `SeededExcerpts`), selection persisted before inference, BranchCache, `after_excerpt_commit` crash point | D |
+| F | Gap tests: floor wiring, `n_ctx` change, socket-deny builder, one POST per request, tool-group property | A |
+| 9 | Cache accounting, Strata reuse model behind the profile, excerpt causes, `replay --explain` | A, E |
+| 10 | Drift via `profile.cross_check.usage`; excerpt allocation recomputed | 9 |
+| CLI | `--view`, `--input-budget`, `palimnesis catalog`, `palimnesis excerpts` | E |
+| 12 | `bench_view` with excerpt arms, `bench_archive` rerun, live forced-budget run, live excerpt replay | 9, 10, CLI |
+| 13 | Docs; protocol, cache and paper-fidelity reviews; tag `phase-2` | all |
+
+The full requirement → test table is in the planner's report and is recorded as D20/D21 as each slice lands.
