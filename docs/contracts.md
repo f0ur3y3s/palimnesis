@@ -188,3 +188,21 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 - Credentials are redacted: `authorization`, `proxy-authorization`, `x-api-key`, `api-key`, `cookie`.
 - Exchanges cut short by disconnect are recorded as `complete: false`.
 - Capture fails open: a write error is logged and the relay continues unchanged.
+
+## 13. Proactive recall
+
+- **Host.** Excerpts are selected once per genuine new user instruction: the request's last new client message, a user message that is not a harness-synthetic prompt. Tool-result requests and context-version-only changes never host. A retry hosts only when its instruction has no stored selection (D31). **[enforced]**
+- **Candidates.** Only blocks the base view no longer shows, older than the instruction; never system messages, text verbatim in the view, ranges already quoted by an included block, or excerpt text (D26). An unmasked session searches nothing and its upstream body stays byte-identical. **[enforced]**
+- **Query.** Built by the frozen policy q1 from the instruction's own text; user text never reaches FTS5 as syntax (D28). **[enforced]**
+- **Selection.** Retrieval r1 (D29): ranking decides which items survive, the block renders chronologically, and its exact token charge never exceeds the allocation. **[enforced]**
+- **Persistence.** The selection, its versions (query, retrieval, renderer), archive cutoff, base view, source ranges with the SHA-256 of each excerpt, the frozen rendering, its charge, and the reason when empty are committed before inference. Requests and restarts reuse them. A source failure writes nothing and the request proceeds without excerpts. **[enforced]**
+- **Latency.** Selection p95 ≤ 50 ms with 1M archived tokens in the session (`eval/bench_recall.py`). **[measured]**
+
+## 14. Transcript projection
+
+- **What it is.** Per session, a derived transcript directory (D32) in format t1 (D33). It is a rebuildable projection of the archive, not part of it.
+- **Exactness.** Every archived block appears once, verbatim after reversible escaping or as a linked exact-bytes file, verified by SHA-256. `palimnesis transcripts verify` checks the directory against the archive; `palimnesis transcripts rebuild` reproduces it byte for byte without inference. **[enforced]**
+- **Consistency.** Publication follows D34: `index.md` never names an incomplete file, and a crash at any step leaves the previous or the next generation readable. Incomplete turns are marked in progress, cancelled, abandoned, failed or superseded. **[enforced]**
+- **Isolation.** Projection runs off the request path, holds no write lock, makes no upstream call, and logs only counts and directory hashes. **[enforced]**
+- **Access.** Files are 0700/0600 on POSIX and inherit the root's ACL on Windows. Harness permission rules do not confine them (D37.4). **[enforced on POSIX; Windows inherits]**
+- **Deletion** (Ph8) must cascade to the projection.

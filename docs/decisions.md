@@ -376,3 +376,47 @@ Consequences for the design:
 3. **LF only.** Projection files use LF line endings. CRLF leaks `\r` into grep previews.
 4. **Filesystem permissions are the only confinement.** OpenCode's shell tool bypasses `external_directory`, so permission rules confine nothing. Transcript privacy rests on filesystem permissions alone.
 5. **The allow rule is optional.** Adding one (`external_directory` and `read` on `<root>/*`, placed last) changes nothing under the default agents. It matters only for agents configured with ask or deny.
+
+## D32 — Transcript location and directory names
+
+The root is `<db dir>/transcripts` by default, overridden with `--transcripts DIR`; `--no-transcripts` disables projection.
+
+- **Git work trees.** A default root inside a git work tree disables projection with a warning. An explicit root inside one refuses startup.
+- **Session directory names.** Each session's directory is `safe(id[:40]).lower() + "-" + sha256(id)[:12]`. Here `safe` maps anything outside `[A-Za-z0-9_-]`, dots included, to `_`, since Windows is case-insensitive and D4 allows device names.
+- **What the model is pointed at.** `projector.session_dir(root, id)` is the only path the addendum names. Staging lives at `<root>/.staging`, outside every session directory (D37.2).
+
+## D33 — Transcript format t1
+
+**Turn files.** `turn-NNNN.md` holds one turn:
+- a header line with turn, status, seq range and format;
+- then each archived block once, between `[[§ALIAS.N · seq S · role · tool NAME (call_id) · kind]]` and `[[/§ALIAS.N]]`, escaped with the x1 payload escaping (reversible).
+
+**Linked payloads.** A payload goes to `payloads/ALIAS.N.txt` when it is over 64 KiB or contains NUL, and to `.bin` when it is not valid UTF-8. The file holds its exact bytes. The turn file then shows a head/tail preview, the line count and the SHA-256.
+
+**Index and manifest.**
+- `index.md` has one line per turn (at most about 60 tokens, with a 100-character preview) and a header saying "search; do not read whole".
+- `manifest.json` lists every published file with its SHA-256.
+- Files are written as bytes, LF only (D37.3).
+
+**Adaptations from the plan:**
+- **`incomplete: failed`.** This status is added, since `attempt_failed` is neither complete nor cancelled.
+- **Context versions.** A context version renders in the turn of its seq, flagged `replaces §X`, rather than linked from `turn-0000.md`. The link would have rewritten a write-once file.
+- **When a turn is sealed.** A turn becomes write-once only once a later turn exists. Until then it is `turn-NNNN.pK.md`, and its unfinished linked payloads are `.pK` too. K counts the archive rows it renders, so it only grows and is deterministic.
+- **Branch revision.** The generation is the cutoff seq. The index and manifest also carry a branch revision, because content can change at the same seq, for example when an attempt ends.
+
+## D34 — Publication protocol
+
+1. **Write each file safely.** Write to `.staging`, fsync, then `os.replace`.
+2. **Order.** Write-once files first (sealed turns, sealed payloads), then the newest `.pK` files, then `manifest.json`, then `index.md`. Superseded `.p` files are removed best-effort afterwards.
+3. **What a reader sees.** `index.md` names only complete files, so a reader always sees one consistent generation. After a crash, or a refused index replace, the manifest may lead the index by one generation. The manifest does not list `index.md`.
+4. **Windows locking.** A `PermissionError`, as when a reader holds the index open, is retried 3 times at 50 ms. If it persists, the previous generation stays published and the next trigger retries.
+5. **Rebuild.** `palimnesis transcripts rebuild SESSION` reproduces the projection byte for byte from the archive without inference, and repairs any write-once file whose bytes are wrong. It is unsupported while the proxy is writing the same session.
+6. **Verify.** `palimnesis transcripts verify SESSION` checks every payload against the archive.
+
+## D35 — Projector scheduling
+
+- **One worker.** A single background thread on a read-only store connection. It coalesces per session, with the newest trigger winning.
+- **Triggers.** It is triggered after acceptance and after each attempt ends, from the request's `finally`. It never blocks a response and holds no write lock.
+- **Startup and shutdown.** At startup it re-projects the sessions that recovery touched. At shutdown it drains.
+- **Logs.** Only counts and directory hashes.
+- **Not built yet:** `eval/bench_projection.py` (publication latency and bytes per request) and the Phase 8 deletion cascade.
