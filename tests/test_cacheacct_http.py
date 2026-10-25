@@ -97,9 +97,11 @@ def events(settings, kind="upstream_call") -> list[dict]:
 
 
 def encoded(raw: bytes) -> list[int]:
-    """Token ids of a received body, from a full render (not the proxy's turn layout)."""
+    """Token ids of a received body, from one encode of the marked render (not the
+    proxy's turn layout): tags inside messages are text (D46)."""
     t = tokens.default()
-    return t.encode(t.render(**tokens.render_args_from_openai(json.loads(raw))))
+    text, marked = t._render_marked(**tokens.render_args_from_openai(json.loads(raw)))
+    return t._encode_marked(text) if marked else t.encode(text)
 
 
 def lcp(a, b) -> int:

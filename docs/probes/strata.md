@@ -132,6 +132,16 @@ The one requirement is that tools are passed in the bare form. Scripts: `p04_cou
 **Strata normalizes messages before rendering** (`serve/frontend.py`; found by the Phase 3 development runs, R21; probe `p12_strata_normalization.py`, fixture `strata_normalization.json`, 2026-10-25). The 19 cases above did not exercise either rule.
 - **Empty assistant turns are dropped** (`ChatTemplate.render`, #843). A completed assistant turn with no text (null, "", whitespace, or text parts that join to nothing), no image and no tool calls is left out, reasoning included. The final message is always kept. `STRATA_KEEP_EMPTY_TURNS=1` restores the old rendering. All four empty forms counted 311, the same as removing the turn; with content "ok" the count was 344.
 - **Tool-call arguments** (`tool_arguments`, #510). A JSON object, whether text or parsed, is used as it is; empty is `{}`; anything else (cut-off JSON, a list, a number) is kept as text under `"arguments"` instead of refusing the request.
+- **Added-token strings inside messages are text** (the 0.1.49 frontend's `mark_think_literals` and `encode_prompt`; the engine reports build 0.1.48; #537, #554, #2026; found by the S11 smoke runs, R23-A; probe `p14_literal_tags.py`, fixture `strata_literal_tags.json`, 171 cases, 2026-10-25).
+  - **What is marked:** every value of every message field except `role`, and the tool definitions. Dict keys are not marked, so `<|im_start|>` in a parameter name or argument key is a token. Tool-call arguments are parsed first (`openai_to_messages`); marking runs on the full list before the #843 drop, so a tag only in a dropped turn still turns private-use mark characters elsewhere into tag text.
+  - **Which strings:** all 33 added tokens of the pinned tokenizer, the 19 `special` ones and the 14 others, `<|fim_*|>` included. The live counts match marking all of them.
+  - **How:** each string is swapped for a private-use mark before rendering. After rendering the marks become the text again, and the encoder treats those spans as plain text, tokenized with the text around them.
+  - **Exceptions:**
+    - An assistant message keeps its own `<tool_call>`, `</tool_call>`, `<tool_response>` and `</tool_response>` as tokens, in content, reasoning and arguments alike.
+    - An assistant content that opens with a whole `<think>...</think>` block keeps that block's two markers.
+    - A user message whose whole text is `<tool_response>...</tool_response>` keeps that outer pair.
+- **No Unicode normalization** (`tools/strata_tokenizer.py` has no normalizer; probe `p15_nfc_count.py`, fixture `strata_nfc.json`, 2026-10-25). The pinned `tokenizer.json` declares NFC, but Strata encodes text as sent: `cafe\u0301 au lait` counts 57 against NFC's 56, and decomposed Hangul 62 against 54.
+  - **Example:** as a tool result, `x</tool_call>y` counts 330 where reading it as one token gives 328, and `x<|im_end|>y` counts 333 against 328.
 
 ## 5. Non-streaming responses [verified]
 

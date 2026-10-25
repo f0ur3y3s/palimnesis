@@ -726,3 +726,53 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/`. They hold no 
 - **Cost of x2.** More lookups (37–39 against 19–32) and a time to first visible content p50 of 10.2–10.4 s against 6.8–7.2 s.
 
 Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `run2/`.
+
+## R23 — S11 tooling smoke runs through real OpenCode (development data only, 2026-10-25)
+
+**Setup.**
+- **Code:** `3554fbe` with the uncommitted S11 tooling (D45): `eval/oc_harness.py`, `eval/needle_opencode.py`, `eval/tasks/`, and the `eval/needle.py` and `eval/needle_gen.py` changes. `src/` is unchanged.
+- **Client:** OpenCode 2.1.4, isolated as in R9/R10, with messages on stdin.
+- **Strata:** 0.1.48 at `n_ctx` 32768 (D40), one slot. `/v1/status` reported context 32768 before the runs. Strata was not restarted or reconfigured here.
+- **Arm 4** is `a4-d43`, the default `serve` with `deadline_s` 3600 (D45.4). **Arm 1** is `serve --passthrough` with `compaction.auto` on and `limit.context` 32768.
+- **D39 gate:** the driver waits for an idle slot before each turn, and the tap waits before each upstream call. There were 0 busy-before-request events, and foreign activity between and during calls was 0 in every run, so all runs are labelled unaffected.
+- Raw run data (bodies, archives, OpenCode homes) stayed in the session scratchpad.
+
+**(a) dev-h1, all 10 questions, real-OpenCode driver, arm 4.**
+
+| Loose exact | In view / excerpt / absent | Lookups | Upstream calls | `--explain` | `transcripts verify` | Count drift | "views disabled" / "forwarding unbounded" | Client excerpt markers | Wall |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9/10 | 1 / 8 / 1 | 4 (Q8, the absent needle, answered correctly) | 18 | exit 0, 0 unexplained (14 append, 3 collapse) | pass | 0 of 18 | 0 / 0 | 0 in 18 client requests | 2.4 min |
+
+- **Import.** The first client body equalled the history plus Q1: 101 messages, with `reasoning_content: ""` added to 50 assistant turns. Its 73 prior assistant and tool turns were archived as `client_import`.
+- **The miss is Q7.** The development histories' mid-task command is `pytest`, which the system Python lacks, and the model answered that pytest is not installed. Held-out histories use `unittest` (D45.6).
+- **Timing.** TTFVC p50 3.5 s, latency p50 3.7 s and p90 24.5 s. The cold first question took 24.5 s.
+
+**(b) dev-t1, one session of 8 turns, under each arm.**
+
+| Arm | Success | Constraints | Upstream calls | Prompt / completion tokens | Max input | Lookups | Latency | Compaction | `--explain` | verify | Count drift | Over 24,320 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 (`a4-d43`) | yes (4/4) | 3/3 | 52 | 882,154 / 44,087 | 23,729 | 8 (turn 5) | 1,247 s | none (collapse ×6, watermark ×3) | exit 0, 0 of 51 unexplained | pass | 0 of 52 | 0 |
+| 1 (native) | yes (4/4) | 3/3 | 40 | 451,853 / 21,743 | 21,266 | 0 | 579 s | 5 requests, 4 checkpoints | n/a (passthrough) | n/a | **10 of 40** | 0 |
+
+- **Arm 4.** "views disabled" and "forwarding unbounded" each appeared 0 times, and no client request carried excerpt markers (0 in 52).
+- **Arm 4, turn 5.** Turn 5 is the first after the restart, and it took 566 s and 20 calls. By then the view had collapsed the turn-1 user message (the constraints) into a span note. The model searched the transcripts (8 lookups, 4 tool errors on paths it made up) before it implemented `parse_price` correctly.
+
+**R23-A. Proxy defect: special-token text in message content is miscounted** (fixed by D46).
+- **What happens.** The pinned counter tokenizes message text with the HF tokenizer, which turns `<tool_call>`, `</tool_call>`, `<think>` and `</think>` written as plain text into single special tokens. Strata tokenizes them as text.
+- **Probe.** `eval/probes/p13_special_token_text_count.py` sent 7 tiny idle-gated requests. Each put the string in a tool result:
+
+  | Tool-result text | Local | Remote |
+  | --- | --- | --- |
+  | `plain error` | 101 | 101 |
+  | `x</tool_call>y` | 102 | 104 |
+  | `x<tool_call>y` | 102 | 104 |
+  | `x<think>y` | 102 | 103 |
+  | `x</think>y` | 102 | 103 |
+  | `x</parameter>y` | 103 | 103 |
+  | `x</function>y` | 103 | 103 |
+
+  Empty tool arguments (`"{}"`, `""`, `"{ }"`) count correctly.
+- **How it arose live.** In the arm 1 run (passthrough, so no view was affected), the model emitted unparsable tool arguments. OpenCode's `tool.input-json` error quoted them, `</tool_call>` included, and every later request in the session drifted by +3 (calls 31–40).
+- **Effect under arm 4.** Every request drifts while that text stays in view, so 3 in a row disable bounded views for the whole process (D22.4), after which bodies are forwarded unbounded. The local count is also low, the unsafe direction for the budget.
+- **Status.** Fixed by D46 before any held-out run. The smoke runs under arm 4 did not hit it.
+- **After the fix.** `p13` reads local equal to remote on all 7 cases (for example `x</tool_call>y` 104 / 104). The wider probe `p14_literal_tags.py` matches on all 171 cases: every added token in user, system, assistant, reasoning and tool text, plus tool definitions, tool arguments and the three exceptions.

@@ -79,6 +79,11 @@ CANARY_CASES: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     (
+        # Decomposed text: Strata's tokenizer does not NFC-normalize (D47).
+        "decomposed_text",
+        {"messages": [{"role": "user", "content": "café 10 Å 각"}]},
+    ),
+    (
         "tool_turn_think",
         {
             "messages": [

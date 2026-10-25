@@ -114,3 +114,22 @@ def test_a_collapse_starting_at_a_dropped_turn_is_explained():
         return c
 
     assert explain(call(0, 1), call(6, 2), STRATA.cache_model)["cause"] == "collapse"
+
+
+def test_a_counter_revision_explains_a_call_that_no_longer_re_renders():
+    # A previous call recorded under another counter revision cannot be re-rendered to
+    # its recorded count after a restart; the pair is a model/template change (D46).
+    from palimnesis.cacheacct import Call
+
+    def call(n, identity, layout):
+        c = Call(call_id=f"c{n}", request_id=f"r{n}", branch_id="b", view_mode="on", view_n=n,
+                 input_tokens=10, budget={"x": 1}, formats={"f": 1})
+        c.identity, c.layout = identity, layout
+        return c
+
+    layout = COUNTER.layout([{"role": "user", "content": "hi"}])
+    prev = call(1, ["strata-0.1.48", "b", "t"], None)
+    cur = call(2, ["strata-0.1.48", "b", "t", COUNTER.revision], layout)
+
+    assert explain(prev, cur, STRATA.cache_model)["cause"] == "model_template_change"
+    assert explain(call(1, cur.identity, None), cur, STRATA.cache_model)["cause"] == "unexplained"

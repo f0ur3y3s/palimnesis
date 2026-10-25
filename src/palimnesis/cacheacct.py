@@ -224,8 +224,10 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
         return {"lcp_tokens": None, "first_diff": None, "cause": "first_call",
                 "expected_reuse_est": 0}
     if prev.disabled or cur.disabled or prev.layout is None or cur.layout is None:
-        return {"lcp_tokens": None, "first_diff": None,
-                "cause": "view_disabled" if prev.disabled or cur.disabled else "unexplained",
+        cause = ("view_disabled" if prev.disabled or cur.disabled
+                 else "model_template_change" if prev.identity != cur.identity
+                 else "unexplained")  # a call counted by another counter revision (D46)
+        return {"lcp_tokens": None, "first_diff": None, "cause": cause,
                 "expected_reuse_est": 0}
     a, b = prev.layout, cur.layout
     lcp = common_prefix(a.ids, b.ids)
@@ -300,7 +302,8 @@ class Accountant:
             call.settings = dict(prepared.render_kwargs)
             call.tools_sha256 = _sha(prepared.tools)
             facts = self.profile.facts.facts
-            call.identity = [self.profile.id, *(facts.identity if facts else ())]
+            call.identity = [self.profile.id, *(facts.identity if facts else ()),
+                             *filter(None, [getattr(self.profile.counter, "revision", None)])]
             call.budget = ViewEngine.snapshot(prepared.budget)
             call.formats = {**VIEW_FORMAT,
                             "excerpt_format": getattr(self.views, "excerpt_renderer",

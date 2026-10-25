@@ -1,0 +1,59 @@
+{
+ "upstream": "http://192.168.1.173:8080",
+ "cases": {
+  "ascii": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "plain text"
+    }
+   ],
+   "prompt_tokens": 54
+  },
+  "combining_acute": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "café au lait"
+    }
+   ],
+   "prompt_tokens": 57
+  },
+  "angstrom_sign": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "10 Å apart"
+    }
+   ],
+   "prompt_tokens": 57
+  },
+  "fullwidth_a": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "grade Ａ"
+    }
+   ],
+   "prompt_tokens": 55
+  },
+  "hangul_jamo": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "각 word"
+    }
+   ],
+   "prompt_tokens": 62
+  },
+  "precomposed": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "café au lait"
+    }
+   ],
+   "prompt_tokens": 56
+  }
+ }
+}

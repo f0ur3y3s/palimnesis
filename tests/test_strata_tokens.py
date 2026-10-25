@@ -284,3 +284,61 @@ def test_a_dropped_empty_turn_keeps_the_layout_mapped():
     assert all(s.kind != "unmapped" for s in layout.segments)
     [empty] = [s for s in layout.segments if s.messages == (2,)]
     assert empty.start == empty.end
+
+
+# --- Added-token strings inside messages are text (R23-A; eval/probes/p14_literal_tags.py) ---
+
+LITERALS = json.loads((PROBES / "strata_literal_tags.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("case", sorted(LITERALS["cases"]))
+def test_local_count_equals_strata_for_tags_written_inside_messages(case):
+    """Strata marks every added-token string in a message's fields and in the tools, and
+    encodes it as text (#537, #554, #2026, control tokens). An assistant message keeps its
+    own tool-call markers; a leading <think> block and a whole <tool_response> wrap keep theirs."""
+    rec = LITERALS["cases"][case]
+
+    assert tokens.count_messages(rec["messages"], rec["tools"]) == rec["prompt_tokens"]
+
+
+def test_tags_inside_messages_keep_the_layout_mapped():
+    t = tokens.default()
+    rec = LITERALS["cases"]["user overlapping tags"]
+
+    layout = t.layout(rec["messages"], rec["tools"])
+
+    assert len(layout.ids) == rec["prompt_tokens"]
+    assert [s.kind for s in layout.segments] == ["head", "user", "generation"]
+
+
+def test_a_tool_result_quoting_a_tool_call_counts_as_strata_does():
+    # R23-A: OpenCode's tool.input-json error quotes the model's unparsable call text.
+    rec = LITERALS["cases"]["tool </tool_call>"]
+    plain = LITERALS["cases"]["tool <|im_end|>"]
+
+    assert tokens.count_messages(rec["messages"], rec["tools"]) == rec["prompt_tokens"]
+    assert tokens.count_messages(plain["messages"], plain["tools"]) == plain["prompt_tokens"]
+
+
+@pytest.mark.parametrize("case", ["tool parameter key <|im_start|>", "tool argument key <|im_start|>"])
+def test_a_dict_key_holding_im_start_keeps_the_layout_mapped(case):
+    # Strata leaves dict keys unmarked, so <|im_start|> in a key is a token and cuts.
+    rec = LITERALS["cases"][case]
+
+    layout = tokens.default().layout(rec["messages"], rec["tools"])
+
+    assert len(layout.ids) == rec["prompt_tokens"]
+    assert all(s.kind != "unmapped" for s in layout.segments)
+
+
+# --- No Unicode normalization (eval/probes/p15_nfc_count.py) ---
+
+NFC = json.loads((PROBES / "strata_nfc.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("case", sorted(NFC["cases"]))
+def test_text_is_not_nfc_normalized_before_counting(case):
+    """Strata's tokenizer has no normalizer; the pinned tokenizer.json's NFC is not applied."""
+    rec = NFC["cases"][case]
+
+    assert tokens.count_messages(rec["messages"]) == rec["prompt_tokens"]

@@ -16,16 +16,29 @@ preprocessing of OpenAI-shaped input:
   renders nothing, reasoning included (R21-B, ``eval/probes/p12_strata_normalization.py``);
 - reasoning travels as ``reasoning_content``; ``preserve_thinking`` is never passed
   (Strata ignores it, so every earlier turn keeps its reasoning);
-- effort ``none`` means ``enable_thinking=False``.
+- effort ``none`` means ``enable_thinking=False``;
+- an added-token string written inside a message (any field but ``role``; dict keys
+  excepted) or a tool definition is text, not that token (the 0.1.49 frontend's
+  ``mark_think_literals``: #537, #554, #2026 and the control tokens). Marking happens
+  before the #843 drop, as in Strata's ``encode_prompt``. An assistant message keeps its own tool-call markers; an assistant
+  content opening with a whole ``<think>...</think>`` block and a user message wholly
+  wrapped in ``<tool_response>...</tool_response>`` keep those markers. Like Strata, the
+  render marks such strings with private-use characters, and the encoder emits them as
+  text with the text around them (R23-A, ``eval/probes/p14_literal_tags.py``).
 
 Consecutive ``tool`` messages are left as they are: the template itself merges them
 into one user turn. ``count`` tokenizes with the pinned ``tokenizer.json`` and
-``add_special_tokens=False``.
+``add_special_tokens=False``, without its NFC normalizer: Strata's tokenizer has none
+(``eval/probes/p15_nfc_count.py``, D47).
+
+``COUNTER_REVISION`` names this reproduction of Strata's rendering and tokenizing; cache
+accounting records it in each call's identity, so a call counted by an earlier revision
+is a model/template change, not an unexplained one.
 
 Fragment cache: the tokenizer splits its input on added tokens before normalizing and
 pre-tokenizing, so a render cut immediately before an added token counts as the sum of
-its pieces. Renders are cut before each ``<|im_start|>`` (one fragment per rendered
-turn); fragment counts are memoized in an LRU keyed by ``sha256(fragment)`` and the pin
+its pieces. Renders are cut before each ``<|im_start|>`` the template wrote (one
+fragment per rendered turn); fragment counts are memoized in an LRU keyed by ``sha256(fragment)`` and the pin
 id. A startup self-test checks additivity on built-in renders; if it fails, every count
 is a full tokenization.
 """
@@ -48,12 +61,120 @@ from ...profile import Layout, Segment, empty_assistant
 from . import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
+COUNTER_REVISION = "c3"  # c2: literal tags as text (D46); c3: no NFC (D47)
 DEFAULT_CACHE_SIZE = 65536
 IDS_CACHE_SIZE = 8192  # fragments whose token ids are memoized (cache accounting)
 
 
 class RenderError(ValueError):
     """The template refused the input (Strata would answer 400)."""
+
+
+# Strata's marks (serve/frontend.py): the literal tags have fixed private-use characters;
+# each other added token (a control token) gets one from U+F0E10 in tokenizer order.
+THINK_TAGS = {"<think>": "\U000F0E01", "</think>": "\U000F0E02"}
+VISION_TAGS = {"<|vision_start|>": "\U000F0E03", "<|image_pad|>": "\U000F0E04",
+               "<|vision_end|>": "\U000F0E05", "<|video_pad|>": "\U000F0E06"}
+TOOL_LITERAL_TAGS = {"</tool_call>": "\U000F0E07", "<tool_call>": "\U000F0E08",
+                     "<tool_response>": "\U000F0E09", "</tool_response>": "\U000F0E0A"}
+LITERAL_TAGS = {**THINK_TAGS, **VISION_TAGS, **TOOL_LITERAL_TAGS}
+CONTROL_MARK0 = 0xF0E10
+
+
+def literal_tags(added_tokens: Sequence[str]) -> dict[str, str]:
+    """Tag text -> mark for every added token, longest first as the tokenizer matches them."""
+    controls = [t for t in added_tokens if t not in LITERAL_TAGS]
+    tags = {**LITERAL_TAGS, **{c: chr(CONTROL_MARK0 + k) for k, c in enumerate(controls)}}
+    return dict(sorted(tags.items(), key=lambda t: -len(t[0])))
+
+
+def _mark(text: str, tags: Mapping[str, str]) -> str:
+    for tag, mark in tags.items():
+        text = text.replace(tag, mark)
+    return text
+
+
+def _mark_deep(v: Any, tags: Mapping[str, str]) -> Any:
+    if isinstance(v, str):
+        return _mark(v, tags)
+    if isinstance(v, Mapping):
+        return {k: _mark_deep(x, tags) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_mark_deep(x, tags) for x in v]
+    return v
+
+
+def _has_tag(v: Any, tags: Mapping[str, str]) -> bool:
+    if isinstance(v, str):
+        return any(tag in v for tag in tags)
+    if isinstance(v, Mapping):
+        return any(_has_tag(x, tags) for x in v.values())
+    if isinstance(v, list):
+        return any(_has_tag(x, tags) for x in v)
+    return False
+
+
+def _keep_tool_result_wrap(content: Any, tags: Mapping[str, str]) -> Any:
+    """A user message whose whole text is ``<tool_response>...</tool_response>`` keeps that
+    outer pair as markers; only the text inside is marked. None: not such a message."""
+    o, c = "<tool_response>", "</tool_response>"
+
+    def wrap(text: str, first: bool, last: bool) -> str:
+        i = text.index(o) + len(o) if first else 0
+        j = text.rindex(c) if last else len(text)
+        head = _mark(text[:i - len(o)], tags) + o if first else ""
+        tail = c + _mark(text[j + len(c):], tags) if last else ""
+        return head + _mark(text[i:j], tags) + tail
+
+    if isinstance(content, str):
+        body = content.strip()
+        if len(body) >= len(o) + len(c) and body.startswith(o) and body.endswith(c):
+            return wrap(content, True, True)
+        return None
+    if not (isinstance(content, list) and content
+            and all(isinstance(x, Mapping) and "text" in x for x in content)):
+        return None
+    texts = [x["text"] for x in content]
+    if not all(isinstance(t, str) for t in texts):
+        return None
+    body = "".join(texts).strip()
+    if not (len(body) >= len(o) + len(c) and body.startswith(o) and body.endswith(c)):
+        return None
+    if not (texts[0].lstrip().startswith(o) and texts[-1].rstrip().endswith(c)):
+        return None
+    if len(content) == 1:
+        return [{**content[0], "text": wrap(texts[0], True, True)}]
+    return ([{**content[0], "text": wrap(texts[0], True, False)}]
+            + [_mark_deep(x, tags) for x in content[1:-1]]
+            + [{**content[-1], "text": wrap(texts[-1], False, True)}])
+
+
+def mark_literals(messages: Sequence[Mapping[str, Any]], tools: Any,
+                  tags: Mapping[str, str]) -> tuple[list, Any, bool]:
+    """Strata's ``mark_think_literals``: ``(messages, tools, changed)`` with every tag in
+    the messages' fields (``role`` aside) and the tools swapped for its mark."""
+    if not _has_tag(list(messages), tags) and not _has_tag(tools, tags):
+        return list(messages), tools, False
+    own = {t: v for t, v in tags.items() if t not in TOOL_LITERAL_TAGS}
+    out = []
+    for message in messages:
+        m = dict(message)
+        content = m.get("content")
+        mine = own if m.get("role") == "assistant" else tags
+        for k, v in m.items():
+            if k != "role":
+                m[k] = _mark_deep(v, mine)
+        if m.get("role") == "user":
+            kept = _keep_tool_result_wrap(content, tags)
+            if kept is not None:
+                m["content"] = kept
+        if (m.get("role") == "assistant" and isinstance(content, str)
+                and content.lstrip().startswith("<think>") and "</think>" in content):
+            i, j = content.index("<think>") + len("<think>"), content.index("</think>")
+            m["content"] = (content[:i] + _mark(content[i:j], own) + "</think>"
+                            + _mark(content[j + len("</think>"):], own))
+        out.append(m)
+    return out, _mark_deep(tools, tags), True
 
 
 def _tojson(x: Any, indent: int | None = None, separators: Any = None, sort_keys: bool = False) -> str:
@@ -132,17 +253,16 @@ def dropped_turns(messages: Sequence[Mapping[str, Any]]) -> frozenset[int]:
     return frozenset(i for i, m in enumerate(messages[:-1]) if empty_assistant(m))
 
 
+def _parsed_calls(message: Mapping[str, Any]) -> Mapping[str, Any]:
+    calls = message.get("tool_calls")
+    if isinstance(calls, list) and calls:
+        return {**message, "tool_calls": [_parsed_arguments(tc) for tc in calls]}
+    return message
+
+
 def preprocess_messages(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     drop = dropped_turns(messages)
-    out: list[Mapping[str, Any]] = []
-    for i, message in enumerate(messages):
-        if i in drop:
-            continue
-        calls = message.get("tool_calls")
-        if isinstance(calls, list) and calls:
-            message = {**message, "tool_calls": [_parsed_arguments(tc) for tc in calls]}
-        out.append(message)
-    return out
+    return [_parsed_calls(m) for i, m in enumerate(messages) if i not in drop]
 
 
 def render_args_from_openai(body: Mapping[str, Any]) -> dict[str, Any]:
@@ -173,6 +293,7 @@ class Tokens:
         split_tokens: Sequence[str] = SPLIT_TOKENS,
     ) -> None:
         self.pin = pin
+        self.revision = COUNTER_REVISION
         self._split_tokens = tuple(split_tokens)
         self._hits = 0
         self._misses = 0
@@ -182,10 +303,17 @@ class Tokens:
         env.filters["tojson"] = _tojson
         env.globals["raise_exception"] = _raise_exception
         self._template = env.from_string(pin.chat_template)
-        tokenizer_json = pin.tokenizer_json.decode("utf-8")
-        self._tokenizer = Tokenizer.from_str(tokenizer_json)
-        self._added_token_strings = tuple(
-            t["content"] for t in json.loads(tokenizer_json).get("added_tokens", ()))
+        spec = json.loads(pin.tokenizer_json.decode("utf-8"))
+        spec["normalizer"] = None  # Strata's tokenizer does not normalize (D47)
+        self._tokenizer = Tokenizer.from_str(json.dumps(spec))
+        self._added_token_strings = tuple(t["content"] for t in spec.get("added_tokens", ()))
+        self._added_ids = {t["content"]: t["id"] for t in spec.get("added_tokens", ())}
+        self._plain = Tokenizer.from_str(json.dumps({**spec, "added_tokens": []}))
+        self._tags = literal_tags(self._added_token_strings)
+        self._unmarks = {mark: tag for tag, mark in self._tags.items()}
+        self._mark_re = re.compile("|".join(map(re.escape, self._unmarks)))
+        self._added_re = re.compile("|".join(map(re.escape, sorted(
+            self._added_token_strings, key=len, reverse=True))))
         self._cache: OrderedDict[bytes, int] = OrderedDict()
         self._ids: OrderedDict[bytes, tuple[int, ...]] = OrderedDict()
         self._cache_size = cache_size
@@ -217,9 +345,29 @@ class Tokens:
         enable_thinking: bool | None = None,
         add_generation_prompt: bool = True,
     ) -> str:
+        """The prompt text Strata encodes (added-token strings inside messages as text)."""
+        text, marked = self._render_marked(messages, tools, effort=effort,
+                                           enable_thinking=enable_thinking,
+                                           add_generation_prompt=add_generation_prompt)
+        return self._unmark(text) if marked else text
+
+    def _render_marked(
+        self,
+        messages: Sequence[Mapping[str, Any]],
+        tools: Sequence[Mapping[str, Any]] | None = None,
+        *,
+        effort: str | None = None,
+        enable_thinking: bool | None = None,
+        add_generation_prompt: bool = True,
+    ) -> tuple[str, bool]:
+        """The render with tags written inside messages still marked, and whether any were."""
+        drop = dropped_turns(messages)
+        marked, bare, changed = mark_literals([_parsed_calls(m) for m in messages],
+                                              [bare_tool(t) for t in tools] if tools else None,
+                                              self._tags)
         variables: dict[str, Any] = {
-            "messages": preprocess_messages(messages),
-            "tools": [bare_tool(t) for t in tools] if tools else None,
+            "messages": [m for i, m in enumerate(marked) if i not in drop],
+            "tools": bare,
             "add_generation_prompt": add_generation_prompt,
         }
         if effort == "none":
@@ -229,7 +377,7 @@ class Tokens:
         if enable_thinking is not None:
             variables["enable_thinking"] = enable_thinking
         try:
-            return self._template.render(**variables)
+            return self._template.render(**variables), changed
         except jinja2.exceptions.TemplateError as exc:
             raise RenderError(str(exc)) from exc
 
@@ -247,14 +395,39 @@ class Tokens:
         """Token ids of ``text`` (``add_special_tokens=False``; lone surrogates as U+FFFD)."""
         return list(self._tokenizer.encode(_tokenizable(text), add_special_tokens=False).ids)
 
-    def _fragment_ids(self, fragment: str) -> tuple[int, ...]:
-        key = hashlib.sha256(fragment.encode("utf-8", "surrogatepass")).digest()
+    def _unmark(self, text: str) -> str:
+        return self._mark_re.sub(lambda m: self._unmarks[m.group(0)], text)
+
+    def _encode_marked(self, text: str) -> list[int]:
+        """Ids of a marked render: added tokens the template wrote are tokens; each run
+        between them is encoded, its marks back as tag text, as plain text (Strata's
+        ``encode_prompt`` with ``plain`` spans)."""
+        if not self._mark_re.search(text):
+            return self.encode(text)
+        out: list[int] = []
+        pos = 0
+        for m in self._added_re.finditer(text):
+            if m.start() > pos:
+                out.extend(self._plain_ids(text[pos:m.start()]))
+            out.append(self._added_ids[m.group(0)])
+            pos = m.end()
+        if pos < len(text):
+            out.extend(self._plain_ids(text[pos:]))
+        return out
+
+    def _plain_ids(self, text: str) -> list[int]:
+        return list(self._plain.encode(_tokenizable(self._unmark(text)),
+                                       add_special_tokens=False).ids)
+
+    def _fragment_ids(self, fragment: str, marked: bool = False) -> tuple[int, ...]:
+        key = hashlib.sha256(fragment.encode("utf-8", "surrogatepass")).digest() + (
+            b"m" if marked else b"")
         with self._lock:
             hit = self._ids.get(key)
             if hit is not None:
                 self._ids.move_to_end(key)
                 return hit
-        ids = tuple(self.encode(fragment))
+        ids = tuple(self._encode_marked(fragment) if marked else self.encode(fragment))
         with self._lock:
             self._ids[key] = ids
             if len(self._ids) > IDS_CACHE_SIZE:
@@ -272,16 +445,18 @@ class Tokens:
     ) -> Layout:
         """The render's token ids split into the template's turns.
 
-        The render is cut before each ``<|im_start|>`` (as for counting). The template
-        opens one turn for the head (leading system messages, tools, effort preamble),
-        one per user or assistant message, one per run of tool results and one for the
-        generation prompt; a message whose own text contains ``<|im_start|>`` adds a
-        cut per occurrence. When the cuts do not add up, every turn is ``unmapped``."""
-        text = self.render(messages, tools, effort=effort, enable_thinking=enable_thinking,
-                           add_generation_prompt=add_generation_prompt)
+        The render is cut before each ``<|im_start|>`` the template wrote (as for
+        counting). The template opens one turn for the head (leading system messages,
+        tools, effort preamble), one per user or assistant message, one per run of tool
+        results and one for the generation prompt; ``<|im_start|>`` inside a message is
+        text and cuts nothing, except in a dict key (tool parameters, parsed arguments),
+        which Strata does not mark. When the cuts do not add up, every turn is ``unmapped``."""
+        text, marked = self._render_marked(messages, tools, effort=effort,
+                                           enable_thinking=enable_thinking,
+                                           add_generation_prompt=add_generation_prompt)
         fragments = split_fragments(text, self._split_tokens)
-        if self.fragments_ok:
-            pieces = [self._fragment_ids(f) for f in fragments]
+        if self.fragments_ok or marked:  # a marked render is cut only at template tokens
+            pieces = [self._fragment_ids(f, marked) for f in fragments]
         else:  # additivity failed: exact ids for the whole, fragment counts as boundaries
             whole = tuple(self.encode(text))
             pieces, at = [], 0
@@ -329,15 +504,13 @@ class Tokens:
         enable_thinking: bool | None = None,
         add_generation_prompt: bool = True,
     ) -> int:
-        return self.count_rendered(
-            self.render(
-                messages,
-                tools,
-                effort=effort,
-                enable_thinking=enable_thinking,
-                add_generation_prompt=add_generation_prompt,
-            )
-        )
+        text, marked = self._render_marked(messages, tools, effort=effort,
+                                           enable_thinking=enable_thinking,
+                                           add_generation_prompt=add_generation_prompt)
+        if not marked:
+            return self.count_rendered(text)
+        return sum(len(self._fragment_ids(f, True))
+                   for f in split_fragments(text, self._split_tokens))
 
     def _fragment_count(self, fragment: str) -> int:
         key = hashlib.sha256(fragment.encode("utf-8", "surrogatepass")).digest() + self.pin.id.encode()
@@ -392,8 +565,13 @@ def _tokenizable(text: str) -> str:
     return _LONE_SURROGATE.sub("�", text) if _LONE_SURROGATE.search(text) else text
 
 
-def _cuts(value: Any) -> int:
-    return json.dumps(value, ensure_ascii=False).count(SPLIT_TOKENS[0])
+def _key_cuts(value: Any) -> int:
+    """``<|im_start|>`` written in dict keys: Strata marks values only, so these stay tokens."""
+    if isinstance(value, Mapping):
+        return sum(str(k).count(SPLIT_TOKENS[0]) + _key_cuts(v) for k, v in value.items())
+    if isinstance(value, list):
+        return sum(_key_cuts(v) for v in value)
+    return 0
 
 
 def _turn_units(messages: Sequence[Mapping[str, Any]], tools, has_head: bool,
@@ -404,8 +582,8 @@ def _turn_units(messages: Sequence[Mapping[str, Any]], tools, has_head: bool,
         num_sys += 1
     units: list[tuple[str, tuple[int, ...], int]] = []
     if has_head:
-        cuts = 1 + _cuts(list(messages[:num_sys])) + (_cuts([bare_tool(t) for t in tools])
-                                                      if tools else 0)
+        cuts = 1 + _key_cuts(list(messages[:num_sys])) + (
+            _key_cuts([bare_tool(t) for t in tools]) if tools else 0)
         units.append(("head", tuple(range(num_sys)), cuts))
     # A turn Strata drops renders nothing: a zero-fragment unit in its place. The kept
     # messages around it render as if adjacent, so tool runs group across it.
@@ -427,7 +605,7 @@ def _turn_units(messages: Sequence[Mapping[str, Any]], tools, has_head: bool,
             while j - 1 > i and j - 1 in drop:  # trailing dropped turns get their own units
                 j -= 1
         units.append((role if role in ("user", "assistant", "tool") else "unmapped",
-                      tuple(members), 1 + _cuts([messages[k] for k in members])))
+                      tuple(members), 1 + _key_cuts([_parsed_calls(messages[k]) for k in members])))
         units.extend((messages[k].get("role"), (k,), 0) for k in range(i, j) if k in drop)
         i = j
     if generation:

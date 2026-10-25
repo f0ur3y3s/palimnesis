@@ -148,5 +148,12 @@
       "input_tokens": 61
     },
     "ms": 450.6
+  },
+  "decomposed_text": {
+    "status": 200,
+    "body": {
+      "input_tokens": 69
+    },
+    "ms": 63.0
   }
 }

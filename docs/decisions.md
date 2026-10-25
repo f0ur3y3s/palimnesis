@@ -537,3 +537,58 @@ Written on 2026-10-25, after D43 froze the variants and before any held-out hist
 7. **Reruns.** A history or task is rerun from scratch only for an infrastructure failure outside the proxy: Strata down, foreign traffic seen by the D39 gate, or an OpenCode or driver crash not caused by a proxy response. Each rerun and its reason is recorded, and the first attempt's data is kept. A failure caused by the proxy counts.
 8. **A defect found during held-out runs.** The run stops. After the fix, the whole held-out needle set and every coding task rerun on the fixed commit. Both results are reported, and the gate is judged on the rerun.
 9. **64K (reported only).** After the 32K runs, Strata goes back to 65536. Arm 4 runs 60 needles (held-out histories h1..h6) and the same 5 tasks under both arms.
+
+## D45 — S11 tooling: real OpenCode for needles and coding tasks
+
+Written on 2026-10-25 while building the S11 tools, on development data only. No held-out history or task has run. D44 is unchanged; this entry records how the tools implement it.
+
+1. **Needle driver** (`eval/needle.py run --driver opencode`, `eval/needle_opencode.py`).
+   - Each history's import, up to but not including the Q1 text, becomes an `opencode session export` document. It enters an isolated OpenCode home through `opencode session import`. Every step is then one `opencode run --session` turn.
+   - Records keep the emulator's per-needle fields, so `eval/report.py` reads both. They are labelled `driver: "opencode"`.
+   - There is no tool cap; the emulator's 8 calls per question do not apply. A turn is killed after 30 minutes and counts as an error.
+   - Each run also checks that the first client body equals the history and that its prior turns are archived as `client_import`.
+2. **Messages go to `opencode run` on stdin.** As one argument, 2.1.4 on Windows keeps the quotes `CreateProcess` adds (`docs/harnesses.md`, OpenCode). Rejected: one argument per word. It works for short text, but pastes exceed the command-line limit.
+3. **Session identity without the plugin.** The provider's `baseURL` is `palimnesis session url <history|task>-<config>-<tag>`. One OpenCode session therefore maps to one named Palimnesis session, which `transcripts verify` and `--explain` can address. Requests carry no `X-Palimnesis-Kind`; the proxy does not read it.
+4. **Proxy settings.** The child runs the `serve` app with `serve`'s defaults (no `--input-budget`), except `deadline_s` 3600, as in the development runs. The reason: the D39 gate between the proxy and Strata holds a request while the slot is busy, and that wait counts against the deadline. This is the only difference from the `serve` defaults, and it is open for confirmation before the held-out run.
+5. **The model's environment.** The model's shell gets PATH without the project's virtual environment, so it runs the system Python. The hidden checks use the same interpreter.
+6. **Held-out histories** (`needle_gen.py --set heldout`, `build_heldout`). A separate builder with its own themes, word banks, file names, value formats and phrasing bank, on `build_history`'s skeleton. `build_history` is untouched, so the dev files regenerate byte-identically (tested).
+   - The held-out project tests use stdlib `unittest`, and Q7's command (`python -m unittest tests.test_<module>`) runs for real: it fails naming the constant and the requirement id, but not the required value.
+   - The development histories' Q7 command is `pytest`, which the system Python lacks. Under real OpenCode, dev-h1 Q7 therefore failed in the smoke run. That affects development data only.
+7. **Coding tasks** (`eval/tasks/`, `run.py`).
+   - Each task is one OpenCode session of 8 turns in a fresh git repository. Constraints and an "already tried X, it failed because Y" note come in turn 1. Turn 2 is a full read of a 7–14K-token document; turns 4 and 6 are verbose runs of a ~10–12K-token passing suite. The proxy restarts before turn 5.
+   - **Restart task:** ho-t3. Its key constraint C2 (how the command line writes its output) is stated only in turn 1, and is needed only in turn 5, which does not repeat it (tested).
+   - **Arms:** arm 4 is `a4-d43` with OpenCode's shipped settings (`compaction.auto` false, `limit.context` 1,000,000). Arm 1 is `serve --passthrough` with `compaction.auto` true and `limit.context` 32768. Both go through the same tap and gate.
+   - **Success** means every `test_f_*` method of the hidden check passes. The check is copied in only after the session and run with the system Python. **Constraint `C<N>` holds** when every `test_c<N>_*` method passes. Each check passes on the task's reference solution and fails on the stub (tested).
+8. **Gate inputs recorded per run.**
+   - `--explain` exit and unexplained pairs, `transcripts verify`, and count drift against the pinned counter.
+   - Upstream inputs over 24,320 tokens.
+   - Client-visible excerpt text: excerpt markers in any archived client request.
+   - The proxy log's "views disabled" and "forwarding unbounded" lines.
+
+## D46 — Added-token strings inside messages count as text (R23-A)
+
+The S11 smoke runs found that the counter tokenized `</tool_call>`, `<think>` and the other added-token strings as single tokens when a message quoted them. Strata encodes them as text. OpenCode's `tool.input-json` error quotes the model's unparsable call, `</tool_call>` included, so ordinary sessions hit this. Each request then drifted, and the local count ran low, the unsafe direction for the budget.
+
+1. **The counter mirrors `mark_think_literals`.** `tokens.mark_literals` marks the same strings, fields and exceptions as Strata (`docs/probes/strata.md` §4). It runs after `preprocess_messages`, as Strata marks after `openai_to_messages`. The encoder emits each added token the template wrote as that token, and everything between them as plain text: the marks turn back into the tag text, and that text is encoded with a copy of the pinned tokenizer that has no added tokens.
+2. **Evidence.** `eval/probes/p14_literal_tags.py` covers all 33 added tokens in every role, plus the three exceptions, against live Strata. That is 171 cases, and the local count now matches each one (`tests/test_strata_tokens.py`).
+   - Rejected: marking only Strata's named literal tags. The probe shows the FIM, audio and TTS tokens are text too, so this GGUF's control tokens are every added token outside those tags.
+3. **Layout.** `<|im_start|>` inside a message is text, so it no longer cuts the render. Each template turn is one fragment, and the per-message cut count (`_cuts`) is gone.
+4. **Unchanged.**
+   - `count`, `count_cached` and `encode` still tokenize the text they are given with the added tokens live. They size previews, the recent window and excerpt charges, and count the probes' golden renders.
+   - A message that quotes a tag is therefore estimated a few tokens low there. The assembled request is still counted exactly, so the budget holds.
+   - Excerpt payloads are still escaped (contract §11, Delimiters). Strata now makes such text inert anyway; the escaping still keeps a payload from closing its block.
+5. **Cost.** On a 150 KB history (dev-h1's import), the marking scan adds about 1.5 ms per count. With a tag present the whole count takes about 6.5 ms cold, against 2.7 ms without.
+6. **D44.1 amended before any held-out run.** The held-out configuration is `a4-d43` at the commit that carries this fix and D47. No held-out history or task has run, and the fixes change counting, not anything model-facing.
+7. **Fixes from the cache audit of this change.**
+   - **Mark before the drop.** Strata marks the whole message list before #843 drops empty turns. A tag that sits only in a dropped turn still switches marking on, and then any private-use mark character elsewhere is turned back into tag text. The counter now does the same (live: 64 tokens, where marking after the drop gave 66).
+   - **Dict keys cut.** Strata does not mark keys, so `<|im_start|>` in a tool parameter name or a parsed argument key is a real token and cuts the render. `_key_cuts` counts those, so the layout stays mapped. The counts were already right.
+   - **Counter revision.** `tokens.COUNTER_REVISION` ("c3") is part of every call's identity. After a restart, a call recorded by an older revision can fail to re-render to its recorded count; `explain` now classifies such a pair as `model_template_change` instead of `unexplained` (contract §10).
+   - **Test oracle.** `test_cacheacct_http.encoded` encodes the marked render, so a future tag case gets the right expected LCP.
+
+## D47 — No Unicode normalization before counting
+
+The cache audit of D46 noticed that Strata's tokenizer (`tools/strata_tokenizer.py`, built from the model pack's vocab and merges) has no normalizer, while the pinned `tokenizer.json` declares NFC. `eval/probes/p15_nfc_count.py` confirmed it live: text whose NFC form differs counted low locally, by 1 for a combining accent and by 8 for decomposed Hangul. That is the unsafe direction for the budget.
+
+1. **The counter loads the pinned tokenizer with its normalizer removed.** The pinned bytes and their hash are unchanged; only the in-memory copy differs. The pre-tokenizer and the model are unchanged, and the counts now match on every probe case.
+2. **Canary.** `decomposed_text` (Strata: 69 tokens, recorded 2026-10-25) makes a server that does normalize fail the pin check at startup.
+3. **Found before any held-out run.** It is part of the counter revision `c3`.

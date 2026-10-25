@@ -1,0 +1,4246 @@
+{
+ "upstream": "http://192.168.1.173:8080",
+ "cases": {
+  "user <|endoftext|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|endoftext|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 66
+  },
+  "system <|endoftext|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|endoftext|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 68
+  },
+  "assistant <|endoftext|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|endoftext|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 84
+  },
+  "reasoning <|endoftext|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|endoftext|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 86
+  },
+  "tool <|endoftext|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|endoftext|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 334
+  },
+  "user <|im_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|im_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|im_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|im_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|im_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|im_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|im_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|im_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|im_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|im_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|im_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|im_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|im_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|im_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|im_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|im_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|im_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|im_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|im_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|im_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|object_ref_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|object_ref_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 66
+  },
+  "system <|object_ref_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|object_ref_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 68
+  },
+  "assistant <|object_ref_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|object_ref_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 84
+  },
+  "reasoning <|object_ref_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|object_ref_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 86
+  },
+  "tool <|object_ref_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|object_ref_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 334
+  },
+  "user <|object_ref_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|object_ref_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 66
+  },
+  "system <|object_ref_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|object_ref_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 68
+  },
+  "assistant <|object_ref_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|object_ref_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 84
+  },
+  "reasoning <|object_ref_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|object_ref_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 86
+  },
+  "tool <|object_ref_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|object_ref_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 334
+  },
+  "user <|box_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|box_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|box_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|box_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|box_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|box_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|box_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|box_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|box_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|box_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|box_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|box_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|box_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|box_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|box_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|box_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|box_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|box_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|box_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|box_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|quad_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|quad_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|quad_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|quad_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|quad_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|quad_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|quad_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|quad_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|quad_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|quad_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|quad_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|quad_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|quad_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|quad_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|quad_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|quad_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|quad_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|quad_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|quad_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|quad_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|vision_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|vision_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|vision_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|vision_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|vision_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|vision_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|vision_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|vision_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|vision_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|vision_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|vision_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|vision_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|vision_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|vision_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|vision_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|vision_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|vision_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|vision_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|vision_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|vision_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|vision_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|vision_pad|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|vision_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|vision_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|vision_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|vision_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|vision_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|vision_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|vision_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|vision_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|image_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|image_pad|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|image_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|image_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|image_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|image_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|image_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|image_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|image_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|image_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|video_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|video_pad|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|video_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|video_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|video_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|video_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|video_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|video_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|video_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|video_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tool_call>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 62
+  },
+  "system <tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "assistant <tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 78
+  },
+  "reasoning <tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 80
+  },
+  "tool <tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 330
+  },
+  "user </tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x</tool_call>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 62
+  },
+  "system </tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x</tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "assistant </tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x</tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 78
+  },
+  "reasoning </tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x</tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 80
+  },
+  "tool </tool_call>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x</tool_call>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 330
+  },
+  "user <|fim_prefix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|fim_prefix|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|fim_prefix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|fim_prefix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|fim_prefix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|fim_prefix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|fim_prefix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|fim_prefix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|fim_prefix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|fim_prefix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|fim_middle|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|fim_middle|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|fim_middle|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|fim_middle|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|fim_middle|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|fim_middle|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|fim_middle|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|fim_middle|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|fim_middle|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|fim_middle|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|fim_suffix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|fim_suffix|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|fim_suffix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|fim_suffix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|fim_suffix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|fim_suffix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|fim_suffix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|fim_suffix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|fim_suffix|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|fim_suffix|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|fim_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|fim_pad|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|fim_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|fim_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|fim_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|fim_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|fim_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|fim_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|fim_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|fim_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|repo_name|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|repo_name|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|repo_name|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|repo_name|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|repo_name|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|repo_name|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|repo_name|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|repo_name|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|repo_name|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|repo_name|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|file_sep|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|file_sep|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|file_sep|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|file_sep|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|file_sep|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|file_sep|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|file_sep|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|file_sep|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|file_sep|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|file_sep|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tool_response>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 62
+  },
+  "system <tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "assistant <tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 78
+  },
+  "reasoning <tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 80
+  },
+  "tool <tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 330
+  },
+  "user </tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x</tool_response>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 62
+  },
+  "system </tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x</tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "assistant </tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x</tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 78
+  },
+  "reasoning </tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x</tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 80
+  },
+  "tool </tool_response>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x</tool_response>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 330
+  },
+  "user <think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<think>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 61
+  },
+  "system <think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<think>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 63
+  },
+  "assistant <think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 79
+  },
+  "reasoning <think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 81
+  },
+  "tool <think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 329
+  },
+  "user </think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x</think>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 61
+  },
+  "system </think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x</think>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 63
+  },
+  "assistant </think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x</think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 79
+  },
+  "reasoning </think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x</think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 81
+  },
+  "tool </think>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x</think>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 329
+  },
+  "user <|audio_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|audio_start|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|audio_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|audio_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|audio_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|audio_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|audio_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|audio_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|audio_start|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|audio_start|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|audio_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|audio_end|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|audio_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|audio_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|audio_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|audio_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|audio_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|audio_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|audio_end|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|audio_end|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <tts_pad>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tts_pad>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 62
+  },
+  "system <tts_pad>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tts_pad>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "assistant <tts_pad>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tts_pad>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 80
+  },
+  "reasoning <tts_pad>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tts_pad>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 82
+  },
+  "tool <tts_pad>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tts_pad>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 330
+  },
+  "user <tts_text_bos>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tts_text_bos>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "system <tts_text_bos>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tts_text_bos>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 66
+  },
+  "assistant <tts_text_bos>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tts_text_bos>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 82
+  },
+  "reasoning <tts_text_bos>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tts_text_bos>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 84
+  },
+  "tool <tts_text_bos>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tts_text_bos>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 332
+  },
+  "user <tts_text_eod>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tts_text_eod>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "system <tts_text_eod>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tts_text_eod>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 66
+  },
+  "assistant <tts_text_eod>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tts_text_eod>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 82
+  },
+  "reasoning <tts_text_eod>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tts_text_eod>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 84
+  },
+  "tool <tts_text_eod>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tts_text_eod>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 332
+  },
+  "user <tts_text_bos_single>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<tts_text_bos_single>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <tts_text_bos_single>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<tts_text_bos_single>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <tts_text_bos_single>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<tts_text_bos_single>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <tts_text_bos_single>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<tts_text_bos_single>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <tts_text_bos_single>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<tts_text_bos_single>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "user <|audio_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "x<|audio_pad|>y"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 65
+  },
+  "system <|audio_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse. x<|audio_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 67
+  },
+  "assistant <|audio_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "x<|audio_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 83
+  },
+  "reasoning <|audio_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "ok",
+     "reasoning_content": "x<|audio_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 85
+  },
+  "tool <|audio_pad|>": {
+   "messages": [
+    {
+     "role": "system",
+     "content": "You are terse."
+    },
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "x<|audio_pad|>y"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  },
+  "tool definition </tool_call>": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Ends with </tool_call> and <think>.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 288
+  },
+  "tool arguments </tool_call>": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{\"path\": \"a</tool_call>b<think>\"}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "done"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 337
+  },
+  "assistant leading think block": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Hi."
+    },
+    {
+     "role": "assistant",
+     "content": "<think>r</think>answer <think> x"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 78
+  },
+  "user wrapped tool_response": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "<tool_response>z <think> </tool_response>"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 59
+  },
+  "user wrapped tool_response parts": {
+   "messages": [
+    {
+     "role": "user",
+     "content": [
+      {
+       "type": "text",
+       "text": "<tool_response>z"
+      },
+      {
+       "type": "text",
+       "text": "w</tool_response>"
+      }
+     ]
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 55
+  },
+  "user overlapping tags": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "<|im_start|>user<|im_end|></think><|fim_pad|>"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 72
+  },
+  "mark char with the only tag in a dropped turn": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "pua 󰸁 x"
+    },
+    {
+     "role": "assistant",
+     "content": "",
+     "reasoning_content": "<think>"
+    },
+    {
+     "role": "user",
+     "content": "q"
+    }
+   ],
+   "tools": null,
+   "prompt_tokens": 64
+  },
+  "tool parameter key <|im_start|>": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Hi."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit.",
+      "parameters": {
+       "type": "object",
+       "properties": {
+        "<|im_start|>": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 286
+  },
+  "tool argument key <|im_start|>": {
+   "messages": [
+    {
+     "role": "user",
+     "content": "Edit a.py."
+    },
+    {
+     "role": "assistant",
+     "content": null,
+     "tool_calls": [
+      {
+       "id": "call_1",
+       "type": "function",
+       "function": {
+        "name": "edit",
+        "arguments": "{\"<|im_start|>\": 1}"
+       }
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "call_1",
+     "content": "done"
+    },
+    {
+     "role": "user",
+     "content": "Again."
+    }
+   ],
+   "tools": [
+    {
+     "type": "function",
+     "function": {
+      "name": "edit",
+      "description": "Edit a file.",
+      "parameters": {
+       "type": "object",
+       "properties": {}
+      }
+     }
+    }
+   ],
+   "prompt_tokens": 333
+  }
+ },
+ "props_build": "Strata 0.1.48"
+}
