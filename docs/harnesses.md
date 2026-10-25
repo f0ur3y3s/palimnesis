@@ -14,7 +14,7 @@ Setup and verified behavior per supported harness. Evidence lives in `docs/probe
 ### Recall and transcript files (Phase 3)
 
 - **Proactive excerpts** need no harness setup. Each new instruction gets a block of archived evidence in the upstream copy of the message only.
-- **Transcript files** are written to `%LOCALAPPDATA%\palimnesis	ranscripts\<session>\` (`--transcripts DIR` to move them, `--no-transcripts` to turn them off). Once a session first hides anything, the model is told that directory and to grep, then read with an offset and limit (addendum a3).
+- **Transcript files** are written to `%LOCALAPPDATA%\palimnesis\transcripts\<session>\` (`--transcripts DIR` to move them, `--no-transcripts` to turn them off). Once a session first hides anything, the model is told that directory and to grep, then read with an offset and limit (addendum a3).
 - **OpenCode reaches the directory with the shipped config.** No rule is needed: its default agents allow `external_directory`, `read`, `grep`, `glob` and `shell` outside the project (verified live, D37). If you run an agent configured with ask or deny rules, add these last in `permissions`:
   ```json
   {"action": "external_directory", "resource": "C:/Users/<you>/AppData/Local/palimnesis/transcripts/*", "effect": "allow"},
