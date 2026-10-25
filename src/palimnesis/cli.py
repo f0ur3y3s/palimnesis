@@ -45,6 +45,11 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
         "--synchronous", choices=["FULL", "NORMAL"], default="FULL",
         help="SQLite durability: FULL survives power loss; NORMAL only process crashes",
     )
+    serve.add_argument("--view", choices=["on", "off"], default="on",
+                       help="bounded views: 'on' masks over the watermark, 'off' only "
+                            "enforces budgets")
+    serve.add_argument("--input-budget", type=int, metavar="TOKENS",
+                       help="input budget cap (default 48000; never above capacity)")
 
 
 def _settings(args: argparse.Namespace) -> Settings:
@@ -56,7 +61,8 @@ def _settings(args: argparse.Namespace) -> Settings:
         raise SystemExit(2)
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
-                    db_path=db_path, synchronous=args.synchronous)
+                    db_path=db_path, synchronous=args.synchronous, view=args.view,
+                    input_budget=args.input_budget)
 
 
 def serve_settings(argv: list[str]) -> Settings:
@@ -79,6 +85,60 @@ def _serve(args: argparse.Namespace) -> int:
     else:
         print("passthrough: nothing is archived")
     uvicorn.Server(uvicorn_config(create_app(settings), host=args.host, port=args.port)).run()
+    return 0
+
+
+def _read_only(db: Path):
+    import sqlite3
+
+    if not db.exists():
+        print(f"error: no archive at {db}", file=sys.stderr)
+        raise SystemExit(2)
+    return sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+
+
+def _catalog(args: argparse.Namespace) -> int:
+    """Print one catalog page of a session (inspection; never model-facing in Phase 2)."""
+    from . import catalog, ledger, profile
+
+    counter = profile.load(profile.DEFAULT_PROFILE, "http://inspect.invalid").counter
+    branch = ledger.branch_id_for(args.session)
+    conn = _read_only(args.db or default_db_path())
+    try:
+        if args.cursor:
+            page = catalog.next(conn, branch, args.cursor, count=counter.count_cached)
+        elif args.page:
+            page = catalog.page(conn, branch, args.page, count=counter.count_cached)
+        else:
+            page = catalog.first(conn, branch, count=counter.count_cached)
+    except catalog.CatalogError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+    print(f"page {page.number} · cursor {page.cursor} · next {page.next or '-'}")
+    for e in page.entries:
+        flags = ",".join(e.flags) or "-"
+        print(f"§{e.alias} {e.seq} {e.role} {e.kind} {e.tokens} {flags} {e.preview}")
+    return 0
+
+
+def _excerpts(args: argparse.Namespace) -> int:
+    """List a session's excerpt blocks (inspection only)."""
+    from . import ledger
+
+    conn = _read_only(args.db or default_db_path())
+    try:
+        blocks = ledger.excerpt_blocks(conn, ledger.branch_id_for(args.session))
+        aliases = dict(conn.execute("SELECT target_id, alias FROM aliases"))
+    finally:
+        conn.close()
+    if not blocks:
+        print(f"no excerpt blocks for session {args.session}")
+    for host, b in blocks.items():
+        print(f"host §{aliases.get(host, host)} · status {b.status} · charge {b.token_charge}"
+              f" of {b.allocation} · items {len(b.items)} · query {b.query!r}"
+              f" · {b.query_version}/{b.retrieval_version}/{b.renderer_version}")
     return 0
 
 
@@ -121,6 +181,19 @@ def main(argv: list[str] | None = None) -> int:
     url.add_argument("session")
     address(url)
     url.set_defaults(run=_session_url)
+
+    inspect = commands.add_parser("catalog", help="print a session's catalog page")
+    inspect.add_argument("session")
+    inspect.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
+    where = inspect.add_mutually_exclusive_group()
+    where.add_argument("--page", type=int, help="1-based page number")
+    where.add_argument("--cursor", help="a page's cursor or next cursor")
+    inspect.set_defaults(run=_catalog)
+
+    excerpts = commands.add_parser("excerpts", help="list a session's excerpt blocks")
+    excerpts.add_argument("session")
+    excerpts.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
+    excerpts.set_defaults(run=_excerpts)
 
     args = parser.parse_args(argv)
     return args.run(args)
