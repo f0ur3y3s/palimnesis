@@ -296,8 +296,13 @@ def _pieces(text: str, size: int) -> list[str]:
     return [text[i : i + size] for i in range(0, len(text), size)]
 
 
-def sse_for(turn: tuple[dict, dict, str, str], i: int) -> bytes:
-    """Recorded-shape Strata stream for one assistant tool call (live chunk layout)."""
+def sse_for(turn: tuple[dict, dict, str, str], i: int, prompt_tokens: int | None = None) -> bytes:
+    """Recorded-shape Strata stream for one assistant tool call (live chunk layout).
+
+    ``prompt_tokens`` is the usage to report; the e2e run passes the exact local count
+    of the body, as Strata would, so the Phase 2 drift monitor sees no drift (a made-up
+    count would disable bounded views after three requests and skip the view path)."""
+    prompt_tokens = 5000 + i if prompt_tokens is None else prompt_tokens
     assistant, _, reasoning, args = turn
     call = assistant["tool_calls"][0]
     cid = f"chatcmpl-bench{i:08d}"
@@ -307,10 +312,20 @@ def sse_for(turn: tuple[dict, dict, str, str], i: int) -> bytes:
                                             "function": {"name": "shell", "arguments": ""}}]}))
     out += [_chunk(cid, {"tool_calls": [{"index": 0, "function": {"arguments": p}}]})
             for p in _pieces(args, 6)]
-    out.append(_chunk(cid, {}, "tool_calls", {"prompt_tokens": 5000 + i, "completion_tokens": 80,
-                                              "total_tokens": 5080 + i}))
+    out.append(_chunk(cid, {}, "tool_calls", {"prompt_tokens": prompt_tokens,
+                                              "completion_tokens": 80,
+                                              "total_tokens": prompt_tokens + 80}))
     out.append(b"data: [DONE]\n\n")
     return b"".join(out)
+
+
+def _exact_count(body: bytes) -> int:
+    from palimnesis.upstreams.strata import tokens
+
+    counter = tokens.default()
+    doc = json.loads(body)
+    tools, kw = counter.render_args(doc)
+    return counter.count_messages(doc["messages"], tools, **kw)
 
 
 def run_e2e(workdir: Path, turns: int, checkpoints: list[int]) -> dict:
@@ -327,7 +342,7 @@ def run_e2e(workdir: Path, turns: int, checkpoints: list[int]) -> dict:
             with httpx.Client(timeout=60) as client:
                 for n in range(turns):
                     body = synth.body(n)
-                    sse = sse_for(synth.turn(n), n)
+                    sse = sse_for(synth.turn(n), n, prompt_tokens=_exact_count(body))
                     sse_bytes += len(sse)
                     fake.respond_sse([sse[i : i + 97] for i in range(0, len(sse), 97)])
                     t = time.perf_counter()
@@ -347,12 +362,15 @@ def run_e2e(workdir: Path, turns: int, checkpoints: list[int]) -> dict:
     final["ttfb_ms"] = {
         "first10_p50": round(statistics.median(ttfb_ms[:10]), 2),
         "last10_p50": round(statistics.median(ttfb_ms[-10:]), 2),
+        "first10_p95": round(pct(ttfb_ms[:10], 95), 2),
+        "last10_p95": round(pct(ttfb_ms[-10:], 95), 2),
+        "all": [round(x, 2) for x in ttfb_ms],
     }
     return {"turns": turns, "checkpoints": growth, "final": final}
 
 
 _COUNTED = ("raw_bodies", "requests", "occurrences", "blocks", "segments", "events", "aliases",
-            "attempts", "generations")
+            "attempts", "generations", "view_versions", "excerpt_blocks", "excerpt_items")
 
 
 def _e2e_snapshot(path: Path) -> dict:
@@ -366,6 +384,8 @@ def _e2e_snapshot(path: Path) -> dict:
             "SELECT name, sum(pgsize) FROM dbstat GROUP BY name ORDER BY 2 DESC"
         ).fetchall()
         version = conn.execute("PRAGMA user_version").fetchone()[0]
+        event_kinds = dict(conn.execute(
+            "SELECT kind, count(*) FROM events GROUP BY kind ORDER BY kind").fetchall())
     finally:
         conn.close()
     tables = dict(stat)
@@ -387,6 +407,7 @@ def _e2e_snapshot(path: Path) -> dict:
             "per_table": tables,
         },
         "schema_version": version,
+        "event_kinds": event_kinds,
     }
 
 

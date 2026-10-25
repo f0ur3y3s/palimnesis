@@ -1,0 +1,736 @@
+{
+ "upstream_calls": [
+  {
+   "call_id": "att_c1c5ded7f6b84a2ebc6e977ef04f9ba7",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 5000,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 2,
+   "oversized": [],
+   "included_excerpts": [],
+   "outcome": "ok",
+   "prompt_tokens": 5000,
+   "cached_tokens": 0,
+   "prompt_ms": 14596.4,
+   "prev_call_id": null,
+   "global_prev_call_id": null,
+   "lcp_source": null,
+   "lcp_tokens": null,
+   "first_diff": null,
+   "cause": "first_call",
+   "expected_reuse_est": 0,
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": null,
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_e60b1820ed1a4fadb9ebfd344eb3b6ff",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 6905,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 4,
+   "oversized": [],
+   "included_excerpts": [],
+   "outcome": "ok",
+   "prompt_tokens": 6905,
+   "cached_tokens": 5047,
+   "prompt_ms": 10800.6,
+   "prev_call_id": "att_c1c5ded7f6b84a2ebc6e977ef04f9ba7",
+   "global_prev_call_id": "att_c1c5ded7f6b84a2ebc6e977ef04f9ba7",
+   "lcp_source": "memory",
+   "lcp_tokens": 5000,
+   "first_diff": null,
+   "expected_reuse_est": 4995,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_782cc2d4282442f2bcd47b44b4b3635e",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 7621,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 6,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 7621,
+   "cached_tokens": 6900,
+   "prompt_ms": 4206.1,
+   "prev_call_id": "att_e60b1820ed1a4fadb9ebfd344eb3b6ff",
+   "global_prev_call_id": "att_e60b1820ed1a4fadb9ebfd344eb3b6ff",
+   "lcp_source": "memory",
+   "lcp_tokens": 6905,
+   "first_diff": null,
+   "expected_reuse_est": 6900,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "checkpoint_limited",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_17fa8e353b0d4d50af489770568790fe",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 9578,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 8,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 9578,
+   "cached_tokens": 7723,
+   "prompt_ms": 10752.5,
+   "prev_call_id": "att_782cc2d4282442f2bcd47b44b4b3635e",
+   "global_prev_call_id": "att_782cc2d4282442f2bcd47b44b4b3635e",
+   "lcp_source": "memory",
+   "lcp_tokens": 7621,
+   "first_diff": null,
+   "expected_reuse_est": 7616,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_afca7d7c25ee4736ab0e7d973a77861d",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 10368,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 10,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+    "exb_858b1dc6962744fba5a4fe5c0f1681bc"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 10368,
+   "cached_tokens": 9685,
+   "prompt_ms": 3961.3,
+   "prev_call_id": "att_17fa8e353b0d4d50af489770568790fe",
+   "global_prev_call_id": "att_17fa8e353b0d4d50af489770568790fe",
+   "lcp_source": "memory",
+   "lcp_tokens": 9578,
+   "first_diff": null,
+   "expected_reuse_est": 9573,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_439a44ef25d9476bae72d45d1a9eec47",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 12299,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 12,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+    "exb_858b1dc6962744fba5a4fe5c0f1681bc"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 12299,
+   "cached_tokens": 10440,
+   "prompt_ms": 10717.3,
+   "prev_call_id": "att_afca7d7c25ee4736ab0e7d973a77861d",
+   "global_prev_call_id": "att_afca7d7c25ee4736ab0e7d973a77861d",
+   "lcp_source": "memory",
+   "lcp_tokens": 10368,
+   "first_diff": null,
+   "expected_reuse_est": 10363,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_6b5d0230cae74d8dbdee7510cb2b2c47",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 12696,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 14,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+    "exb_858b1dc6962744fba5a4fe5c0f1681bc",
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 12696,
+   "cached_tokens": 12335,
+   "prompt_ms": 3181.9,
+   "prev_call_id": "att_439a44ef25d9476bae72d45d1a9eec47",
+   "global_prev_call_id": "att_439a44ef25d9476bae72d45d1a9eec47",
+   "lcp_source": "memory",
+   "lcp_tokens": 12299,
+   "first_diff": null,
+   "expected_reuse_est": 12294,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_ff74cfeb1d484cf6ba803f8f76bb688e",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 14608,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 16,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+    "exb_858b1dc6962744fba5a4fe5c0f1681bc",
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 14608,
+   "cached_tokens": 12748,
+   "prompt_ms": 10807.5,
+   "prev_call_id": "att_6b5d0230cae74d8dbdee7510cb2b2c47",
+   "global_prev_call_id": "att_6b5d0230cae74d8dbdee7510cb2b2c47",
+   "lcp_source": "memory",
+   "lcp_tokens": 12696,
+   "first_diff": null,
+   "expected_reuse_est": 12691,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_bdfbf89c7fbc497d939dcbc0bbbbeda8",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": null,
+   "view_n": 0,
+   "input_tokens": 14695,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 18,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+    "exb_858b1dc6962744fba5a4fe5c0f1681bc",
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 14695,
+   "cached_tokens": 14654,
+   "prompt_ms": 749.8,
+   "prev_call_id": "att_ff74cfeb1d484cf6ba803f8f76bb688e",
+   "global_prev_call_id": "att_ff74cfeb1d484cf6ba803f8f76bb688e",
+   "lcp_source": "memory",
+   "lcp_tokens": 14608,
+   "first_diff": null,
+   "expected_reuse_est": 14603,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_65619ac8d8e94febb8f8590ca3166b89",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": "view_5ef8011d181445149f250d64ca109cb6",
+   "view_n": 1,
+   "input_tokens": 11255,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 20,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 11255,
+   "cached_tokens": 4960,
+   "prompt_ms": 15179.8,
+   "prev_call_id": "att_bdfbf89c7fbc497d939dcbc0bbbbeda8",
+   "global_prev_call_id": "att_bdfbf89c7fbc497d939dcbc0bbbbeda8",
+   "lcp_source": "memory",
+   "lcp_tokens": 4963,
+   "first_diff": {
+    "segment": 1,
+    "kind": "user",
+    "prev_tokens": [
+     4960,
+     4995
+    ],
+    "cur_tokens": [
+     4960,
+     4996
+    ],
+    "turns": [
+     {
+      "occs": [
+       "occ_ac50bc74545d49d5b14d176477dec39e"
+      ],
+      "form": "verbatim",
+      "excerpt": null
+     },
+     {
+      "occs": [
+       "occ_ac50bc74545d49d5b14d176477dec39e",
+       "occ_4110801aaf4342e0aa3bddb99605fce4",
+       "occ_845e4fb1065c479c87bc5ea4ef5d943a",
+       "occ_84b91f2456a24b8ead0f49e4faf1a38e",
+       "occ_b49db99f26454157883a5be9693057cb",
+       "occ_62481e30157e49928bf9c5731a8a9499",
+       "occ_e075f8b95e474b40bd620ef57876ec7f",
+       "occ_ff6cb1b4c5504b44877926ddfb9f49cf",
+       "occ_c36a7aeec79049c39117b52411e7c84c"
+      ],
+      "form": "collapsed",
+      "excerpt": null
+     }
+    ]
+   },
+   "expected_reuse_est": 4960,
+   "cause": "collapse",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "checkpoint_limited",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_bac631e7af9c406fac6fbbed29e5dcd5",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": "view_5ef8011d181445149f250d64ca109cb6",
+   "view_n": 1,
+   "input_tokens": 11977,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 22,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f",
+    "exb_fdfc68ee26524548bed1a0643604faa8"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 11977,
+   "cached_tokens": 11295,
+   "prompt_ms": 3919.0,
+   "prev_call_id": "att_65619ac8d8e94febb8f8590ca3166b89",
+   "global_prev_call_id": "att_65619ac8d8e94febb8f8590ca3166b89",
+   "lcp_source": "memory",
+   "lcp_tokens": 11255,
+   "first_diff": null,
+   "expected_reuse_est": 11250,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  },
+  {
+   "call_id": "att_07da1ff363de40fd98cea1285ed96b5b",
+   "branch_id": "exc-live-1792894069/main",
+   "view_mode": "on",
+   "view_id": "view_5ef8011d181445149f250d64ca109cb6",
+   "view_n": 1,
+   "input_tokens": 13921,
+   "settings": {
+    "effort": null,
+    "enable_thinking": null
+   },
+   "tools_sha256": "ec420f1f0b5cb7d7a7143f78f09cd128b03b11fcd5e1ce768e70a3f998c60fd8",
+   "identity": [
+    "strata-0.1.48",
+    "Strata 0.1.48",
+    "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+   ],
+   "budget": {
+    "n_ctx": 65536,
+    "reserve": 2048,
+    "margin": 256,
+    "input_budget": 16000,
+    "catalog": 0,
+    "recall_excerpts": 1600,
+    "excerpt_per_message": 640
+   },
+   "formats": {
+    "policy_version": "v2",
+    "stub_format": "s1",
+    "excerpt_format": "x1"
+   },
+   "archive_seq": 24,
+   "oversized": [],
+   "included_excerpts": [
+    "exb_b4bd38ff2b5242b9aa365636ec2eb18f",
+    "exb_fdfc68ee26524548bed1a0643604faa8"
+   ],
+   "outcome": "ok",
+   "prompt_tokens": 13921,
+   "cached_tokens": 12061,
+   "prompt_ms": 10746.8,
+   "prev_call_id": "att_bac631e7af9c406fac6fbbed29e5dcd5",
+   "global_prev_call_id": "att_bac631e7af9c406fac6fbbed29e5dcd5",
+   "lcp_source": "memory",
+   "lcp_tokens": 11977,
+   "first_diff": null,
+   "expected_reuse_est": 11972,
+   "cause": "append",
+   "expected_reuse_label": "estimate",
+   "reuse_model": "StrataCacheModel",
+   "reuse_class": "full",
+   "evicted_by": null
+  }
+ ],
+ "view_versions": [
+  {
+   "view_id": "view_5ef8011d181445149f250d64ca109cb6",
+   "branch_id": "exc-live-1792894069/main",
+   "n": 1,
+   "request_id": "req_d76431e6f7c048e486a7bba61a08cdff",
+   "policy_version": "v2",
+   "stub_format": "s1",
+   "watermark_seq": 11,
+   "collapse_seq": 11,
+   "oversized": "{\"oversized\": [], \"kept\": [\"occ_d258d9effba6477ca918e3e3f53495b5\"], \"omitted_excerpts\": [\"exb_858b1dc6962744fba5a4fe5c0f1681bc\", \"exb_ac44e0bd21af41cb9715d7e4c30fe4e2\"]}",
+   "budget": "{\"n_ctx\": 65536, \"reserve\": 2048, \"margin\": 256, \"input_budget\": 16000, \"catalog\": 0, \"recall_excerpts\": 1600, \"excerpt_per_message\": 640}",
+   "cause": "watermark_move,collapse,excerpt_omitted",
+   "created_at": 1792894154.9048839
+  }
+ ],
+ "excerpt_blocks": [
+  {
+   "block_id": "exb_58f89ce7104a46aaaf0709b168baca80",
+   "host_occ_id": "occ_ac50bc74545d49d5b14d176477dec39e",
+   "status": "empty",
+   "token_charge": 0,
+   "allocation": 640,
+   "base_view_n": 0
+  },
+  {
+   "block_id": "exb_ac44e0bd21af41cb9715d7e4c30fe4e2",
+   "host_occ_id": "occ_b49db99f26454157883a5be9693057cb",
+   "status": "selected",
+   "token_charge": 640,
+   "allocation": 640,
+   "base_view_n": 0
+  },
+  {
+   "block_id": "exb_858b1dc6962744fba5a4fe5c0f1681bc",
+   "host_occ_id": "occ_c36a7aeec79049c39117b52411e7c84c",
+   "status": "selected",
+   "token_charge": 640,
+   "allocation": 640,
+   "base_view_n": 0
+  },
+  {
+   "block_id": "exb_b4bd38ff2b5242b9aa365636ec2eb18f",
+   "host_occ_id": "occ_6b9195305fb8421fa98e62e3404eef08",
+   "status": "selected",
+   "token_charge": 320,
+   "allocation": 320,
+   "base_view_n": 0
+  },
+  {
+   "block_id": "exb_b6cae88be21943e29d1e104b11a1f10b",
+   "host_occ_id": "occ_2f932e449c3549b89a16d9735ecda864",
+   "status": "empty",
+   "token_charge": 0,
+   "allocation": 0,
+   "base_view_n": 0
+  },
+  {
+   "block_id": "exb_fdfc68ee26524548bed1a0643604faa8",
+   "host_occ_id": "occ_de14643091d14c62a26ed48e57ac2bd1",
+   "status": "selected",
+   "token_charge": 640,
+   "allocation": 640,
+   "base_view_n": 1
+  }
+ ],
+ "drift": []
+}
