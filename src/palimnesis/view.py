@@ -55,6 +55,7 @@ from typing import Any, Mapping, Sequence
 
 from .budget import Budget, BudgetError, check_fixed
 from .excerpts import attach
+from .profile import empty_assistant
 from .stubs import reasoning_stub, span_note, tool_result_stub
 
 POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
@@ -120,7 +121,8 @@ def _text_of(message: Mapping[str, Any]) -> str:
 
 
 class _Builder:
-    def __init__(self, items, tools, render_kwargs, budget, policy, counter):
+    def __init__(self, items, tools, render_kwargs, budget, policy, counter,
+                 drops_empty_assistant=False):
         self.items = list(items)
         self.tools = tools
         self.render_kwargs = dict(render_kwargs)
@@ -133,6 +135,10 @@ class _Builder:
         if self.last_user is not None:
             self.fixed.add(self.last_user)
         self.starts = _group_starts(self.items)
+        # Turns the upstream renders as nothing (TemplateRules.drops_empty_assistant):
+        # they count zero toward min_recent and are never masked.
+        self.dropped = ({i for i, it in enumerate(self.items[:-1]) if empty_assistant(it.message)}
+                        if drops_empty_assistant else set())
         self._stub_cache: dict[tuple[int, str], tuple[dict, bool]] = {}
         self._measured: dict[ViewState, tuple] = {}
 
@@ -161,7 +167,9 @@ class _Builder:
     def masked_message(self, index: int) -> tuple[dict, bool]:
         key = (index, "masked")
         if key not in self._stub_cache:
-            self._stub_cache[key] = _masked(self.items[index], self.policy, self.counter)
+            self._stub_cache[key] = ((dict(self.items[index].message), False)
+                                     if index in self.dropped
+                                     else _masked(self.items[index], self.policy, self.counter))
         return self._stub_cache[key]
 
     def is_fixed(self, index: int, state: ViewState) -> bool:
@@ -272,7 +280,8 @@ class _Builder:
         for start in reversed(self.starts):
             end = next((s for s in self.starts if s > start), len(self.items))
             recent += sum(self.counter.count_cached(_text_of(self.items[i].message))
-                          for i in range(start, end) if i not in self.fixed)
+                          for i in range(start, end)
+                          if i not in self.fixed and i not in self.dropped)
             candidate = start
             if recent >= self.policy.min_recent:
                 break
@@ -316,7 +325,7 @@ def _masked(item: ViewItem, policy: ViewPolicy, counter) -> tuple[dict, bool]:
 
 def warm(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
          render_kwargs: Mapping[str, Any], budget: Budget, state: ViewState,
-         policy: ViewPolicy, counter) -> None:
+         policy: ViewPolicy, counter, drops_empty_assistant: bool = False) -> None:
     """Fill the process-wide stub and count caches for the next watermark move, off
     the request path (D25). Stubs and counts are pure functions of their inputs,
     so this never changes a view; it moves the cold cost of a move (fitting stub
@@ -325,7 +334,7 @@ def warm(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     It renders once with every unfixed message masked, which stubs and counts each
     message a later move could mask, in its real context. That includes the
     newest group, which the next request makes maskable."""
-    b = _Builder(items, tools, render_kwargs, budget, policy, counter)
+    b = _Builder(items, tools, render_kwargs, budget, policy, counter, drops_empty_assistant)
     old = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
     if len(b.items) > old:
         b.measure(b.keep_fixed(replace(state, watermark_seq=_seq(b.items, len(b.items)))))
@@ -339,8 +348,8 @@ def _seq(items: Sequence[ViewItem], index: int) -> int:
 
 def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
           render_kwargs: Mapping[str, Any], budget: Budget, state: ViewState,
-          policy: ViewPolicy, counter) -> View:
-    b = _Builder(items, tools, render_kwargs, budget, policy, counter)
+          policy: ViewPolicy, counter, drops_empty_assistant: bool = False) -> View:
+    b = _Builder(items, tools, render_kwargs, budget, policy, counter, drops_empty_assistant)
     fixed = b.fixed_tokens()
     check_fixed(budget, fixed_tokens=fixed)
     capacity = budget.input_budget - budget.catalog - budget.recall_excerpts - fixed
@@ -411,7 +420,8 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         def stubbable(i: int) -> bool:
             message = b.items[i].message
             return (message.get("role") == "tool"
-                    or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))))
+                    or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))
+                        and i not in b.dropped))
 
         unmasked = sorted(
             (i for i in range(w_index, len(b.items))

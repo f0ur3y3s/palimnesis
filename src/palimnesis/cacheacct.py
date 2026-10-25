@@ -196,6 +196,25 @@ def _view_cause(p: Turn | None, c: Turn | None, prev: Call, cur: Call) -> str | 
     return None
 
 
+def _changed_segment(prev: Call, cur: Call, s: int) -> int:
+    """The segment where the change starts. A turn the upstream renders as nothing
+    (D42) has a zero-length segment just before the one holding the first differing
+    token; when that turn itself changed (a collapse that absorbs it), the change
+    starts there."""
+    a, b = prev.layout, cur.layout
+    back = s
+    while back > 0 and a.segments[back - 1].start == a.segments[back - 1].end == a.segments[s].start:
+        back -= 1
+    if back == s or prev.turns is None or cur.turns is None:
+        return s
+    for k in range(back, s):
+        if k >= len(b.segments):
+            break
+        if [prev.turns[i] for i in a.segments[k].messages] !=                 [cur.turns[i] for i in b.segments[k].messages]:
+            return k
+    return s
+
+
 def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     """lcp, first differing turn, cause and reuse estimate of ``cur`` after ``prev``.
 
@@ -215,7 +234,7 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     if lcp >= a.generation_start:
         out["cause"] = "append"
         return out
-    s = a.segment_at(lcp)
+    s = _changed_segment(prev, cur, a.segment_at(lcp))
     ps = a.segments[s]
     cs = b.segments[s] if s < len(b.segments) else None
     causes: list[str] = []

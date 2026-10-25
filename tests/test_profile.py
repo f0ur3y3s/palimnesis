@@ -257,7 +257,8 @@ async def test_strata_profile_bundles_counter_facts_crosscheck_cache_errors_rule
     assert p.errors.staleness_reason(None) == "transport_error"
     assert p.errors.staleness_reason(503) == "upstream_5xx"
 
-    assert p.rules == profile.TemplateRules(reasoning_every_turn=True, leading_system_only=True)
+    assert p.rules == profile.TemplateRules(reasoning_every_turn=True, leading_system_only=True,
+                                            drops_empty_assistant=True)
     # Cache-reuse model (docs/probes/strata.md §7; probed in tests/test_cacheacct.py).
     layout = p.counter.layout([{"role": "user", "content": "Q1"}], enable_thinking=False)
     assert len(layout.ids) == 14 and layout.segments[-1].kind == "generation"

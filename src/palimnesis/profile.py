@@ -100,18 +100,44 @@ def common_prefix(a: Sequence[int], b: Sequence[int]) -> int:
     return i
 
 
+def _text_of(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    return "".join(p.get("text", "") for p in content
+                   if isinstance(p, Mapping) and p.get("type") in ("text", "input_text", None))
+
+
+def empty_assistant(message: Mapping[str, Any]) -> bool:
+    """An assistant message with no text (null, "", whitespace, or text parts that join
+    to nothing), no image and no tool calls. Reasoning does not count."""
+    content = message.get("content")
+    return (message.get("role") == "assistant" and not _text_of(content).strip()
+            and not (isinstance(content, list) and any(
+                isinstance(p, Mapping) and p.get("type") in ("image_url", "input_image", "image")
+                for p in content))
+            and not message.get("tool_calls"))
+
+
 @dataclass(frozen=True)
 class TemplateRules:
     # Every earlier assistant turn renders with its reasoning (so masked reasoning is stubbed).
     reasoning_every_turn: bool
     # System messages are accepted only at the start (so span notes are user-role).
     leading_system_only: bool
+    # A completed assistant turn that is ``empty_assistant`` renders nothing, reasoning
+    # included; the final message always renders (Strata #843, D41). The core implements
+    # both values.
+    drops_empty_assistant: bool = False
     # Further named rules a profile declares; the core implements none yet.
     other: frozenset[str] = frozenset()
 
 
 # The rules the view builder implements.
 SUPPORTED_RULES = TemplateRules(reasoning_every_turn=True, leading_system_only=True)
+# Rules the core implements with either value (not compared by ``unsupported_rules``):
+# drops_empty_assistant.
 
 
 def unsupported_rules(rules: TemplateRules) -> tuple[str, ...]:

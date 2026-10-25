@@ -17,7 +17,9 @@ PROFILE_ID = "strata-0.1.48"
 
 # docs/probes/strata.md §2: every earlier turn keeps its reasoning (preserve_thinking is
 # ignored); the pinned template raises "System message must be at the beginning."
-RULES = TemplateRules(reasoning_every_turn=True, leading_system_only=True)
+# §4: completed empty assistant turns are dropped before rendering (#843, D41).
+RULES = TemplateRules(reasoning_every_turn=True, leading_system_only=True,
+                      drops_empty_assistant=True)
 
 
 def profile(base_url: str) -> UpstreamProfile:

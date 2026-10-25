@@ -141,5 +141,12 @@
       "input_tokens": 35422
     },
     "ms": 78.0
+  },
+  "prior_turn_thinking_only": {
+    "status": 200,
+    "body": {
+      "input_tokens": 61
+    },
+    "ms": 450.6
   }
 }

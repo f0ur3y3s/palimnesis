@@ -44,7 +44,7 @@ import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from tokenizers import Tokenizer
 
-from ...profile import Layout, Segment
+from ...profile import Layout, Segment, empty_assistant
 from . import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
@@ -126,28 +126,10 @@ def _parsed_arguments(tool_call: Mapping[str, Any]) -> Mapping[str, Any]:
     return {**tool_call, "function": {**fn, "arguments": _strata_arguments(fn.get("arguments"))}}
 
 
-def _text_of(content: Any) -> str:
-    if content is None:
-        return ""
-    if isinstance(content, str):
-        return content
-    return "".join(p.get("text", "") for p in content
-                   if isinstance(p, Mapping) and p.get("type") in ("text", "input_text", None))
-
-
-def _has_image(content: Any) -> bool:
-    return isinstance(content, list) and any(
-        isinstance(p, Mapping) and p.get("type") in ("image_url", "input_image", "image")
-        for p in content)
-
-
 def dropped_turns(messages: Sequence[Mapping[str, Any]]) -> frozenset[int]:
     """Indices Strata leaves out of the render (#843): completed assistant turns with no
     text, no image and no tool calls. The final message is always kept."""
-    return frozenset(
-        i for i, m in enumerate(messages[:-1])
-        if m.get("role") == "assistant" and not _text_of(m.get("content")).strip()
-        and not _has_image(m.get("content")) and not m.get("tool_calls"))
+    return frozenset(i for i, m in enumerate(messages[:-1]) if empty_assistant(m))
 
 
 def preprocess_messages(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
