@@ -420,3 +420,14 @@ The root is `<db dir>/transcripts` by default, overridden with `--transcripts DI
 - **Startup and shutdown.** At startup it re-projects the sessions that recovery touched. At shutdown it drains.
 - **Logs.** Only counts and directory hashes.
 - **Not built yet:** `eval/bench_projection.py` (publication latency and bytes per request) and the Phase 8 deletion cascade.
+
+## D36 — The transcript-search addendum (a3)
+
+- **Where it goes.** The proxy appends `a3`, which names the session's transcript directory, to the upstream copy of the first system message. When there is no system message, it prepends one. The archive and the client never see it, and it counts in F.
+- **When it is fixed.** At the session's first view that hides anything (a watermark, collapse or oversized stub), stored as an immutable `addendum_fixed` event, and reused unchanged from then on, even if the transcript root moves. Cache-accounting rebuilds after a restart apply the stored text.
+- **Before acceptance.** The budget check counts the addendum's tokens, so it cannot turn into a budget error after acceptance.
+- **Deviation from the plan.** The plan fixed the addendum at the first bounded request; it is fixed at the first masked one instead.
+  - Unmasked sessions stay byte-identical to the client, as Phase 2 promises. The addendum's claim that content may be hidden is only made once it is true.
+  - The cost is one extra re-read of the tool schemas, once per session. A watermark move already falls back to about the system root (R14), and the template renders tools after the system text.
+- **Cache accounting.** A change of the addendum, including its first appearance or a later removal, is recorded as `view_format_change`. On the first masked request that is the first token difference, ahead of the move itself.
+- **Disabling it.** `--no-transcripts` drops the addendum, recorded as `view_format_change`. Rejected: injecting it through harness configuration, which is harness-specific and would be archived as client content.

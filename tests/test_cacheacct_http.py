@@ -165,9 +165,11 @@ def _grow_until_view_moves(fake, url, settings, messages, user_text, limit=12):
 
 
 def test_cause_watermark_move(tmp_path):
+    # Without transcripts: the first move would otherwise also fix the addendum (D36),
+    # which differs earlier in the prompt and is recorded as view_format_change.
     # Tool results grow the session until it crosses H; stubbing the oldest reaches T.
     messages = history(7)
-    with acct_stack(tmp_path, input_budget=16000) as (fake, url, settings):
+    with acct_stack(tmp_path, transcripts_enabled=False, input_budget=16000) as (fake, url, settings):
         for i in range(7, 12):
             fake.respond_counted(tool_call=(f"call_{i}", "read", "{}"))
             assert post(url, body(messages)).status_code == 200
@@ -197,7 +199,7 @@ def test_cause_collapse(tmp_path):
         messages += [{"role": "user", "content": f"question {i} " * 20},
                      {"role": "assistant", "content": f"answer {i} " * 20}]
     messages.append({"role": "user", "content": "go on"})
-    with acct_stack(tmp_path, input_budget=8000) as (fake, url, settings):
+    with acct_stack(tmp_path, transcripts_enabled=False, input_budget=8000) as (fake, url, settings):
         moved, _ = _grow_until_view_moves(fake, url, settings, messages, "more")
 
     assert moved["cause"] == "collapse"

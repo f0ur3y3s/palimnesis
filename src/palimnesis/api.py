@@ -171,6 +171,7 @@ class Proxy:
                         lambda headers: _filter_headers(headers, drop=_REQUEST_ONLY),
                         views=views, deadline_s=self.settings.deadline_s,
                         on_change=self.projector.trigger if self.projector else None,
+                        addendum_for=self._addendum_for(),
                     )
                     for session in interrupted if self.projector else ():
                         self.projector.trigger(session)
@@ -183,6 +184,17 @@ class Proxy:
                     self.store.close()
                 await send({"type": "lifespan.shutdown.complete"})
                 return
+
+    def _addendum_for(self):
+        """session id -> the a3 addendum naming its transcript directory, while transcript
+        files are published (D36, D37.2); None otherwise."""
+        if self.projector is None:
+            return None
+        from .affordances import ACTIVE, addendum_text
+        from .projector import session_dir
+
+        root = self.projector.root
+        return lambda session: (ACTIVE["addendum"], addendum_text(session_dir(root, session)))
 
     def _start_projector(self, upstream):
         """Transcript files (Phase 3): on by default, beside the archive (contracts §14)."""

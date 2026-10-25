@@ -71,6 +71,8 @@ class Plan:
     prepared: Any = None
     view_id: str | None = None  # the branch's view version the upstream body renders
     view_n: int = 0
+    # The session's model-facing addendum, appended to the upstream system message (D36).
+    addendum: str | None = None
 
 
 @dataclass
@@ -869,6 +871,26 @@ def interrupt(conn: sqlite3.Connection, gen: Generation) -> None:
         record_delivery(conn, gen.plan, "delivery_failed", bytes_forwarded=gen.forwarded)
     else:
         finish_attempt(conn, gen, "cancelled", forwarded=gen.forwarded)
+
+
+def fixed_addendum(conn: sqlite3.Connection, branch_id: str) -> dict | None:
+    """The addendum fixed for this branch at its first bounded request (D36)."""
+    row = conn.execute(
+        "SELECT e.payload FROM events e JOIN requests r ON r.request_id = e.request_id"
+        " WHERE e.kind = 'addendum_fixed' AND r.branch_id = ? ORDER BY e.rowid LIMIT 1",
+        (branch_id,)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def fix_addendum(conn: sqlite3.Connection, plan: Plan, addendum_id: str, text: str) -> str:
+    """The branch's addendum text: the one already fixed, else ``text``, recorded now.
+    Fixing it once keeps the system message byte-stable for the session's life."""
+    fixed = fixed_addendum(conn, plan.branch_id)
+    if fixed is not None:
+        return fixed["text"]
+    _event(conn, plan.request_id, plan.attempt_id, "addendum_fixed", addendum_id=addendum_id,
+           text=text)
+    return text
 
 
 def expire(conn: sqlite3.Connection, gen: Generation) -> None:

@@ -60,6 +60,10 @@ FINAL_SEND_S = 2.0
 _EOF = object()
 
 
+def _masked(state) -> bool:
+    return bool(state.watermark_seq or state.collapse_seq or state.oversized)
+
+
 def crash_point(name: str) -> None:
     """Deterministic process death for crash-recovery tests (``PALIMNESIS_CRASH_AT``)."""
     if os.environ.get("PALIMNESIS_CRASH_AT") == name:
@@ -79,8 +83,10 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
                  forward_headers, views=None, deadline_s: float = 600.0,
-                 on_change=None) -> None:
+                 on_change=None, addendum_for=None) -> None:
         self.store = store
+        # session id -> (addendum id, text) for the upstream system message, or None (D36).
+        self.addendum_for = addendum_for
         self.deadline_s = deadline_s
         # Called with the session id after accept and after each attempt ends, from the
         # event loop; it must not block (palimnesis.projector.Projector.trigger).
@@ -109,8 +115,10 @@ class ArchiveHandler:
             return
         prepared = None
         if self.views is not None and await self.views.ready(self.client):
+            candidate = self.addendum_for(session) if self.addendum_for else None
+            extra = self.views.counter.count(candidate[1]) + 2 if candidate else 0
             try:
-                prepared = await self.views.prepare(req)
+                prepared = await self.views.prepare(req, extra)
             except BudgetError as e:
                 await error_response(api_path, 400, "context_budget_exceeded", str(e))(
                     scope, receive, send)
@@ -198,8 +206,18 @@ class ArchiveHandler:
     async def _bound(self, scope, receive, send, req, gen, prepared, api_path) -> bool:
         """Replace the planned body with the bounded view; False if it cannot fit."""
         plan = gen.plan
+        candidate = self.addendum_for(plan.session_id) if self.addendum_for else None
+        if candidate is not None:
+            fixed = await self.store.read(lambda c: ledger.fixed_addendum(c, plan.branch_id))
+            plan.addendum = fixed["text"] if fixed else None
         try:
             view = await self.views.build(prepared, plan)
+            if candidate is not None and plan.addendum is None and _masked(view.state):
+                # The first view that hides anything fixes the session's addendum (D36);
+                # until then the body stays the client's, byte for byte.
+                plan.addendum = await self.store.write(
+                    lambda c: ledger.fix_addendum(c, plan, *candidate))
+                view = await self.views.build(prepared, plan)
         except BudgetError as e:
             await self.store.write(lambda c: ledger.finish_attempt(
                 c, gen, "attempt_failed", reason="context_budget_exceeded"))

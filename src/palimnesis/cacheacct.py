@@ -227,6 +227,8 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
             causes.append("effort_change")
         if prev.tools_sha256 != cur.tools_sha256:
             causes.append("tool_change")
+        if prev.formats.get("addendum") != cur.formats.get("addendum"):
+            causes.append("view_format_change")
         p_sys = [o for i in ps.messages for o in (prev.turns or ())[i].occs] if prev.turns else []
         c_sys = ([o for i in cs.messages for o in (cur.turns or ())[i].occs]
                  if cs and cur.turns else [])
@@ -281,7 +283,8 @@ class Accountant:
             facts = self.profile.facts.facts
             call.identity = [self.profile.id, *(facts.identity if facts else ())]
             call.budget = ViewEngine.snapshot(prepared.budget)
-            call.formats = {**VIEW_FORMAT, "excerpt_format": EXCERPT_FORMAT}
+            call.formats = {**VIEW_FORMAT, "excerpt_format": EXCERPT_FORMAT,
+                            "addendum": _sha(plan.addendum) if plan.addendum else None}
             call.archive_seq = max((i.seq for i in plan.items if i.seq is not None), default=0)
             call.oversized = tuple(sorted(view.state.oversized))
             call.included_excerpts = tuple(view.included_excerpts)
@@ -383,6 +386,13 @@ class Accountant:
             return prev
         try:
             req, items = ledger.replan(conn, prev.branch_id, request_id, prev.archive_seq)
+            if prev.formats.get("addendum"):
+                from .viewengine import with_addendum
+
+                fixed = ledger.fixed_addendum(conn, prev.branch_id)
+                if fixed is None or _sha(fixed["text"]) != prev.formats["addendum"]:
+                    return prev
+                items = with_addendum(items, fixed["text"])
             tools, kw = self.profile.counter.render_args(json.loads(req.raw))
             budget = Budget(**prev.budget, rewrite_limit=None)
             _, state = ledger.view_at(conn, prev.branch_id, prev.view_n)

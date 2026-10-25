@@ -148,7 +148,7 @@ class ViewEngine:
         await self.profile.facts.refresh(client)
         return self.profile.facts.pinned_ok
 
-    def _prepare(self, req: chat.ChatRequest) -> Prepared:
+    def _prepare(self, req: chat.ChatRequest, extra_fixed: int = 0) -> Prepared:
         tools, args = self.counter.render_args(json.loads(req.raw))
         limit_field = ("max_completion_tokens" if "max_completion_tokens" in req.settings
                        else "max_tokens" if "max_tokens" in req.settings else "max_completion_tokens")
@@ -158,7 +158,9 @@ class ViewEngine:
         users = [i for i, m in enumerate(req.messages) if m.role == "user"]
         fixed = [m for i, m in enumerate(messages)
                  if req.messages[i].role == "system" or (users and i == users[-1])]
-        check_fixed(budget, fixed_tokens=self.counter.count_messages(fixed, tools, **args))
+        # extra_fixed: proxy-added fixed input (the addendum, D36), checked before acceptance.
+        check_fixed(budget, fixed_tokens=self.counter.count_messages(fixed, tools, **args)
+                    + extra_fixed)
         if self.mode == "off":
             total = self.counter.count_messages(messages, tools, **args)
             if total > budget.input_budget:
@@ -168,15 +170,16 @@ class ViewEngine:
                     {"history": total, "input_budget": budget.input_budget})
         return Prepared(budget, tools, args, limit_field)
 
-    async def prepare(self, req: chat.ChatRequest) -> Prepared:
-        return await anyio.to_thread.run_sync(self._prepare, req)
+    async def prepare(self, req: chat.ChatRequest, extra_fixed: int = 0) -> Prepared:
+        return await anyio.to_thread.run_sync(self._prepare, req, extra_fixed)
 
     async def build(self, prepared: Prepared, plan) -> View:
         # view="off" never masks; _prepare already verified the full history fits.
         policy = ViewPolicy(high=float("inf")) if self.mode == "off" else self.view_policy
+        items = with_addendum(plan.items, plan.addendum)
 
         def run() -> View:
-            return build(plan.items, tools=prepared.tools, render_kwargs=prepared.render_kwargs,
+            return build(items, tools=prepared.tools, render_kwargs=prepared.render_kwargs,
                          budget=prepared.budget, state=plan.view_state, policy=policy,
                          counter=self.counter)
 
@@ -259,4 +262,26 @@ class ViewEngine:
 
 
 VIEW_FORMAT = {"policy_version": POLICY_VERSION, "stub_format": STUB_FORMAT}
+
+
+def with_addendum(items, addendum: str | None) -> list:
+    """``items`` with the addendum appended to the first system message's text, in
+    the upstream copy only (D36). Without a system message one is prepended."""
+    items = list(items)
+    if not addendum:
+        return items
+    for i, item in enumerate(items):
+        if item.message.get("role") != "system":
+            continue
+        message = dict(item.message)
+        content = message.get("content")
+        if isinstance(content, list):
+            message["content"] = [*content, {"type": "text", "text": addendum}]
+        else:
+            message["content"] = f"{content}\n\n{addendum}" if content else addendum
+        items[i] = replace(item, message=message)
+        return items
+    from .view import ViewItem
+
+    return [ViewItem({"role": "system", "content": addendum}, None, None, None), *items]
 EXCERPT_FORMAT = RENDERER_VERSION
