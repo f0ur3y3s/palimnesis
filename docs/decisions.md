@@ -646,3 +646,25 @@ The cache audit of D46 noticed that Strata's tokenizer (`tools/strata_tokenizer.
 1. **The counter loads the pinned tokenizer with its normalizer removed.** The pinned bytes and their hash are unchanged; only the in-memory copy differs. The pre-tokenizer and the model are unchanged, and the counts now match on every probe case.
 2. **Canary.** `decomposed_text` (Strata: 69 tokens, recorded 2026-10-25) makes a server that does normalize fail the pin check at startup.
 3. **Found before any held-out run.** It is part of the counter revision `c3`.
+
+## D48 — Held-out ho-t3..t5 and 64K run on a second Strata host
+
+Decided on 2026-10-26, after ho-t1 and ho-t2 had run under both arms on bazzite. This is a deviation from D44's "nothing here changes after held-out results are seen", and is recorded as one.
+
+1. **What moves.** The 120 held-out needles and the ho-t1 and ho-t2 pairs stay as run on bazzite (192.168.1.173). ho-t3..t5, both arms, and the 64K report runs (D44.9) run against a second Strata, Zeus (192.168.1.19).
+   - Each task's two arms run on the same machine.
+   - The driver, OpenCode 2.1.4 and the proxy stay on the same Windows host. Only `--upstream` changes.
+2. **Why.** Wall time. On the same recorded ho-t1 requests, Zeus decodes at 91 tok/s against bazzite's 52 and reads prompts at 1,226–1,411 tok/s against 708–770. Arm 1's compaction loop had made its runs take 2–4 h each on bazzite.
+3. **Equivalence shown before any run on Zeus.**
+   - **Pin:** `build_info` "Strata 0.1.48", template sha `12827f24…`, `n_ctx` 32768.
+   - **Counting:** all 210 recorded counting cases give the same `prompt_tokens`, with 0 differences: 174 literal-tag, 6 NFC, 10 normalization and 20 `count_tokens`.
+   - **Generation defaults:** sampling 1.0 / 0.95 / 20, the model card's thinking defaults that both servers apply because OpenCode sends none. Thinking is capped at 6,144 of OpenCode's 8,192 by the same answer-room rule.
+   - **Release:** the slot is idle 0.13 s after a client disconnects mid-stream.
+   - **D39:** `/v1/status` exposes the activity counter the D39 gate reads, and it counts inference requests only.
+4. **What differs, and isn't verified.**
+   - Zeus runs Control layer 0.2.3.1, against bazzite's 0.1.49. `serve/server.py`, `serve/frontend.py` and `tools/strata_tokenizer.py` differ, though the counts above match.
+   - The engine's memory-placement and tuning flags are per-machine: Zeus has `--kv-resident`, `--pcie-frac` and `--adapt-*`; bazzite has `--resident-experts`. `--spec-min-p` is 0.5 on both. Zeus's config had a sampling block, which was removed to match bazzite. Whether the placement flags change outputs is unverified.
+   - Zeus's server log is not readable from the driver host, so a D39 halt there is judged on the activity counter alone.
+5. **What this changes for the gate.** No arm, proxy setting, gate or criterion changes. The 30-minute turn limit is wall-clock time, so on a faster machine more work fits in each turn. On bazzite the limit cut arm 1's turns 10 times and arm 4's once. The coding gate (D44.5) therefore adds up 2 tasks run on bazzite and 3 on Zeus.
+   - It was chosen knowing ho-t1 and ho-t2's results: arm 4 1 of 2, arm 1 2 of 2.
+   - R25 reports each task with the machine it ran on, along with each machine's kill counts.
