@@ -293,10 +293,14 @@ def test_restart_gate_needs_success_and_the_key_constraint():
 def test_task_definitions():
     task_run = _runner()
     restart_tasks = []
-    for tid in task_run.TASKS:
+    # The fresh held-out modules (ho2-t*) are written apart; registered ones not yet
+    # present are skipped (S9).
+    for tid in task_run.available(task_run.TASKS):
         t = task_run.load(tid)
         assert t.ID == tid
-        assert t.SET == ("development" if tid.startswith("dev-") else "heldout")
+        assert t.SET == ("development" if tid.startswith("dev-") else
+                         "heldout" if tid.startswith("ho-") else t.SET)
+        assert t.SET in ("development", "heldout", "heldout2")
         assert 0 < t.RESTART_BEFORE < len(t.TURNS)
         assert set(t.CONSTRAINTS) == {"C1", "C2", "C3"} and t.TRAP
         hidden = "\n".join(t.HIDDEN.values())
@@ -308,8 +312,10 @@ def test_task_definitions():
         if t.KEY_CONSTRAINT:
             restart_tasks.append(tid)
     assert [t for t in restart_tasks if t.startswith("ho-")] == ["ho-t3"]
-    assert sum(t.startswith("dev-") for t in task_run.TASKS) == 3
+    assert [t for t in restart_tasks if t.startswith("dev-")] == ["dev-t4"]
+    assert sum(t.startswith("dev-") for t in task_run.TASKS) == 5
     assert sum(t.startswith("ho-") for t in task_run.TASKS) == 5
+    assert sum(t.startswith("ho2-") for t in task_run.TASKS) == 5
 
 
 def test_restart_task_states_its_key_constraint_only_before_the_restart():
@@ -322,8 +328,8 @@ def test_restart_task_states_its_key_constraint_only_before_the_restart():
     assert "main(argv)" in t.TURNS[t.RESTART_BEFORE]
 
 
-@pytest.mark.parametrize("tid", ["dev-t1", "dev-t2", "dev-t3", "ho-t1", "ho-t2", "ho-t3", "ho-t4",
-                                 "ho-t5"])
+@pytest.mark.parametrize("tid", ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5", "ho-t1", "ho-t2",
+                                 "ho-t3", "ho-t4", "ho-t5"])
 def test_hidden_check_passes_the_reference_and_fails_the_stub(tid):
     task_run = _runner()
     t = task_run.load(tid)

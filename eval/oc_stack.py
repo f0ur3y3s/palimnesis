@@ -87,8 +87,9 @@ def failed(calls: list[dict]) -> list[dict]:
 
 
 def client_texts(records: Path, front_calls: list[dict]) -> list[str]:
-    """Client-visible text: every client request body and every proxy response stream."""
-    from gate_inputs import sse_texts, strings_of
+    """Client-visible text: every client request body and every proxy response stream
+    (content, reasoning, tool arguments and tool-call names)."""
+    from gate_inputs import sse_texts, sse_tool_names, strings_of
 
     out = []
     for c in front_calls:
@@ -100,5 +101,6 @@ def client_texts(records: Path, front_calls: list[dict]) -> list[str]:
             except ValueError:
                 out.append(req.read_text(encoding="utf-8", errors="replace"))
         if resp.exists():
-            out += sse_texts(resp.read_bytes())
+            raw = resp.read_bytes()
+            out += sse_texts(raw) + sse_tool_names(raw)
     return out

@@ -20,9 +20,15 @@ invocation is a new attempt with its records in ``RUN/records/attempt-NNN/`` and
 workspaces, OpenCode homes and transcripts root in ``--ws-root`` (default ``RUN-ws``),
 which holds no records. A rerun of a history needs ``--reason``.
 
-**Held-out runs** (``--set heldout``) refuse a dirty git tree, any configuration other
-than ``a4-d43``, ``--questions`` and ``--resume``, and Strata unless ``/props`` reports
-``n_ctx`` ``--expect-n-ctx`` (32768) before and after every history.
+**Held-out runs** (``--set heldout`` or ``heldout2``) refuse a dirty git tree, any
+configuration other than ``a4-d43`` or arm 5's frozen ``a5-d64`` (``needle.HELDOUT_CONFIGS``),
+``--questions`` and ``--resume``, and Strata unless ``/props`` reports ``n_ctx``
+``--expect-n-ctx`` (32768) before and after every history.
+
+**Arm 5** (Phase 3B): OpenCode's ``limit.output`` is 24,576 (O-B3); each step's hidden
+calls, read from the upstream tap's streams, count as lookups beside the transcript-file
+calls; and the gate inputs add the internal-leak scan (no ``palimnesis_`` text in client
+data or exports) and the archive's internal-call metrics.
 
 **Every question gets a row.** A step that never ran (import failure, an unfaithful import,
 an exception, an abort, a Strata check) gets a miss row with ``not_run`` and the reason,
@@ -235,9 +241,10 @@ def preflight(a) -> int:
 
 def refusals(a, histories: list[Path]) -> list[str]:
     out = []
-    if a.set == "heldout":
-        if a.config != "a4-d43":
-            out.append(f"held-out needles run only a4-d43 (D44.1), not {a.config}")
+    if a.set in needle.HELDOUT_SETS:
+        if a.config not in needle.HELDOUT_CONFIGS:
+            out.append(f"held-out needles run only {' or '.join(needle.HELDOUT_CONFIGS)} "
+                       f"(D44.1, plan §2.9), not {a.config}")
         if a.questions:
             out.append("held-out runs ask every question; drop --questions")
         if a.resume:
@@ -253,9 +260,12 @@ def refusals(a, histories: list[Path]) -> list[str]:
 
 
 def run(a) -> int:
-    cfg = needle.CONFIGS[a.config]
     histories = needle.select_histories(a)
     problems = refusals(a, histories)
+    try:
+        cfg = needle.config(a.config)
+    except ValueError as e:
+        problems.append(str(e))
     if problems:
         for p in problems:
             print(f"refused: {p}", file=sys.stderr)
@@ -273,13 +283,14 @@ def run(a) -> int:
     n_att = attempt["attempt"]
     rec_dir, ws_dir = Path(attempt["records"]), Path(attempt["ws"])
     troot = ws_dir / "transcripts" if cfg["transcripts_enabled"] else None
-    settings = {k: cfg[k] for k in ("recall", "transcripts_enabled", "query_policy",
-                                    "excerpt_renderer", "addendum")}
+    settings = needle.proxy_settings(cfg)
     stack = oc_stack.Stack(rec_dir, upstream, settings, transcripts=troot)
     from palimnesis.projector import session_dir
 
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     meta = {"config": a.config, **cfg, "settings": stack.settings, "input_budget": "default (serve)",
+            "frozen_as": needle.A5_FROZEN if a.config == needle.A5_HELDOUT else None,
+            "opencode_limit_output": needle.output_limit(cfg["arm"]),
             "driver": "opencode", "driver_version": DRIVER_VERSION, "opencode": "2.1.4",
             "set": a.set, "live": True, "upstream": a.upstream, "attempt": n_att,
             "provenance": gi.git_provenance(), "expect_n_ctx": a.expect_n_ctx,
@@ -324,7 +335,8 @@ def run(a) -> int:
                 ws = base / "ws"
                 make_workspace(h, ws)
                 home = oc.Home(base / "oc", ws)
-                home.write_config(oc.config(stack.base_url(session)))
+                home.write_config(oc.config(stack.base_url(session),
+                                            output_limit=needle.output_limit(cfg["arm"])))
                 doc, history = import_doc(h, ws)
                 imp = do_import(home, doc, base)
                 meta["imports"][session] = {"sha256": imp["sha256"], "bytes": imp["bytes"]}
@@ -462,6 +474,7 @@ def run_step(a, cfg, h, step, session, ses, home, stack, tools, client, clog, re
                                   "result_chars": t["output_chars"], "error": t["status"] == "error"})
         rec["lookups"] += int(lookup)
         rec["workspace_tool_calls"] += int(not lookup)
+    needle.count_hidden(rec, new_calls)
     rec["total_s"] = round(time.time() - q0, 3)
     final = summ["final"]
     rec["answer"] = (final or "")[:300]
@@ -503,6 +516,14 @@ def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot
     meta["excerpts_stored"] = len(excerpts)
     meta["excerpt_scan"] = {"client": gi.scan(excerpts, texts),
                             "transcripts": gi.scan(excerpts, gi.transcript_texts(troot))}
+    if db.exists():
+        import report
+
+        exports = [json.loads(f.read_text(encoding="utf-8"))
+                   for f in sorted((rec_dir / "exports").glob("*.json"))] if (rec_dir / "exports").exists() else []
+        meta["internal_scan"] = gi.internal_scan(db, rec_dir, stack.front.calls, exports,
+                                                 sessions=meta["sessions"])
+        meta["internal"] = report.internal_metrics(db, sessions=meta["sessions"])
     golds = []
     for hp in histories:
         golds += [s["answer"] for s in json.loads(hp.read_text(encoding="utf-8"))["steps"] if s["kind"] == "question"]
@@ -512,5 +533,8 @@ def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot
     print(f"explain exit {code} pairs {eg['pairs']}/{eg['expected_pairs']} unexplained {eg['unexplained']}; "
           f"verify {sum(v['exit'] == 0 for v in meta['verify'].values())}/{len(meta['verify'])}; "
           f"over budget {len(meta['over_budget']['over'])}; leaks {meta['excerpt_scan']}; "
-          f"slow {len(meta['slow_upstream_calls'])}; reachable records {len(meta['reachable_records'])}",
+          f"slow {len(meta['slow_upstream_calls'])}; reachable records {len(meta['reachable_records'])}; "
+          f"internal hard leaks {(meta.get('internal_scan') or {}).get('hard')}, mentions "
+          f"{(meta.get('internal_scan') or {}).get('mentions')}; "
+          f"hidden calls {(meta.get('internal') or {}).get('hidden_calls')}",
           flush=True)

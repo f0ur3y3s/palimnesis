@@ -3,6 +3,7 @@
     python eval/report.py RUNDIR [--configs a4-base,a3-base] [--fixtures eval/fixtures/phase3-dev]
     python eval/report.py RUN --configs a4-d43 --set heldout [--designate ho-h3=2,...]
     python eval/report.py --coding RUN [--designate ho-t3:a4=2,...]
+    python eval/report.py --coding RUN --set heldout2      # Phase 3B: arm 5 (a5-d64) vs arm 1
 
 A run directory with ``attempts.json`` (``eval/attempts.py``; the OpenCode driver and
 the task runner) is read per history or task from its designated attempt, the latest by
@@ -17,6 +18,12 @@ absent), unnecessary lookups (lookups when it was present), round trips, tokens,
 first visible content, total latency, cache reuse by cause from ``replay.py --explain``,
 ``transcripts verify`` and foreign traffic seen by the slot gate. With ``--fixtures`` it
 writes sanitized per-question summaries (no bodies; run paths replaced by ``<RUN>``).
+
+Phase 3B (arm 5, plan §2.9): lookups are hidden calls plus harness transcript-file calls,
+both per question; ``internal_metrics`` reads an archive for hidden calls by tool, the
+invalid-id rate (recall results with an address error over all recall calls),
+limit-reached results and continuations per response. The arm-5 gate inputs add 0
+internal leaks and an invalid-id rate of at most 5% (O-B6).
 """
 
 from __future__ import annotations
@@ -24,11 +31,16 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sqlite3
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43"]
+ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43",
+         "a5-A", "a5-B", "a5-C", "a5-D", "a5-d64"]
+SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10)}  # D44.3, O-B1: histories x questions
+INVALID_ID_ERRORS = ("unknown_address", "ambiguous_address", "unknown_block")
+INVALID_ID_MAX = 0.05  # O-B6
 NEEDLE_GATE = 0.85  # D44.4
 BOOT_RESAMPLES, BOOT_SEED = 10_000, 44
 
@@ -62,6 +74,8 @@ def load(run: Path, config: str, designate: dict | None = None):
     logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(d.glob("proxy-*.log")))
     meta["_log_view_disabled"] = logs.count("bounded views disabled")
     meta["_log_unbounded"] = logs.count("forwarding unbounded")
+    if "internal" not in meta and (d / "archive.db").exists():
+        meta["internal"] = internal_metrics(d / "archive.db", meta.get("sessions"))
     return rows, meta, explain
 
 
@@ -92,6 +106,8 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
             logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(d.glob("proxy-*.log")))
             m["_log_view_disabled"] = logs.count("bounded views disabled")
             m["_log_unbounded"] = logs.count("forwarding unbounded")
+            if "internal" not in m and (d / "archive.db").exists():
+                m["internal"] = internal_metrics(d / "archive.db", m.get("sessions"))
             metas.append(m)
             ex = d / "explain.json"
             if ex.exists() and ex.read_text(encoding="utf-8").strip():
@@ -106,17 +122,20 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
             "started": min((m.get("started", 0) for m in metas), default=0),
             "finished": max((m.get("finished", 0) for m in metas), default=0),
             "expect_n_ctx": _one_n_ctx(metas),
+            "internal": merge_internal([m.get("internal") for m in metas]),
+            "internal_scan": [m.get("internal_scan") for m in metas if m.get("internal_scan")],
             "attempts": metas, "superseded": superseded,
             "designated": {h: a["attempt"] for h, a in chosen.items()}}
     explain = {"pairs": pairs, "summary": {"pairs": len(pairs)}}
     return rows, meta, explain
 
 
-def expected_needles(set_name: str) -> dict[str, list[dict]]:
-    """{history id: [{id, category, answer}] per question} of a committed needle set."""
-    folder = {"heldout": "heldout", "development": "dev"}[set_name]
+def expected_needles(set_name: str, root: Path | None = None) -> dict[str, list[dict]]:
+    """{history id: [{id, category, answer}] per question} of a committed needle set
+    (``eval/needles/<dir>``; empty while the set is not written)."""
+    folder = {"heldout": "heldout", "heldout2": "heldout2", "development": "dev"}[set_name]
     out = {}
-    for f in sorted((Path(__file__).resolve().parent / "needles" / folder).glob("*.json")):
+    for f in sorted((root or Path(__file__).resolve().parent / "needles").joinpath(folder).glob("*.json")):
         h = json.loads(f.read_text(encoding="utf-8"))
         out[h["id"]] = [{"id": s["id"], "category": s["category"], "answer": s["answer"]}
                         for s in h["steps"] if s["kind"] == "question"]
@@ -193,10 +212,16 @@ def needle_gate(rows: list[dict], expected: dict[str, list[dict]]) -> dict:
 
 HELDOUT_TASKS = ["ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5"]
 RESTART_TASK = "ho-t3"
+HELDOUT2_TASKS = ["ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5"]  # O-B1
+RESTART_TASK2 = "ho2-t3"  # D62.3
+A5_LABEL = "a5-d64"  # needle.A5_HELDOUT: arm 5's held-out configuration (D64)
 
 
-def load_task_results(run: Path, designate: dict | None = None) -> tuple[dict, list[dict]]:
-    """{(task, arm): result.json of the designated attempt}, superseded attempts."""
+def load_task_results(run: Path, designate: dict | None = None,
+                      arm5: str | None = None) -> tuple[dict, list[dict]]:
+    """{(task, arm): result.json of the designated attempt}, superseded attempts. Arms 4 and
+    1 are read under their Phase 3 labels ``a4`` and ``a1``; arm 5 under ``arm5``, its
+    configuration name (``a5-d64`` for held-out runs)."""
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -204,12 +229,13 @@ def load_task_results(run: Path, designate: dict | None = None) -> tuple[dict, l
 
     manifest = att.load(run)
     out, sup = {}, []
-    for arm in (4, 1):
-        override = {k.split(":")[0]: v for k, v in (designate or {}).items() if k.endswith(f":a{arm}")}
-        chosen, superseded = att.designate(manifest, "task", f"a{arm}", override)
+    labels = [(4, "a4"), (1, "a1")] + ([(5, arm5)] if arm5 else [])
+    for arm, label in labels:
+        override = {k.split(":")[0]: v for k, v in (designate or {}).items() if k.endswith(f":{label}")}
+        chosen, superseded = att.designate(manifest, "task", label, override)
         sup += [{**x, "arm": arm} for x in superseded]
         for tid, a in chosen.items():
-            f = Path(a["records"]) / f"{tid}-a{arm}" / "result.json"
+            f = Path(a["records"]) / f"{tid}-{label}" / "result.json"
             out[(tid, arm)] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
     return out, sup
 
@@ -218,30 +244,46 @@ def task_success(r: dict | None) -> bool:
     return bool(r and not r.get("aborted") and (r.get("check") or {}).get("success"))
 
 
-def arm4_inputs_ok(r: dict) -> bool:
-    """D44.6 inputs of one arm-4 task run."""
+def arm_inputs_ok(r: dict, arm: int = 4) -> bool:
+    """D44.6 inputs of one arm-4 or arm-5 task run; arm 5 adds 0 hard internal leaks
+    (mentions are reported, never gating) and an invalid-id rate of at most 5% (D62.4)."""
     scan = r.get("excerpt_scan") or {}
-    return bool((r.get("explain_gate") or {}).get("ok") and (r.get("verify") or {}).get("exit") == 0
-                and (r.get("over_budget") or {}).get("ok")
-                and all((v or {}).get("leaks", 1) == 0 for v in (scan.get("client"), scan.get("transcripts"))))
+    ok = bool((r.get("explain_gate") or {}).get("ok") and (r.get("verify") or {}).get("exit") == 0
+              and (r.get("over_budget") or {}).get("ok")
+              and all((v or {}).get("leaks", 1) == 0 for v in (scan.get("client"), scan.get("transcripts"))))
+    if arm == 5:
+        leaks = ((r.get("internal_scan") or {}).get("hard") or {}).get("leaks", 1)
+        rate = (r.get("internal") or {}).get("invalid_id_rate", 1.0)
+        ok = ok and leaks == 0 and rate <= INVALID_ID_MAX
+    return ok
 
 
-def coding_gate(results: dict, tasks: list[str] = HELDOUT_TASKS) -> dict:
-    """D44.5: arm 4's successes are at least arm 1's over the held-out tasks, and the
-    restart task passes under arm 4 with its key constraint (D45.8). A missing or aborted
-    run is a failure until it is rerun."""
-    a4 = sum(task_success(results.get((t, 4))) for t in tasks)
+def arm4_inputs_ok(r: dict) -> bool:
+    return arm_inputs_ok(r, 4)
+
+
+def coding_gate(results: dict, tasks: list[str] = HELDOUT_TASKS, arm: int = 4,
+                restart_task: str | None = RESTART_TASK) -> dict:
+    """D44.5 (D62.4 for arm 5): ``arm``'s successes are at least arm 1's over the
+    held-out tasks, and the restart task passes under ``arm`` with its key constraint
+    (D45.8). A missing or aborted run is a failure until it is rerun; no restart task
+    fails the gate."""
+    mine = sum(task_success(results.get((t, arm))) for t in tasks)
     a1 = sum(task_success(results.get((t, 1))) for t in tasks)
-    rt = results.get((RESTART_TASK, 4)) or {}
-    restart = bool(task_success(rt) and rt.get("restart_gate"))
-    inputs = all(arm4_inputs_ok(results.get((t, 4)) or {}) for t in tasks)
-    missing = [f"{t}:a{arm}" for t in tasks for arm in (4, 1) if (t, arm) not in results]
-    return {"arm4_successes": a4, "arm1_successes": a1, "restart_gate": restart,
-            "arm4_inputs_ok": inputs, "missing": missing, "pass": a4 >= a1 and restart}
+    rt = results.get((restart_task, arm)) or {}
+    restart = bool(restart_task and task_success(rt) and rt.get("restart_gate"))
+    inputs = all(arm_inputs_ok(results.get((t, arm)) or {}, arm) for t in tasks)
+    missing = [f"{t}:a{x}" for t in tasks for x in (arm, 1) if (t, x) not in results]
+    return {"arm": arm, "arm_successes": mine, f"arm{arm}_successes": mine, "arm1_successes": a1,
+            "restart_task": restart_task, "restart_gate": restart, "arm_inputs_ok": inputs,
+            f"arm{arm}_inputs_ok": inputs, "missing": missing, "pass": mine >= a1 and restart}
 
 
-def print_coding(run: Path, designate: dict | None) -> None:
-    results, sup = load_task_results(run, designate)
+def print_coding(run: Path, designate: dict | None, set_name: str | None = None) -> None:
+    fresh = set_name == "heldout2"
+    tasks, arm = (HELDOUT2_TASKS, 5) if fresh else (HELDOUT_TASKS, 4)
+    restart_task = RESTART_TASK2 if fresh else RESTART_TASK
+    results, sup = load_task_results(run, designate, arm5=A5_LABEL if fresh else None)
     print("| Task | Arm | Attempt | Success | Constraints (stub) | Restart gate | Turns | Tokens in/out | "
           "Lookups | Latency s | Compaction calls | Proxy rejections | --explain | verify | Over budget | "
           "Leaks:echoes client/transcripts | Aborted |")
@@ -259,11 +301,20 @@ def print_coding(run: Path, designate: dict | None) -> None:
               f"{len(r.get('compaction_calls') or [])} | {r.get('proxy_rejections')} | "
               f"{(r.get('explain_gate') or {}).get('ok', 'n/a')} | {(r.get('verify') or {}).get('exit', 'n/a')} | "
               f"{over} | {leaks} | {r.get('aborted')} |")
-    g = coding_gate(results)
+    g = coding_gate(results, tasks, arm=arm, restart_task=restart_task)
     verdict = "PASS" if g["pass"] else "FAIL"
-    print(f"\nCoding gate (D44.5): arm 4 {g['arm4_successes']}/5 vs arm 1 {g['arm1_successes']}/5; "
-          f"restart task {RESTART_TASK} under arm 4 (success and its key constraint): {g['restart_gate']}; "
-          f"arm-4 gate inputs ok: {g['arm4_inputs_ok']}; missing runs: {g['missing'] or 'none'} -> {verdict}")
+    print(f"\nCoding gate (D44.5{', O-B6' if fresh else ''}): arm {arm} {g['arm_successes']}/{len(tasks)} vs "
+          f"arm 1 {g['arm1_successes']}/{len(tasks)}; restart task {restart_task} under arm {arm} (success and "
+          f"its key constraint): {g['restart_gate']}; arm-{arm} gate inputs ok: {g['arm_inputs_ok']}; "
+          f"missing runs: {g['missing'] or 'none'} -> {verdict}")
+    for (tid, a), r in sorted(results.items()):
+        if a == 5:
+            m = r.get("internal") or {}
+            print(f"  {tid} arm 5: hidden calls {m.get('calls_by_tool')}, invalid ids {m.get('invalid_ids')}/"
+                  f"{m.get('recall_calls')}, limit reached {m.get('limit_reached')}, continuations "
+                  f"{m.get('continuations_per_response')}; internal hard leaks "
+                  f"{(r.get('internal_scan') or {}).get('hard')}, mentions "
+                  f"{(r.get('internal_scan') or {}).get('mentions')}")
     for x in sup:
         print(f"superseded: {x['id']} arm {x['arm']} attempt {x['attempt']} ({x['status']}) by attempt "
               f"{x['superseded_by']}: {x['reason']}")
@@ -288,6 +339,108 @@ def mark_clean(rows, budget: int) -> None:
             bad.add(r["session"])
         over = any((c.get("prompt_tokens") or 0) > budget for c in r["calls"])
         r["clean"] = r["session"] not in bad and not over and not r["errors"]
+
+
+# ---------------------------------------------------------------- Phase 3B internal calls
+
+def _ro(db: Path) -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{Path(db).as_posix()}?mode=ro", uri=True)
+
+
+def internal_metrics(db: Path, sessions: list[str] | None = None) -> dict:
+    """Hidden-call metrics of an archive (plan §2.9), optionally for some sessions only.
+
+    - hidden calls by tool: tool_call blocks whose meta has ``internal``;
+    - results by tool and error code: ``internal_tool`` occurrences, whose envelope
+      carries ``tool`` and ``error``;
+    - invalid-id rate: recall results with an address error (``INVALID_ID_ERRORS``) over
+      all recall results (every hidden call gets a result, D55);
+    - limit-reached results;
+    - continuations per response: the ``upstream_call`` events whose ``call_id`` has
+      ``#k`` (the first call is the attempt id itself), counted for each request's
+      designated attempt only: its latest attempt that was neither cancelled nor
+      superseded (a generated occurrence named by ``partial_superseded``). A request with
+      no such attempt is not a response."""
+    conn = _ro(db)
+    try:
+        where, args = "", ()
+        if sessions is not None:
+            where = f" AND br.session_id IN ({','.join('?' * len(sessions))})"
+            args = tuple(sessions)
+        calls = Counter(n for (n,) in conn.execute(
+            "SELECT json_extract(b.meta, '$.name') FROM blocks b JOIN occurrences o ON o.occ_id = b.occ_id"
+            " JOIN branches br ON br.branch_id = o.branch_id WHERE b.kind = 'tool_call'"
+            " AND json_extract(b.meta, '$.internal')" + where, args))
+        results = [json.loads(e) for (e,) in conn.execute(
+            "SELECT o.envelope FROM occurrences o JOIN branches br ON br.branch_id = o.branch_id"
+            " WHERE o.source = 'internal_tool'" + where, args)]
+        ev_where = "" if sessions is None else \
+            f" AND r.session_id IN ({','.join('?' * len(sessions))})"
+        events = conn.execute(
+            "SELECT e.attempt_id, json_extract(e.payload, '$.call_id') FROM events e"
+            " JOIN requests r ON r.request_id = e.request_id WHERE e.kind = 'upstream_call'" + ev_where,
+            args).fetchall()
+        attempts = conn.execute(
+            "SELECT a.attempt_id, a.request_id, a.n FROM attempts a"
+            " JOIN requests r ON r.request_id = a.request_id WHERE 1 = 1" + ev_where, args).fetchall()
+        cancelled = {a for (a,) in conn.execute(
+            "SELECT DISTINCT attempt_id FROM events WHERE kind = 'cancelled' AND attempt_id IS NOT NULL")}
+        superseded = {a for (a,) in conn.execute(
+            "SELECT DISTINCT g.attempt_id FROM events e JOIN occurrences o"
+            " ON o.occ_id = json_extract(e.payload, '$.occ_id')"
+            " JOIN generations g ON g.generation_id = o.generation_id"
+            " WHERE e.kind = 'partial_superseded'")}
+    finally:
+        conn.close()
+    designated: dict[str, tuple[int, str]] = {}
+    for attempt, request, n in attempts:
+        if attempt in cancelled or attempt in superseded:
+            continue
+        if request not in designated or n > designated[request][0]:
+            designated[request] = (n, attempt)
+    counted = {a for _, a in designated.values()}
+    per_attempt: dict[str, int] = {}
+    for attempt, call_id in events:
+        if attempt in counted:
+            per_attempt[attempt] = per_attempt.get(attempt, 0) + ("#" in (call_id or ""))
+    raw = {"calls_by_tool": dict(calls),
+           "results_by_tool": dict(Counter(r.get("tool") for r in results)),
+           "errors": dict(Counter(r["error"] for r in results if r.get("error"))),
+           "recall_calls": sum(1 for r in results if r.get("tool") == "palimnesis_recall"),
+           "invalid_ids": sum(1 for r in results if r.get("tool") == "palimnesis_recall"
+                              and r.get("error") in INVALID_ID_ERRORS),
+           "continuations_per_response": dict(Counter(per_attempt.values()))}
+    return _internal_totals(raw)
+
+
+def _internal_totals(raw: dict) -> dict:
+    hist = {int(k): v for k, v in raw["continuations_per_response"].items()}
+    responses = sum(hist.values())
+    continuations = sum(k * v for k, v in hist.items())
+    return {**raw, "continuations_per_response": hist,
+            "hidden_calls": sum(raw["calls_by_tool"].values()),
+            "invalid_id_rate": raw["invalid_ids"] / raw["recall_calls"] if raw["recall_calls"] else 0.0,
+            "limit_reached": raw["errors"].get("limit_reached", 0),
+            "responses": responses, "continuations": continuations,
+            "max_continuations": max(hist, default=0),
+            "mean_continuations": continuations / responses if responses else 0.0}
+
+
+def merge_internal(parts: list[dict]) -> dict | None:
+    """Sum of several ``internal_metrics`` results (designated attempts of one run)."""
+    parts = [p for p in parts if p]
+    if not parts:
+        return None
+    raw = {"calls_by_tool": Counter(), "results_by_tool": Counter(), "errors": Counter(),
+           "recall_calls": 0, "invalid_ids": 0, "continuations_per_response": Counter()}
+    for p in parts:
+        for k in ("calls_by_tool", "results_by_tool", "errors"):
+            raw[k].update(p.get(k) or {})
+        raw["recall_calls"] += p.get("recall_calls") or 0
+        raw["invalid_ids"] += p.get("invalid_ids") or 0
+        raw["continuations_per_response"].update(
+            {int(k): v for k, v in (p.get("continuations_per_response") or {}).items()})
+    return _internal_totals({k: dict(v) if isinstance(v, Counter) else v for k, v in raw.items()})
 
 
 def summarize(rows, meta, explain) -> dict:
@@ -349,6 +502,12 @@ def summarize(rows, meta, explain) -> dict:
         "questions_with_unnecessary": sum(1 for r in present if r.get("unnecessary_lookups")),
         "n_present": len(present),
         "lookups": sum(r["lookups"] for r in q),
+        # Phase 3B: lookups = hidden calls + harness transcript-file calls (plan §2.9).
+        "hidden_calls": sum(sum((r.get("hidden_calls") or {}).values()) for r in q),
+        "hidden_by_tool": dict(sum((Counter(r.get("hidden_calls") or {}) for r in q), Counter())),
+        "harness_lookups": sum(r["lookups"] - sum((r.get("hidden_calls") or {}).values()) for r in q),
+        "internal": meta.get("internal"),
+        "internal_scan": meta.get("internal_scan"),
         "questions_with_lookup": sum(1 for r in q if r["lookups"]),
         "tool_calls": sum(len(r["tool_calls"]) for r in q),
         "rounds": sum(r["rounds"] for r in q),
@@ -452,14 +611,14 @@ def main() -> None:
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
     p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
-    p.add_argument("--set", choices=["development", "heldout"],
+    p.add_argument("--set", choices=["development", "heldout", "heldout2"],
                    help="print the needle gate over the whole committed set (missing = miss)")
     p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
     p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")
     a = p.parse_args()
     designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
     if a.coding:
-        print_coding(a.run, designate)
+        print_coding(a.run, designate, a.set)
         return
     if a.pair:
         ca, cb = a.pair.split(",")
@@ -502,9 +661,10 @@ def main() -> None:
         rows, meta, explain = load(a.run, c, designate)
         if a.set:
             expected = expected_needles(a.set)
-            if a.set == "heldout":  # D44.3: 12 histories x 10 questions
+            if a.set in SET_SHAPE:  # D44.3, O-B1: 12 histories x 10 questions
                 shape = {k: len(v) for k, v in expected.items()}
-                assert len(expected) == 12 and set(shape.values()) == {10}, shape
+                hs, qs = SET_SHAPE[a.set]
+                assert len(expected) == hs and set(shape.values()) == {qs}, shape
             gate = needle_gate(rows, expected)
             rows, _ = fill_missing(rows, expected)
             lo, hi = gate["wilson"]
@@ -576,6 +736,14 @@ def main() -> None:
               f"{s['exact_loose_valid']} ({lo3:.0%}–{hi3:.0%}); view-disabled events "
               f"{s['view_disabled_events']}, unbounded forwards {s['unbounded_forward_events']}; "
               f"stopped histories {s['stopped_histories']}")
+        m = s.get("internal")
+        if s["hidden_calls"] or m:
+            print(f"   hidden calls (questions) {s['hidden_calls']} {s['hidden_by_tool']}; harness lookups "
+                  f"{s['harness_lookups']}; archive: calls {m and m['calls_by_tool']}, invalid ids "
+                  f"{m and m['invalid_ids']}/{m and m['recall_calls']}, limit reached {m and m['limit_reached']}, "
+                  f"continuations per response {m and m['continuations_per_response']}")
+        for scan in (s.get("internal_scan") or []):
+            print(f"   internal scan: hard leaks {scan.get('hard')}; mentions (reported) {scan.get('mentions')}")
         print(f"   verify {s['verify']}; upstream calls {s['upstream_calls']}, errors {s['errors']}, "
               f"history errors {s['history_errors']}, proxy starts {s['proxy_starts']}; foreign between "
               f"{s['foreign_between']}, during {s['foreign_during']}, overlap samples "

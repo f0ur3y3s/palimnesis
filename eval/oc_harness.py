@@ -89,10 +89,13 @@ def env(root: Path, workspace: Path) -> dict:
     return e
 
 
-def config(base_url: str, *, context_limit: int = 1_000_000, compaction: bool = False) -> dict:
+def config(base_url: str, *, context_limit: int = 1_000_000, compaction: bool = False,
+           output_limit: int = 8192) -> dict:
     """The isolated OpenCode config. Arm 4: ``compaction`` off and a large
     ``limit.context`` (harnesses.md, "Required settings"). Arm 1: native compaction on,
-    with ``limit.context`` at the true capacity."""
+    with ``limit.context`` at the true capacity. ``limit.output`` is 8,192 except for arm
+    5, which raises it to 24,576 (Phase 3B O-B3, D56); OpenCode sends it as
+    ``max_completion_tokens``."""
     return {
         "model": f"{PROVIDER}/{MODEL_ID}",
         "update": "disable",
@@ -108,7 +111,7 @@ def config(base_url: str, *, context_limit: int = 1_000_000, compaction: bool = 
             "models": {MODEL_ID: {
                 "name": "Qwen3.8 Flash Next (Strata via Palimnesis)",
                 "capabilities": {"tools": True, "reasoning": {"supported": True}},
-                "limit": {"context": context_limit, "output": 8192},
+                "limit": {"context": context_limit, "output": output_limit},
             }},
         }},
     }

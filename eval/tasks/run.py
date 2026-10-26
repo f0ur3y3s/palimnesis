@@ -2,6 +2,7 @@
 
     uv run python eval/tasks/run.py --task ho-t1 --arm 4 --out RUN [--reason TEXT] [--ws-root DIR]
         [--expect-n-ctx 32768] [--upstream URL] [--tag T]
+    uv run python eval/tasks/run.py --task dev-t4 --arm 5 --config a5-A --out RUN ...
     uv run python eval/tasks/run.py --check-reference [--task ID]   # no model: the checks themselves
 
 Arms (D44.1):
@@ -10,6 +11,17 @@ Arms (D44.1):
   1  native OpenCode compaction: ``serve --passthrough``, ``compaction.auto`` on and
      ``limit.context`` at ``--expect-n-ctx``, the true capacity (32768 for the gated runs,
      65536 for the 64K report, D44.9).
+  5  Phase 3B (plan §2.9): arm 4's ``serve`` settings plus ``--stub``, ``--addendum`` and
+     ``--hidden-tools`` of one A/B matrix arm, ``--config a5-A`` … ``a5-D``
+     (``needle.CONFIGS``); held-out tasks run only ``a5-d64``, the arm D64 freezes. OpenCode
+     as arm 4, with ``limit.output`` 24,576 (O-B3). Hidden calls (from the upstream tap's
+     streams) count as lookups beside transcript-file calls; the gate inputs add the
+     internal-leak scan and the archive's internal-call metrics.
+
+Tasks: dev-t1..t5 (development; dev-t4 is the development restart task, dev-t5 a long
+agentic turn with mid-task information needs), ho-t1..t5 (the Phase 3 held-out set) and
+ho2-t1..t5 (the fresh Phase 3B held-out set, O-B1). A registered task whose module is not
+present yet is skipped by ``--check-reference``.
 
 **Attempts** (D44.7, ``eval/attempts.py``): each invocation is a new attempt of one task
 under one arm. Records go to ``RUN/records/attempt-NNN/``; the workspace, OpenCode home
@@ -43,6 +55,7 @@ from __future__ import annotations
 import argparse
 import ast
 import importlib
+import importlib.util
 import json
 import random
 import shutil
@@ -62,12 +75,14 @@ import gate_inputs as gi  # noqa: E402
 import needle  # noqa: E402
 import oc_harness as oc  # noqa: E402
 import oc_stack  # noqa: E402
+import report  # noqa: E402
 
-TASKS = ["dev-t1", "dev-t2", "dev-t3", "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5"]
+TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
+         "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5",
+         "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5"]
 RUNNER_VERSION = "tasks-run v2"
 TURN_TIMEOUT_S = 1800
 CHECK_TIMEOUT_S = 300
-A4 = needle.CONFIGS["a4-d43"]
 
 # Executes the hidden check and writes {test id: outcome}; stderr and stdout are free.
 CHECK_RUNNER = r'''import json, os, sys, unittest
@@ -117,6 +132,18 @@ with open(out, "w", encoding="utf-8") as f:
 
 def load(task_id: str):
     return importlib.import_module(task_id.replace("-", "_"))
+
+
+def load_optional(task_id: str):
+    """The task's module, or None while it is not present (the ho2 set is written apart)."""
+    name = task_id.replace("-", "_")
+    if importlib.util.find_spec(name) is None:
+        return None
+    return importlib.import_module(name)
+
+
+def available(task_ids: list[str]) -> list[str]:
+    return [t for t in task_ids if load_optional(t) is not None]
 
 
 def task_seed(task_id: str) -> int:
@@ -227,9 +254,46 @@ def check_one(task, overlay: dict[str, str], python: str | None = None) -> dict:
 
 
 def opencode_context_limit(arm: int, n_ctx: int) -> int:
-    """Arm 4 keeps the shipped 1,000,000 (Palimnesis owns the budget); arm 1 compacts at the
-    server's real capacity."""
-    return 1_000_000 if arm == 4 else n_ctx
+    """Arms 4 and 5 keep the shipped 1,000,000 (Palimnesis owns the budget); arm 1 compacts
+    at the server's real capacity."""
+    return n_ctx if arm == 1 else 1_000_000
+
+
+def opencode_output_limit(arm: int) -> int:
+    """OpenCode's ``limit.output``: 24,576 for arm 5 (O-B3), 8,192 otherwise."""
+    return needle.output_limit(arm)
+
+
+def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
+    """{arm, label, config, cfg} for ``--arm`` and ``--config``. ``label`` names the attempt
+    config and the records directory: ``a4`` and ``a1`` as in Phase 3, the configuration
+    name for arm 5. Held-out tasks run arm 5 only as ``a5-d64`` (resolved once frozen)."""
+    if arm in (1, 4):
+        if config is not None:
+            raise ValueError(f"--config applies to arm 5 only; arm {arm} is fixed")
+        if arm == 4:
+            return {"arm": 4, "label": "a4", "config": "a4-d43", "cfg": needle.CONFIGS["a4-d43"]}
+        return {"arm": 1, "label": "a1", "config": "a1-native", "cfg": None}
+    if arm != 5:
+        raise ValueError(f"no arm {arm}")
+    if config is None:
+        raise ValueError("arm 5 needs --config (a5-A ... a5-D, or a5-d64 once frozen)")
+    if task_set.startswith("heldout") and config != needle.A5_HELDOUT:
+        raise ValueError(f"held-out tasks run arm 5 only as {needle.A5_HELDOUT}, not {config}")
+    cfg = needle.config(config)
+    if cfg.get("arm") != 5:
+        raise ValueError(f"{config} is not an arm-5 configuration")
+    return {"arm": 5, "label": config, "config": config, "cfg": cfg}
+
+
+def arm_fields(arm: dict, n_ctx: int) -> dict:
+    """The arm's configuration as ``result.json`` records it."""
+    return {"arm": arm["arm"], "config": arm["config"],
+            "frozen_as": needle.A5_FROZEN if arm["config"] == needle.A5_HELDOUT else None,
+            "config_settings": arm["cfg"], "passthrough": arm["arm"] == 1,
+            "opencode_limit_context": opencode_context_limit(arm["arm"], n_ctx),
+            "opencode_limit_output": opencode_output_limit(arm["arm"]),
+            "compaction_auto": arm["arm"] == 1}
 
 
 def restart_gate(task, check: dict) -> bool | None:
@@ -243,7 +307,10 @@ def check_reference(task_ids: list[str]) -> int:
     """No model: the hidden check passes on ``REFERENCE`` and fails on the stub."""
     bad = 0
     for tid in task_ids:
-        task = load(tid)
+        task = load_optional(tid)
+        if task is None:
+            print(f"{tid}: not present, skipped")
+            continue
         for label, overlay in (("stub", {}), ("reference", task.REFERENCE)):
             r = check_one(task, overlay)
             ok = r["success"] and r["constraints_held"] == r["constraints_total"]
@@ -307,9 +374,14 @@ class Abort(RuntimeError):
 
 def run(a) -> int:
     task = load(a.task)
-    arm = a.arm
-    name = f"{task.ID}-a{arm}"
-    if task.SET == "heldout":
+    try:
+        info = resolve_arm(a.arm, a.config, task.SET)
+    except ValueError as e:
+        print(f"refused: {e}", file=sys.stderr)
+        return 2
+    arm, label = info["arm"], info["label"]
+    name = f"{task.ID}-{label}"
+    if task.SET.startswith("heldout"):
         prov = gi.git_provenance()
         if prov["dirty"]:
             print("refused: held-out tasks need a clean git tree: " + "; ".join(prov["status"][:5]),
@@ -321,7 +393,7 @@ def run(a) -> int:
     if why:
         print(f"refused: {why}", file=sys.stderr)
         return 2
-    attempt = att.new_attempt(Path(a.out), kind="task", config=f"a{arm}", ids=[task.ID], reason=a.reason,
+    attempt = att.new_attempt(Path(a.out), kind="task", config=label, ids=[task.ID], reason=a.reason,
                               ws_root=Path(a.ws_root) if a.ws_root else None, extra={"tag": a.tag})
     n_att = attempt["attempt"]
     out, wsroot = Path(attempt["records"]) / name, Path(attempt["ws"])
@@ -333,14 +405,14 @@ def run(a) -> int:
     subprocess.run(["git", "add", "-A"], cwd=ws, check=True)
     subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q",
                     "-m", "task start"], cwd=ws, check=True)
-    troot = wsroot / "transcripts" if arm == 4 else None
-    settings = ({k: A4[k] for k in ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer",
-                                    "addendum")} if arm == 4 else {})
+    troot = wsroot / "transcripts" if arm != 1 else None
+    settings = needle.proxy_settings(info["cfg"]) if arm != 1 else {}
     stack = oc_stack.Stack(out, upstream, settings, passthrough=arm == 1, transcripts=troot)
-    session = f"{task.ID}-a{arm}-{a.tag}-a{n_att}"
+    session = f"{task.ID}-{label}-{a.tag}-a{n_att}"
     home = oc.Home(wsroot / "oc", ws)
     home.write_config(oc.config(stack.base_url(session),
-                                context_limit=opencode_context_limit(arm, a.expect_n_ctx), compaction=arm == 1))
+                                context_limit=opencode_context_limit(arm, a.expect_n_ctx), compaction=arm == 1,
+                                output_limit=opencode_output_limit(arm)))
     sdir = None
     if troot is not None:
         from palimnesis.projector import session_dir
@@ -352,10 +424,9 @@ def run(a) -> int:
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     import needle_opencode as nod
 
-    res = {"task": task.ID, "set": task.SET, "arm": arm, "config": "a4-d43" if arm == 4 else "a1-native",
+    res = {"task": task.ID, "set": task.SET, **arm_fields(info, a.expect_n_ctx),
            "attempt": n_att, "session": session, "runner": RUNNER_VERSION, "opencode": "2.1.4",
-           "provenance": gi.git_provenance(), "settings": stack.settings, "passthrough": arm == 1,
-           "opencode_limit_context": opencode_context_limit(arm, a.expect_n_ctx), "compaction_auto": arm == 1,
+           "provenance": gi.git_provenance(), "settings": stack.settings,
            "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
            "upstream": a.upstream, "expect_n_ctx": a.expect_n_ctx, "strata": [{"when": "before", **props}],
            "started": time.time(), "turns": [], "aborted": None}
@@ -381,8 +452,9 @@ def run(a) -> int:
                 ses = sorted(ids)[0]
             if ids - {ses}:
                 raise Abort(f"second_session: turn {i + 1} reported {sorted(ids - {ses})}")
+            hidden = needle.hidden_by_tool(calls)
             lookups = sum(int(tools.is_lookup(t["name"] or "", t["input"] if isinstance(t["input"], dict) else {}))
-                          for t in summ["tools"])
+                          for t in summ["tools"]) + sum(hidden.values())
             firsts = [c for c in calls if c.get("t_first_content")]
             rec = {"turn": i + 1, "restart_before": i == task.RESTART_BEFORE, "exit": turn["exit"],
                    "timeout_killed": bool(turn.get("timeout_killed")), "elapsed_s": turn["elapsed_s"],
@@ -398,7 +470,7 @@ def run(a) -> int:
                    "ttfvc_s": round(firsts[0]["t_first_content"] - t0, 3) if firsts else None,
                    "tools": [{"name": t["name"], "status": t["status"], "output_chars": t["output_chars"]}
                              for t in summ["tools"]],
-                   "lookups": lookups, "errors": summ["errors"],
+                   "lookups": lookups, "hidden_calls": hidden, "errors": summ["errors"],
                    "answer": (summ["final"] or "")[:400], "stderr": turn["stderr"][-400:] if turn["exit"] else ""}
             res["turns"].append(rec)
             print(f"[{name} a{n_att}] turn {i + 1}: exit={turn['exit']} calls={len(calls)} "
@@ -428,6 +500,7 @@ def run(a) -> int:
     res["max_prompt_tokens"] = max((c.get("prompt_tokens") or 0 for c in calls), default=0)
     res["slow_upstream_calls"] = [c["n"] for c in calls if (c.get("upstream_s") or 0) > oc_stack.SLOW_UPSTREAM_S]
     res["lookups"] = sum(t["lookups"] for t in res["turns"])
+    res["hidden_calls"] = needle.hidden_by_tool(calls)
     res["latency_s"] = round(sum(t["elapsed_s"] for t in res["turns"]), 1)
     res["foreign_between"] = sum(c.get("foreign_between") or 0 for c in calls)
     res["foreign_during"] = sum(max(0, c.get("foreign_during") or 0) for c in calls)
@@ -436,12 +509,13 @@ def run(a) -> int:
     logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(out.glob("proxy-*.log")))
     res["log_view_disabled"] = logs.count("bounded views disabled")
     res["log_unbounded"] = logs.count("forwarding unbounded")
-    export_texts = []
+    export_texts, exports = [], []
     if ses:
         try:
             exp = home.export(ses)
             (out / "export.json").write_text(json.dumps(exp, ensure_ascii=False), encoding="utf-8")
             export_texts = gi.strings_of(exp)
+            exports = [exp]
             kinds: dict[str, int] = {}
             for m in exp.get("messages", []):
                 kinds[m.get("type")] = kinds.get(m.get("type"), 0) + 1
@@ -449,14 +523,17 @@ def run(a) -> int:
         except Exception as e:  # recorded, not fatal
             res["opencode_export_error"] = f"{type(e).__name__}: {e}"
     res["reachable_records"] = gi.reachable_records(wsroot, hidden=hidden_markers(task))
-    if arm == 4:
+    if arm != 1:
         res["over_budget"] = gi.local_over_budget(out / "bodies", calls, gi.input_budget_for(a.expect_n_ctx))
         db = stack.proxy.db
         excerpts = gi.excerpt_texts(db) if db.exists() else []
         res["excerpts_stored"] = len(excerpts)
-        res["excerpt_scan"] = {
-            "client": gi.scan(excerpts, oc_stack.client_texts(out, stack.front.calls) + export_texts),
-            "transcripts": gi.scan(excerpts, gi.transcript_texts(troot))}
+        client = oc_stack.client_texts(out, stack.front.calls) + export_texts
+        res["excerpt_scan"] = {"client": gi.scan(excerpts, client),
+                               "transcripts": gi.scan(excerpts, gi.transcript_texts(troot))}
+        if db.exists():
+            res["internal_scan"] = gi.internal_scan(db, out, stack.front.calls, exports, sessions=[session])
+            res["internal"] = report.internal_metrics(db, sessions=[session])
         code, report, err = gi.run_explain(db)
         (out / "explain.json").write_text(json.dumps(report) if report else "", encoding="utf-8")
         res["explain_gate"] = gi.explain_gate(code, report, {session: len(calls)} if calls else {})
@@ -494,14 +571,18 @@ def run(a) -> int:
           f"over_budget={len((res.get('over_budget') or {}).get('over', []))} "
           f"leaks={res.get('excerpt_scan')} slow={len(res['slow_upstream_calls'])} "
           f"reachable={len(res['reachable_records'])} views_disabled={res['log_view_disabled']} "
-          f"unbounded={res['log_unbounded']}", flush=True)
+          f"unbounded={res['log_unbounded']} internal_leaks={(res.get('internal_scan') or {}).get('hard')} "
+          f"mentions={(res.get('internal_scan') or {}).get('mentions')} "
+          f"hidden_calls={res['hidden_calls']}", flush=True)
     return status
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--task", choices=TASKS)
-    p.add_argument("--arm", type=int, choices=[1, 4])
+    p.add_argument("--arm", type=int, choices=[1, 4, 5])
+    p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith("a5-")],
+                   help="arm 5 only: the matrix arm (a5-A ... a5-D), or a5-d64 once frozen (D64)")
     p.add_argument("--out", help="run directory (attempts.json, records/)")
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")
     p.add_argument("--reason", help="why this attempt reruns the task (D44.7)")

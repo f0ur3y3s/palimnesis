@@ -24,7 +24,7 @@ came from an excerpt block.
 
 Subcommands:
   run        --config NAME --out RUNDIR [--histories h1,h2] [--questions N] [--upstream URL|fake]
-             [--driver emulator|opencode] [--set development|heldout]
+             [--driver emulator|opencode] [--set development|heldout|heldout2]
              [--reason TEXT] [--ws-root DIR] [--expect-n-ctx N]   (opencode driver)
   preflight  [--set heldout] [--histories h1,h2]: imports through real OpenCode, fake upstream
   proxy      (internal) the proxy child
@@ -32,12 +32,21 @@ Subcommands:
 ``--driver opencode`` (``eval/needle_opencode.py``) runs each history through real
 OpenCode 2.1.4 instead: ``opencode session import``, then one ``opencode run --session``
 per step, against the default ``serve`` budget (no ``--input-budget``). Held-out
-histories (``--set heldout``) run only that way (D44.2).
+histories (``--set heldout`` and the fresh ``heldout2``, O-B1) run only that way (D44.2).
 
 Configurations (A1 arms on the emulated 32K budget, --input-budget 24320 at 64K capacity):
   a4-base  excerpts + transcripts, q1/x1/a3     a3-base  excerpts, no transcripts (a0)
   a2-base  transcripts + a3, recall off          a4-q2 / a4-x2 / a4-a4  one factor changed
   a4-d43   the frozen configuration (D43): q1/x2/a3 with transcripts
+
+Arm 5 (Phase 3B, plan §2.9, O-B2): arm 4's settings (q1/x2, transcripts projected) plus a
+stub format, an addendum and hidden recall tools, one per A/B matrix arm
+(``docs/affordances.md``, "Phase 3B A/B matrix"):
+  a5-A  s2 / a1 / t1     a5-B  s3 / a1 / t1     a5-C  s2 / a0 (none) / t2     a5-D  s0 / a1 / t2
+``a5-d64`` is the held-out name of whichever arm the matrix selects; it resolves only once
+``A5_FROZEN`` names that arm (decision D64). Arm 5 also raises the client's output limit
+to 24,576 (O-B3, D56): OpenCode's ``limit.output`` and the emulator's
+``max_completion_tokens``.
 """
 
 from __future__ import annotations
@@ -65,7 +74,9 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / "eval" / "fixtures" / "opencode-2.1.4" / "live" / "exchanges"
 NEEDLES = ROOT / "eval" / "needles" / "dev"
-SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho")}  # --set: (dir, id prefix)
+# --set: (dir, id prefix). heldout2 is the fresh Phase 3B held-out set (O-B1).
+SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2": ("heldout2", "ho2")}
+HELDOUT_SETS = ("heldout", "heldout2")
 INPUT_BUDGET = 24_320
 MAX_TOOLS = 8
 MAX_ROUNDS = 12
@@ -89,6 +100,71 @@ CONFIGS = {
     "a4-d43": dict(arm=4, recall="fts", transcripts_enabled=True, query_policy="q1",
                    excerpt_renderer="x2", addendum="a3"),
 }
+# Arm 5, the Phase 3B A/B matrix (docs/affordances.md): a4-d43's settings, plus the stub
+# format, the addendum (a0: none) and the hidden tools' descriptions.
+_A5_BASE = dict(arm=5, recall="fts", transcripts_enabled=True, query_policy="q1", excerpt_renderer="x2")
+CONFIGS.update({
+    "a5-A": dict(_A5_BASE, stub="s2", addendum="a1", hidden_tools="t1"),
+    "a5-B": dict(_A5_BASE, stub="s3", addendum="a1", hidden_tools="t1"),
+    "a5-C": dict(_A5_BASE, stub="s2", addendum="a0", hidden_tools="t2"),
+    "a5-D": dict(_A5_BASE, stub="s0", addendum="a1", hidden_tools="t2"),
+})
+
+# The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for. Placeholder
+# until decision D64 freezes the selected arm: set A5_FROZEN to that arm ("a5-A" ... "a5-D").
+A5_HELDOUT = "a5-d64"
+A5_FROZEN: str | None = None
+HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT)  # the only configurations held-out sets run
+
+# Settings the proxy child passes to ``palimnesis.config.Settings`` when present.
+PROXY_KEYS = ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer", "addendum",
+              "stub", "hidden_tools")
+OUTPUT_LIMIT = {5: 24_576}  # O-B3: arm 5's client output limit; every other arm keeps 8,192
+DEFAULT_OUTPUT_LIMIT = 8192
+
+
+def config(name: str) -> dict:
+    """The configuration ``name``; ``a5-d64`` resolves to the frozen matrix arm, and is an
+    error before D64 names it."""
+    if name == A5_HELDOUT:
+        if A5_FROZEN is None:
+            raise ValueError(f"{A5_HELDOUT} is not frozen yet: the Phase 3B matrix has not selected "
+                             f"an arm (D64). Set needle.A5_FROZEN, or run a matrix arm "
+                             f"({', '.join(k for k in CONFIGS if k.startswith('a5-'))}).")
+        return CONFIGS[A5_FROZEN]
+    return CONFIGS[name]
+
+
+def config_names() -> list[str]:
+    return sorted([*CONFIGS, A5_HELDOUT])
+
+
+def proxy_settings(cfg: dict) -> dict:
+    """The ``Settings`` fields of a configuration (no ``arm``)."""
+    return {k: cfg[k] for k in PROXY_KEYS if k in cfg}
+
+
+def output_limit(arm: int) -> int:
+    """The client's output limit: OpenCode ``limit.output`` and the emulator's
+    ``max_completion_tokens`` (O-B3)."""
+    return OUTPUT_LIMIT.get(arm, DEFAULT_OUTPUT_LIMIT)
+
+
+def count_hidden(rec: dict, calls: list[dict]) -> None:
+    """Add a step's hidden calls (from its upstream tap records) to its lookups: Phase 3B
+    lookups are hidden calls plus harness transcript-file calls (plan §2.9)."""
+    by_tool = hidden_by_tool(calls)
+    rec["hidden_calls"] = by_tool
+    rec["lookups"] += sum(by_tool.values())
+
+
+def hidden_by_tool(calls: list[dict]) -> dict[str, int]:
+    """{tool: count} of the hidden calls the upstream tap saw in ``calls``."""
+    out: dict[str, int] = {}
+    for c in calls:
+        for name in c.get("hidden_calls") or []:
+            out[name] = out.get(name, 0) + 1
+    return out
 
 
 def free_port() -> int:
@@ -342,8 +418,14 @@ class Tap:
 VISIBLE = re.compile(rb'"content": ?"[^"]|"tool_calls": ?\[')
 
 
+HIDDEN_PREFIX = "palimnesis_"  # reserved tool-name prefix (contracts §3)
+
+
 def parse_usage(raw: bytes) -> dict:
+    """Finish, error, usage and timings of one upstream stream, plus ``hidden_calls``: the
+    names of its ``palimnesis_*`` tool calls in index order (present only when any)."""
     out: dict = {}
+    names: dict[tuple, str] = {}
     for line in raw.split(b"\n"):
         if not line.startswith(b"data: ") or line.strip() == b"data: [DONE]":
             continue
@@ -354,6 +436,11 @@ def parse_usage(raw: bytes) -> dict:
         for ch in d.get("choices") or []:
             if ch.get("finish_reason"):
                 out["finish"] = ch["finish_reason"]
+            for tc in (ch.get("delta") or {}).get("tool_calls") or []:
+                name = (tc.get("function") or {}).get("name")
+                key = (ch.get("index", 0), tc.get("index", 0))
+                if name and key not in names:
+                    names[key] = name
         if d.get("error"):
             out["stream_error"] = json.dumps(d["error"], ensure_ascii=False)[:300]
         if d.get("usage"):
@@ -365,6 +452,9 @@ def parse_usage(raw: bytes) -> dict:
             t = d["timings"]
             out["timings"] = {k: t.get(k) for k in ("cache_n", "prompt_n", "prompt_ms",
                                                     "predicted_n", "predicted_ms")}
+    hidden = [names[k] for k in sorted(names) if names[k].startswith(HIDDEN_PREFIX)]
+    if hidden:
+        out["hidden_calls"] = hidden
     return out
 
 
@@ -876,7 +966,7 @@ class FakeModel:
 # ---------------------------------------------------------------- run one configuration
 
 def run_config(a) -> int:
-    cfg = CONFIGS[a.config]
+    cfg = config(a.config)
     out = Path(a.out) / a.config
     if out.exists() and not a.resume:
         shutil.rmtree(out)
@@ -897,8 +987,7 @@ def run_config(a) -> int:
     tap = Tap(upstream, out / "bodies", gate)
     tap_port = free_port()
     tap_server, tap_thread = serve_in_thread(tap, tap_port)
-    settings = {k: cfg[k] for k in ("recall", "transcripts_enabled", "query_policy",
-                                    "excerpt_renderer", "addendum")}
+    settings = proxy_settings(cfg)
     settings["deadline_s"] = 3600.0  # the gate may hold a request while the slot is busy
     proxy = ProxyProcess(out, f"http://127.0.0.1:{tap_port}", settings)
     proxy.start()
@@ -907,6 +996,7 @@ def run_config(a) -> int:
     troot = default_root(proxy.db) if cfg["transcripts_enabled"] else None
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     meta = {"config": a.config, **cfg, "settings": settings, "input_budget": INPUT_BUDGET,
+            "max_completion_tokens": output_limit(cfg["arm"]),
             "emulator": EMULATOR_VERSION, "live": live, "upstream": a.upstream,
             "started": time.time(), "max_tools": MAX_TOOLS, "sessions": []}
     qlog = open(out / "questions.jsonl", "a", encoding="utf-8")
@@ -957,6 +1047,7 @@ def run_config(a) -> int:
                            "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0,
                            "calls": [], "errors": []}
                     executed = 0
+                    hidden_seen: list[dict] = []
                     length_follow = 0
                     final = None
                     first_call_n = None
@@ -967,12 +1058,14 @@ def run_config(a) -> int:
                         before = len(tap.calls)
                         res = stream_call(client, url, dumps({
                             "model": model, "messages": messages, "tools": tools_schema, "stream": True,
-                            "stream_options": {"include_usage": True}, "max_completion_tokens": 8192}))
+                            "stream_options": {"include_usage": True},
+                            "max_completion_tokens": output_limit(cfg["arm"])}))
                         rec["rounds"] += 1
                         deadline = time.time() + 15  # the tap records a call after relaying its end
                         while len(tap.calls) == before and time.time() < deadline and res.status == 200:
                             time.sleep(0.05)
                         new_calls = tap.calls[before:]
+                        hidden_seen += new_calls
                         tc = new_calls[-1] if new_calls else {}
                         if first_call_n is None and tc:
                             first_call_n = tc["n"]
@@ -1041,6 +1134,7 @@ def run_config(a) -> int:
                             rec["workspace_tool_calls"] += int(not lookup)
                             messages.append({"role": "tool", "tool_call_id": c["id"], "content": result})
                     rec["total_s"] = round(time.time() - q0, 3)
+                    count_hidden(rec, hidden_seen)
                     rec["answer"] = (final or "")[:300]
                     rec["answered"] = final is not None
                     if step["kind"] == "question":
@@ -1135,7 +1229,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
-    r.add_argument("--config", choices=sorted(CONFIGS), required=True)
+    r.add_argument("--config", choices=config_names(), required=True)
     r.add_argument("--out", required=True)
     r.add_argument("--histories")
     r.add_argument("--questions", type=int)
@@ -1165,6 +1259,11 @@ def main() -> int:
     if a.cmd == "proxy":
         proxy_child(a)
         return 0
+    if a.cmd == "run":
+        try:
+            config(a.config)
+        except ValueError as e:
+            p.error(str(e))
     if a.cmd == "preflight":
         import needle_opencode
 
@@ -1175,7 +1274,7 @@ def main() -> int:
         import needle_opencode
 
         return needle_opencode.run(a)
-    if a.set == "heldout":
+    if a.set in HELDOUT_SETS:
         p.error("held-out needles run through real OpenCode only (D44.2): add --driver opencode")
     return run_config(a)
 
