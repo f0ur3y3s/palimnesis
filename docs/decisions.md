@@ -693,3 +693,34 @@ The final protocol, cache and paper-fidelity reviews of Phase 3 ran on 2026-10-2
    - Contracts §1, §2 (the unbounded fallback after a non-budget build failure, D14.9), §3, §5, §7, §8 (deferrals to Ph4B and 3B), §9 (transcript-search steps), §10 and §11.
    - capabilities.md: `developer`, other `tool_choice` forms and `parallel_tool_calls` are rejected, not untested; `tool_choice: "auto"` is listed; the tokenizer row; known limits of Phase 3.
    - The paper-fidelity fixes: docstrings of `excerpts.py` (x2, U+FFFD), `affordances.py` (a3 cites Eunoe) and `projector.py` (git work trees); D28 and D29.3/.4 corrected to the code; papers.md lists the Complexity Trap and further Eunoe adaptations.
+
+## D51 — Composite visible turns (Phase 3B S2)
+
+One visible response that spans several upstream calls is stored as one generation per call, with the hidden results between them as `internal_tool` rows (`view='internal'`). `ledger.load_archived` folds an attempt's parts and results into one composite `Archived`: text and reasoning concatenated, external calls only, `parts` in seq order. `_upstream_body` expands it back into each part with its own reasoning and calls, and each result, as separate view items with their own seqs.
+
+- **Partials.** OpenCode flattens a broken composite as all reasoning, then all text, of what it received (H1 c), so `transcript.flattened` checks the resend against that form of the stream prefix. The upstream render keeps stream order: parts fully received keep their calls and results; the part where the cut falls keeps reasoning and text up to it and no calls.
+- **Superseded attempts** fold their own results, so a cancelled composite the client dropped leaves nothing behind upstream. This closes the D13 carry-over for hidden rows.
+- Rejected: a separate visible occurrence plus a map to the parts. It needs to know at the first token whether a response will continue, and changes storage for every response.
+
+## D52 — Stream assembly (Phase 3B S1)
+
+`palimnesis.assemble.ChatAssembler` turns one or more upstream calls into one client stream. Deviation from the plan: external tool calls stream as they arrive, renumbered, rather than buffered until complete. Calls are classified at their first delta, which always carries the name (§12.1), so nothing needs holding back; a length stop inside an external call's arguments behaves as in Phases 1–3. A single call with no hidden call is relayed byte for byte.
+
+## D53 — Mixed calls
+
+A call with hidden and external tool calls: the hidden ones are answered and archived at once, the external ones go to the client, and the response ends with `tool_calls`. The next request renders the part, its hidden results, then the client's results. Text after a hidden call is visible text of that part (S0 delta 1).
+
+## D54 — Hidden tool schemas fixed at the first mask
+
+The schemas (`recalltools.schemas`, from the registered `t1`/`t2` descriptions) are fixed per session by a `hidden_tools_fixed` event at the first view that hides anything, together with the addendum, and appended after the client's tools. They are counted as fixed input before acceptance. Their arrival is `tool_change` (plus `view_format_change` when the addendum arrives with them); the re-render after a restart adds the fixed tools back. A client tool or history call with the `palimnesis_` prefix is refused before acceptance (§3).
+
+## D55 — Limits, the length stop, and streaming only
+
+- Per response: 4 continuations, 8 hidden calls, results within a quarter of the input budget (2,048 tokens per recall, 1,024 per search or catalog page). A call over a limit gets "limit reached"; another hidden call after that ends the response with `length`, as does too little allowance (contracts §7). Removing the tools or switching to `tool_choice: "none"` for a final call was rejected: the tools render before the system prompt, so either re-reads the whole prompt.
+- Every hidden call has a result before the response ends, so no later render holds a dangling call.
+- **Streaming only.** Hidden tools are not offered to non-streaming requests. OpenCode always streams; a non-streaming assembly path would be a second relay for no current client. Recorded as a known limit.
+
+## D56 — Allowance cap
+
+`A = min(client limit, 24,576)`, with R still 8,192 per call. Continuations start only with at least 1,024 tokens left (probe P2: below that Strata gives thinking no budget). The shipped OpenCode config's `limit.output` rises to 24,576 with arm 5 (O-B3).
+

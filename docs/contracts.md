@@ -120,17 +120,16 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 7. Request-wide generation and time limits
 
-Each visible response is one upstream call until hidden continuations exist (optional Phase 3B, A1). The allowance and deadline are enforced; consumption across internal calls is defined for 3B.
+A visible response is one upstream call, or several when hidden recall tools answer the model's `palimnesis_*` calls in between (Phase 3B, §15). **[enforced]**
 
-- **Allowance.** `A = min(client limit, configured cap)`. **[enforced]**
+- **Allowance.** `A = min(client limit, 24,576)`.
   - Client limit, OpenAI: `max_completion_tokens`, else `max_tokens`; Strata gives `max_completion_tokens` precedence the same way (probe p16). Anthropic: `max_tokens`.
   - Absent client limit: the cap.
-- **[defined, 3B]** for the rest of this section.
-- **Consumption** is upstream `completion_tokens` (includes reasoning and tool-call arguments), summed over all internal calls for one visible response.
-- **Each continuation** is capped at `min(A − consumed, n_ctx − I − M)`. Replaying a completed result does not reset consumption.
-- **Exhaustion** ends with the endpoint's length stop when the emitted structure can close validly, otherwise the partial-stream error. Never a normal stop, never an incomplete tool call.
-- **Deadline expiry** cancels upstream work and returns the timeout error.
-- **Reporting.** Visible usage and total internal usage are reported separately.
+- **Consumption** is upstream `completion_tokens` (includes reasoning and tool-call arguments), summed over all calls of one visible response. A later call never resets it.
+- **Each continuation** is capped at `min(A − consumed, R)`, and starts only with at least 1,024 tokens left: below that Strata gives thinking no budget and the call can end mid-reasoning (`docs/probes/strata.md` §12.2). Its input is bounded again (§2).
+- **Exhaustion.** Too little allowance for a continuation, or a limit of §15 reached, ends the response with the length stop. Every hidden call made by then has a result in the archive, so later renders never hold a call without one. OpenCode answers a length stop with a follow-up turn of its own (`harnesses.md`).
+- **Deadline expiry** cancels upstream work and returns the timeout error (§5); `D` covers every call of the response.
+- **Reporting.** The client's usage reports the last call's prompt and the summed completion tokens. Each call's own usage is in its `upstream_call` event.
 
 ## 8. Scheduling and slot release
 
@@ -159,7 +158,7 @@ Each visible response is one upstream call until hidden continuations exist (opt
 **[enforced]** (`palimnesis.cacheacct`, D22)
 
 - Every pair of consecutive upstream calls records the token longest common prefix (LCP), the cached tokens reported by the upstream, and the invalidation cause.
-- **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. These are recorded as `append`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `model_template_change`, plus `first_call` and `view_disabled` (bounded views off; no LCP is recorded). The transcript addendum (D36) is part of the presentation format: its appearance, change or removal is `view_format_change`. It is fixed per session and names a session directory whose path never changes, so it is byte-stable from one call to the next. A change between `tool_choice: "none"` and other values changes whether tool schemas render, so it is `tool_change` (D50). A call's identity includes the counter revision, so a pair whose earlier call was counted by another revision, and cannot be re-rendered to its recorded count, is `model_template_change` (D46). State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
+- **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. A call inside one visible response that extends the call before it is `internal_continuation` (§15). These are recorded as `append`, `internal_continuation`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `model_template_change`, plus `first_call` and `view_disabled` (bounded views off; no LCP is recorded). The transcript addendum (D36) is part of the presentation format: its appearance, change or removal is `view_format_change`. It is fixed per session and names a session directory whose path never changes, so it is byte-stable from one call to the next. A change between `tool_choice: "none"` and other values changes whether tool schemas render, so it is `tool_change` (D50). A call's identity includes the counter revision, so a pair whose earlier call was counted by another revision, and cannot be re-rendered to its recorded count, is `model_template_change` (D46). State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
 - **Reuse is checkpoint-based.** The upstream resumes from its last checkpoint at or before the first changed token. Reported reuse below the LCP is expected and recorded as checkpoint-limited, not unexplained.
 - Restart and eviction reduce reuse without any input change. The class `restart_or_eviction` means only "below the checkpoint estimate": it also covers Strata no longer holding a checkpoint the model assumed, with no restart (D50).
 - Latency-derived estimates are labeled as estimates.
@@ -211,3 +210,15 @@ Each visible response is one upstream call until hidden continuations exist (opt
 - **Isolation.** Projection runs off the request path, holds no write lock, makes no upstream call, and logs only counts and directory hashes. **[enforced]**
 - **Access.** Files are 0700/0600 on POSIX and inherit the root's ACL on Windows. Harness permission rules do not confine them (D37.4). **[enforced on POSIX; Windows inherits]**
 - **Deletion** (Ph8) must cascade to the projection.
+
+## 15. Hidden recall tools (Phase 3B)
+
+**[enforced]** when `--hidden-tools t1|t2` is set; off by default.
+
+- **Offered.** The tools `palimnesis_recall`, `palimnesis_catalog` and `palimnesis_grep` are appended after the client's tools from a session's first masked view, fixed per session like the addendum (D54), and counted as fixed input before acceptance. Never with `tool_choice: "none"`, and only on streaming requests (D55).
+- **Hidden.** A call whose name has the reserved prefix (§3) is never forwarded to the client. The proxy answers it from the archive (`palimnesis.recalltools`, D57–D59) and calls the upstream again with the call and its result appended. Text and reasoning stream as they arrive; external calls stream renumbered densely; the client sees one message with one id, one finish chunk and one `[DONE]` (D52).
+- **Mixed.** When a call carries hidden and external tool calls, the hidden ones are answered and archived, the external ones go to the client with `finish_reason: "tool_calls"`, and the next request renders all results after that call (D53).
+- **Limits per response.** At most 4 continuations and 8 hidden calls; results take at most a quarter of the input budget, 2,048 tokens per recall and 1,024 per search or catalog page. A call beyond a limit gets a short "limit reached" result; a further hidden call ends the response with the length stop (§7).
+- **Archive.** Each upstream call is its own generation; results are internal rows (`view='internal'`), never full-text indexed and never excerpted. The client's resend of the one visible message reconciles against the composite of those parts (D51); the upstream sees every part and result in order.
+- **Results** are exact by address and range, never another record's content (contracts §11 provenance), and never exceed their cap under the pinned counter.
+

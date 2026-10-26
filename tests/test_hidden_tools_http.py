@@ -102,3 +102,12 @@ def test_injection_is_an_explained_tool_change_across_a_restart(tmp_path):
     report = subprocess.run([sys.executable, str(REPLAY), "--explain", str(settings.db_path)],
                             capture_output=True, text=True)
     assert report.returncode == 0, report.stdout
+
+
+def test_serve_takes_the_hidden_tools_affordance_off_by_default():
+    from palimnesis.cli import serve_settings
+
+    base = ["--upstream", "http://127.0.0.1:1"]
+    assert serve_settings(base).hidden_tools is None
+    assert serve_settings([*base, "--hidden-tools", "t2"]).hidden_tools == "t2"
+    assert serve_settings([*base, "--hidden-tools", "off"]).hidden_tools is None

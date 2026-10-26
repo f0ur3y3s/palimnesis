@@ -56,6 +56,9 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                        help="excerpt block rendering (D43 froze the default)")
     serve.add_argument("--addendum", choices=["a3", "a4"], default="a3",
                        help="transcript-search addendum (D43 froze the default)")
+    serve.add_argument("--hidden-tools", choices=["off", "t1", "t2"], default="off",
+                       help="hidden recall tools (Phase 3B): the tool descriptions to offer "
+                            "once a session first hides anything")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")
@@ -75,6 +78,7 @@ def _settings(args: argparse.Namespace) -> Settings:
                     db_path=db_path, synchronous=args.synchronous, view=args.view,
                     input_budget=args.input_budget, query_policy=args.query_policy,
                     excerpt_renderer=args.excerpt_renderer, addendum=args.addendum,
+                    hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 
