@@ -26,12 +26,14 @@ Subcommands:
   run        --config NAME --out RUNDIR [--histories h1,h2] [--questions N] [--upstream URL|fake]
              [--driver emulator|opencode] [--set development|heldout|heldout2]
              [--reason TEXT] [--ws-root DIR] [--expect-n-ctx N]   (opencode driver)
+             [--input-budget N]   (emulator default 24320; opencode driver: none unless given, O2)
   preflight  [--set heldout] [--histories h1,h2]: imports through real OpenCode, fake upstream
   proxy      (internal) the proxy child
 
 ``--driver opencode`` (``eval/needle_opencode.py``) runs each history through real
 OpenCode 2.1.4 instead: ``opencode session import``, then one ``opencode run --session``
-per step, against the default ``serve`` budget (no ``--input-budget``). Held-out
+per step, against the default ``serve`` budget unless ``--input-budget`` emulates a smaller
+context for development runs (O2). Held-out
 histories (``--set heldout`` and the fresh ``heldout2``, O-B1) run only that way (D44.2).
 
 Configurations (A1 arms on the emulated 32K budget, --input-budget 24320 at 64K capacity):
@@ -989,13 +991,14 @@ def run_config(a) -> int:
     tap_server, tap_thread = serve_in_thread(tap, tap_port)
     settings = proxy_settings(cfg)
     settings["deadline_s"] = 3600.0  # the gate may hold a request while the slot is busy
-    proxy = ProxyProcess(out, f"http://127.0.0.1:{tap_port}", settings)
+    budget = a.input_budget if getattr(a, "input_budget", None) is not None else INPUT_BUDGET
+    proxy = ProxyProcess(out, f"http://127.0.0.1:{tap_port}", settings, input_budget=budget)
     proxy.start()
     from palimnesis.projector import default_root, session_dir
 
     troot = default_root(proxy.db) if cfg["transcripts_enabled"] else None
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
-    meta = {"config": a.config, **cfg, "settings": settings, "input_budget": INPUT_BUDGET,
+    meta = {"config": a.config, **cfg, "settings": settings, "input_budget": budget,
             "max_completion_tokens": output_limit(cfg["arm"]),
             "emulator": EMULATOR_VERSION, "live": live, "upstream": a.upstream,
             "started": time.time(), "max_tools": MAX_TOOLS, "sessions": []}
@@ -1242,6 +1245,9 @@ def main() -> int:
     r.add_argument("--set", choices=sorted(SETS), default="development")
     r.add_argument("--reason", help="opencode driver: why this attempt reruns histories (D44.7)")
     r.add_argument("--ws-root", help="opencode driver: workspace tree (default: <out>-ws, beside --out)")
+    r.add_argument("--input-budget", type=int,
+                   help="the proxy's input budget: emulator default 24320; opencode driver none "
+                        "(serve's default) unless given, development only (O2)")
     r.add_argument("--expect-n-ctx", type=int, default=32768,
                    help="opencode driver: refuse unless Strata /props reports this n_ctx")
     f = sub.add_parser("preflight", help="every import through real OpenCode against the fake upstream")

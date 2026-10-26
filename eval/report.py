@@ -87,6 +87,14 @@ def _one_n_ctx(metas: list[dict]) -> int | None:
     return seen.pop() if seen else None
 
 
+def _one_budget(metas: list[dict]) -> int | None:
+    """The emulated ``input_budget`` the designated attempts share, if any."""
+    seen = {m.get("input_budget") for m in metas if isinstance(m.get("input_budget"), int)}
+    if len(seen) > 1 or (seen and any(not isinstance(m.get("input_budget"), int) for m in metas)):
+        raise ValueError(f"designated attempts ran with different input budgets: {sorted(seen)}")
+    return seen.pop() if seen else None
+
+
 def load_attempts(run: Path, config: str, designate: dict | None = None):
     """Rows of the designated attempt per history; meta merged over those attempts."""
     import sys
@@ -122,6 +130,7 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
             "started": min((m.get("started", 0) for m in metas), default=0),
             "finished": max((m.get("finished", 0) for m in metas), default=0),
             "expect_n_ctx": _one_n_ctx(metas),
+            "input_budget": _one_budget(metas),
             "internal": merge_internal([m.get("internal") for m in metas]),
             "internal_scan": [m.get("internal_scan") for m in metas if m.get("internal_scan")],
             "attempts": metas, "superseded": superseded,
@@ -327,6 +336,8 @@ def budget_for(meta: dict) -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import gate_inputs as gi
 
+    if isinstance(meta.get("input_budget"), int):  # an emulated budget (O2), recorded by the run
+        return meta["input_budget"]
     return gi.input_budget_for(meta.get("expect_n_ctx") or 32768)
 
 

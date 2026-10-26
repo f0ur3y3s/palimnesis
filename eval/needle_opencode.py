@@ -20,7 +20,11 @@ invocation is a new attempt with its records in ``RUN/records/attempt-NNN/`` and
 workspaces, OpenCode homes and transcripts root in ``--ws-root`` (default ``RUN-ws``),
 which holds no records. A rerun of a history needs ``--reason``.
 
-**Held-out runs** (``--set heldout`` or ``heldout2``) refuse a dirty git tree, any
+**Emulated 32K** (development only, O2): ``--input-budget 24320`` with Strata at 65536 gives
+the proxy that budget and counts over-budget inputs against it; it is recorded as the
+run's ``input_budget``, which ``report.py`` then judges against.
+
+**Held-out runs** (``--set heldout`` or ``heldout2``) refuse ``--input-budget``, a dirty git tree, any
 configuration other than ``a4-d43`` or arm 5's frozen ``a5-d64`` (``needle.HELDOUT_CONFIGS``),
 ``--questions`` and ``--resume``, and Strata unless ``/props`` reports ``n_ctx``
 ``--expect-n-ctx`` (32768) before and after every history.
@@ -247,6 +251,8 @@ def refusals(a, histories: list[Path]) -> list[str]:
                        f"(D44.1, plan §2.9), not {a.config}")
         if a.questions:
             out.append("held-out runs ask every question; drop --questions")
+        if getattr(a, "input_budget", None) is not None:
+            out.append("held-out runs use the real context, never an emulated --input-budget (O2)")
         if a.resume:
             out.append("held-out attempts are never resumed; start a new attempt with --reason")
         prov = gi.git_provenance()
@@ -284,11 +290,12 @@ def run(a) -> int:
     rec_dir, ws_dir = Path(attempt["records"]), Path(attempt["ws"])
     troot = ws_dir / "transcripts" if cfg["transcripts_enabled"] else None
     settings = needle.proxy_settings(cfg)
-    stack = oc_stack.Stack(rec_dir, upstream, settings, transcripts=troot)
+    stack = oc_stack.Stack(rec_dir, upstream, settings, transcripts=troot, input_budget=a.input_budget)
     from palimnesis.projector import session_dir
 
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
-    meta = {"config": a.config, **cfg, "settings": stack.settings, "input_budget": "default (serve)",
+    meta = {"config": a.config, **cfg, "settings": stack.settings,
+            "input_budget": a.input_budget if a.input_budget is not None else "default (serve)",
             "frozen_as": needle.A5_FROZEN if a.config == needle.A5_HELDOUT else None,
             "opencode_limit_output": needle.output_limit(cfg["arm"]),
             "driver": "opencode", "driver_version": DRIVER_VERSION, "opencode": "2.1.4",
@@ -412,7 +419,7 @@ def run(a) -> int:
         meta["abort"] = abort
         qlog.close()
         clog.close()
-    gate_checks(rec_dir, ws_dir, stack, cfg, meta, troot, a.expect_n_ctx, histories)
+    gate_checks(rec_dir, ws_dir, stack, cfg, meta, troot, a.expect_n_ctx, histories, a.input_budget)
     att.finish_attempt(Path(a.out), n_att, "aborted" if abort else "done", abort=abort,
                        infra_failures=meta["infra_failures"])
     return status
@@ -492,7 +499,7 @@ def run_step(a, cfg, h, step, session, ses, home, stack, tools, client, clog, re
 
 
 def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot: Path | None,
-                n_ctx: int, histories: list[Path]) -> None:
+                n_ctx: int, histories: list[Path], input_budget: int | None = None) -> None:
     """D44.6 inputs: ``--explain`` (exit 0, pairs = calls minus each session's first, 0
     unexplained), ``transcripts verify``, inputs over budget by the pinned counter, excerpt
     leaks and echoes, slow upstream calls, and records reachable from the workspaces."""
@@ -507,7 +514,7 @@ def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot
     meta["explain_gate"] = gi.explain_gate(code, report, by_session)
     meta["verify"] = (needle.verify_sessions(db, meta["sessions"], troot)
                       if cfg["transcripts_enabled"] else {})
-    meta["over_budget"] = gi.local_over_budget(rec_dir / "bodies", calls, gi.input_budget_for(n_ctx))
+    meta["over_budget"] = gi.local_over_budget(rec_dir / "bodies", calls, gi.run_budget(n_ctx, input_budget))
     meta["slow_upstream_calls"] = [c["n"] for c in calls if (c.get("upstream_s") or 0) > oc_stack.SLOW_UPSTREAM_S]
     excerpts = gi.excerpt_texts(db) if db.exists() else []
     texts = oc_stack.client_texts(rec_dir, stack.front.calls)
@@ -519,8 +526,8 @@ def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot
     if db.exists():
         import report
 
-        exports = [json.loads(f.read_text(encoding="utf-8"))
-                   for f in sorted((rec_dir / "exports").glob("*.json"))] if (rec_dir / "exports").exists() else []
+        exports = {f.stem: json.loads(f.read_text(encoding="utf-8"))  # exports/<session>.json
+                   for f in sorted((rec_dir / "exports").glob("*.json"))} if (rec_dir / "exports").exists() else {}
         meta["internal_scan"] = gi.internal_scan(db, rec_dir, stack.front.calls, exports,
                                                  sessions=meta["sessions"])
         meta["internal"] = report.internal_metrics(db, sessions=meta["sessions"])

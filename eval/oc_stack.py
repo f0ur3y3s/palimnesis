@@ -6,9 +6,10 @@
   every inference request and keeps each exact upstream body and stream.
 - The **front tap** (``needle.Tap`` without a gate) keeps each client request, the proxy's
   own status and stream, so a proxy rejection is visible without reading logs.
-- The proxy child runs the ``serve`` app with ``serve``'s defaults (no
-  ``--input-budget``), ``deadline_s`` 3600 (D45.4), and an explicit transcripts root
-  outside the records tree.
+- The proxy child runs the ``serve`` app with ``serve``'s defaults, ``deadline_s`` 3600
+  (D45.4), and an explicit transcripts root outside the records tree. ``input_budget``
+  (development only: O2's emulated 32K, ``--input-budget 24320`` at 65536) reaches the
+  child's ``Settings``; by default there is none, as in ``serve``.
 
 Records (bodies, streams, logs, archive) go to ``records``; nothing here writes into a
 workspace tree.
@@ -28,7 +29,7 @@ SLOW_UPSTREAM_S = 600.0  # D45.13: flagged, the proxy's default deadline
 
 class Stack:
     def __init__(self, records: Path, upstream: str, settings: dict, *, passthrough: bool = False,
-                 transcripts: Path | None = None):
+                 transcripts: Path | None = None, input_budget: int | None = None):
         self.records = records
         self.gate = needle.SlotGate(upstream)
         self.tap = needle.Tap(upstream, records / "bodies", self.gate)
@@ -38,7 +39,7 @@ class Stack:
             self.settings["transcripts"] = str(transcripts)
         self.transcripts = transcripts if not passthrough else None
         self.proxy = needle.ProxyProcess(records, f"http://127.0.0.1:{tap_port}", self.settings,
-                                         input_budget=None, passthrough=passthrough)
+                                         input_budget=input_budget, passthrough=passthrough)
         self.proxy.start()
         self.front = needle.Tap(self.proxy.url, records / "front", needle.SlotGate(None))
         self.front_port = needle.free_port()

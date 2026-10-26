@@ -19,6 +19,8 @@
     text, reasoning and call inputs. Result text is matched by distinctive 40-character
     slices: windows of the result that occur in no earlier non-hidden archived content,
     so a quote of the archived original is not a leak, but the result's own framing is.
+    Each session's stream and export is matched against that session's hidden calls and
+    results only, and all text is compared whitespace-normalized (R28-A).
   - **mentions** (reported only): other ``palimnesis_`` text the model wrote in its
     visible content, reasoning or call arguments (stream only), and distinct harness tool
     results (by call id) that carried ``palimnesis_`` text back to the client, such as a
@@ -73,6 +75,28 @@ def input_budget_for(n_ctx: int) -> int:
     from palimnesis.budget import BudgetPolicy, plan_budget
 
     return plan_budget(n_ctx, client_limit=None, policy=BudgetPolicy()).input_budget
+
+
+def run_budget(n_ctx: int, input_budget: int | None) -> int:
+    """The input budget a run's over-budget check uses: ``--input-budget`` when given (O2
+    emulation), else the default budget at the server's ``n_ctx``."""
+    return input_budget if input_budget is not None else input_budget_for(n_ctx)
+
+
+def emulated_n_ctx(input_budget: int, n_ctx: int) -> int:
+    """The smallest context, at most the server's ``n_ctx``, whose default budget is
+    ``input_budget`` (24,320 -> 32,768): the context an emulated run stands for, and arm
+    1's OpenCode ``limit.context``. ``input_budget_for`` is nondecreasing in ``n_ctx``."""
+    lo, hi = 1, n_ctx
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if input_budget_for(mid) >= input_budget:
+            hi = mid
+        else:
+            lo = mid + 1
+    if input_budget_for(lo) != input_budget:
+        raise ValueError(f"no n_ctx up to {n_ctx} has input budget {input_budget}")
+    return lo
 
 
 # ---------------------------------------------------------------- budget and --explain
@@ -244,6 +268,12 @@ def sse_parts(raw: bytes) -> dict:
     return {"texts": list(texts.values()), "calls": [tuple(v) for v in calls.values()]}
 
 
+def normalize_ws(text: str) -> str:
+    """Runs of whitespace as one space: grep snippets and model copies both collapse the
+    double spaces of log templates (R28-A), so windows are compared in this form."""
+    return " ".join(text.split())
+
+
 def _windows(text: str) -> list[str]:
     if len(text) < MIN_SLICE:
         return []
@@ -255,9 +285,18 @@ def _windows(text: str) -> list[str]:
     return out
 
 
+def session_of_path(path: str | None) -> str | None:
+    """The Palimnesis session named by a ``/s/<session>/...`` request path."""
+    from urllib.parse import unquote
+
+    m = re.match(r"/s/([^/]+)/", path or "")
+    return unquote(m.group(1)) if m else None
+
+
 def hidden_artifacts(db: Path, sessions: list[str] | None = None) -> dict:
-    """The archive's hidden call ids, and each hidden result with its windows and the
-    non-hidden content archived before it on its branch (for distinctiveness)."""
+    """Per session: its hidden call ids, and each hidden result with its windows and the
+    non-hidden content archived before it on its branch, all whitespace-normalized (for
+    distinctiveness)."""
     conn = sqlite3.connect(f"file:{Path(db).as_posix()}?mode=ro", uri=True)
     try:
         where, args = "", ()
@@ -265,36 +304,37 @@ def hidden_artifacts(db: Path, sessions: list[str] | None = None) -> dict:
             where = f" WHERE br.session_id IN ({','.join('?' * len(sessions))})"
             args = tuple(sessions)
         rows = conn.execute(
-            "SELECT o.occ_id, o.branch_id, o.seq, o.source FROM occurrences o"
+            "SELECT o.occ_id, o.branch_id, o.seq, o.source, br.session_id FROM occurrences o"
             " JOIN branches br ON br.branch_id = o.branch_id" + where + " ORDER BY o.branch_id, o.seq",
             args).fetchall()
-        ids, results, prior, length = set(), [], {}, {}
+        ids: dict[str, set] = {}
+        results, prior, length = [], {}, {}
 
-        def text_of(occ_id):
+        def text_of(occ_id, session):
             out = []
             for block_id, kind, meta in conn.execute(
                     "SELECT block_id, kind, meta FROM blocks WHERE occ_id = ? ORDER BY idx", (occ_id,)):
                 m = json.loads(meta)
                 if kind == "tool_call" and m.get("internal"):
-                    ids.add(m.get("id"))
+                    ids.setdefault(session, set()).add(m.get("id"))
                 data = b"".join(r[0] for r in conn.execute(
                     "SELECT bytes FROM segments WHERE block_id = ? ORDER BY seq", (block_id,)))
                 out.append(data.decode("utf-8", "replace"))
-            return "\n".join(out)
+            return normalize_ws("\n".join(out))
 
-        for occ_id, branch, seq, source in rows:
-            text = text_of(occ_id)
+        for occ_id, branch, seq, source, session in rows:
+            text = text_of(occ_id, session)
             parts = prior.setdefault(branch, [])
             if source == "internal_tool":
-                results.append({"windows": _windows(text), "branch": branch,
+                results.append({"windows": _windows(text), "branch": branch, "session": session,
                                 "upto": length.get(branch, 0)})
             else:
                 parts.append(text)
                 length[branch] = length.get(branch, 0) + len(text) + 1
     finally:
         conn.close()
-    return {"ids": ids, "results": results,
-            "prior": {b: "\n".join(v) for b, v in prior.items()}, "_distinct": {}}
+    return {"ids": set().union(*ids.values()) if ids else set(), "ids_by_session": ids,
+            "results": results, "prior": {b: "\n".join(v) for b, v in prior.items()}, "_distinct": {}}
 
 
 def _distinctive(hidden: dict, r: dict, w: str) -> bool:
@@ -305,10 +345,13 @@ def _distinctive(hidden: dict, r: dict, w: str) -> bool:
     return cache[key]
 
 
-def result_hits(hidden: dict, text: str) -> bool:
-    """Whether ``text`` holds a distinctive window of any hidden result."""
-    return any(w in text and _distinctive(hidden, r, w)
-               for r in hidden["results"] for w in r["windows"])
+def result_hits(hidden: dict, text: str, session: str | None = None) -> bool:
+    """Whether ``text`` holds a distinctive window of a hidden result of ``session`` (of
+    any session when None), compared whitespace-normalized."""
+    t = normalize_ws(text)
+    return any(w in t and _distinctive(hidden, r, w)
+               for r in hidden["results"] if session is None or r["session"] == session
+               for w in r["windows"])
 
 
 def _export_parts(export: dict) -> tuple[list[str], list[tuple], dict[str, list[str]]]:
@@ -330,24 +373,29 @@ def _export_parts(export: dict) -> tuple[list[str], list[tuple], dict[str, list[
     return texts, calls, results
 
 
-def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: list[dict],
+def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: dict[str, dict],
                   sessions: list[str] | None = None) -> dict:
-    """Hard leaks and mentions of hidden recall (see the module docstring)."""
+    """Hard leaks and mentions of hidden recall (see the module docstring). Each session's
+    client stream (front calls, by their ``/s/<session>/`` path) and export (``exports``,
+    by session) is matched against that session's hidden calls and results only (R28-A);
+    a front call without a session path is matched against every session."""
     hidden = hidden_artifacts(db, sessions)
     hard = {"stream_calls": 0, "stream_results": 0, "export_calls": 0, "export_results": 0}
     model, harness = 0, set()
 
-    def is_hidden_call(cid, name):
-        return bool(name and name.startswith(INTERNAL_MARKER)) or (cid is not None and cid in hidden["ids"])
+    def is_hidden_call(cid, name, session):
+        ids = hidden["ids"] if session is None else hidden["ids_by_session"].get(session, set())
+        return bool(name and name.startswith(INTERNAL_MARKER)) or (cid is not None and cid in ids)
 
     for c in front_calls:
+        session = session_of_path(c.get("path"))
         resp = Path(records) / "front" / f"{c['n']:04d}.resp.sse"
         req = Path(records) / "front" / f"{c['n']:04d}.json"
         if resp.exists():
             parts = sse_parts(resp.read_bytes())
-            hard["stream_calls"] += sum(is_hidden_call(i, n) for i, n in parts["calls"])
+            hard["stream_calls"] += sum(is_hidden_call(i, n, session) for i, n in parts["calls"])
             for t in parts["texts"]:
-                if result_hits(hidden, t):
+                if result_hits(hidden, t, session):
                     hard["stream_results"] += 1
                 elif INTERNAL_MARKER in t:
                     model += 1
@@ -359,10 +407,10 @@ def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: lis
             for m in body.get("messages") or []:
                 if m.get("role") == "tool" and any(INTERNAL_MARKER in x for x in strings_of(m.get("content"))):
                     harness.add(m.get("tool_call_id"))
-    for export in exports:
+    for session, export in exports.items():
         texts, calls, results = _export_parts(export)
-        hard["export_calls"] += sum(is_hidden_call(i, n) for i, n in calls)
-        hard["export_results"] += sum(1 for t in texts if result_hits(hidden, t))
+        hard["export_calls"] += sum(is_hidden_call(i, n, session) for i, n in calls)
+        hard["export_results"] += sum(1 for t in texts if result_hits(hidden, t, session))
         harness |= {cid for cid, xs in results.items() if any(INTERNAL_MARKER in x for x in xs)}
     hard["leaks"] = sum(hard.values())
     return {"hard": hard, "mentions": {"model": model, "harness": len(harness)},

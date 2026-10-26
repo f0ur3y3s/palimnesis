@@ -1,7 +1,7 @@
 """Run one Phase 3 coding task through real OpenCode 2.1.4 under one arm (plan §5, D44.5).
 
     uv run python eval/tasks/run.py --task ho-t1 --arm 4 --out RUN [--reason TEXT] [--ws-root DIR]
-        [--expect-n-ctx 32768] [--upstream URL] [--tag T]
+        [--expect-n-ctx 32768] [--upstream URL] [--tag T] [--input-budget 24320]
     uv run python eval/tasks/run.py --task dev-t4 --arm 5 --config a5-A --out RUN ...
     uv run python eval/tasks/run.py --check-reference [--task ID]   # no model: the checks themselves
 
@@ -17,6 +17,11 @@ Arms (D44.1):
      as arm 4, with ``limit.output`` 24,576 (O-B3). Hidden calls (from the upstream tap's
      streams) count as lookups beside transcript-file calls; the gate inputs add the
      internal-leak scan and the archive's internal-call metrics.
+
+**Emulated 32K** (development only, O2): ``--input-budget 24320`` with Strata at 65536 gives
+the proxy that budget, counts over-budget inputs against it, and sets arm 1's OpenCode
+``limit.context`` to the emulated context, the smallest ``n_ctx`` whose default budget it
+is (``gate_inputs.emulated_n_ctx``: 24,320 -> 32,768). Held-out tasks refuse it.
 
 Tasks: dev-t1..t5 (development; dev-t4 is the development restart task, dev-t5 a long
 agentic turn with mid-task information needs), ho-t1..t5 (the Phase 3 held-out set) and
@@ -286,12 +291,15 @@ def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     return {"arm": 5, "label": config, "config": config, "cfg": cfg}
 
 
-def arm_fields(arm: dict, n_ctx: int) -> dict:
-    """The arm's configuration as ``result.json`` records it."""
+def arm_fields(arm: dict, n_ctx: int, input_budget: int | None = None) -> dict:
+    """The arm's configuration as ``result.json`` records it. With an emulated
+    ``input_budget`` (O2), arm 1 compacts at the emulated context."""
+    emulated = gi.emulated_n_ctx(input_budget, n_ctx) if input_budget is not None else None
     return {"arm": arm["arm"], "config": arm["config"],
             "frozen_as": needle.A5_FROZEN if arm["config"] == needle.A5_HELDOUT else None,
             "config_settings": arm["cfg"], "passthrough": arm["arm"] == 1,
-            "opencode_limit_context": opencode_context_limit(arm["arm"], n_ctx),
+            "input_budget": input_budget, "emulated_n_ctx": emulated,
+            "opencode_limit_context": opencode_context_limit(arm["arm"], emulated or n_ctx),
             "opencode_limit_output": opencode_output_limit(arm["arm"]),
             "compaction_auto": arm["arm"] == 1}
 
@@ -381,6 +389,15 @@ def run(a) -> int:
         return 2
     arm, label = info["arm"], info["label"]
     name = f"{task.ID}-{label}"
+    if task.SET.startswith("heldout") and a.input_budget is not None:
+        print("refused: held-out tasks run at the real context, never an emulated --input-budget (O2)",
+              file=sys.stderr)
+        return 2
+    try:
+        fields = arm_fields(info, a.expect_n_ctx, a.input_budget)
+    except ValueError as e:
+        print(f"refused: {e}", file=sys.stderr)
+        return 2
     if task.SET.startswith("heldout"):
         prov = gi.git_provenance()
         if prov["dirty"]:
@@ -407,11 +424,12 @@ def run(a) -> int:
                     "-m", "task start"], cwd=ws, check=True)
     troot = wsroot / "transcripts" if arm != 1 else None
     settings = needle.proxy_settings(info["cfg"]) if arm != 1 else {}
-    stack = oc_stack.Stack(out, upstream, settings, passthrough=arm == 1, transcripts=troot)
+    stack = oc_stack.Stack(out, upstream, settings, passthrough=arm == 1, transcripts=troot,
+                           input_budget=a.input_budget)
     session = f"{task.ID}-{label}-{a.tag}-a{n_att}"
     home = oc.Home(wsroot / "oc", ws)
     home.write_config(oc.config(stack.base_url(session),
-                                context_limit=opencode_context_limit(arm, a.expect_n_ctx), compaction=arm == 1,
+                                context_limit=fields["opencode_limit_context"], compaction=arm == 1,
                                 output_limit=opencode_output_limit(arm)))
     sdir = None
     if troot is not None:
@@ -424,7 +442,7 @@ def run(a) -> int:
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     import needle_opencode as nod
 
-    res = {"task": task.ID, "set": task.SET, **arm_fields(info, a.expect_n_ctx),
+    res = {"task": task.ID, "set": task.SET, **fields,
            "attempt": n_att, "session": session, "runner": RUNNER_VERSION, "opencode": "2.1.4",
            "provenance": gi.git_provenance(), "settings": stack.settings,
            "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
@@ -509,13 +527,13 @@ def run(a) -> int:
     logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(out.glob("proxy-*.log")))
     res["log_view_disabled"] = logs.count("bounded views disabled")
     res["log_unbounded"] = logs.count("forwarding unbounded")
-    export_texts, exports = [], []
+    export_texts, exports = [], {}
     if ses:
         try:
             exp = home.export(ses)
             (out / "export.json").write_text(json.dumps(exp, ensure_ascii=False), encoding="utf-8")
             export_texts = gi.strings_of(exp)
-            exports = [exp]
+            exports = {session: exp}
             kinds: dict[str, int] = {}
             for m in exp.get("messages", []):
                 kinds[m.get("type")] = kinds.get(m.get("type"), 0) + 1
@@ -524,7 +542,8 @@ def run(a) -> int:
             res["opencode_export_error"] = f"{type(e).__name__}: {e}"
     res["reachable_records"] = gi.reachable_records(wsroot, hidden=hidden_markers(task))
     if arm != 1:
-        res["over_budget"] = gi.local_over_budget(out / "bodies", calls, gi.input_budget_for(a.expect_n_ctx))
+        res["over_budget"] = gi.local_over_budget(out / "bodies", calls,
+                                                  gi.run_budget(a.expect_n_ctx, a.input_budget))
         db = stack.proxy.db
         excerpts = gi.excerpt_texts(db) if db.exists() else []
         res["excerpts_stored"] = len(excerpts)
@@ -587,6 +606,8 @@ def main() -> int:
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")
     p.add_argument("--reason", help="why this attempt reruns the task (D44.7)")
     p.add_argument("--expect-n-ctx", type=int, default=32768)
+    p.add_argument("--input-budget", type=int,
+                   help="development only (O2): emulate a smaller context, e.g. 24320 at 65536")
     p.add_argument("--upstream", default="http://192.168.1.19:8080")
     p.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     p.add_argument("--check-reference", action="store_true")

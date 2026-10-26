@@ -112,6 +112,7 @@ def test_result_json_records_the_arms_config(monkeypatch):
     f = task_run.arm_fields(task_run.resolve_arm(5, "a5-d64", "heldout"), 32768)
     assert f == {"arm": 5, "config": "a5-d64", "frozen_as": "a5-C",
                  "config_settings": needle.CONFIGS["a5-C"], "passthrough": False,
+                 "input_budget": None, "emulated_n_ctx": None,
                  "opencode_limit_context": 1_000_000, "opencode_limit_output": 24_576,
                  "compaction_auto": False}
     f = task_run.arm_fields(task_run.resolve_arm(4, None, "heldout"), 32768)
@@ -326,8 +327,8 @@ def leak_run(tmp_path):
                 "metadata": {}}},
             {"type": "tool", "id": "c9", "name": "palimnesis_catalog", "state": {
                 "status": "completed", "input": {}, "content": [], "metadata": {}}}]}]}
-    calls = [{"n": n} for n in range(1, 8)]
-    return db, tmp_path, calls, [export]
+    calls = [{"n": n, "path": "/s/leak/v1/chat/completions"} for n in range(1, 8)]
+    return db, tmp_path, calls, {"leak": export}
 
 
 def test_internal_scan_splits_hard_leaks_from_mentions(leak_run):
@@ -342,7 +343,7 @@ def test_internal_scan_splits_hard_leaks_from_mentions(leak_run):
 
 def test_a_clean_run_has_no_hard_leaks(leak_run):
     db, records, calls, _ = leak_run
-    s = gate_inputs.internal_scan(db, records, [calls[0], calls[4]], [])
+    s = gate_inputs.internal_scan(db, records, [calls[0], calls[4]], {})
     assert s["hard"]["leaks"] == 0 and s["mentions"] == {"model": 1, "harness": 0}
 
 
@@ -461,3 +462,101 @@ def test_dev_t5_needs_facts_from_earlier_turns_only_in_its_long_turn():
         assert any(code in text for rel, text in files.items() if rel.startswith("samples/")), code
     long_turn = t.TURNS[t.LONG_TURN]
     assert "samples/" in long_turn and t.LONG_TURN > t.RESTART_BEFORE
+
+
+# R28-A: two sessions built from one deploy-log template. A grep snippet collapses the
+# template's double spaces; the model's copy of its own session's paste does too.
+LOG_LINE = "2026-10-21T10:00:01Z INFO  canary rollout step 3 of 5 ok, queue depth 12 nominal"
+GREP_RESULT = ("[palimnesis_grep text 'canary' · 1 hit · page 1]\n"
+               "§AB12CD.0 seq 3 user lines 1-1: " + " ".join(LOG_LINE.split()))
+
+
+def test_leak_scan_pairs_sessions_and_normalizes_whitespace(tmp_path):
+    db = tmp_path / "archive.db"
+    store = Store.open(db)
+    try:
+        for sid, hidden in (("h2", True), ("h5", False)):
+            plan = _accept(store, sid, [{"role": "system", "content": "s"},
+                                        {"role": "user", "content": "Here is the deploy log:\n" + LOG_LINE}])
+            g = Generation(plan)
+            if hidden:
+                _write(store, lambda c: ledger.commit_batch(c, g, [("tool_call", ("tool", 0), "{}", {
+                    "id": "call_g1", "name": "palimnesis_grep", "internal": True})], 0))
+                _write(store, lambda c: ledger.commit_internal_result(c, g, "call_g1", "palimnesis_grep",
+                                                                      GREP_RESULT, {"ok": True}))
+                g = _write(store, lambda c: ledger.next_generation(c, g))
+            _write(store, lambda c: ledger.commit_batch(c, g, [("text", "text", "noted", {})], 0))
+            _write(store, lambda c: ledger.finish_attempt(c, g, "turn_complete"))
+    finally:
+        store.close()
+    front = tmp_path / "front"
+    front.mkdir()
+    copy = " ".join(LOG_LINE.split())  # the model's whitespace-collapsed copy of the paste
+    note = _tc(0, "c1", "write", json.dumps({"path": "notes.md", "content": "Deploy log: " + copy}))
+    streams = {1: ("h5", _sse(note)), 2: ("h2", _sse(note)),
+               3: ("h2", _sse({"content": "Search said: " + GREP_RESULT[:60]}))}
+    for n, (sid, raw) in streams.items():
+        (front / f"{n:04d}.resp.sse").write_bytes(raw)
+        (front / f"{n:04d}.json").write_text(json.dumps({"messages": []}), encoding="utf-8")
+    calls = [{"n": n, "path": f"/s/{sid}/v1/chat/completions"} for n, (sid, _) in streams.items()]
+    exports = {"h5": {"messages": [{"type": "assistant", "content": [
+        {"type": "tool", "id": "c1", "name": "write",
+         "state": {"input": {"path": "notes.md", "content": "Deploy log: " + copy}}}]}]}}
+    # The copies in h5 (no hidden results) and in h2 (its own paste, normalized) are clean.
+    clean = gate_inputs.internal_scan(db, tmp_path, calls[:2], exports)
+    assert clean["hard"]["leaks"] == 0, clean
+    # The result's own framing is still a hard leak in its session's stream.
+    assert gate_inputs.internal_scan(db, tmp_path, calls, exports)["hard"]["stream_results"] == 1
+
+
+# ---------------------------------------------------------------- emulated 32K (O2) through OpenCode
+
+def test_emulated_context_follows_the_input_budget():
+    assert gate_inputs.emulated_n_ctx(24_320, 65536) == 32768
+    assert gate_inputs.emulated_n_ctx(48_000, 65536) == 56448  # the smallest n_ctx with that budget
+    with pytest.raises(ValueError, match="no n_ctx"):
+        gate_inputs.emulated_n_ctx(60_000, 65536)
+    assert gate_inputs.run_budget(65536, None) == 48_000
+    assert gate_inputs.run_budget(65536, 24_320) == 24_320
+
+
+def test_result_json_records_the_emulated_budget():
+    one = task_run.arm_fields(task_run.resolve_arm(1, None, "development"), 65536, input_budget=24_320)
+    assert (one["opencode_limit_context"], one["input_budget"], one["emulated_n_ctx"]) == (32768, 24_320, 32768)
+    four = task_run.arm_fields(task_run.resolve_arm(4, None, "development"), 65536, input_budget=24_320)
+    assert (four["opencode_limit_context"], four["input_budget"]) == (1_000_000, 24_320)
+    plain = task_run.arm_fields(task_run.resolve_arm(1, None, "heldout"), 32768)
+    assert (plain["opencode_limit_context"], plain["input_budget"], plain["emulated_n_ctx"]) == (32768, None, None)
+
+
+def test_the_report_judges_against_a_recorded_input_budget():
+    assert report.budget_for({"expect_n_ctx": 65536, "input_budget": 24_320}) == 24_320
+    assert report.budget_for({"expect_n_ctx": 65536, "input_budget": "default (serve)"}) == 48_000
+
+
+def test_the_stack_passes_the_input_budget_to_the_proxy(tmp_path, monkeypatch):
+    seen = []
+
+    class Proxy:
+        def __init__(self, records, upstream, settings, input_budget=None, passthrough=False):
+            seen.append(input_budget)
+            self.url, self.db, self.starts = "http://127.0.0.1:1", records / "archive.db", 0
+
+        def start(self):
+            pass
+
+    class Server:
+        should_exit = False
+
+    monkeypatch.setattr(oc_stack.needle, "ProxyProcess", Proxy)
+    monkeypatch.setattr(oc_stack.needle, "serve_in_thread", lambda app, port: (Server(), None))
+    oc_stack.Stack(tmp_path, "http://x", {}, input_budget=24_320)
+    oc_stack.Stack(tmp_path, "http://x", {})
+    assert seen == [24_320, None]
+
+
+def test_the_drivers_accept_input_budget():
+    import inspect
+
+    assert "--input-budget" in inspect.getsource(needle.main)
+    assert "--input-budget" in inspect.getsource(task_run.main)
