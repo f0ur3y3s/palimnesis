@@ -553,9 +553,9 @@ def run(a) -> int:
         if db.exists():
             res["internal_scan"] = gi.internal_scan(db, out, stack.front.calls, exports, sessions=[session])
             res["internal"] = report.internal_metrics(db, sessions=[session])
-        code, report, err = gi.run_explain(db)
-        (out / "explain.json").write_text(json.dumps(report) if report else "", encoding="utf-8")
-        res["explain_gate"] = gi.explain_gate(code, report, {session: len(calls)} if calls else {})
+        code, explained, err = gi.run_explain(db)
+        (out / "explain.json").write_text(json.dumps(explained) if explained else "", encoding="utf-8")
+        res["explain_gate"] = gi.explain_gate(code, explained, {session: len(calls)} if calls else {})
         res["explain_stderr"] = err
         res["verify"] = needle.verify_sessions(db, [session], troot)[session]
     if res["aborted"]:
