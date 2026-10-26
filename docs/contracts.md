@@ -206,7 +206,8 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 - **What it is.** Per session, a derived transcript directory (D32) in format t1 (D33). It is a rebuildable projection of the archive, not part of it.
 - **Exactness.** Every archived block appears once, verbatim after reversible escaping or as a linked exact-bytes file, verified by SHA-256. `palimnesis transcripts verify` checks the directory against the archive; `palimnesis transcripts rebuild` reproduces it byte for byte without inference. **[enforced]**
-- **Consistency.** Publication follows D34: `index.md` never names an incomplete file, and a crash at any step leaves the previous or the next generation readable. Incomplete turns are marked in progress, cancelled, abandoned, failed or superseded. **[enforced]**
+- **Consistency.** Publication follows D34 as amended by D63: `index.md` never names an incomplete file, every file `manifest.json` lists is write-once and matches it after a crash at any step, and the in-progress turn keeps its final name `turn-NNNN.md` (named `live` in the manifest) while it grows. Incomplete turns are marked in progress, cancelled, abandoned, failed or superseded. Turn 0's index line says it is the system prompt. **[enforced]**
+- **Hidden results** (§15) appear in their turn as internal tool results, flagged `internal`. **[enforced]**
 - **Isolation.** Projection runs off the request path, holds no write lock, makes no upstream call, and logs only counts and directory hashes. **[enforced]**
 - **Access.** Files are 0700/0600 on POSIX and inherit the root's ACL on Windows. Harness permission rules do not confine them (D37.4). **[enforced on POSIX; Windows inherits]**
 - **Deletion** (Ph8) must cascade to the projection.

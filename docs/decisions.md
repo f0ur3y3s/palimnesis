@@ -724,3 +724,35 @@ The schemas (`recalltools.schemas`, from the registered `t1`/`t2` descriptions) 
 
 `A = min(client limit, 24,576)`, with R still 8,192 per call. Continuations start only with at least 1,024 tokens left (probe P2: below that Strata gives thinking no budget). The shipped OpenCode config's `limit.output` rises to 24,576 with arm 5 (O-B3).
 
+## D57 — Recall by address (`palimnesis_recall`)
+
+`id` resolves through `addresses.resolve` in the session's scope and must name an occurrence on the session's branch. Unknown and ambiguous ids return errors with suggestions, never content. `§A.N` returns a code-point range of block N: the header gives the range, total length, the block's SHA-256 and `next_offset`, and pages reassemble exactly; lone surrogates show as U+FFFD (D38.1). `§A` alone returns the only block, or lists the blocks without content. Every result fits its token cap; a cap smaller than the header is an error, `no_room`.
+
+## D58 — Search (`palimnesis_grep`)
+
+- **Text mode:** each whitespace-separated word becomes an FTS5 phrase of its unicode61 sub-tokens, joined with AND, so model text is never FTS syntax. Hits narrow to the line of the first matching phrase.
+- **Regex mode:** RE2 (`google-re2` 1.1.20251105), patterns of at most 512 characters, 8 MiB of RE2 memory, 32 MiB scanned per call, cancellation checked between blocks, and no fallback dialect. `log_errors` is off, so a rejected pattern, which is model text, never reaches the logs.
+- **Scope:** `hidden` (default: the blocks the current view no longer shows, `recall.candidates`) or `all`. System messages and hidden results are never searched.
+- **Pages** of 10 hits with address, seq, role, kind, line range and a snippet of at most 200 characters. The cursor binds the branch, the query and the archive cutoff, so pages stay stable as the archive grows; a foreign cursor is an error.
+
+## D59 — Catalog pages as tool results
+
+`palimnesis_catalog` returns `catalog.first`, `next` or `page` (20 entries of at most 48 tokens). Pages are ordinary tool results, so the catalog slot P stays 0 and navigation never invalidates the prefix (D20.3 kept).
+
+## D60 — Hidden results stay out of recall's own inputs
+
+Hidden results are copies of archived text: they are never full-text indexed, so neither excerpts nor `palimnesis_grep` find them. They are archived as `internal_tool` rows, shown in transcripts flagged `internal`, and masked like any tool output once out of view.
+
+## D61 — Visible usage
+
+The client's usage reports the last call's `prompt_tokens` and cached tokens, and `completion_tokens` summed over every call of the response. Each call's own usage stays in its `upstream_call` event.
+
+## D63 — Stable in-progress transcript path, turn 0 marked (R25-E, O-B5)
+
+Decided by the user before the 3B baseline (O-B5), so arm 4 runs with it. Amends D34.
+
+- The in-progress turn is published as `turn-NNNN.md` from the start and replaced as it grows; when it seals it is rewritten once under the same name. R25-E found 6 stale-path errors and about 16 recovery listings in one task from the old `turn-NNNN.pK.md` names.
+- To keep D34's crash guarantee, `manifest.json` lists only write-once files and names the in-progress turn as `live`. Publication order: write-once files, the manifest, the live turn, the index. `verify` reads the live turn and checks its payloads against the archive like any other.
+- Turn 0's index line reads "system prompt: already in your context". In ho-t3 the model read that file 6 times.
+- The format id stays `t1`: transcripts are a derived projection, rebuilt from the archive.
+
