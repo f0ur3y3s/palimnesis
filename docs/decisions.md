@@ -756,3 +756,19 @@ Decided by the user before the 3B baseline (O-B5), so arm 4 runs with it. Amends
 - Turn 0's index line reads "system prompt: already in your context". In ho-t3 the model read that file 6 times.
 - The format id stays `t1`: transcripts are a derived projection, rebuilt from the archive.
 
+
+## D62 — Held-out protocol for Phase 3B, fixed before any 3B run
+
+Written on 2026-10-26, before the development matrix ran and before the fresh held-out set (`ho2`) was used. It mirrors D44, and nothing here changes after held-out results are seen.
+
+1. **Configurations.** Arm 5 is `a5-d64`, the matrix arm frozen by D64 after development selection (docs/affordances.md rule), at the D64 commit or a later one that changes only `eval/` and docs. Arm 4 is `a4-d43` with the D63 transcript fixes (O-B5). Arm 1 is native OpenCode compaction through `--passthrough`. Strata is Zeus (D49) relaunched at `n_ctx` 32768 with the pin and canary passing.
+2. **Driver.** Real OpenCode 2.1.4 for every held-out needle and task, as D44.2. Arm 5 uses OpenCode `limit.output` 24576 (O-B3); arms 1 and 4 keep the D45 config.
+3. **Held-out set.** `ho2`: 12 histories × 10 questions and 5 tasks (`ho2-t3` the restart task), written by an author separate from the development work, with seeds, themes and scenarios disjoint from dev and from the Phase 3 set, and committed before its first run (O-B1).
+4. **Gates, all at 32K on `ho2`** (O-B6):
+   - needles: arm 5 loose exact ≥ 85% over all 120, reported as D44.4;
+   - coding: arm 5's successes ≥ arm 1's over the 5 tasks, and `ho2-t3` passes under arm 5; one attempt per task and arm;
+   - arm 5 recall: invalid-id rate ≤ 5% over all `palimnesis_recall` calls;
+   - every arm-5 archive: 0 hidden calls, results or `palimnesis_` text visible to the client, plus the D44.6 inputs (0 over budget, 0 excerpt leaks, `--explain` 0 unexplained, `transcripts verify` passing).
+   Arm 4 runs the same set for comparison; its results are reported, not gated.
+5. **Reruns and defects:** as D44.7 and D44.8. No waivers.
+6. **After the verdict (report only):** arm 5 at 64K on `ho2` h1–h6 and the 5 tasks; then arm 5 on the Phase 3 set (`heldout`, `ho-t1..t5`), labelled "seen set, not evidence".
