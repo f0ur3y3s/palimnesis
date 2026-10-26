@@ -82,6 +82,16 @@ def ok() -> Stream:
 
 NO_RETRY = {"x-should-retry": "false"}
 
+# A composite visible response (Phase 3B H1): two generations' reasoning and text in stream
+# order, with whitespace at the joins so trimming or separators would show.
+HS_COMPOSITE = [
+    ("role",),
+    ("reasoning", "R1 first thought ATTEMPT\n"),
+    ("text", "T1 first visible ATTEMPT."),
+    ("reasoning", "\nR2 second thought ATTEMPT\n"),
+    ("text", " T2 second visible ATTEMPT."),
+]
+
 SCENARIOS: dict[str, tuple[str, list]] = {
     "ok": ("Always a well-formed stream.", [ok()]),
     # 1. Plain 5xx
@@ -524,6 +534,96 @@ SCENARIOS: dict[str, tuple[str, list]] = {
                     ("done",),
                 ]
             )
+        ],
+    ),
+    # Hidden-stream shapes (opencode_hidden_stream_probe.py, Phase 3B H1). Attempt 1 is
+    # what Palimnesis's assembler would show the client for one visible response made of
+    # several upstream generations: one chunk id throughout, reasoning resuming after
+    # text. Every later attempt gets ok().
+    "hs_composite_stop": (
+        "H1a: reasoning, text, reasoning, text, finish stop; then OK.",
+        [Stream(HS_COMPOSITE + [("finish", "stop"), ("usage",), ("done",)]), ok()],
+    ),
+    "hs_composite_tool": (
+        "H1a': reasoning, text, reasoning, text, one read tool call, finish tool_calls; then OK.",
+        [
+            Stream(
+                HS_COMPOSITE
+                + [
+                    ("tool_call", "call_hs_1", "read", ['{"path":', '"notes.txt"}']),
+                    ("finish", "tool_calls"),
+                    ("usage",),
+                    ("done",),
+                ]
+            ),
+            ok(),
+        ],
+    ),
+    "hs_text_after_tool": (
+        "H1a3: text, one read tool call, MORE text after the call, finish tool_calls; then OK.",
+        [
+            Stream(
+                [
+                    ("role",),
+                    ("text", "T1 before the call ATTEMPT."),
+                    ("tool_call", "call_hs_1", "read", ['{"path":', '"notes.txt"}']),
+                    ("text", " T2 after the call ATTEMPT."),
+                    ("finish", "tool_calls"),
+                    ("usage",),
+                    ("done",),
+                ]
+            ),
+            ok(),
+        ],
+    ),
+    "hs_length_text": (
+        "H1b: text only, finish length; then OK.",
+        [
+            Stream(
+                [("role",), ("text", "Truncated answer ATTEMPT"), ("finish", "length"),
+                 ("usage",), ("done",)]
+            ),
+            ok(),
+        ],
+    ),
+    "hs_length_text_noretry": (
+        "H1b': text only, finish length, x-should-retry: false; then OK.",
+        [
+            Stream(
+                [("role",), ("text", "Truncated answer ATTEMPT"), ("finish", "length"),
+                 ("usage",), ("done",)],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "hs_composite_length": (
+        "H1b'': reasoning, text, reasoning, text, finish length; then OK.",
+        [Stream(HS_COMPOSITE + [("finish", "length"), ("usage",), ("done",)]), ok()],
+    ),
+    "hs_text_err_noretry": (
+        "H1c: text, error event (upstream_stream_failed), EOF, x-should-retry: false; then OK.",
+        [
+            Stream(
+                [("role",), ("text", "Partial answer ATTEMPT"),
+                 ("error", "palimnesis: upstream stream failed", "upstream_stream_failed")],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
+        ],
+    ),
+    "hs_composite_err_noretry": (
+        "H1c': reasoning, text, reasoning, text, error event, EOF, x-should-retry: false; then OK.",
+        [
+            Stream(
+                HS_COMPOSITE
+                + [("error", "palimnesis: upstream stream failed", "upstream_stream_failed")],
+                "eof",
+                NO_RETRY,
+            ),
+            ok(),
         ],
     ),
     # 8. Length

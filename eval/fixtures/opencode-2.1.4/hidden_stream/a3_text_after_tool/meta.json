@@ -1,0 +1,35 @@
+{
+  "run": "a3_text_after_tool",
+  "scenario": "hs_text_after_tool",
+  "session_id": "ses_e87122609ffeI4KdHjLgyuqNYU",
+  "turn1_requests": 2,
+  "turns": [
+    {
+      "label": "turn1",
+      "exit": 0,
+      "elapsed_s": 1.22,
+      "timeout_killed": null,
+      "events": [
+        "step_start",
+        "text",
+        "tool_use",
+        "step_finish",
+        "text"
+      ]
+    },
+    {
+      "label": "turn2",
+      "exit": 0,
+      "elapsed_s": 1.01,
+      "timeout_killed": null,
+      "events": [
+        "text"
+      ]
+    }
+  ],
+  "prompts": [
+    "First question: what is 2+2?",
+    "Next question: what is 3+3?"
+  ],
+  "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a3_text_after_tool"
+}

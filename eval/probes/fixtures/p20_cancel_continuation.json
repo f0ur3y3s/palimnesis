@@ -1,0 +1,229 @@
+{
+  "upstream": "http://192.168.1.19:8080",
+  "build_info": "Strata 0.1.48",
+  "after_ms": 1000,
+  "started": "2026-10-26T15:51:27Z",
+  "trials": [
+    {
+      "rep": 0,
+      "call1_usage": {
+        "prompt_tokens": 338,
+        "completion_tokens": 61,
+        "total_tokens": 399,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "aborted": true,
+      "first_delta_t": 0.34399999999914144,
+      "stream_elapsed_s": 1.36,
+      "deltas_received": 79,
+      "status_right_after_close": {
+        "busy": true,
+        "phase": "answering",
+        "generated": 83,
+        "max_tokens": 3000,
+        "queued": 0
+      },
+      "release_s": 0.078,
+      "release_polls": 2,
+      "tiny_ttfb_after_release_s": 0.156,
+      "tiny_timings": {
+        "cache_n": 0,
+        "prompt_n": 15,
+        "prompt_ms": 126.7,
+        "prompt_per_token_ms": 8.447,
+        "prompt_per_second": 118.4,
+        "predicted_n": 1,
+        "predicted_ms": 12.2,
+        "predicted_per_token_ms": 12.2,
+        "predicted_per_second": 82.0,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "server_records": [
+        {
+          "id": "4547d879122d",
+          "finish": "length",
+          "prompt_tokens": 15,
+          "reused": 0,
+          "prompt_read": 15,
+          "output_tokens": 1,
+          "engine_generated": 1,
+          "duration_s": 0.1,
+          "first_engine_token_s": 0.139
+        },
+        {
+          "id": "aac9ac73b17d",
+          "finish": "disconnect",
+          "prompt_tokens": 445,
+          "reused": 401,
+          "prompt_read": 44,
+          "output_tokens": 85,
+          "engine_generated": 85,
+          "duration_s": 1.4,
+          "first_engine_token_s": 0.286
+        },
+        {
+          "id": "a6995d37435c",
+          "finish": "stop",
+          "prompt_tokens": 338,
+          "reused": 0,
+          "prompt_read": 338,
+          "output_tokens": 61,
+          "engine_generated": 61,
+          "duration_s": 2.1,
+          "first_engine_token_s": 1.573
+        }
+      ]
+    },
+    {
+      "rep": 1,
+      "call1_usage": {
+        "prompt_tokens": 336,
+        "completion_tokens": 62,
+        "total_tokens": 398,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "aborted": true,
+      "first_delta_t": 0.3440000000009604,
+      "stream_elapsed_s": 1.391,
+      "deltas_received": 81,
+      "status_right_after_close": {
+        "busy": true,
+        "phase": "answering",
+        "generated": 85,
+        "max_tokens": 3000,
+        "queued": 0
+      },
+      "release_s": 0.093,
+      "release_polls": 2,
+      "tiny_ttfb_after_release_s": 0.141,
+      "tiny_timings": {
+        "cache_n": 0,
+        "prompt_n": 15,
+        "prompt_ms": 122.9,
+        "prompt_per_token_ms": 8.193,
+        "prompt_per_second": 122.1,
+        "predicted_n": 1,
+        "predicted_ms": 12.4,
+        "predicted_per_token_ms": 12.4,
+        "predicted_per_second": 80.6,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "server_records": [
+        {
+          "id": "a7fb53258021",
+          "finish": "length",
+          "prompt_tokens": 15,
+          "reused": 0,
+          "prompt_read": 15,
+          "output_tokens": 1,
+          "engine_generated": 1,
+          "duration_s": 0.1,
+          "first_engine_token_s": 0.135
+        },
+        {
+          "id": "87a641b63ddc",
+          "finish": "disconnect",
+          "prompt_tokens": 444,
+          "reused": 397,
+          "prompt_read": 47,
+          "output_tokens": 88,
+          "engine_generated": 88,
+          "duration_s": 1.4,
+          "first_engine_token_s": 0.297
+        },
+        {
+          "id": "520200613a92",
+          "finish": "stop",
+          "prompt_tokens": 336,
+          "reused": 0,
+          "prompt_read": 336,
+          "output_tokens": 62,
+          "engine_generated": 62,
+          "duration_s": 1.8,
+          "first_engine_token_s": 1.294
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "call1_usage": {
+        "prompt_tokens": 332,
+        "completion_tokens": 60,
+        "total_tokens": 392,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "aborted": true,
+      "first_delta_t": 0.375,
+      "stream_elapsed_s": 1.391,
+      "deltas_received": 87,
+      "status_right_after_close": {
+        "busy": true,
+        "phase": "answering",
+        "generated": 92,
+        "max_tokens": 3000,
+        "queued": 0
+      },
+      "release_s": 0.062,
+      "release_polls": 2,
+      "tiny_ttfb_after_release_s": 0.141,
+      "tiny_timings": {
+        "cache_n": 0,
+        "prompt_n": 15,
+        "prompt_ms": 126.5,
+        "prompt_per_token_ms": 8.433,
+        "prompt_per_second": 118.6,
+        "predicted_n": 1,
+        "predicted_ms": 12.5,
+        "predicted_per_token_ms": 12.5,
+        "predicted_per_second": 80.0,
+        "draft_n": 0,
+        "draft_n_accepted": 0
+      },
+      "server_records": [
+        {
+          "id": "2b6169ea7b3d",
+          "finish": "length",
+          "prompt_tokens": 15,
+          "reused": 0,
+          "prompt_read": 15,
+          "output_tokens": 1,
+          "engine_generated": 1,
+          "duration_s": 0.1,
+          "first_engine_token_s": 0.139
+        },
+        {
+          "id": "cf325d913786",
+          "finish": "disconnect",
+          "prompt_tokens": 438,
+          "reused": 393,
+          "prompt_read": 45,
+          "output_tokens": 93,
+          "engine_generated": 93,
+          "duration_s": 1.4,
+          "first_engine_token_s": 0.294
+        },
+        {
+          "id": "d8184ae4f785",
+          "finish": "stop",
+          "prompt_tokens": 332,
+          "reused": 0,
+          "prompt_read": 332,
+          "output_tokens": 60,
+          "engine_generated": 60,
+          "duration_s": 1.8,
+          "first_engine_token_s": 1.299
+        }
+      ]
+    }
+  ],
+  "slot_seconds": 10.6,
+  "finished": "2026-10-26T15:51:46Z"
+}

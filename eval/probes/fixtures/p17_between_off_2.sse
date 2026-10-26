@@ -1,0 +1,36 @@
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": null}]}
+
+: keep-alive
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "call"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": " get"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "_weather"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": " for"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": " city"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "="}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"content": "Paris"}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "id": "call_43964effd89742178967e2e4", "type": "function", "function": {"name": "get_weather", "arguments": ""}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{"}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\"city\":"}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\""}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "Paris"}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\""}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"arguments": "}"}}]}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-082a1273a2b64321a1db498a", "object": "chat.completion.chunk", "created": 1793029264, "model": "qwen3.8-flash-next-iq3_xxs", "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}], "usage": {"prompt_tokens": 407, "completion_tokens": 34, "total_tokens": 441, "prompt_tokens_details": {"cached_tokens": 400}}, "timings": {"cache_n": 400, "prompt_n": 7, "prompt_ms": 37.9, "prompt_per_token_ms": 5.414, "prompt_per_second": 184.7, "predicted_n": 34, "predicted_ms": 257.7, "predicted_per_token_ms": 7.579, "predicted_per_second": 131.9, "draft_n": 24, "draft_n_accepted": 23}}
+
+data: [DONE]
+

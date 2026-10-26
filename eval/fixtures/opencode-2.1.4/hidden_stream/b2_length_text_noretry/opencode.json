@@ -1,0 +1,48 @@
+{
+  "model": "palimnesis/qwen3.8-flash-next-iq3_xxs",
+  "update": "disable",
+  "share": "disabled",
+  "compaction": {
+    "auto": false
+  },
+  "agents": {
+    "title": {
+      "disabled": true
+    }
+  },
+  "permissions": [
+    {
+      "action": "subagent",
+      "resource": "*",
+      "effect": "deny"
+    }
+  ],
+  "providers": {
+    "palimnesis": {
+      "name": "Palimnesis",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:18802/v1",
+        "apiKey": "palimnesis-local"
+      },
+      "compatibility": {
+        "reasoningField": "reasoning_content"
+      },
+      "models": {
+        "qwen3.8-flash-next-iq3_xxs": {
+          "name": "Qwen3.8 Flash Next (Strata via Palimnesis)",
+          "capabilities": {
+            "tools": true,
+            "reasoning": {
+              "supported": true
+            }
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}

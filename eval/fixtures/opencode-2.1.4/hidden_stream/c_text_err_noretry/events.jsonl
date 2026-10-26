@@ -1,0 +1,21 @@
+{"t": 0.016, "wall": 1793030068.4944873, "event": "listening", "scenario": "hs_text_err_noretry", "port": 18804, "description": "H1c: text, error event (upstream_stream_failed), EOF, x-should-retry: false; then OK."}
+{"t": 0.375, "wall": 1793030068.8565168, "event": "connect", "conn": 1, "peer": ["127.0.0.1", 55217]}
+{"t": 0.375, "wall": 1793030068.8594568, "event": "disconnect", "conn": 1}
+{"t": 1.25, "wall": 1793030069.7425442, "event": "connect", "conn": 2, "peer": ["127.0.0.1", 55237]}
+{"t": 1.25, "wall": 1793030069.7435849, "event": "headers_sent", "seq": 2, "attempt": 1}
+{"t": 1.25, "wall": 1793030069.7435849, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["role"]}
+{"t": 1.266, "wall": 1793030069.7445438, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["text", "Partial answer ATTEMPT"]}
+{"t": 1.266, "wall": 1793030069.7445438, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["error", "palimnesis: upstream stream failed", "upstream_stream_failed"]}
+{"t": 1.266, "wall": 1793030069.7445438, "event": "stream_end", "seq": 2, "attempt": 1, "end": "eof"}
+{"t": 1.469, "wall": 1793030069.956828, "event": "conn_error", "conn": 2, "error": "ConnectionResetError(22, 'The specified network name is no longer available', None, 64, None)"}
+{"t": 1.469, "wall": 1793030069.956828, "event": "disconnect", "conn": 2}
+{"t": 3.328, "wall": 1793030071.8121498, "event": "connect", "conn": 3, "peer": ["127.0.0.1", 55276]}
+{"t": 3.328, "wall": 1793030071.8131561, "event": "headers_sent", "seq": 3, "attempt": 2}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["role"]}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["text", "OK from fault server"]}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["finish", "stop"]}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["usage"]}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["done"]}
+{"t": 3.328, "wall": 1793030071.8141565, "event": "stream_end", "seq": 3, "attempt": 2, "end": "eof"}
+{"t": 3.547, "wall": 1793030072.0361497, "event": "conn_error", "conn": 3, "error": "ConnectionResetError(22, 'The specified network name is no longer available', None, 64, None)"}
+{"t": 3.547, "wall": 1793030072.0361497, "event": "disconnect", "conn": 3}

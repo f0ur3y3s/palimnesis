@@ -1,0 +1,176 @@
+{
+  "info": {
+    "id": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+    "projectID": "e0430dcce8429ddd7bad917a98e6977ea271fb0e",
+    "cost": 0,
+    "tokens": {
+      "input": 30,
+      "output": 15,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793030064224,
+      "updated": 1793030066503,
+      "idle": 1793030066505
+    },
+    "location": {
+      "directory": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\b3_composite_length\\work"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_178eb8867001Ruh06ZH6ALGobh",
+      "time": {
+        "created": 1793030064310
+      },
+      "text": "First question: what is 2+2?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eb88bc001UIyHXs2tZj0rjd",
+      "time": {
+        "created": 1793030064333,
+        "streamed": 1793030064416,
+        "completed": 1793030064417
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+          "native": {
+            "reasoningField": "reasoning_content"
+          },
+          "time": {
+            "created": 1793030064406,
+            "completed": 1793030064413
+          }
+        },
+        {
+          "type": "text",
+          "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+        }
+      ],
+      "finish": "length",
+      "rawFinish": "length",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eb8923001QDHfgnqcJ6LR5k",
+      "time": {
+        "created": 1793030064419
+      },
+      "text": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+      "type": "synthetic"
+    },
+    {
+      "id": "msg_178eb8923002Y6sDLt6VO4jhf3",
+      "time": {
+        "created": 1793030064430,
+        "streamed": 1793030064440,
+        "completed": 1793030064441
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eb893c001959fAMyN9nmTYf",
+      "time": {
+        "created": 1793030064444
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_178eb8fc9001UHuTY0qiWpEznA",
+      "time": {
+        "created": 1793030066406
+      },
+      "text": "Next question: what is 3+3?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eb90ee001jiOTf4EXTzYpNC",
+      "time": {
+        "created": 1793030066430,
+        "streamed": 1793030066502,
+        "completed": 1793030066503
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eb91490012mFzG4Xm8IchxQ",
+      "time": {
+        "created": 1793030066505
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    }
+  ]
+}

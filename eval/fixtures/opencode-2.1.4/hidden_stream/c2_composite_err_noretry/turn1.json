@@ -1,0 +1,46 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030074.3065498,
+  "exit": 1,
+  "ended": 1793030075.4700131,
+  "elapsed_s": 1.16,
+  "stderr": "",
+  "events": [
+    {
+      "type": "error",
+      "timestamp": 1793030075287,
+      "sessionID": "ses_e87144e2dffefzT68pd8ftanvM",
+      "error": {
+        "type": "provider.internal",
+        "message": "palimnesis: upstream stream failed",
+        "status": 200,
+        "response": {
+          "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+        }
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030075286,
+      "sessionID": "ses_e87144e2dffefzT68pd8ftanvM",
+      "part": {
+        "id": "prt_178ebb332001fwy5TRZnKCGC2L_text-0",
+        "sessionID": "ses_e87144e2dffefzT68pd8ftanvM",
+        "messageID": "msg_178ebb332001fwy5TRZnKCGC2L",
+        "type": "text",
+        "text": "T1 first visible attempt-1. T2 second visible attempt-1.",
+        "time": {
+          "start": 1793030075203,
+          "end": 1793030075286
+        }
+      }
+    }
+  ]
+}

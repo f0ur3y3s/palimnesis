@@ -1,0 +1,30 @@
+{"t": 0.0, "wall": 1793030052.1586013, "event": "listening", "scenario": "hs_length_text", "port": 18801, "description": "H1b: text only, finish length; then OK."}
+{"t": 0.359, "wall": 1793030052.5249343, "event": "connect", "conn": 1, "peer": ["127.0.0.1", 55089]}
+{"t": 0.375, "wall": 1793030052.5279794, "event": "disconnect", "conn": 1}
+{"t": 1.297, "wall": 1793030053.4495463, "event": "connect", "conn": 2, "peer": ["127.0.0.1", 55099]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "headers_sent", "seq": 2, "attempt": 1}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["role"]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["text", "Truncated answer ATTEMPT"]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["finish", "length"]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["usage"]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "step_sent", "seq": 2, "attempt": 1, "step": ["done"]}
+{"t": 1.297, "wall": 1793030053.4517345, "event": "stream_end", "seq": 2, "attempt": 1, "end": "eof"}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "headers_sent", "seq": 3, "attempt": 2}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["role"]}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["text", "OK from fault server"]}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["finish", "stop"]}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["usage"]}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "step_sent", "seq": 3, "attempt": 2, "step": ["done"]}
+{"t": 1.391, "wall": 1793030053.5465782, "event": "stream_end", "seq": 3, "attempt": 2, "end": "eof"}
+{"t": 1.547, "wall": 1793030053.6982324, "event": "conn_error", "conn": 2, "error": "ConnectionResetError(22, 'The specified network name is no longer available', None, 64, None)"}
+{"t": 1.547, "wall": 1793030053.6982324, "event": "disconnect", "conn": 2}
+{"t": 3.391, "wall": 1793030055.5501978, "event": "connect", "conn": 3, "peer": ["127.0.0.1", 55107]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "headers_sent", "seq": 4, "attempt": 3}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "step_sent", "seq": 4, "attempt": 3, "step": ["role"]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "step_sent", "seq": 4, "attempt": 3, "step": ["text", "OK from fault server"]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "step_sent", "seq": 4, "attempt": 3, "step": ["finish", "stop"]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "step_sent", "seq": 4, "attempt": 3, "step": ["usage"]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "step_sent", "seq": 4, "attempt": 3, "step": ["done"]}
+{"t": 3.391, "wall": 1793030055.5513363, "event": "stream_end", "seq": 4, "attempt": 3, "end": "eof"}
+{"t": 3.609, "wall": 1793030055.7606664, "event": "conn_error", "conn": 3, "error": "ConnectionResetError(22, 'The specified network name is no longer available', None, 64, None)"}
+{"t": 3.609, "wall": 1793030055.7606664, "event": "disconnect", "conn": 3}

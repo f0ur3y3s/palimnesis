@@ -1,0 +1,115 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030063.4281964,
+  "exit": 0,
+  "ended": 1793030064.63983,
+  "elapsed_s": 1.21,
+  "stderr": "",
+  "events": [
+    {
+      "type": "step_start",
+      "timestamp": 1793030064403,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb8913001isoj100OlGq7Ot",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb88bc001UIyHXs2tZj0rjd",
+        "type": "step-start"
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030064414,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb8919002uJV2pfhVv344XJ",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb88bc001UIyHXs2tZj0rjd",
+        "type": "text",
+        "text": "T1 first visible attempt-1. T2 second visible attempt-1.",
+        "time": {
+          "start": 1793030064409,
+          "end": 1793030064414
+        }
+      }
+    },
+    {
+      "type": "step_finish",
+      "timestamp": 1793030064417,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb89210017Dh9DWjfcRcFKQ",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb88bc001UIyHXs2tZj0rjd",
+        "type": "step-finish",
+        "reason": "length",
+        "cost": 0,
+        "tokens": {
+          "input": 10,
+          "output": 5,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      }
+    },
+    {
+      "type": "step_start",
+      "timestamp": 1793030064436,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb89340010bfSB2DhJOTN6F",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb8923002Y6sDLt6VO4jhf3",
+        "type": "step-start"
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030064439,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb8935001eIGjKBpCx1R0Be",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb8923002Y6sDLt6VO4jhf3",
+        "type": "text",
+        "text": "OK from fault server",
+        "time": {
+          "start": 1793030064437,
+          "end": 1793030064439
+        }
+      }
+    },
+    {
+      "type": "step_finish",
+      "timestamp": 1793030064441,
+      "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "part": {
+        "id": "prt_178eb8939001RBo0gs0Wv60TZ0",
+        "sessionID": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+        "messageID": "msg_178eb8923002Y6sDLt6VO4jhf3",
+        "type": "step-finish",
+        "reason": "stop",
+        "cost": 0,
+        "tokens": {
+          "input": 10,
+          "output": 5,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      }
+    }
+  ]
+}

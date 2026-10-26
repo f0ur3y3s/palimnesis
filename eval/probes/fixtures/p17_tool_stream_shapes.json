@@ -1,0 +1,4601 @@
+{
+  "upstream": "http://192.168.1.19:8080",
+  "build_info": "Strata 0.1.48",
+  "n_ctx": 65536,
+  "started": "2026-10-26T15:38:58Z",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read a text file from the workspace.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write_file",
+        "description": "Write a text file to the workspace.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ]
+        }
+      }
+    }
+  ],
+  "cases": {
+    "single_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "What's the weather in Paris right now? Use the tool."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 394,
+            "completion_tokens": 26,
+            "total_tokens": 420,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_bd60dd21b79e4b12b07e2a77",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.14,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.672,
+          "last_data_t": 1.812,
+          "elapsed_s": 1.812
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 394,
+            "completion_tokens": 26,
+            "total_tokens": 420,
+            "prompt_tokens_details": {
+              "cached_tokens": 387
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_5bae381de0694eae95085991",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.141,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.14,
+          "last_data_t": 0.281,
+          "elapsed_s": 0.281
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 394,
+            "completion_tokens": 26,
+            "total_tokens": 420,
+            "prompt_tokens_details": {
+              "cached_tokens": 387
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_f4e7a7e0bd5a4764b9f9a50e",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 0.25,
+          "elapsed_s": 0.25
+        }
+      ]
+    },
+    "single_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "What's the weather in Paris right now? Use the tool."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              32
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 418,
+            "completion_tokens": 60,
+            "total_tokens": 478,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 146,
+          "reasoning_tail": "The user wants the current weather in Paris. I have a get_weather tool that takes a city parameter. This is a direct, single dependent-free call.\n",
+          "calls": [
+            {
+              "id": "call_bc6bcc07eec24cd7a94b2040",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.109,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.469,
+          "last_data_t": 2.187,
+          "elapsed_s": 2.187
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              27
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 418,
+            "completion_tokens": 55,
+            "total_tokens": 473,
+            "prompt_tokens_details": {
+              "cached_tokens": 413
+            }
+          },
+          "content": "",
+          "reasoning_chars": 114,
+          "reasoning_tail": "The user wants the current weather in Paris. I have a get_weather tool available. I'll call it with city \"Paris\".\n",
+          "calls": [
+            {
+              "id": "call_e8f44e49b4c94578aecf1c49",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.109,
+          "last_data_t": 0.578,
+          "elapsed_s": 0.578
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              27
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 418,
+            "completion_tokens": 55,
+            "total_tokens": 473,
+            "prompt_tokens_details": {
+              "cached_tokens": 413
+            }
+          },
+          "content": "",
+          "reasoning_chars": 114,
+          "reasoning_tail": "The user wants the current weather in Paris. I have a get_weather tool available. I'll call it with city \"Paris\".\n",
+          "calls": [
+            {
+              "id": "call_4b096a53236a4041a67a8e78",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.109,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.094,
+          "last_data_t": 0.5,
+          "elapsed_s": 0.5
+        }
+      ]
+    },
+    "parallel_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Get the current weather for Paris, Oslo and Lima. Call get_weather once per city, all three calls in this one response, before any answer."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 411,
+            "completion_tokens": 80,
+            "total_tokens": 491,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_fcbe5ed8619c4f8ba84bafd7",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_83e5cdbd1c0e4ba388c8a807",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_fdfca040b34f46949b07d844",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.562,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 1.469,
+          "last_data_t": 2.047,
+          "elapsed_s": 2.047
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 411,
+            "completion_tokens": 80,
+            "total_tokens": 491,
+            "prompt_tokens_details": {
+              "cached_tokens": 404
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_5d627e532a0d4775977b2cec",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_3647c1a601ad4a9e9bb3b879",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_2c5ab1d711e940ec9eff603e",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.453,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 0.11,
+          "last_data_t": 0.563,
+          "elapsed_s": 0.563
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 411,
+            "completion_tokens": 80,
+            "total_tokens": 491,
+            "prompt_tokens_details": {
+              "cached_tokens": 404
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_21f63428bf9d439daca9c18d",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_68491f51a4ca4c7e8acdcdf2",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_71c8d83f164447c78f7e0619",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.422,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 0.109,
+          "last_data_t": 0.531,
+          "elapsed_s": 0.531
+        }
+      ]
+    },
+    "parallel_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Get the current weather for Paris, Oslo and Lima. Call get_weather once per city, all three calls in this one response, before any answer."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              58
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 435,
+            "completion_tokens": 140,
+            "total_tokens": 575,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 276,
+          "reasoning_tail": " in one response, before any answer text. Since these are independent calls with no dependencies between them, I should make all three calls in the same block.\n",
+          "calls": [
+            {
+              "id": "call_c5102ecb76bc450ca5b57d9d",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_212d539dd3df4511a2d79b03",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_7d6aa02cb1854f948592b0b5",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.437,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 1.485,
+          "last_data_t": 2.703,
+          "elapsed_s": 2.703
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              35
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 435,
+            "completion_tokens": 117,
+            "total_tokens": 552,
+            "prompt_tokens_details": {
+              "cached_tokens": 430
+            }
+          },
+          "content": "",
+          "reasoning_chars": 154,
+          "reasoning_tail": "The user wants me to call get_weather three times, one for each city (Paris, Oslo, Lima), all in a single response block since they're independent calls.\n",
+          "calls": [
+            {
+              "id": "call_b7f4b73c92c4487f9c09e54f",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_c77e76263c034a6bb4abf1d0",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_249ff1bdfb684e5680719f0d",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.453,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 0.11,
+          "last_data_t": 1.0,
+          "elapsed_s": 1.0
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              39
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "tool[2]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 435,
+            "completion_tokens": 121,
+            "total_tokens": 556,
+            "prompt_tokens_details": {
+              "cached_tokens": 430
+            }
+          },
+          "content": "",
+          "reasoning_chars": 178,
+          "reasoning_tail": "to get the weather for three cities: Paris, Oslo, and Lima. They want all three calls made in a single response block since they are independent of each other.\n",
+          "calls": [
+            {
+              "id": "call_5ea1b67e684b4c959d10622c",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_aefa81e3348c43839d80ff0e",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_1b3321944cec40359bdb19a5",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Lima\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "2": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.469,
+          "n_tool_deltas": 23,
+          "first_data_after_role_t": 0.063,
+          "last_data_t": 0.985,
+          "elapsed_s": 0.985
+        }
+      ]
+    },
+    "after_a_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Call get_weather for Paris. In the same response, AFTER the tool call, write the sentence 'Request sent, waiting for the result.'"
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 409,
+            "completion_tokens": 26,
+            "total_tokens": 435,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_be0cbd5299c34273be3bf5aa",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.468,
+          "last_data_t": 1.609,
+          "elapsed_s": 1.609
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 409,
+            "completion_tokens": 26,
+            "total_tokens": 435,
+            "prompt_tokens_details": {
+              "cached_tokens": 402
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_4be71222ca7146cda5a49a66",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.109,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.141,
+          "last_data_t": 0.266,
+          "elapsed_s": 0.266
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 409,
+            "completion_tokens": 26,
+            "total_tokens": 435,
+            "prompt_tokens_details": {
+              "cached_tokens": 402
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_4260f57160af44ef83f0ad0d",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.11,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 0.25,
+          "elapsed_s": 0.25
+        }
+      ]
+    },
+    "after_a_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Call get_weather for Paris. In the same response, AFTER the tool call, write the sentence 'Request sent, waiting for the result.'"
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              62
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "content",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 433,
+            "completion_tokens": 99,
+            "total_tokens": 532,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "Request sent, waiting for the result.",
+          "reasoning_chars": 254,
+          "reasoning_tail": "r the tool call, write the sentence 'Request sent, waiting for the result.'\n\nI can do both in the same response - make the tool call and include text after it.\n",
+          "calls": [
+            {
+              "id": "call_35065129876c4a5c8a414d48",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [
+            "content"
+          ],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.094,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.5,
+          "last_data_t": 2.391,
+          "elapsed_s": 2.391
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              31
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "content",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 433,
+            "completion_tokens": 68,
+            "total_tokens": 501,
+            "prompt_tokens_details": {
+              "cached_tokens": 428
+            }
+          },
+          "content": "Request sent, waiting for the result.",
+          "reasoning_chars": 141,
+          "reasoning_tail": "The user wants me to call get_weather for Paris and then write a specific sentence after the tool call. Let me do both in the same response.\n",
+          "calls": [
+            {
+              "id": "call_50e7a2616a5e4d368d426673",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [
+            "content"
+          ],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.093,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.062,
+          "last_data_t": 0.531,
+          "elapsed_s": 0.531
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              52
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "content",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 433,
+            "completion_tokens": 89,
+            "total_tokens": 522,
+            "prompt_tokens_details": {
+              "cached_tokens": 428
+            }
+          },
+          "content": "Request sent, waiting for the result.",
+          "reasoning_chars": 208,
+          "reasoning_tail": "esponse:\n1. Call get_weather for Paris\n2. After the tool call, write the sentence 'Request sent, waiting for the result.'\n\nLet me do both in the same response.\n",
+          "calls": [
+            {
+              "id": "call_0d3a6a7149374774bc46a4ed",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [
+            "content"
+          ],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.094,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.078,
+          "last_data_t": 0.703,
+          "elapsed_s": 0.703
+        }
+      ]
+    },
+    "after_b_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Do these three steps in this exact order within one response: 1) call read_file on notes/a.txt; 2) write one sentence saying what you expect a.txt to contain; 3) call read_file on notes/b.txt."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 430,
+            "completion_tokens": 27,
+            "total_tokens": 457,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_408853f8be7c442194ff9e7f",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.156,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 1.484,
+          "last_data_t": 1.64,
+          "elapsed_s": 1.64
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 430,
+            "completion_tokens": 27,
+            "total_tokens": 457,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_31042f1e040c4fb38c7e10ea",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.141,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 0.14,
+          "last_data_t": 0.281,
+          "elapsed_s": 0.281
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 430,
+            "completion_tokens": 27,
+            "total_tokens": 457,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_eb1bd80b62b1425cbfa725b9",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.109,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 0.234,
+          "elapsed_s": 0.234
+        }
+      ]
+    },
+    "after_b_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Do these three steps in this exact order within one response: 1) call read_file on notes/a.txt; 2) write one sentence saying what you expect a.txt to contain; 3) call read_file on notes/b.txt."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              104
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 454,
+            "completion_tokens": 133,
+            "total_tokens": 587,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 388,
+          "reasoning_tail": " requires me to see the result of step 1 first. So I need to do step 1 first, get the result, then write my sentence, then do step 3. Let me start with step 1.\n",
+          "calls": [
+            {
+              "id": "call_0d9a49417d97439881569987",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 1.515,
+          "last_data_t": 2.625,
+          "elapsed_s": 2.625
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              375
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 454,
+            "completion_tokens": 404,
+            "total_tokens": 858,
+            "prompt_tokens_details": {
+              "cached_tokens": 449
+            }
+          },
+          "content": "",
+          "reasoning_chars": 1458,
+          "reasoning_tail": " step 3 together... but the user says \"in this exact order\" which means step 3 must come after step 2. So I'll do them sequentially.\n\nLet me start with step 1.\n",
+          "calls": [
+            {
+              "id": "call_dff47355a7c44e538f209067",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.235,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 0.078,
+          "last_data_t": 3.562,
+          "elapsed_s": 3.562
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              330
+            ],
+            [
+              "tool[0]",
+              9
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 454,
+            "completion_tokens": 359,
+            "total_tokens": 813,
+            "prompt_tokens_details": {
+              "cached_tokens": 449
+            }
+          },
+          "content": "",
+          "reasoning_chars": 1328,
+          "reasoning_tail": "iterally: read a.txt first, then state what I expect it to contain (which will be informed by what I actually saw), then read b.txt.\n\nLet me start with step 1.\n",
+          "calls": [
+            {
+              "id": "call_278b2f5a76454b98b0516397",
+              "type": "function",
+              "name": "read_file",
+              "arguments": "{\"path\":\"notes/a.txt\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.234,
+          "n_tool_deltas": 9,
+          "first_data_after_role_t": 0.094,
+          "last_data_t": 3.188,
+          "elapsed_s": 3.188
+        }
+      ]
+    },
+    "length_args_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 40,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Use write_file to create poem.txt containing an original 30-line poem about rivers. Call the tool directly."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "tool[0]",
+              22
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 404,
+            "completion_tokens": 40,
+            "total_tokens": 444,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_183199abe2b547e5b1452c0d",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"The River's Long Memory\\n\\nFrom cracks in stone where snow",
+              "arguments_json_ok": false
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.485,
+          "n_tool_deltas": 22,
+          "first_data_after_role_t": 1.578,
+          "last_data_t": 2.063,
+          "elapsed_s": 2.063
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              22
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 404,
+            "completion_tokens": 40,
+            "total_tokens": 444,
+            "prompt_tokens_details": {
+              "cached_tokens": 397
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_4c8a9ffc3f8a42b28ee226f1",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"The River's Long Remembering\\n\\nFrom cracked and secret mountain",
+              "arguments_json_ok": false
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.328,
+          "n_tool_deltas": 22,
+          "first_data_after_role_t": 0.141,
+          "last_data_t": 0.469,
+          "elapsed_s": 0.469
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              21
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 404,
+            "completion_tokens": 40,
+            "total_tokens": 444,
+            "prompt_tokens_details": {
+              "cached_tokens": 397
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_c06439b0c8964d39adbbccd8",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"A river wakes in mountain snow,\\na silver thread through",
+              "arguments_json_ok": false
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.328,
+          "n_tool_deltas": 21,
+          "first_data_after_role_t": 0.141,
+          "last_data_t": 0.469,
+          "elapsed_s": 0.469
+        }
+      ]
+    },
+    "length_args_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Use write_file to create poem.txt containing an original 30-line poem about rivers. Call the tool directly."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              82
+            ],
+            [
+              "tool[0]",
+              324
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 458,
+            "total_tokens": 886,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 336,
+          "reasoning_tail": "poem about rivers and then use the write_file tool to create it.\n\nLet me craft a 30-line poem about rivers, counting carefully to ensure it's exactly 30 lines.\n",
+          "calls": [
+            {
+              "id": "call_21041b96e0194b0188755bad",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"The river wakes beneath the mountain's crown,\\na silver thread unraveling from stone,\\nit tumbles past the roots of ancient yew\\nand carries songs no human hand has sown.\\n\\nIt pulls the fog from valleys, thin and grey,\\nand braids the light through willows hanging low,\\neach bend a sentence written over years\\nin cursive loops the slow current knows.\\n\\nThe river has no need of destination,\\nit only knows the pull toward the sea,\\nit swallows rain, absorbs the melting snow,\\nand wears the colour of the land it frees.\\n\\nAt dusk the heron stitches stillness in,\\nthe water mirrors every cloud that drifts,\\nthe river holds the sky like memory\\u2014\\na blue so deep it aches where daylight lifts.\\n\\nAt night it speaks in murmurs on the bank,\\na language made of pebble, reed, and stone,\\nthe moon leans down to read the surface script\\nand watches how the silver currents sown.\\n\\nThe river bends but never learns to break,\\nit turns the hardest boulder into sand,\\nit wears away the pride of cliff and hill\\nand offers what remains into your hand.\\n\\nSo walk beside it when the world is loud,\\nit speaks a older, unhurried tongue,\\nand if you lean in close the river says\\nthe only way to move is to be young.\\n\\nIt carries every sorrow toward the sea,\\ndissolves the salt of grief into the tide,\\nand in its endless flowing tells the truth\\u2014\\nno river stops, and neither must the tide.\\n\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 4.031,
+          "n_tool_deltas": 324,
+          "first_data_after_role_t": 1.515,
+          "last_data_t": 6.531,
+          "elapsed_s": 6.531
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              54
+            ],
+            [
+              "tool[0]",
+              285
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 388,
+            "total_tokens": 816,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 226,
+          "reasoning_tail": "l 30-line poem about rivers. I need to write this directly using the write_file tool. Let me compose a 30-line poem about rivers and then write it to the file.\n",
+          "calls": [
+            {
+              "id": "call_3dce8a469cf147b6b5895ce8",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"The river wakes beneath the mountain's crown,\\nA silver thread unspooling from the stone,\\nIt tumbles past the roots of ancient trees\\nAnd carves its name in valleys carved alone.\\n\\nIt pulls the light of morning to its bed,\\nWhere minnows trace the patterns of the sun,\\nAnd every bend becomes a secret held\\nBy currents that have learned to run and run.\\n\\nThe river carries what the land has lost\\u2014\\nThe silt of fields, the leaves of autumn's grief,\\nIt stitches towns to towns with liquid thread,\\nAnd offers passage to the past beliefs.\\n\\nAt dusk the river turns to hammered bronze,\\nThe heron stands like punctuation there,\\nThe water writes its slow, reflective prose\\nOn every bank with patience beyond prayer.\\n\\nAt night the river is a dark refrain,\\nA music made of murmur, not of song,\\nIt folds the moon into its moving brain\\nAnd hums the hours until they belong.\\n\\nIt does not rest, it does not ask, it goes,\\nIt finds the sea the way a word finds rest,\\nAnd where it ends, the world begins again\\u2014\\nA delta of beginnings, wide and blessed.\\n\\nSo I have learned to listen to its way,\\nTo let it pull me toward the open shore,\\nFor rivers teach us how to melt delay,\\nAnd how to become vast by evermore.\\n\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 3.563,
+          "n_tool_deltas": 285,
+          "first_data_after_role_t": 0.109,
+          "last_data_t": 4.375,
+          "elapsed_s": 4.375
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              48
+            ],
+            [
+              "tool[0]",
+              272
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 375,
+            "total_tokens": 803,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 200,
+          "reasoning_tail": "d poem.txt with an original 30-line poem about rivers. I need to write the poem directly using the write_file tool. Let me compose a 30-line poem about rivers.\n",
+          "calls": [
+            {
+              "id": "call_3581b440507a483faf498525",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"The river speaks in a language old as stone,\\ncarving its story through the patient earth,\\na silver thread that stitches field to field,\\nand carries autumn leaves like whispered worth.\\nIt tumbles over boulders worn to grace,\\nand pools beneath the willow's trailing hair,\\nwhere kingfishers like living jewels descend\\nto snatch the silver minnows from the air.\\nThe river knows the secrets of the rain,\\nthe mountain snowmelt, glacier's slow retreat,\\nit gathers every tributary song\\nuntil the chorus becomes wild and sweet.\\nAt dawn the mist rises like a prayer,\\nthe heron stands as still as carved stone saints,\\nand dragonflies stitch the current with their wings,\\nwhile sunlight breaks the surface into paints.\\nThe river carries silt from ancient hills,\\na memory of centuries dissolved,\\nit feeds the roots of cottonwoods and reeds,\\nand solves the puzzle that the drought resolved.\\nAt night the river wears the stars as beads,\\na mirror for the moon's quiet descent,\\nand frogs compose their rhythmic, liquid hymns,\\nwhile current hums a deep, contentment.\\nThe river does not rest, does not retreat,\\nit only bends to find a softer way,\\nand in its endless journey toward the sea,\\nit teaches us how time and patience pray.\\n\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 3.407,
+          "n_tool_deltas": 272,
+          "first_data_after_role_t": 0.109,
+          "last_data_t": 4.219,
+          "elapsed_s": 4.219
+        }
+      ]
+    },
+    "sandwich_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Reply in exactly this order: first the text 'Checking now.', then a get_weather tool call for Paris, then the text 'Done.' after the call."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 413,
+            "completion_tokens": 30,
+            "total_tokens": 443,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_5b1e8e8825e448d2ba421b54",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.234,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.765,
+          "last_data_t": 2.109,
+          "elapsed_s": 2.109
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 413,
+            "completion_tokens": 30,
+            "total_tokens": 443,
+            "prompt_tokens_details": {
+              "cached_tokens": 406
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_3661b356e1654544a75ad3cd",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.188,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 0.391,
+          "elapsed_s": 0.391
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 413,
+            "completion_tokens": 30,
+            "total_tokens": 443,
+            "prompt_tokens_details": {
+              "cached_tokens": 406
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_80b7a0303fc64e50a84d613b",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.157,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.11,
+          "last_data_t": 0.329,
+          "elapsed_s": 0.329
+        }
+      ]
+    },
+    "sandwich_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Reply in exactly this order: first the text 'Checking now.', then a get_weather tool call for Paris, then the text 'Done.' after the call."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              50
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 437,
+            "completion_tokens": 82,
+            "total_tokens": 519,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 186,
+          "reasoning_tail": "irst output the text 'Checking now.'\n2. Then make a get_weather tool call for Paris\n3. Then output 'Done.' after the tool call\n\nLet me follow this exact order.\n",
+          "calls": [
+            {
+              "id": "call_3fda05389fb1431c8554ea08",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.484,
+          "last_data_t": 2.297,
+          "elapsed_s": 2.297
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              53
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 437,
+            "completion_tokens": 85,
+            "total_tokens": 522,
+            "prompt_tokens_details": {
+              "cached_tokens": 432
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 200,
+          "reasoning_tail": "e text 'Checking now.'\n2. Then call the get_weather tool for Paris\n3. Then output the text 'Done.' after the call\n\nLet me do this in the exact order specified.\n",
+          "calls": [
+            {
+              "id": "call_4c35a1be2ad44b029e9bd171",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.093,
+          "last_data_t": 0.734,
+          "elapsed_s": 0.734
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              51
+            ],
+            [
+              "content",
+              3
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 437,
+            "completion_tokens": 83,
+            "total_tokens": 520,
+            "prompt_tokens_details": {
+              "cached_tokens": 432
+            }
+          },
+          "content": "Checking now.",
+          "reasoning_chars": 190,
+          "reasoning_tail": " output the text 'Checking now.'\n2. Then make a get_weather tool call for Paris\n3. Then output the text 'Done.' after the call\n\nLet me follow this exact order.\n",
+          "calls": [
+            {
+              "id": "call_9e467959c52e4bf4b93f0f8e",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.094,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.078,
+          "last_data_t": 0.672,
+          "elapsed_s": 0.672
+        }
+      ]
+    },
+    "between_off": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 512,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "none",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "In one response: call get_weather for Paris, then write the text 'and now Oslo:', then call get_weather for Oslo."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "content",
+              12
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 407,
+            "completion_tokens": 39,
+            "total_tokens": 446,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "I'll make both weather calls simultaneously since they're independent:",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_98f32c28b3b5487694753453",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.125,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.438,
+          "last_data_t": 1.797,
+          "elapsed_s": 1.797
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 407,
+            "completion_tokens": 26,
+            "total_tokens": 433,
+            "prompt_tokens_details": {
+              "cached_tokens": 400
+            }
+          },
+          "content": "",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_66b53490bc2a431f91c75fdb",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.141,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.109,
+          "last_data_t": 0.25,
+          "elapsed_s": 0.25
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "content",
+              7
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 407,
+            "completion_tokens": 34,
+            "total_tokens": 441,
+            "prompt_tokens_details": {
+              "cached_tokens": 400
+            }
+          },
+          "content": "call get_weather for city=Paris",
+          "reasoning_chars": 0,
+          "reasoning_tail": "",
+          "calls": [
+            {
+              "id": "call_43964effd89742178967e2e4",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.078,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 0.078,
+          "last_data_t": 0.328,
+          "elapsed_s": 0.328
+        }
+      ]
+    },
+    "between_on": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 1024,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "In one response: call get_weather for Paris, then write the text 'and now Oslo:', then call get_weather for Oslo."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              431
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 431,
+            "completion_tokens": 459,
+            "total_tokens": 890,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 1938,
+          "reasoning_tail": "dent calls should be in the same block. Since Oslo doesn't depend on Paris, I'll put both in one block and include the text in between as regular message text.\n",
+          "calls": [
+            {
+              "id": "call_1342b99ff532419dbbd8b536",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.234,
+          "n_tool_deltas": 7,
+          "first_data_after_role_t": 1.453,
+          "last_data_t": 6.281,
+          "elapsed_s": 6.281
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              469
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "content",
+              4
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 431,
+            "completion_tokens": 529,
+            "total_tokens": 960,
+            "prompt_tokens_details": {
+              "cached_tokens": 426
+            }
+          },
+          "content": "and now Oslo:",
+          "reasoning_chars": 2052,
+          "reasoning_tail": " re-reading more carefully: the user wants me to do these three things in one response. I'll put both independent calls in the same block and include the text.\n",
+          "calls": [
+            {
+              "id": "call_ba9a9988e2ab4f1e9c628698",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_8517e90e00394c29b3fa9149",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [
+            "content"
+          ],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.625,
+          "n_tool_deltas": 15,
+          "first_data_after_role_t": 0.141,
+          "last_data_t": 5.281,
+          "elapsed_s": 5.281
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              257
+            ],
+            [
+              "tool[0]",
+              7
+            ],
+            [
+              "content",
+              4
+            ],
+            [
+              "tool[1]",
+              8
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "tool_calls",
+          "usage": {
+            "prompt_tokens": 431,
+            "completion_tokens": 317,
+            "total_tokens": 748,
+            "prompt_tokens_details": {
+              "cached_tokens": 426
+            }
+          },
+          "content": "and now Oslo:",
+          "reasoning_chars": 1138,
+          "reasoning_tail": "t interpretation is: make both calls (they're independent) and include the text. I'll put both tool calls in the same block and include the text in my message.\n",
+          "calls": [
+            {
+              "id": "call_a56763edf3a44102b3b6407e",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Paris\"}",
+              "arguments_json_ok": true
+            },
+            {
+              "id": "call_9709ff3bc9b24e23980e77d3",
+              "type": "function",
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Oslo\"}",
+              "arguments_json_ok": true
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            },
+            "1": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [
+            "content"
+          ],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 0.61,
+          "n_tool_deltas": 15,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 3.125,
+          "elapsed_s": 3.125
+        }
+      ]
+    },
+    "length_args_on_160": {
+      "request": {
+        "model": "qwen3.8-flash-next-iq3_xxs",
+        "stream": true,
+        "max_tokens": 160,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "description": "Get the current weather for a city.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "city"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "description": "Read a text file from the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "description": "Write a text file to the workspace.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          }
+        ],
+        "reasoning_effort": "low",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant with tools."
+          },
+          {
+            "role": "user",
+            "content": "Use write_file to create poem.txt containing an original 30-line poem about rivers. Call the tool directly."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              2
+            ],
+            [
+              "reasoning",
+              39
+            ],
+            [
+              "tool[0]",
+              92
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 160,
+            "total_tokens": 588,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            }
+          },
+          "content": "",
+          "reasoning_chars": 174,
+          "reasoning_tail": " me to create a file called poem.txt with an original 30-line poem about rivers. Let me write a compelling, original poem and use the write_file tool directly.\n",
+          "calls": [
+            {
+              "id": "call_a7194d9ff61c4167b0d7ed51",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"Rivers\\n\\nI.\\nFrom cracks in stone where silence gathers,\\na silver thread begins to hum,\\na whispered song beneath the heathers,\\nthe earth remembering where it came from.\\n\\nII.\\nIt finds its way through moss and hollows,\\nthrough valleys carved by patient hands,\\nit does not ask the world to follow,\\nit simply moves through fields and lands.\\n\\nIII.\\nThe river is a silver mirror",
+              "arguments_json_ok": false
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 2,
+          "comment_event_indices": [
+            1,
+            2
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 1.484,
+          "n_tool_deltas": 92,
+          "first_data_after_role_t": 1.532,
+          "last_data_t": 3.547,
+          "elapsed_s": 3.547
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              160
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 160,
+            "total_tokens": 588,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 634,
+          "reasoning_tail": "nds.\n5. It bends around the roots of ancient oaks,\n6. lifts the fallen leaves like letters, unread,\n7. and gathers rain from a thousand different clouds\n8. into",
+          "calls": [],
+          "first_tool_deltas": {},
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": null,
+          "n_tool_deltas": 0,
+          "first_data_after_role_t": 0.141,
+          "last_data_t": 1.922,
+          "elapsed_s": 1.922
+        },
+        {
+          "order": [
+            [
+              "role",
+              1
+            ],
+            [
+              "comment",
+              1
+            ],
+            [
+              "reasoning",
+              49
+            ],
+            [
+              "tool[0]",
+              85
+            ],
+            [
+              "finish",
+              1
+            ],
+            [
+              "done",
+              1
+            ]
+          ],
+          "finish_reason": "length",
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 160,
+            "total_tokens": 588,
+            "prompt_tokens_details": {
+              "cached_tokens": 423
+            }
+          },
+          "content": "",
+          "reasoning_chars": 225,
+          "reasoning_tail": "original 30-line poem about rivers. I should write this directly using the write_file tool. Let me compose an original poem with exactly 30 lines about rivers.\n",
+          "calls": [
+            {
+              "id": "call_dcd6b55c97414c5bbc3c97d5",
+              "type": "function",
+              "name": "write_file",
+              "arguments": "{\"path\":\"poem.txt\",\"content\":\"Where mountain springs first crack the granite's skin,\\na silver thread begins its long descent,\\nit pulls the rain from clouds that gather thin,\\nand learns the ancient language of content.\\n\\nIt braids through valleys, brazen and unbound,\\ncarving the canyon walls like sculptors old,\\nit gathers tributaries, all around,\\neach stream a verse within the river's",
+              "arguments_json_ok": false
+            }
+          ],
+          "first_tool_deltas": {
+            "0": {
+              "has_id": true,
+              "type": "function",
+              "has_name": true,
+              "arguments_in_first": ""
+            }
+          },
+          "content_or_reasoning_after_first_tool": [],
+          "tool_deltas_interleaved": false,
+          "comments_total": 1,
+          "comment_event_indices": [
+            1
+          ],
+          "comments_between_deltas": 0,
+          "tool_delta_time_span_s": 1.328,
+          "n_tool_deltas": 85,
+          "first_data_after_role_t": 0.125,
+          "last_data_t": 2.015,
+          "elapsed_s": 2.015
+        }
+      ]
+    }
+  },
+  "slot_seconds": 48.8,
+  "finished": "2026-10-26T15:40:20Z",
+  "supplementary_runs": [
+    {
+      "cases": [
+        "sandwich_off",
+        "sandwich_on",
+        "between_off",
+        "between_on",
+        "length_args_on_160"
+      ],
+      "started": "2026-10-26T15:40:45Z",
+      "finished": "2026-10-26T15:41:33Z",
+      "slot_seconds": 31.1
+    }
+  ]
+}

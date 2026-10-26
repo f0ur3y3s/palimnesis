@@ -1,0 +1,46 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030068.8594568,
+  "exit": 1,
+  "ended": 1793030070.0209367,
+  "elapsed_s": 1.16,
+  "stderr": "",
+  "events": [
+    {
+      "type": "error",
+      "timestamp": 1793030069817,
+      "sessionID": "ses_e87146378ffeCqIgQP24YtM6GW",
+      "error": {
+        "type": "provider.internal",
+        "message": "palimnesis: upstream stream failed",
+        "status": 200,
+        "response": {
+          "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+        }
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030069815,
+      "sessionID": "ses_e87146378ffeCqIgQP24YtM6GW",
+      "part": {
+        "id": "prt_178eb9dda001JHxxum4VhuXFXh_text-0",
+        "sessionID": "ses_e87146378ffeCqIgQP24YtM6GW",
+        "messageID": "msg_178eb9dda001JHxxum4VhuXFXh",
+        "type": "text",
+        "text": "Partial answer attempt-1",
+        "time": {
+          "start": 1793030069739,
+          "end": 1793030069815
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "info": {
+    "id": "ses_e87150261ffeH4FDvoqK02wwNg",
+    "projectID": "0eae3d799f60a92d4ae9a40498e2c392770b33bf",
+    "cost": 0,
+    "tokens": {
+      "input": 20,
+      "output": 10,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793030028976,
+      "updated": 1793030031322,
+      "idle": 1793030031324
+    },
+    "location": {
+      "directory": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a_composite_stop\\work"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_178eafeb5001scVJH00UUUH6lk",
+      "time": {
+        "created": 1793030029059
+      },
+      "text": "First question: what is 2+2?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eaff08001cd5YUzwejybBYR",
+      "time": {
+        "created": 1793030029082,
+        "streamed": 1793030029166,
+        "completed": 1793030029169
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+          "native": {
+            "reasoningField": "reasoning_content"
+          },
+          "time": {
+            "created": 1793030029156,
+            "completed": 1793030029163
+          }
+        },
+        {
+          "type": "text",
+          "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eaff730012xPLUKBLze3jXB",
+      "time": {
+        "created": 1793030029171
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_178eb064d001GOpfYJNapSryOx",
+      "time": {
+        "created": 1793030031216
+      },
+      "text": "Next question: what is 3+3?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eb07770010f8QyHhWikKtlQ",
+      "time": {
+        "created": 1793030031241,
+        "streamed": 1793030031321,
+        "completed": 1793030031322
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eb07dc001HOL0850NM607jV",
+      "time": {
+        "created": 1793030031324
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    }
+  ]
+}

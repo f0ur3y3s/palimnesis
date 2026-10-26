@@ -1,0 +1,32 @@
+{
+  "run": "c2_composite_err_noretry",
+  "scenario": "hs_composite_err_noretry",
+  "session_id": "ses_e87144e2dffefzT68pd8ftanvM",
+  "turn1_requests": 1,
+  "turns": [
+    {
+      "label": "turn1",
+      "exit": 1,
+      "elapsed_s": 1.16,
+      "timeout_killed": null,
+      "events": [
+        "error",
+        "text"
+      ]
+    },
+    {
+      "label": "turn2",
+      "exit": 0,
+      "elapsed_s": 1.06,
+      "timeout_killed": null,
+      "events": [
+        "text"
+      ]
+    }
+  ],
+  "prompts": [
+    "First question: what is 2+2?",
+    "Next question: what is 3+3?"
+  ],
+  "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\c2_composite_err_noretry"
+}

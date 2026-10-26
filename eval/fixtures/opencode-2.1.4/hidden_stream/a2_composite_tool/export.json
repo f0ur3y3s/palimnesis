@@ -1,0 +1,194 @@
+{
+  "info": {
+    "id": "ses_e8713b6e8ffeCkgkxpR747uwK7",
+    "projectID": "fce7b5b8c253f2edbdeaff90d7bad69dcc837164",
+    "cost": 0,
+    "tokens": {
+      "input": 30,
+      "output": 15,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793030113837,
+      "updated": 1793030116200,
+      "idle": 1793030116202
+    },
+    "location": {
+      "directory": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a2_composite_tool\\work"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_178ec4a32001Gk5pAqYfw9n6vl",
+      "time": {
+        "created": 1793030113919
+      },
+      "text": "First question: what is 2+2?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178ec4a85001Rp6cQDJXx4qmLl",
+      "time": {
+        "created": 1793030113944,
+        "streamed": 1793030114036,
+        "completed": 1793030114054
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+          "native": {
+            "reasoningField": "reasoning_content"
+          },
+          "time": {
+            "created": 1793030114014,
+            "completed": 1793030114021
+          }
+        },
+        {
+          "type": "text",
+          "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+        },
+        {
+          "type": "tool",
+          "id": "call_hs_1",
+          "name": "read",
+          "executed": false,
+          "state": {
+            "status": "completed",
+            "input": {
+              "path": "notes.txt"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r"
+              }
+            ],
+            "metadata": {
+              "truncated": false
+            }
+          },
+          "time": {
+            "created": 1793030114019,
+            "ran": 1793030114024,
+            "completed": 1793030114052
+          }
+        }
+      ],
+      "finish": "tool-calls",
+      "rawFinish": "tool_calls",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178ec4b0d001A3HoemOFeQLdyZ",
+      "time": {
+        "created": 1793030114069,
+        "streamed": 1793030114089,
+        "completed": 1793030114090
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178ec4b2c001O1Zw0fffGyfbTn",
+      "time": {
+        "created": 1793030114092
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    },
+    {
+      "id": "msg_178ec51d1001pNnk23vTivnoOD",
+      "time": {
+        "created": 1793030116099
+      },
+      "text": "Next question: what is 3+3?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178ec530a0010VE6lPtWIeSJWy",
+      "time": {
+        "created": 1793030116124,
+        "streamed": 1793030116198,
+        "completed": 1793030116200
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178ec536a001nT7JdwReXkFUmi",
+      "time": {
+        "created": 1793030116202
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    }
+  ]
+}

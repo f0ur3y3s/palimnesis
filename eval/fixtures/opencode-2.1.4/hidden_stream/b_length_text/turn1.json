@@ -1,0 +1,82 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030052.5279794,
+  "exit": 0,
+  "ended": 1793030053.7411935,
+  "elapsed_s": 1.21,
+  "stderr": "",
+  "events": [
+    {
+      "type": "step_start",
+      "timestamp": 1793030053520,
+      "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+      "part": {
+        "id": "prt_178eb5e90001ixcVpj0uZ5X0Oi",
+        "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+        "messageID": "msg_178eb5e370016fhVA8Ae9jNr4W",
+        "type": "step-start"
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030053525,
+      "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+      "part": {
+        "id": "prt_178eb5e920011TgKiM92Ky0ANJ",
+        "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+        "messageID": "msg_178eb5e370016fhVA8Ae9jNr4W",
+        "type": "text",
+        "text": "Truncated answer attempt-1",
+        "time": {
+          "start": 1793030053522,
+          "end": 1793030053525
+        }
+      }
+    },
+    {
+      "type": "step_finish",
+      "timestamp": 1793030053529,
+      "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+      "part": {
+        "id": "prt_178eb5e99001sRnzhWW2fWAsDL",
+        "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+        "messageID": "msg_178eb5e370016fhVA8Ae9jNr4W",
+        "type": "step-finish",
+        "reason": "length",
+        "cost": 0,
+        "tokens": {
+          "input": 10,
+          "output": 5,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030053555,
+      "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+      "part": {
+        "id": "prt_178eb5e9c0016rXPu3hkopWc2S_text-0",
+        "sessionID": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+        "messageID": "msg_178eb5e9c0016rXPu3hkopWc2S",
+        "type": "text",
+        "text": "OK from fault server",
+        "time": {
+          "start": 1793030053542,
+          "end": 1793030053555
+        }
+      }
+    }
+  ]
+}

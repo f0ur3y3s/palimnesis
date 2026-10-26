@@ -1,0 +1,130 @@
+{
+  "info": {
+    "id": "ses_e87146378ffeCqIgQP24YtM6GW",
+    "projectID": "1d77dc6a4cfc254a5892d939d3a901b13e3557f8",
+    "cost": 0,
+    "tokens": {
+      "input": 10,
+      "output": 5,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793030069646,
+      "updated": 1793030071891,
+      "idle": 1793030071894
+    },
+    "location": {
+      "directory": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\c_text_err_noretry\\work"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_178eb9d92001oNYe73YeVG3BqH",
+      "time": {
+        "created": 1793030069716
+      },
+      "text": "First question: what is 2+2?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eb9dda001JHxxum4VhuXFXh",
+      "time": {
+        "created": 1793030069739,
+        "streamed": 1793030069814,
+        "completed": 1793030069815
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Partial answer attempt-1"
+        }
+      ],
+      "finish": "error",
+      "error": {
+        "type": "provider.internal",
+        "message": "palimnesis: upstream stream failed",
+        "status": 200,
+        "response": {
+          "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+        }
+      }
+    },
+    {
+      "id": "msg_178eb9e39001K2XQKCtaRZ9ijV",
+      "time": {
+        "created": 1793030069817
+      },
+      "type": "idle",
+      "outcome": "failed",
+      "error": {
+        "type": "provider.internal",
+        "message": "palimnesis: upstream stream failed",
+        "status": 200,
+        "response": {
+          "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+        }
+      }
+    },
+    {
+      "id": "msg_178eba4d7001wUyoavj4DOXLTP",
+      "time": {
+        "created": 1793030071785
+      },
+      "text": "Next question: what is 3+3?",
+      "files": [],
+      "type": "user"
+    },
+    {
+      "id": "msg_178eba5f00010dbJEZHSU3oOE6",
+      "time": {
+        "created": 1793030071809,
+        "streamed": 1793030071890,
+        "completed": 1793030071891
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "qwen3.8-flash-next-iq3_xxs",
+        "providerID": "palimnesis"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "OK from fault server"
+        }
+      ],
+      "finish": "stop",
+      "rawFinish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_178eba656001ZuF5LJg5GsVaT6",
+      "time": {
+        "created": 1793030071894
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030215.665648,
+  "exit": 0,
+  "ended": 1793030216.8815756,
+  "elapsed_s": 1.22,
+  "stderr": "",
+  "events": [
+    {
+      "type": "step_start",
+      "timestamp": 1793030216612,
+      "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "part": {
+        "id": "prt_178eddba3001caH27JKbWm7k2G",
+        "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+        "messageID": "msg_178eddb4c001Q2DvRxl2yIO611",
+        "type": "step-start"
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030216623,
+      "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "part": {
+        "id": "prt_178eddba6001SVdR8y19JscY9n",
+        "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+        "messageID": "msg_178eddb4c001Q2DvRxl2yIO611",
+        "type": "text",
+        "text": "T1 before the call attempt-1. T2 after the call attempt-1.",
+        "time": {
+          "start": 1793030216614,
+          "end": 1793030216623
+        }
+      }
+    },
+    {
+      "type": "tool_use",
+      "timestamp": 1793030216630,
+      "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "part": {
+        "partID": "prt_178eddba8002J1ag1teBUn4FFc",
+        "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+        "messageID": "msg_178eddb4c001Q2DvRxl2yIO611",
+        "type": "tool",
+        "id": "call_hs_1",
+        "tool": "read",
+        "state": {
+          "status": "completed",
+          "input": {
+            "path": "notes.txt"
+          },
+          "output": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r",
+          "title": "read",
+          "metadata": {
+            "metadata": {
+              "truncated": false
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r"
+              }
+            ],
+            "providerCall": {
+              "executed": false
+            },
+            "providerResult": {
+              "executed": false
+            },
+            "rawInput": "{\"path\":\"notes.txt\"}"
+          },
+          "time": {
+            "start": 1793030216616,
+            "end": 1793030216630
+          }
+        }
+      }
+    },
+    {
+      "type": "step_finish",
+      "timestamp": 1793030216631,
+      "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "part": {
+        "id": "prt_178eddbb7001Y2s3E9Fy0h34jP",
+        "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+        "messageID": "msg_178eddb4c001Q2DvRxl2yIO611",
+        "type": "step-finish",
+        "reason": "tool-calls",
+        "cost": 0,
+        "tokens": {
+          "input": 10,
+          "output": 5,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030216652,
+      "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "part": {
+        "id": "prt_178eddbbf001Z0Ac2BCvoK7sAE_text-0",
+        "sessionID": "ses_e87122609ffeI4KdHjLgyuqNYU",
+        "messageID": "msg_178eddbbf001Z0Ac2BCvoK7sAE",
+        "type": "text",
+        "text": "OK from fault server",
+        "time": {
+          "start": 1793030216644,
+          "end": 1793030216652
+        }
+      }
+    }
+  ]
+}

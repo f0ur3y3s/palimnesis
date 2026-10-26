@@ -1,0 +1,82 @@
+{
+  "label": "turn1",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json"
+  ],
+  "started": 1793030058.010019,
+  "exit": 0,
+  "ended": 1793030059.1736825,
+  "elapsed_s": 1.16,
+  "stderr": "",
+  "events": [
+    {
+      "type": "step_start",
+      "timestamp": 1793030058938,
+      "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+      "part": {
+        "id": "prt_178eb73ba001vSiZHuZUYvfA5S",
+        "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+        "messageID": "msg_178eb736a001lWbpc5SCTEp6s2",
+        "type": "step-start"
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030058943,
+      "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+      "part": {
+        "id": "prt_178eb73bc001KwfhIEvjUdn17w",
+        "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+        "messageID": "msg_178eb736a001lWbpc5SCTEp6s2",
+        "type": "text",
+        "text": "Truncated answer attempt-1",
+        "time": {
+          "start": 1793030058940,
+          "end": 1793030058943
+        }
+      }
+    },
+    {
+      "type": "step_finish",
+      "timestamp": 1793030058946,
+      "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+      "part": {
+        "id": "prt_178eb73c2001QzjhZS3DTBQiXB",
+        "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+        "messageID": "msg_178eb736a001lWbpc5SCTEp6s2",
+        "type": "step-finish",
+        "reason": "length",
+        "cost": 0,
+        "tokens": {
+          "input": 10,
+          "output": 5,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "timestamp": 1793030058975,
+      "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+      "part": {
+        "id": "prt_178eb73c4001bSrqbYP4uvUlJw_text-0",
+        "sessionID": "ses_e87148de9ffeFYP19Q005ofA69",
+        "messageID": "msg_178eb73c4001bSrqbYP4uvUlJw",
+        "type": "text",
+        "text": "OK from fault server",
+        "time": {
+          "start": 1793030058958,
+          "end": 1793030058975
+        }
+      }
+    }
+  ]
+}

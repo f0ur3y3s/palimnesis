@@ -1,0 +1,35 @@
+{
+  "label": "turn2",
+  "args": [
+    "run",
+    "--standalone",
+    "--auto",
+    "--format",
+    "json",
+    "--session",
+    "ses_e87146378ffeCqIgQP24YtM6GW"
+  ],
+  "started": 1793030071.047828,
+  "exit": 0,
+  "ended": 1793030072.1101766,
+  "elapsed_s": 1.06,
+  "stderr": "",
+  "events": [
+    {
+      "type": "text",
+      "timestamp": 1793030071891,
+      "sessionID": "ses_e87146378ffeCqIgQP24YtM6GW",
+      "part": {
+        "id": "prt_178eba5f00010dbJEZHSU3oOE6_text-0",
+        "sessionID": "ses_e87146378ffeCqIgQP24YtM6GW",
+        "messageID": "msg_178eba5f00010dbJEZHSU3oOE6",
+        "type": "text",
+        "text": "OK from fault server",
+        "time": {
+          "start": 1793030071809,
+          "end": 1793030071891
+        }
+      }
+    }
+  ]
+}

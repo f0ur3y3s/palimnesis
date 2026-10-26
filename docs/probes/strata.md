@@ -301,7 +301,7 @@ Method:
 
 During decode, release takes under 0.1 s for streaming. For non-streaming the disconnect is still detected without any write, and release takes under 0.5 s.
 
-I did not test cancellation during an internal continuation; that requires the Palimnesis loop.
+I did not test cancellation during an internal continuation; that requires the Palimnesis loop. A simulated continuation (call 2 after a tool call, no proxy) released in 0.062–0.093 s during decode (§12.4).
 
 ## 10. Concurrency on one slot [verified]
 
@@ -319,7 +319,7 @@ Script: `p10_concurrency.py`. Fixture: `concurrency.json`.
 | `max_tokens`, `max_completion_tokens` | honored; the cap includes reasoning tokens; `finish_reason: "length"` |
 | both `max_completion_tokens` and `max_tokens` | `max_completion_tokens` wins: 8 against 300 gave 8 tokens, 300 against 8 gave 300 (p16, Zeus, 2026-10-26) |
 | `tool_choice: "none"` | the tool schemas are **not rendered**: the probe prompt counted 69 tokens, the same as with no `tools`, against 317 for `"auto"` or no `tool_choice` (p16, Zeus, 2026-10-26) |
-| `max_tokens` ≥ 1024 with thinking on | thinking is wrapped up with 25% of the cap left [docs] |
+| `max_tokens` ≥ 1024 with thinking on | thinking is wrapped up when cap − max(512, cap/4) is reached; below 1024 there is no wrap-up (§12.2, Zeus, 2026-10-26; the docs' "25% of the cap" holds only from 2048) |
 | `reasoning_effort` `none` / `low` / `medium` / `high` (OpenAI); `output_config.effort` and `thinking.type: disabled` (Anthropic); `reasoning.effort` (Responses) | honored; prompt token counts change as in §2 |
 | `chat_template_kwargs.enable_thinking: false` | honored, same as `none` |
 | `chat_template_kwargs.preserve_thinking` | **ignored** |
@@ -330,6 +330,91 @@ Script: `p10_concurrency.py`. Fixture: `concurrency.json`.
 | `reasoning_budget_tokens`, `strata_checkpoint` | not tested [docs] |
 
 I also saw one unexplained result before the restart: `max_tokens: 8` produced `completion_tokens: 4`. After the restart it produced 8.
+
+## 12. Tool streams, small limits and continuations (Phase 3B) [verified on Zeus, 2026-10-26]
+
+Probed 2026-10-26 between 15:38 and 15:52 UTC against `http://192.168.1.19:8080` (Zeus): `build_info` `Strata 0.1.48`, one slot, `n_ctx` 65536. Every request ran alone, gated on `/status` showing neither busy nor queued, and every body is synthetic. Slot time was about 6 minutes in total. Scripts: `p17_tool_stream_shapes.py` to `p20_cancel_continuation.py`. Fixtures: `p17_*` to `p20_*` in `eval/probes/fixtures/`, each probe with one results JSON and its raw `.sse` streams. Run them with `uv run python eval/probes/<script>.py`.
+
+### 12.1 Tool-call streams (P1, `p17_tool_stream_shapes.py`)
+
+15 cases, 3 runs each: 45 OpenAI Chat streams carrying 58 tool calls. Thinking was off (`reasoning_effort: "none"`) or on (`"low"`). Fixtures: `p17_tool_stream_shapes.json` and `p17_<case>_<rep>.sse`.
+
+- **The first delta of a call carries `index`, `id` (`call_<hex>`), `type: "function"`, `function.name` and `arguments: ""`.** This held for all 58 calls. The arguments follow in later deltas, token-sized: `{`, `"city":`, `"`, `Paris`, `"`, `}`.
+- **Arguments stream as they are generated.** They are not buffered: one argument string of about 300 deltas arrived over 3.4–4.0 s.
+- **Parallel calls take indices 0, 1, 2 in order.** Each call's deltas are contiguous. No index reappeared after the next one started (0 of 45 streams).
+- **Text after a call: yes, with thinking on.**
+  - Asked to write a sentence after the call (`after_a_on`), 3 of 3 streams were reasoning, call 0, 8 content deltas, then `finish_reason: "tool_calls"`.
+  - Asked for call, text, call (`between_on`), 2 of 3 streams were reasoning, call 0, content (`and now Oslo:`), then call 1. The third made one call only.
+  - With thinking off, the same prompts never gave text after a call (0 of 6). The model stopped after the call or wrote the text before it.
+  - Text asked for before a call (`sandwich_*`) came before it in 6 of 6. The text asked for after that call never appeared.
+  - Reasoning after a call was never seen (0 of 45). That it cannot happen is **[unverified]**.
+  - Every case of text after a call was explicitly requested. How often it happens unprompted in agent work is **[unverified]**.
+- **`length` inside the arguments.**
+  - Thinking off, `max_tokens` 40, 3 of 3: `finish_reason: "length"`, `completion_tokens` 40, and the arguments are an unterminated JSON prefix, for example `{"path":"poem.txt","content":"A river wakes in mountain snow,\na silver thread through`. They do not parse as JSON.
+  - Thinking on, `max_tokens` 160: 2 of 3 stopped inside the arguments in the same way. The third spent all 160 tokens on reasoning, with no call and no content; caps below 1024 get no thinking budget (§12.2).
+  - Nothing marks the cut: the call's last delta is an ordinary token, followed by the finish chunk with `usage`.
+- **Keep-alive comments.** Each stream had 1 or 2 `: keep-alive` comments between the role chunk and the first delta (2 when the prompt was not cached), and none between deltas in any of the 45 streams. The only comment seen between deltas is at the forced thinking wrap-up (§12.2).
+- After a tool-call response, `/status` `phase` reads `tool call complete`.
+
+### 12.2 Thinking under a small output limit (P2, `p18_small_limit_thinking.py`)
+
+Each run used the default effort (xhigh), thinking on, and a counting problem that needs long reasoning. There were 3 runs per cap. `/status` was polled every 0.25 s during each request. Fixtures: `p18_small_limit_thinking.json` (every run) and `p18_<cap>_0.sse` (the first run per cap; the others were dropped for size).
+
+| `max_tokens` | `/status` `thinking_budget` | Reasoning deltas | Content deltas | `completion_tokens` | `finish_reason` |
+| --- | --- | --- | --- | --- | --- |
+| 512 | none | 512 | 0 | 512 | `length` ×3 |
+| 1024 | 512 | 528 | 10–17 | 541–548 | `stop` ×3 |
+| 2048 | 1536 | 1551–1552 | 4–14 | 1559–1569 | `stop` ×3 |
+| 4096 | 3072 | 3077–3088 | 13–15 | 3104–3106 | `stop` ×3 |
+
+- **The rule: for caps of 1024 and up, the thinking budget is cap − max(512, cap/4). Below 1024 there is no budget.**
+  - Extra caps were read from `/status` with requests cut off after 20 reasoning deltas: 1500 gave 988, 2047 gave 1535, 3000 gave 2250, 5000 gave 3750 and 8192 gave 6144. There was no budget at 600, 700 or 1023.
+  - The "25% of the cap" in the upstream docs therefore holds only from 2048 up. Between 1024 and 2047 the answer keeps 512 tokens.
+  - Palimnesis's per-call reserve R = 8192 gets a thinking budget of 6144.
+- **How the wrap-up works.**
+  - At the budget, Strata injects `\n\nI have thought about this long enough; time to give my answer.\n` into the reasoning, then closes thinking.
+  - The injected sentence streams as 16 ordinary `reasoning_content` deltas. A client therefore archives and resends it as model reasoning.
+  - Reasoning ended 5–16 deltas past the budget.
+- **The forced answers were short.** Content used 4–17 tokens, at most 3.3% of the room kept for it.
+- **Below 1024 the cap ends the response mid-reasoning.** All three 512 runs reasoned for all 512 tokens and ended with `finish_reason: "length"` and empty `content`.
+- **A keep-alive comment comes between the last reasoning delta and the first content delta** in all 9 wrap-up runs.
+- `reasoning_recoveries` stayed 0.
+
+### 12.3 Cache reuse for a continuation (P3, `p19_continuation_cache.py`)
+
+The probe simulates one hidden continuation without the proxy:
+
+1. **Call 1** is streamed with thinking on (`low`) and answers with a `read_file` tool call.
+2. **Call 2** sends call 1's messages, plus `{"role": "assistant", "content": "", "reasoning_content": <streamed reasoning>, "tool_calls": [<the call as streamed>]}`, plus a tool result.
+
+The tool result was about 20 tokens (short) or 2,009 tokens (long). A thinking-off pair was the control. A fresh nonce in each user message kept call 1 cold past the shared head. Expected reuse comes from `StrataCacheModel.expected(layout1, layout2)`, with the layouts built by `tokens.default()`. Fixtures: `p19_continuation_cache.json` and `p19_<variant>_<rep>_call{1,2}.sse`.
+
+| Variant | prompt1 + completion1 | Model expected | Call 2 `cached_tokens` | δ = cached − (prompt1 + completion1) |
+| --- | --- | --- | --- | --- |
+| short, on | 338+54, 340+55, 336+65 | 333, 335, 331 | 391, 397, 401 | −1, +2, 0 |
+| long, on | 340+61, 338+54, 340+61 | 335, 333, 335 | 403, 391, 400 | +2, −1, −1 |
+| short, off | 312+34, 314+35 | 305, 307 | 346, 348 | 0, −1 |
+
+- **Strata reuses the tokens it generated in call 1, not only the generation-start checkpoint.** Call 2's `cached_tokens` was prompt1 + completion1 + δ, with δ between −1 and +2, in 8 of 8 pairs. An earlier run of the same script with a 3,330-token result also gave δ between −1 and +2 over 8 pairs; its fixtures were overwritten by the rerun.
+- **`StrataCacheModel.expected` under-predicts.** It returns call 1's generation start (prompt1 − 5 with thinking on, − 7 off). Measured reuse exceeded it by 58–70 tokens with thinking on and by 41 off, which is the whole generated turn.
+- **`/metrics` agrees.** `reused` equals `cached_tokens`. Call 2 read 29–34 tokens with the short result, and 2,022–2,025 tokens in 1.7–1.8 s with the long one.
+- **The local render matched exactly.** prompt1 and prompt2 matched `usage.prompt_tokens` in 8 of 8 pairs. The generated turn re-rendered as completion1 + 1 tokens: the extra token is the `\n` after `<|im_end|>`. That the re-rendered tokens are also identical in content is inferred from the reuse.
+- **Why δ can be +1 or +2** (reuse 1–2 tokens past what was generated) is **[unverified]**.
+- **Untested** (each **[unverified]**):
+  - another request between call 1 and call 2 (here they were about 1 s apart on an idle server);
+  - any change to the resent reasoning or arguments text;
+  - text after the call;
+  - a call 1 that ends in `length`.
+
+### 12.4 Cancel during a continuation (P4, `p20_cancel_continuation.py`)
+
+The probe runs P3's call 1 with the task "do exactly what the file asks", then call 2 streaming with a tool result that asks for a 1,500-word story and `max_tokens` 3000. The client disconnects 1 s after call 2's first reasoning or content delta. Release is measured as in §9. Fixtures: `p20_cancel_continuation.json` and `p20_cancel_<rep>_call2.sse`.
+
+- **Release took 0.078, 0.093 and 0.062 s**, 3 of 3 with server records `finish: "disconnect"`. Each took two `/status` polls, so the resolution is about 30 ms.
+- **A tiny follow-up request then had a TTFB of 0.141–0.156 s.**
+- **This matches §9's decode-time stream cancel** (0.047–0.079 s): a continuation's decode cancels like any other.
+- The cancels landed about 1 s into decode, after 79–87 deltas. Call 2 reused 393–401 tokens and read 44–47, consistent with §12.3.
+- **Cancel during a continuation's prefill was not measured.** A 2,000-token result prefills in 1.7–1.8 s (§12.3), within one 8192-token chunk. By §9, a cancel then would release when that prefill ends **[inferred, unverified]**.
 
 ## Implications for Palimnesis
 

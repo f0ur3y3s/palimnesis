@@ -1,0 +1,1508 @@
+{
+  "a_composite_stop": {
+    "meta": {
+      "run": "a_composite_stop",
+      "scenario": "hs_composite_stop",
+      "session_id": "ses_e87150261ffeH4FDvoqK02wwNg",
+      "turn1_requests": 1,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.26,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a_composite_stop"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 2,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n"
+          },
+          {
+            "type": "text",
+            "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "a2_composite_tool": {
+    "meta": {
+      "run": "a2_composite_tool",
+      "scenario": "hs_composite_tool",
+      "session_id": "ses_e8713b6e8ffeCkgkxpR747uwK7",
+      "turn1_requests": 2,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.27,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text",
+            "tool_use",
+            "step_finish",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a2_composite_tool"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 1,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+            "tool_calls": [
+              {
+                "id": "call_hs_1",
+                "name": "read",
+                "arguments": "{\"path\":\"notes.txt\"}"
+              }
+            ],
+            "keys": [
+              "role",
+              "content",
+              "tool_calls",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "tool",
+            "content": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r",
+            "tool_call_id": "call_hs_1",
+            "keys": [
+              "role",
+              "tool_call_id",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 3,
+        "turn": 2,
+        "raw_body_file": "req-04.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+            "tool_calls": [
+              {
+                "id": "call_hs_1",
+                "name": "read",
+                "arguments": "{\"path\":\"notes.txt\"}"
+              }
+            ],
+            "keys": [
+              "role",
+              "content",
+              "tool_calls",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "tool",
+            "content": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r",
+            "tool_call_id": "call_hs_1",
+            "keys": [
+              "role",
+              "tool_call_id",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "OK from fault server",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "tool-calls",
+        "rawFinish": "tool_calls",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n"
+          },
+          {
+            "type": "text",
+            "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+          },
+          {
+            "type": "tool",
+            "name": "read",
+            "id": "call_hs_1",
+            "status": "completed",
+            "input": {
+              "path": "notes.txt"
+            }
+          }
+        ]
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "b_length_text": {
+    "meta": {
+      "run": "b_length_text",
+      "scenario": "hs_length_text",
+      "session_id": "ses_e8714a338ffeQ6yg5T0GMkvlpM",
+      "turn1_requests": 2,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.21,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text",
+            "step_finish",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\b_length_text"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 1,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Truncated answer attempt-1",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 3,
+        "turn": 2,
+        "raw_body_file": "req-04.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Truncated answer attempt-1",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "OK from fault server",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "length",
+        "rawFinish": "length",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Truncated answer attempt-1"
+          }
+        ]
+      },
+      {
+        "type": "synthetic",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "b2_length_text_noretry": {
+    "meta": {
+      "run": "b2_length_text_noretry",
+      "scenario": "hs_length_text_noretry",
+      "session_id": "ses_e87148de9ffeFYP19Q005ofA69",
+      "turn1_requests": 2,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.16,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text",
+            "step_finish",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\b2_length_text_noretry"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 1,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Truncated answer attempt-1",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 3,
+        "turn": 2,
+        "raw_body_file": "req-04.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Truncated answer attempt-1",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "OK from fault server",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "length",
+        "rawFinish": "length",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Truncated answer attempt-1"
+          }
+        ]
+      },
+      {
+        "type": "synthetic",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "b3_composite_length": {
+    "meta": {
+      "run": "b3_composite_length",
+      "scenario": "hs_composite_length",
+      "session_id": "ses_e871478a9ffeFKG9Tl6fEED9Wd",
+      "turn1_requests": 2,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.21,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text",
+            "step_finish",
+            "step_start",
+            "text",
+            "step_finish"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.01,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\b3_composite_length"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 1,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 3,
+        "turn": 2,
+        "raw_body_file": "req-04.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces.",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "OK from fault server",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "length",
+        "rawFinish": "length",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n"
+          },
+          {
+            "type": "text",
+            "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+          }
+        ]
+      },
+      {
+        "type": "synthetic",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "c_text_err_noretry": {
+    "meta": {
+      "run": "c_text_err_noretry",
+      "scenario": "hs_text_err_noretry",
+      "session_id": "ses_e87146378ffeCqIgQP24YtM6GW",
+      "turn1_requests": 1,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 1,
+          "elapsed_s": 1.16,
+          "timeout_killed": null,
+          "events": [
+            "error",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\c_text_err_noretry"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 2,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Partial answer attempt-1",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "error",
+        "rawFinish": null,
+        "parts": [
+          {
+            "type": "text",
+            "text": "Partial answer attempt-1"
+          }
+        ],
+        "error": {
+          "type": "provider.internal",
+          "message": "palimnesis: upstream stream failed",
+          "status": 200,
+          "response": {
+            "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+          }
+        }
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null,
+        "error": {
+          "type": "provider.internal",
+          "message": "palimnesis: upstream stream failed",
+          "status": 200,
+          "response": {
+            "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+          }
+        }
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "c2_composite_err_noretry": {
+    "meta": {
+      "run": "c2_composite_err_noretry",
+      "scenario": "hs_composite_err_noretry",
+      "session_id": "ses_e87144e2dffefzT68pd8ftanvM",
+      "turn1_requests": 1,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 1,
+          "elapsed_s": 1.16,
+          "timeout_killed": null,
+          "events": [
+            "error",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.06,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\c2_composite_err_noretry"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 2,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "R1 first thought attempt-1\n\nR2 second thought attempt-1\nT1 first visible attempt-1. T2 second visible attempt-1.",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "error",
+        "rawFinish": null,
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": "R1 first thought attempt-1\n\nR2 second thought attempt-1\n"
+          },
+          {
+            "type": "text",
+            "text": "T1 first visible attempt-1. T2 second visible attempt-1."
+          }
+        ],
+        "error": {
+          "type": "provider.internal",
+          "message": "palimnesis: upstream stream failed",
+          "status": 200,
+          "response": {
+            "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+          }
+        }
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null,
+        "error": {
+          "type": "provider.internal",
+          "message": "palimnesis: upstream stream failed",
+          "status": 200,
+          "response": {
+            "body": "{\"error\": {\"message\": \"palimnesis: upstream stream failed\", \"type\": \"server_error\", \"code\": \"upstream_stream_failed\"}}"
+          }
+        }
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  },
+  "a3_text_after_tool": {
+    "meta": {
+      "run": "a3_text_after_tool",
+      "scenario": "hs_text_after_tool",
+      "session_id": "ses_e87122609ffeI4KdHjLgyuqNYU",
+      "turn1_requests": 2,
+      "turns": [
+        {
+          "label": "turn1",
+          "exit": 0,
+          "elapsed_s": 1.22,
+          "timeout_killed": null,
+          "events": [
+            "step_start",
+            "text",
+            "tool_use",
+            "step_finish",
+            "text"
+          ]
+        },
+        {
+          "label": "turn2",
+          "exit": 0,
+          "elapsed_s": 1.01,
+          "timeout_killed": null,
+          "events": [
+            "text"
+          ]
+        }
+      ],
+      "prompts": [
+        "First question: what is 2+2?",
+        "Next question: what is 3+3?"
+      ],
+      "isolated_root": "C:\\Users\\Daniel\\AppData\\Local\\Temp\\claude\\C--Users-Daniel-repos-mnemon\\fac1bd63-de12-4fc2-8f3c-959c6d0d6c76\\scratchpad\\opencode-hidden\\a3_text_after_tool"
+    },
+    "requests": [
+      {
+        "attempt": 1,
+        "turn": 1,
+        "raw_body_file": "req-02.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 2,
+        "turn": 1,
+        "raw_body_file": "req-03.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 before the call attempt-1. T2 after the call attempt-1.",
+            "reasoning_content": "",
+            "tool_calls": [
+              {
+                "id": "call_hs_1",
+                "name": "read",
+                "arguments": "{\"path\":\"notes.txt\"}"
+              }
+            ],
+            "keys": [
+              "role",
+              "content",
+              "tool_calls",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "tool",
+            "content": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r",
+            "tool_call_id": "call_hs_1",
+            "keys": [
+              "role",
+              "tool_call_id",
+              "content"
+            ]
+          }
+        ]
+      },
+      {
+        "attempt": 3,
+        "turn": 2,
+        "raw_body_file": "req-04.json",
+        "max_completion_tokens": 8192,
+        "messages_after_system": [
+          {
+            "role": "user",
+            "content": "First question: what is 2+2?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "T1 before the call attempt-1. T2 after the call attempt-1.",
+            "reasoning_content": "",
+            "tool_calls": [
+              {
+                "id": "call_hs_1",
+                "name": "read",
+                "arguments": "{\"path\":\"notes.txt\"}"
+              }
+            ],
+            "keys": [
+              "role",
+              "content",
+              "tool_calls",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "tool",
+            "content": "Read file notes.txt, lines 1-1\n1: notes: the probe file\r",
+            "tool_call_id": "call_hs_1",
+            "keys": [
+              "role",
+              "tool_call_id",
+              "content"
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "OK from fault server",
+            "reasoning_content": "",
+            "keys": [
+              "role",
+              "content",
+              "reasoning_content"
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Next question: what is 3+3?",
+            "keys": [
+              "role",
+              "content"
+            ]
+          }
+        ]
+      }
+    ],
+    "export": [
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "First question: what is 2+2?"
+      },
+      {
+        "type": "assistant",
+        "finish": "tool-calls",
+        "rawFinish": "tool_calls",
+        "parts": [
+          {
+            "type": "text",
+            "text": "T1 before the call attempt-1. T2 after the call attempt-1."
+          },
+          {
+            "type": "tool",
+            "name": "read",
+            "id": "call_hs_1",
+            "status": "completed",
+            "input": {
+              "path": "notes.txt"
+            }
+          }
+        ]
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      },
+      {
+        "type": "user",
+        "finish": null,
+        "rawFinish": null,
+        "text": "Next question: what is 3+3?"
+      },
+      {
+        "type": "assistant",
+        "finish": "stop",
+        "rawFinish": "stop",
+        "parts": [
+          {
+            "type": "text",
+            "text": "OK from fault server"
+          }
+        ]
+      },
+      {
+        "type": "idle",
+        "finish": null,
+        "rawFinish": null
+      }
+    ]
+  }
+}
