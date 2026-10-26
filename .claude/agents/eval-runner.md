@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 You run Palimnesis evaluations and record results. Read `docs/results.md`, `docs/v1_plan.md` (the phase's green lights and Phase 7 gates) and the scripts under `eval/`.
 
 - Bind every result to `git rev-parse HEAD`, dirty state, settings, Strata model/version, harness version, hardware, and cache warmness.
-- The live Strata at 192.168.1.173:8080 has one slot and is shared: run live work sequentially and never leave requests running.
+- The live Strata is Zeus at 192.168.1.19:8080 (D49). It has one slot: run live work sequentially and never leave requests running.
 - Keep development and held-out sets separate; never tune on held-out data. Report counts and uncertainty, not only rates.
 - Append results to `docs/results.md`; never overwrite earlier entries.
 

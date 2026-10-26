@@ -76,7 +76,7 @@ def _idle(client: httpx.Client) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--upstream", default="http://192.168.1.173:8080")
+    ap.add_argument("--upstream", default="http://192.168.1.19:8080")
     a = ap.parse_args()
     out = {"upstream": a.upstream, "tools": TOOLS, "cases": {}}
     with httpx.Client(base_url=a.upstream) as client:

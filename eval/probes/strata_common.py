@@ -16,7 +16,7 @@ from pathlib import Path
 
 import httpx
 
-BASE = os.environ.get("STRATA_URL", "http://192.168.1.173:8080").rstrip("/")
+BASE = os.environ.get("STRATA_URL", "http://192.168.1.19:8080").rstrip("/")
 MODEL = os.environ.get("STRATA_MODEL", "qwen3.8-flash-next-iq3_xxs")
 HERE = Path(__file__).resolve().parent
 FIXTURES = HERE / "fixtures"

@@ -1,7 +1,7 @@
 """Live excerpt replay: prefix reuse with excerpt blocks included vs omitted (Phase 2 GL8).
 
 Usage:
-    python eval/live_excerpt_replay.py --upstream http://192.168.1.173:8080 --out DIR
+    python eval/live_excerpt_replay.py --upstream http://192.168.1.19:8080 --out DIR
         [--turns 6] [--input-budget 16000] [--max-tokens 2048]
 
 In process, against a real Strata (one shared slot: requests run strictly one at a time,

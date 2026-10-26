@@ -669,3 +669,11 @@ Decided on 2026-10-26, after ho-t1 and ho-t2 had run under both arms on bazzite.
    - It was chosen knowing ho-t1 and ho-t2's results: arm 4 1 of 2, arm 1 2 of 2.
    - R25 reports each task with the machine it ran on, along with each machine's kill counts.
 6. **64K settings follow `n_ctx` (found before any 64K run).** `eval/tasks/run.py` had fixed arm 1's OpenCode `limit.context` at 32768, so at 64K native compaction would still have fired as if the context were 32K. It now equals `--expect-n-ctx`; arm 4 keeps the shipped 1,000,000. `eval/report.py` judged the "clean" needle subset against a fixed 24,320; it now uses arm 4's budget at the run's recorded `n_ctx` (48,000 at 65536). The 32K runs are unchanged by both: their `n_ctx` was 32768. The change touches `eval/` only (D44.1).
+
+## D49 — Zeus is the only Strata host
+
+Decided by the user on 2026-10-26, after the 64K report runs (R26). bazzite (192.168.1.173) is no longer used for this project; all live work runs against Zeus (192.168.1.19:8080).
+
+- **What changes.** The default `--upstream` of the eval drivers and probes, the serve command in `CLAUDE.md` and the eval-runner's host note now name Zeus.
+- **What stays.** Results, probe write-ups and probe fixtures keep the host they ran against. R25's per-machine split (D48) is unchanged.
+- **Zeus's context.** Zeus was last launched at `n_ctx` 65536 (D48.6). A run that needs 32K relaunches it with the 32K config and checks `/props` first, as every driver already does through `--expect-n-ctx`.

@@ -1139,7 +1139,7 @@ def main() -> int:
     r.add_argument("--out", required=True)
     r.add_argument("--histories")
     r.add_argument("--questions", type=int)
-    r.add_argument("--upstream", default="http://192.168.1.173:8080")
+    r.add_argument("--upstream", default="http://192.168.1.19:8080")
     r.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     r.add_argument("--max-tools", type=int, default=MAX_TOOLS)
     r.add_argument("--resume", action="store_true")

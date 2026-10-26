@@ -506,7 +506,7 @@ def main() -> int:
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")
     p.add_argument("--reason", help="why this attempt reruns the task (D44.7)")
     p.add_argument("--expect-n-ctx", type=int, default=32768)
-    p.add_argument("--upstream", default="http://192.168.1.173:8080")
+    p.add_argument("--upstream", default="http://192.168.1.19:8080")
     p.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     p.add_argument("--check-reference", action="store_true")
     a = p.parse_args()

@@ -5,7 +5,7 @@ Usage:
     python eval/replay.py --explain DB_PATH [--session S] [--json]
 
 TARGET is the base the captured API path is appended to: an upstream origin for
-a direct baseline (http://192.168.1.173:8080) or a session base for the proxy
+a direct baseline (http://192.168.1.19:8080) or a session base for the proxy
 (http://127.0.0.1:9000/s/<session>). Exchanges replay sequentially, oldest
 first. Generated-text equality is diagnostic only; compare status, event
 structure and finish reasons for comparability.

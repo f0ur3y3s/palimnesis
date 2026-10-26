@@ -32,7 +32,7 @@ TEXTS = {
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--upstream", default="http://192.168.1.173:8080")
+    ap.add_argument("--upstream", default="http://192.168.1.19:8080")
     a = ap.parse_args()
     t = tokens.default()
     out = {"upstream": a.upstream, "cases": {}}

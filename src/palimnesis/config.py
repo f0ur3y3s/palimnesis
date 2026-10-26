@@ -8,7 +8,7 @@ from .profile import DEFAULT_PROFILE
 
 @dataclass(frozen=True)
 class Settings:
-    # Upstream origin without an API path, e.g. "http://192.168.1.173:8080".
+    # Upstream origin without an API path, e.g. "http://192.168.1.19:8080".
     upstream_base_url: str
     # Opt-in raw exchange capture (contains conversation bodies).
     capture_dir: Path | None = None

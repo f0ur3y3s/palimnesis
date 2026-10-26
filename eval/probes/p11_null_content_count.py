@@ -4,7 +4,7 @@ import json, sys, time
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
 import httpx
 from palimnesis.upstreams.strata import tokens
-U = "http://192.168.1.173:8080"
+U = "http://192.168.1.19:8080"
 c = tokens.default()
 def idle():
     while True:

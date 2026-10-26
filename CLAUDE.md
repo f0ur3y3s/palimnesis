@@ -5,7 +5,7 @@ Local proxy between agent harnesses and a Strata server: archives accepted conve
 ## Commands
 
 - `uv run pytest -q`: the full deterministic suite (fake upstream on real loopback sockets; no network).
-- `uv run palimnesis serve --upstream http://192.168.1.173:8080 [--capture-dir DIR]`: run the proxy on 127.0.0.1:9000.
+- `uv run palimnesis serve --upstream http://192.168.1.19:8080 [--capture-dir DIR]`: run the proxy on 127.0.0.1:9000.
 - `uv run palimnesis session new` / `uv run palimnesis session url <id>`: base URLs for a new or resumed chat.
 - `uv run python eval/replay.py CAPTURE_DIR --target URL`: replay captures against direct Strata or the proxy.
 - `uv run python eval/bench_passthrough.py`: passthrough overhead report.
