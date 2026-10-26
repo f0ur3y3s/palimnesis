@@ -15,12 +15,14 @@
   echoes:
   - **hard leaks** (gate): a hidden call (a ``palimnesis_*`` name, or the id of a hidden
     call in the archive) in the proxy's client stream or in the calls OpenCode's export
-    says it received; or a hidden result's text in that stream or in the export's received
-    text, reasoning and call inputs. Result text is matched by distinctive 40-character
-    slices: windows of the result that occur in no earlier non-hidden archived content,
-    so a quote of the archived original is not a leak, but the result's own framing is.
-    Each session's stream and export is matched against that session's hidden calls and
-    results only, and all text is compared whitespace-normalized (R28-A).
+    says it received; or a hidden result's whole text in that stream or in the export's
+    received text, reasoning and call inputs. Each session's stream and export is matched
+    against that session's hidden calls and results only, and all text is compared
+    whitespace-normalized (R28-A).
+  - **echoes** (reported only, D62.4 amended in R29): a fragment of a hidden result that
+    the model quoted in its own text, found by distinctive 40-character slices: windows
+    of the result that occur in no earlier non-hidden archived content, so a quote of the
+    archived original is not counted, but a quote of the result's own framing is.
   - **mentions** (reported only): other ``palimnesis_`` text the model wrote in its
     visible content, reasoning or call arguments (stream only), and distinct harness tool
     results (by call id) that carried ``palimnesis_`` text back to the client, such as a
@@ -327,8 +329,8 @@ def hidden_artifacts(db: Path, sessions: list[str] | None = None) -> dict:
             text = text_of(occ_id, session)
             parts = prior.setdefault(branch, [])
             if source == "internal_tool":
-                results.append({"windows": _windows(text), "branch": branch, "session": session,
-                                "upto": length.get(branch, 0)})
+                results.append({"text": text, "windows": _windows(text), "branch": branch,
+                                "session": session, "upto": length.get(branch, 0)})
             else:
                 parts.append(text)
                 length[branch] = length.get(branch, 0) + len(text) + 1
@@ -346,13 +348,17 @@ def _distinctive(hidden: dict, r: dict, w: str) -> bool:
     return cache[key]
 
 
-def result_hits(hidden: dict, text: str, session: str | None = None) -> bool:
-    """Whether ``text`` holds a distinctive window of a hidden result of ``session`` (of
-    any session when None), compared whitespace-normalized."""
+def result_hits(hidden: dict, text: str, session: str | None = None) -> str | None:
+    """"leak" when ``text`` holds the whole text of a hidden result of ``session`` (of any
+    session when None), "echo" when it holds only a distinctive window of one, else None;
+    compared whitespace-normalized."""
     t = normalize_ws(text)
-    return any(w in t and _distinctive(hidden, r, w)
-               for r in hidden["results"] if session is None or r["session"] == session
-               for w in r["windows"])
+    mine = [r for r in hidden["results"] if session is None or r["session"] == session]
+    if any(r["windows"] and r["text"] in t for r in mine):
+        return "leak"
+    if any(w in t and _distinctive(hidden, r, w) for r in mine for w in r["windows"]):
+        return "echo"
+    return None
 
 
 def _export_parts(export: dict) -> tuple[list[str], list[tuple], dict[str, list[str]]]:
@@ -376,13 +382,14 @@ def _export_parts(export: dict) -> tuple[list[str], list[tuple], dict[str, list[
 
 def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: dict[str, dict],
                   sessions: list[str] | None = None) -> dict:
-    """Hard leaks and mentions of hidden recall (see the module docstring). Each session's
+    """Hard leaks, echoes and mentions of hidden recall (see the module docstring). Each session's
     client stream (front calls, by their ``/s/<session>/`` path) and export (``exports``,
     by session) is matched against that session's hidden calls and results only (R28-A);
     a front call without a session path is matched against every session."""
     hidden = hidden_artifacts(db, sessions)
     hard = {"stream_calls": 0, "stream_results": 0, "export_calls": 0, "export_results": 0}
     model, harness = 0, set()
+    echoes = {"stream": 0, "export": 0}
 
     def is_hidden_call(cid, name, session):
         ids = hidden["ids"] if session is None else hidden["ids_by_session"].get(session, set())
@@ -396,8 +403,11 @@ def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: dic
             parts = sse_parts(resp.read_bytes())
             hard["stream_calls"] += sum(is_hidden_call(i, n, session) for i, n in parts["calls"])
             for t in parts["texts"]:
-                if result_hits(hidden, t, session):
+                hit = result_hits(hidden, t, session)
+                if hit == "leak":
                     hard["stream_results"] += 1
+                elif hit == "echo":
+                    echoes["stream"] += 1
                 elif INTERNAL_MARKER in t:
                     model += 1
         if req.exists():
@@ -411,10 +421,12 @@ def internal_scan(db: Path, records: Path, front_calls: list[dict], exports: dic
     for session, export in exports.items():
         texts, calls, results = _export_parts(export)
         hard["export_calls"] += sum(is_hidden_call(i, n, session) for i, n in calls)
-        hard["export_results"] += sum(1 for t in texts if result_hits(hidden, t, session))
+        hits = [result_hits(hidden, t, session) for t in texts]
+        hard["export_results"] += hits.count("leak")
+        echoes["export"] += hits.count("echo")
         harness |= {cid for cid, xs in results.items() if any(INTERNAL_MARKER in x for x in xs)}
     hard["leaks"] = sum(hard.values())
-    return {"hard": hard, "mentions": {"model": model, "harness": len(harness)},
+    return {"hard": hard, "echoes": echoes, "mentions": {"model": model, "harness": len(harness)},
             "hidden_ids": len(hidden["ids"]), "hidden_results": len(hidden["results"])}
 
 

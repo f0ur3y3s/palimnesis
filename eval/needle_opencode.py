@@ -541,7 +541,8 @@ def gate_checks(rec_dir: Path, ws_dir: Path, stack, cfg: dict, meta: dict, troot
           f"verify {sum(v['exit'] == 0 for v in meta['verify'].values())}/{len(meta['verify'])}; "
           f"over budget {len(meta['over_budget']['over'])}; leaks {meta['excerpt_scan']}; "
           f"slow {len(meta['slow_upstream_calls'])}; reachable records {len(meta['reachable_records'])}; "
-          f"internal hard leaks {(meta.get('internal_scan') or {}).get('hard')}, mentions "
+          f"internal hard leaks {(meta.get('internal_scan') or {}).get('hard')}, echoes "
+          f"{(meta.get('internal_scan') or {}).get('echoes')}, mentions "
           f"{(meta.get('internal_scan') or {}).get('mentions')}; "
           f"hidden calls {(meta.get('internal') or {}).get('hidden_calls')}",
           flush=True)

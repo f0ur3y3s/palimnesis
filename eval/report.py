@@ -255,7 +255,8 @@ def task_success(r: dict | None) -> bool:
 
 def arm_inputs_ok(r: dict, arm: int = 4) -> bool:
     """D44.6 inputs of one arm-4 or arm-5 task run; arm 5 adds 0 hard internal leaks
-    (mentions are reported, never gating) and an invalid-id rate of at most 5% (D62.4)."""
+    (echoes and mentions are reported, never gating) and an invalid-id rate of at most 5%
+    (D62.4)."""
     scan = r.get("excerpt_scan") or {}
     ok = bool((r.get("explain_gate") or {}).get("ok") and (r.get("verify") or {}).get("exit") == 0
               and (r.get("over_budget") or {}).get("ok")
@@ -322,7 +323,8 @@ def print_coding(run: Path, designate: dict | None, set_name: str | None = None)
             print(f"  {tid} arm 5: hidden calls {m.get('calls_by_tool')}, invalid ids {m.get('invalid_ids')}/"
                   f"{m.get('recall_calls')}, limit reached {m.get('limit_reached')}, continuations "
                   f"{m.get('continuations_per_response')}; internal hard leaks "
-                  f"{(r.get('internal_scan') or {}).get('hard')}, mentions "
+                  f"{(r.get('internal_scan') or {}).get('hard')}, echoes "
+                  f"{(r.get('internal_scan') or {}).get('echoes')}, mentions "
                   f"{(r.get('internal_scan') or {}).get('mentions')}")
     for x in sup:
         print(f"superseded: {x['id']} arm {x['arm']} attempt {x['attempt']} ({x['status']}) by attempt "
@@ -754,7 +756,8 @@ def main() -> None:
                   f"{m and m['invalid_ids']}/{m and m['recall_calls']}, limit reached {m and m['limit_reached']}, "
                   f"continuations per response {m and m['continuations_per_response']}")
         for scan in (s.get("internal_scan") or []):
-            print(f"   internal scan: hard leaks {scan.get('hard')}; mentions (reported) {scan.get('mentions')}")
+            print(f"   internal scan: hard leaks {scan.get('hard')}; echoes (reported) {scan.get('echoes')}; "
+                  f"mentions (reported) {scan.get('mentions')}")
         print(f"   verify {s['verify']}; upstream calls {s['upstream_calls']}, errors {s['errors']}, "
               f"history errors {s['history_errors']}, proxy starts {s['proxy_starts']}; foreign between "
               f"{s['foreign_between']}, during {s['foreign_during']}, overlap samples "

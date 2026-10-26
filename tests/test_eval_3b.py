@@ -303,8 +303,9 @@ def leak_run(tmp_path):
                 {"content": "The log: " + PRIOR[:60]}),
         2: _sse(_tc(0, HIDDEN_ID, "read")),                         # a hidden call's id
         3: _sse(_tc(0, "c3", "palimnesis_grep")),                    # a reserved name
-        4: _sse({"content": "Recalled: " + RESULT_TEXT[:70]}),        # a result's own text
+        4: _sse({"content": "Recalled: " + RESULT_TEXT[:70]}),        # a fragment: an echo
         5: _sse(_tc(0, "c5", "read", '{"path": "turn-0003.md"}')),
+        8: _sse({"content": "Recalled: " + RESULT_TEXT}),             # a result's whole text
     }
     for n, raw in streams.items():
         (front / f"{n:04d}.resp.sse").write_bytes(raw)
@@ -327,7 +328,7 @@ def leak_run(tmp_path):
                 "metadata": {}}},
             {"type": "tool", "id": "c9", "name": "palimnesis_catalog", "state": {
                 "status": "completed", "input": {}, "content": [], "metadata": {}}}]}]}
-    calls = [{"n": n, "path": "/s/leak/v1/chat/completions"} for n in range(1, 8)]
+    calls = [{"n": n, "path": "/s/leak/v1/chat/completions"} for n in range(1, 9)]
     return db, tmp_path, calls, {"leak": export}
 
 
@@ -335,24 +336,27 @@ def test_internal_scan_splits_hard_leaks_from_mentions(leak_run):
     db, records, calls, exports = leak_run
     s = gate_inputs.internal_scan(db, records, calls, exports)
     assert s["hard"] == {"stream_calls": 2, "stream_results": 1, "export_calls": 1,
-                         "export_results": 1, "leaks": 5}
+                         "export_results": 0, "leaks": 4}
     # Model: the stream's reasoning (the export's copy of it is not counted twice).
     # Harness: one tool result (c5), however often the history resends it.
     assert s["mentions"] == {"model": 1, "harness": 1}
+    # A fragment of a result's own text the model quotes is an echo (D62.4 amended, R29).
+    assert s["echoes"] == {"stream": 1, "export": 1}
 
 
 def test_a_clean_run_has_no_hard_leaks(leak_run):
     db, records, calls, _ = leak_run
     s = gate_inputs.internal_scan(db, records, [calls[0], calls[4]], {})
     assert s["hard"]["leaks"] == 0 and s["mentions"] == {"model": 1, "harness": 0}
+    assert s["echoes"] == {"stream": 0, "export": 0}
 
 
 def test_result_slices_found_in_earlier_content_are_not_distinctive(leak_run):
     db, *_ = leak_run
     hidden = gate_inputs.hidden_artifacts(db)
     assert hidden["ids"] == {HIDDEN_ID}
-    texts = ["The log: " + PRIOR, "x " + RESULT_TEXT[:45] + " y"]
-    assert [gate_inputs.result_hits(hidden, t) for t in texts] == [False, True]
+    texts = ["The log: " + PRIOR, "x " + RESULT_TEXT[:45] + " y", "x " + RESULT_TEXT + " y"]
+    assert [gate_inputs.result_hits(hidden, t) for t in texts] == [None, "echo", "leak"]
 
 
 def test_arm_5_inputs_need_zero_hard_leaks_and_few_invalid_ids():
@@ -505,8 +509,9 @@ def test_leak_scan_pairs_sessions_and_normalizes_whitespace(tmp_path):
     # The copies in h5 (no hidden results) and in h2 (its own paste, normalized) are clean.
     clean = gate_inputs.internal_scan(db, tmp_path, calls[:2], exports)
     assert clean["hard"]["leaks"] == 0, clean
-    # The result's own framing is still a hard leak in its session's stream.
-    assert gate_inputs.internal_scan(db, tmp_path, calls, exports)["hard"]["stream_results"] == 1
+    # A quote of the result's own framing is an echo in its session's stream (R29).
+    s = gate_inputs.internal_scan(db, tmp_path, calls, exports)
+    assert s["hard"]["leaks"] == 0 and s["echoes"]["stream"] == 1
 
 
 # R29: a grep hit on the model's own earlier reasoning. The result frames the line as
