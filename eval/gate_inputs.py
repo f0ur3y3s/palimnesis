@@ -295,7 +295,8 @@ def session_of_path(path: str | None) -> str | None:
 
 def hidden_artifacts(db: Path, sessions: list[str] | None = None) -> dict:
     """Per session: its hidden call ids, and each hidden result with its windows and the
-    non-hidden content archived before it on its branch, all whitespace-normalized (for
+    non-hidden content archived before it on its branch, all whitespace-normalized and
+    joined by single spaces, so a window spanning a block start still matches (for
     distinctiveness)."""
     conn = sqlite3.connect(f"file:{Path(db).as_posix()}?mode=ro", uri=True)
     try:
@@ -334,7 +335,7 @@ def hidden_artifacts(db: Path, sessions: list[str] | None = None) -> dict:
     finally:
         conn.close()
     return {"ids": set().union(*ids.values()) if ids else set(), "ids_by_session": ids,
-            "results": results, "prior": {b: "\n".join(v) for b, v in prior.items()}, "_distinct": {}}
+            "results": results, "prior": {b: " ".join(v) for b, v in prior.items()}, "_distinct": {}}
 
 
 def _distinctive(hidden: dict, r: dict, w: str) -> bool:

@@ -509,6 +509,42 @@ def test_leak_scan_pairs_sessions_and_normalizes_whitespace(tmp_path):
     assert gate_inputs.internal_scan(db, tmp_path, calls, exports)["hard"]["stream_results"] == 1
 
 
+# R29: a grep hit on the model's own earlier reasoning. The result frames the line as
+# "L1: Now I need ...", so a window can start with the space before "Now"; the earlier
+# archived block starts with "Now". The model's stream ("... recall that. Now I need ...")
+# is its own text, not the result.
+REASONING = "Now I need the port. The env file does not specify a port, so the archive must hold it."
+
+
+def test_leak_scan_matches_windows_across_archived_block_starts(tmp_path):
+    db = tmp_path / "archive.db"
+    store = Store.open(db)
+    try:
+        plan = _accept(store, "h6", [{"role": "system", "content": "s"},
+                                     {"role": "user", "content": "Find the staging port."}])
+        g = Generation(plan)
+        _write(store, lambda c: ledger.commit_batch(c, g, [("reasoning", "reasoning", REASONING, {})], 0))
+        _write(store, lambda c: ledger.commit_batch(c, g, [("tool_call", ("tool", 0), "{}", {
+            "id": "call_g1", "name": "palimnesis_grep", "internal": True})], 0))
+        frame = "[palimnesis_grep regex all · hits 1–1 · page 1] §AB12CD.0 seq 3 assistant reasoning L1:"
+        frame = frame[:-4] + "x" * (-len(frame) % gate_inputs.SLICE) + frame[-4:]
+        result = frame + " " + REASONING
+        _write(store, lambda c: ledger.commit_internal_result(c, g, "call_g1", "palimnesis_grep",
+                                                              result, {"ok": True}))
+        g = _write(store, lambda c: ledger.next_generation(c, g))
+        _write(store, lambda c: ledger.commit_batch(c, g, [("text", "text", "noted", {})], 0))
+        _write(store, lambda c: ledger.finish_attempt(c, g, "turn_complete"))
+    finally:
+        store.close()
+    assert any(w.startswith(" Now") for w in gate_inputs._windows(gate_inputs.normalize_ws(result)))
+    front = tmp_path / "front"
+    front.mkdir()
+    (front / "0001.resp.sse").write_bytes(_sse({"reasoning_content": "Let me recall that. " + REASONING}))
+    (front / "0001.json").write_text(json.dumps({"messages": []}), encoding="utf-8")
+    calls = [{"n": 1, "path": "/s/h6/v1/chat/completions"}]
+    assert gate_inputs.internal_scan(db, tmp_path, calls, {})["hard"]["leaks"] == 0
+
+
 # ---------------------------------------------------------------- emulated 32K (O2) through OpenCode
 
 def test_emulated_context_follows_the_input_budget():
