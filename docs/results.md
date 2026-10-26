@@ -855,3 +855,170 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `
 - **Not changed here.** The fix is in `eval/`: propagate the client disconnect in `Tap`. D44.1 allows a later commit that changes only `eval/` and docs, but that needs a new commit. No held-out data has been seen.
 
 **Resolution (2026-10-25).** Fixed in `eval/` by D45.9.16 before any held-out run: both taps now watch for the client's disconnect and close the stream they relay. `tests/test_eval_taps.py` fails without the fix (the upstream stream runs its full 30 s) and passes with it, including the resend that omits the cut-off turn. The held-out runs use the commit that carries this fix.
+
+## R25 — S11 held-out at 32K (2026-10-25/26)
+
+**Outcome.** The needle gate passes: 120/120. The coding gate fails: arm 4 succeeded on 3 of 5 tasks against 5 of 5 for arm 1, and the restart task ho-t3 failed under arm 4. Every D44.6 input holds on every held-out archive. No proxy defect was found (D44.8), and nothing was rerun (D44.7).
+
+**Setup.**
+- **Code:**
+  - The needles, ho-t1 and ho-t2 ran at `bc610b9`.
+  - ho-t3..t5 ran at `9889b37`, which adds only D48 and the README; `src/`, `eval/` and `tests/` are unchanged.
+  - `provenance.dirty` is false in every run. Drivers: `needle-opencode v2` and `tasks-run v2`. OpenCode 2.1.4.
+- **Configuration (D44.1, D45.4):** arm 4 is `a4-d43`, the `serve` defaults (q1, r1, x2, a3, t1, s1) with `deadline_s` 3600. Arm 1 is `serve --passthrough` with `compaction.auto` true and `limit.context` 32768.
+- **Deterministic suite at `bc610b9`:** 1270 passed, 1 failed, 1 skipped (R25-A).
+- **Before any held-out run:**
+  - `run.py --check-reference` passed for all 8 tasks: each passes on its reference and fails on its stub.
+  - `needle.py preflight --set heldout` found 12/12 imports faithful: 101/101 messages, 50 empty reasoning fields added.
+- **Strata.** 0.1.48, `qwen3.8-flash-next-iq3_xxs` IQ3_XXS, one slot. `/props` reported `n_ctx` 32768 before and after every history and task. Neither server was restarted or reconfigured by these runs. The proxy's pin and canary passed at every start (0 "views disabled" lines).
+  - **bazzite** (192.168.1.173; RTX 3060 12 GB; Control 0.1.49; systemd scope `strata-32k`) served the needles, ho-t1 and ho-t2.
+  - **Zeus** (192.168.1.19; RTX 4070 Ti SUPER 16 GB; Control 0.2.3.1) served ho-t3..t5. The move came after ho-t1 and ho-t2 had run, and it is a deviation from D44 (D48). Each task's two arms ran on the same machine.
+- **Client host:** Windows 11 Pro 26200, Intel Core Ultra 7 355, 31.5 GB RAM. Python 3.12.13 (venv) and 3.14.6 (system: the model's shell and the checks), tokenizers 0.23.3, SQLite 3.53.1.
+- **D39.** Each server's `/v1/status` activity counter rose by exactly our upstream calls:
+  - bazzite: 917 → 2110 = 2 (cancel check) + 356 (needles) + 835 (ho-t1, ho-t2).
+  - Zeus: 193 → 1636 = 1443 (ho-t3..t5). The 193 earlier requests were the pre-switch checks behind D48.
+
+  All runs are labelled unaffected. The 4 gate events, and the tap's nonzero `foreign_between` sums on arm 1 (24 in total), are our own requests: cut-off calls still releasing, and late-counted disconnects (R25-B).
+- **Cache.** bazzite was warm from R24's traffic; the first needle (ho1q1) took 26 s. Zeus was warm from the D48 checks.
+- **Raw data** (bodies, archives, OpenCode homes, logs) stayed in the session scratchpad (`…/scratchpad/s11-heldout/`). Sanitized fixtures are in `eval/fixtures/phase3-heldout/32k/`:
+  - `a4-d43.jsonl`: per-step needle summaries, from `report.py --fixtures`.
+  - `tasks.jsonl`: one row per task and arm.
+  - `task_turns.jsonl`: one row per turn.
+  - `summary.json`: the gates.
+
+**(0) Live cancel check (D45.9.16), 18:03Z, bazzite.**
+- **Path:** a client went through the front tap, the proxy (`a4-d43`) and the upstream tap to Strata. It read 40 chunks of a streaming count-to-600 and closed.
+- **Result:**
+  - Both tap records carry `client_disconnect`.
+  - Strata reported `busy: false` 0.134 s after the close (decode phase).
+  - The archive recorded `cancelled`, then `partial_superseded`.
+  - The resend without the cut-off turn got 200 (`finish: stop`).
+- No held-out data was used.
+
+**(a) Held-out needles, arm 4, one attempt, bazzite, 18:10–19:12Z (61 min).**
+
+| Loose exact | 95% Wilson | History-clustered bootstrap | Strict | In view / excerpt / absent | Exact when absent (fallback used) | Lookups (questions) | Unnecessary lookups (questions) | Upstream calls | TTFVC p50 / p90 s | Latency p50 / p90 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **120/120** | 96.9–100% | 100–100% | 117 | 32 / 65 / 31 | 31/31 (31/31) | 188 (74) | 77 (43 of 89) | 356 | 5.4 / 17.8 | 23.5 / 46.1 |
+
+- **Bootstrap settings:** 10,000 resamples, seed 44.
+- **Strict misses:** all 3 are the right value in backticks (ho8q1, ho8q2, ho9q6).
+- **By category:** every category scored full marks, including the 12 restart questions (Q9).
+- **Rows:** 0 not run, 0 missing, 0 duplicates.
+- **Errors and stops:** 0 errors, 0 early stops, 0 turn kills.
+- **Imports:** all 12 were faithful, with every prior turn archived as `client_import`.
+- **Tokens:** 6,247,113 prompt and 73,337 completion, all steps; 5,068,844 cached.
+- **`--explain` causes:** 275 append pairs and 69 collapse pairs.
+
+**(b) Held-out coding tasks, one attempt per task and arm.** ho-t1 ran arm 4 first, ho-t2 arm 1 first, and so on.
+
+| Task | Machine | Arm | Success (functional) | Constraints (stub) | Restart gate | Turns killed at 30 min | Upstream calls | Prompt / completion tokens | Max input | Lookups | Compaction calls | Latency s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ho-t1 | bazzite | 4 | **no** (2/3) | 3/3 (1/3) | – | none | 145 | 2,327,409 / 108,072 | 22,078 | 8 | 0 | 2,977 |
+| ho-t1 | bazzite | 1 | yes (3/3) | 3/3 (1/3) | – | 1, 2, 4, 5, 6, 7 | 273 | 3,952,587 / 609,820 | 26,085 | 0 | 76 | 13,296 |
+| ho-t2 | bazzite | 4 | yes (3/3) | 3/3 (1/3) | – | 7 | 196 | 3,077,953 / 136,807 | 22,137 | 16 | 0 | 3,811 |
+| ho-t2 | bazzite | 1 | yes (3/3) | 3/3 (1/3) | – | 5, 6, 7, 8 | 221 | 3,058,845 / 329,833 | 21,443 | 0 | 45 | 7,667 |
+| ho-t3 | Zeus | 4 | **no** (1/3) | 2/3 (0/3) | **fail** | 5, 7, 8 | 539 | 8,668,229 / 508,875 | 24,016 | 70 | 0 | 9,082 |
+| ho-t3 | Zeus | 1 | yes (3/3) | 3/3 (0/3) | (pass) | 1, 3, 4 | 425 | 5,878,394 / 516,564 | 26,264 | 0 | 69 | 7,960 |
+| ho-t4 | Zeus | 4 | yes (3/3) | 3/3 (0/3) | – | none | 99 | 1,616,311 / 104,342 | 24,255 | 14 | 0 | 1,857 |
+| ho-t4 | Zeus | 1 | yes (3/3) | 3/3 (0/3) | – | none | 90 | 1,207,650 / 70,694 | 20,205 | 0 | 11 | 1,140 |
+| ho-t5 | Zeus | 4 | yes (3/3) | 3/3 (0/3) | – | 7 | 230 | 3,831,569 / 161,396 | 23,637 | 13 | 0 | 3,000 |
+| ho-t5 | Zeus | 1 | yes (3/3) | 3/3 (0/3) | – | none | 60 | 693,664 / 26,161 | 25,641 | 0 | 7 | 488 |
+
+- **Paired outcomes:** both arms succeeded on 3 tasks, arm 1 alone on 2 (ho-t1, ho-t3), arm 4 alone on 0. The paired success difference is −2/5. The exact two-sided McNemar p is 0.5, and two discordant pairs cannot reach p < 0.05 in any split (plan §7).
+- **Constraints held:** arm 4 14/15 (ho-t3 C1 failed), arm 1 15/15.
+- **ho-t1, arm 4:** `test_f_parse_strict` failed, because the parser accepts `1h 30m`. Model output.
+- **ho-t3, arm 4 (the restart task):**
+  - C2, the key constraint stated only in turn 1, **held** after the restart.
+  - The run still fails, because success also needs every `test_f_*`. `test_f_token_ipv4` and `test_f_cli` failed (IPv4 values were not redacted), and so did C1 (format).
+  - Turn 5, the first after the restart, ran into the 30-minute kill after 97 calls and 14 transcript lookups.
+- **Turn kills by machine:**
+
+  | Machine | Arm 4 | Arm 1 |
+  | --- | --- | --- |
+  | bazzite (2 tasks) | 1 | 10 |
+  | Zeus (3 tasks) | 4 | 3 |
+
+  - Kills are counted as they happened: the killed turn ends, and the session goes on.
+  - D48 records that a faster decode fits more work into each 30-minute turn.
+- **After each kill, the next turn was accepted.** The next turn resent history without the cut-off turn, and the proxy took it, with 0 proxy rejections in any run (D45.9.16, D13.1). The 5 arm-4 kills are the first live coverage of that path on arm 4.
+- **Compaction calls by machine (arm 1):** 121 on bazzite (2 tasks) and 87 on Zeus (3 tasks).
+  - Arm 1's largest input was 26,264 tokens. Arm 1 has no input budget, so that is not a gate input.
+  - On ho-t1 arm 1, two turns ended in OpenCode's `compaction.failed` ("Compaction summary reached the output token limit").
+
+**Gate verdicts (D44; nothing waived or reinterpreted).**
+
+| Gate | Inputs | Verdict |
+| --- | --- | --- |
+| Needle gate (D44.4): loose exact ≥ 85% over all 120 | 120/120 (100%) | **pass** |
+| Coding gate (D44.5): arm 4 successes ≥ arm 1's, over ho-t1..t5 | 3 against 5 | **fail** |
+| Restart task ho-t3 under arm 4 (success plus C2, D45.9.7) | C2 held; success no (1/3) | **fail** |
+| 0 over-budget inputs (D44.6) | 0 of 356 needle calls and 0 of 1,209 arm-4 task calls over 24,320, by the pinned counter | pass |
+| 0 excerpt text visible to the client (D44.6, D45.9.8) | 0 leaks in client requests, proxy responses, OpenCode exports and transcripts, over 6 archives (the needle run and the 5 arm-4 tasks; 668 and 146 stored excerpt texts). Echoes: 131 client and 1 transcript, all in ho-t1 arm 4, where the model's reasoning quoted the x2 header | pass |
+| `--explain` with 0 unexplained pairs (D44.6, D45.9.8) | needles 344/344; tasks 144, 195, 538, 98 and 229 of the same counts; all exit 0, 0 unexplained | pass |
+| `transcripts verify` (D44.6) | 12/12 needle sessions and 5/5 arm-4 task sessions | pass |
+
+**Other D45.9.8 inputs.**
+- **Count drift:** 0 differences in all counted calls of both arms (356 needle calls, 2,260 task calls). Killed calls carry no usage, so they are not counted.
+- **"bounded views disabled" / "forwarding unbounded":** 0 / 0 in every proxy log.
+- **Proxy rejections:** 0.
+- **Calls over 600 s:** 0. The longest was 186.5 s.
+- **Reachable records:** 0, apart from one detector false positive (R25-D).
+- **Client cancels:**
+  - Needles: 0.
+  - Arm-4 tasks: 9. Of these, 5 are the turn kills and 4 are disconnects that arrived after a complete stream.
+  - Arm-1 tasks: 623, an upper bound (R25-B).
+
+**Halts during the run.** The task runner stopped after any run that showed a possible defect signal. It stopped twice; both stops were reviewed, and neither is a D44.7 or D44.8 case.
+1. **After ho-t1 arm 1.**
+   - The runner's first D39 test used the tap's `foreign_between` sum (9) and gate events (3). That was stricter than D39.
+   - bazzite's activity counter equalled our calls.
+   - Strata's server log shows exactly 6 `(disconnect, cancel=True)` completions, one per kill.
+   - The 3 gate events came 1.8–2.4 s after killed turns.
+   - The test was changed to compare the server's activity delta with our upstream calls.
+2. **After ho-t4 arm 4:** a `reachable_records` false positive (R25-D).
+
+**R25-A. Flaky deterministic test.**
+- **The test:** `tests/test_deadline_http.py::test_a_client_that_stops_reading_cannot_hold_the_upstream_past_the_deadline`. It failed once in the full suite, and once in 5 runs of its file alone.
+- **What fails:** a scratch copy of the test failed in 2 of 12 runs. In those runs, a stalled client whose socket closes right after the deadline has its attempt recorded as `cancelled`, not `attempt_failed: deadline_exceeded`.
+- **What holds:** the upstream was closed at the deadline (1.00–1.06 s) in every run. Only the event's classification races.
+- **Effect here:** none. It is not a D44.6 input, and the held-out runs cannot reach it (`deadline_s` 3600). It is unresolved.
+
+**R25-B. The arm-1 client-cancel counts are an upper bound.**
+- **The numbers:** in ho-t1 arm 1, turn 1, 69 of 70 streams were complete at both taps, `[DONE]` included and byte-identical, yet 44 calls were flagged `client_disconnect`. Strata logged only the real cut-offs as cancelled.
+- **Likely cause** [inferred, unverified]: OpenCode closes the connection after `[DONE]`, before the relayed upstream connection ends. The front tap then sees a disconnect after the whole stream was delivered.
+- **Where it shows:** mostly in passthrough (arm 1), and 4 times in arm 4 (ho-t3).
+- **Effect:**
+  - No content was lost, and no proxy rejection or `--explain` problem followed.
+  - Late-counted disconnects plausibly also explain the tap's nonzero `foreign_between` on arm 1.
+  - The `client_cancels` counts, especially arm 1's, should be read as an upper bound.
+
+**R25-C. Per-call tap records are not kept for task runs.**
+- `eval/tasks/run.py` writes per-turn totals only. The tap's per-call records (`client_disconnect`, `t_disconnect`, `foreign_between`, upstream timings) stay in memory and are lost when the run ends.
+- R25-B and the halt reviews were therefore reconstructed from the stream files, the server's activity counter and, on bazzite, Strata's server log. Zeus's server log is not readable from the driver host (D48.4).
+- The needle driver writes `calls.jsonl` and is not affected.
+
+**R25-D. A `reachable_records` false positive (ho-t4 arm 4).**
+- **The hit:** the transcript `turn-0002.md` was flagged.
+- **What matched:** the generic rule that flags any file containing the literal `"gold"`. The model's own reasoning reads "…hidden tests define the "gold" behavior…". None of the task's hidden-check markers occurs in the file, and coding tasks have no answer keys.
+- **Why it misfired:** the `"gold"` test is meant for needle-record JSON, and it also matches model prose.
+- **Decision:** the lead reviewed it, and the run counts as valid. Nothing was rerun or changed.
+
+**R25-E. Transcript lookup overhead (ho-t3 arm 4).** These counts come from the client's requests: 68 tool calls touched the transcript directory, the driver's 70 lookups less 2 helper-script writes. About half returned what the model was after:
+- **Useful calls:**
+  - It re-read the task's requirements three times after they left the view.
+  - It re-read spec details, test expectations and earlier test results.
+  - It re-read its own reasoning from earlier in its longest turns.
+- **Overhead calls:**
+  - **Stale paths:** 6 "Cannot find path" or "Search path does not exist" errors. The in-progress turn's file name carries a revision that changes as the archive grows (`turn-0002.p1601.md`, then `.p1730.md`, then `.p2165.md`; `projection.py`, D34), so a name the model had just seen was gone by its next call.
+  - **Listings:** about 16 directory listings and index reads, partly to recover from those errors.
+  - **System prompt:** 6 reads of `turn-0000.md`, which holds OpenCode's system prompt; that prompt is always in view.
+  - **The model's own scripting errors:** a few.
+- **Effect:** the overhead costs calls and time; this run had turns 5, 7 and 8 killed. It costs no correctness or gate input, so it is not a proxy defect under D44.8.
+- **Two changes for after Phase 3:**
+  - Give the in-progress turn a stable path.
+  - Mark turn 0 in `index.md` as the system prompt, which is already in view.
+
+  Recall by address (optional Phase 3B, A1) would avoid most of these calls.
+
+**Not run here:** the 64K report runs (D44.9) wait for Zeus to be relaunched at 65536 (D48).

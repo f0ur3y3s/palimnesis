@@ -1,0 +1,113 @@
+{
+ "result": "R25",
+ "decisions": [
+  "D44",
+  "D45",
+  "D48"
+ ],
+ "n_ctx": 32768,
+ "strata": "0.1.48",
+ "machines": {
+  "bazzite": "192.168.1.173, RTX 3060 12 GB, Control 0.1.49: needles, ho-t1, ho-t2",
+  "zeus": "192.168.1.19, RTX 4070 Ti SUPER 16 GB, Control 0.2.3.1: ho-t3..ho-t5 (D48)"
+ },
+ "commits": {
+  "needles, ho-t1, ho-t2": "bc610b900c7dc0afdd824e69c7f4f225c770f77d",
+  "ho-t3..ho-t5": "9889b370cc34bbcb14b6737417fa0a7850ec1f62 (docs/README only after bc610b9)"
+ },
+ "cancel_check": {
+  "status_code_1": 200,
+  "chunks_read": 40,
+  "release_s": 0.134,
+  "status_code_2": 200,
+  "pass": true,
+  "front_disconnect": true,
+  "upstream_disconnect": true,
+  "archive": [
+   "cancelled",
+   "partial_superseded",
+   "turn_complete"
+  ]
+ },
+ "needle_gate": {
+  "loose": 120,
+  "n": 120,
+  "strict": 117,
+  "wilson95": [
+   0.969,
+   1.0
+  ],
+  "bootstrap95": [
+   1.0,
+   1.0
+  ],
+  "not_run": 0,
+  "missing": 0,
+  "duplicates": 0,
+  "threshold": 0.85,
+  "verdict": "pass"
+ },
+ "needle_inputs": {
+  "explain": {
+   "exit": 0,
+   "pairs": 344,
+   "expected_pairs": 344,
+   "unexplained": 0,
+   "ok": true
+  },
+  "verify_pass": 12,
+  "verify_n": 12,
+  "over_budget": 0,
+  "counted": 356,
+  "budget": 24320,
+  "excerpt_scan": {
+   "client": {
+    "texts": 228034,
+    "leaks": 0,
+    "echoes": 0
+   },
+   "transcripts": {
+    "texts": 516,
+    "leaks": 0,
+    "echoes": 0
+   }
+  },
+  "reachable_records": 0,
+  "slow_upstream_calls": 0,
+  "drift_nonzero": 0,
+  "upstream_calls": 356,
+  "proxy_rejections": 0,
+  "client_cancels": 0,
+  "kills": 0,
+  "views_disabled": 0,
+  "unbounded": 0,
+  "gate_events": 0,
+  "foreign": 0
+ },
+ "coding_gate": {
+  "arm4": {
+   "ho-t1": false,
+   "ho-t2": true,
+   "ho-t3": false,
+   "ho-t4": true,
+   "ho-t5": true
+  },
+  "arm1": {
+   "ho-t1": true,
+   "ho-t2": true,
+   "ho-t3": true,
+   "ho-t4": true,
+   "ho-t5": true
+  },
+  "arm4_successes": 3,
+  "arm1_successes": 5,
+  "restart_task": "ho-t3",
+  "restart_gate": false,
+  "discordant": {
+   "arm4_only": 0,
+   "arm1_only": 2
+  },
+  "mcnemar_exact_two_sided_p": 0.5,
+  "verdict": "fail"
+ }
+}
