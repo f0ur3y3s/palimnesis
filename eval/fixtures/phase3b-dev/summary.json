@@ -1,0 +1,698 @@
+{
+ "result": "R28",
+ "slice": "Phase 3B S10",
+ "status": "halted after a5-B (internal_scan hard result hit; reviewed as a scan false positive, see R28-A)",
+ "commit": "8055e02dd133d83fe423e76e7ed6fad19bfd4147",
+ "dirty": false,
+ "driver": "needle-emulator v2 + s10 wrapper (front tap, O2 emulation)",
+ "strata": {
+  "host": "Zeus 192.168.1.19:8080",
+  "build": "Strata 0.1.48",
+  "n_ctx": 65536,
+  "emulated_input_budget": 24320
+ },
+ "sources": "per-arm figures from the full upstream tap dump (continuations included); report.py's emulator columns undercount arm 5",
+ "arms": {
+  "a4-d43": {
+   "n": 60,
+   "n_run": 60,
+   "loose": 51,
+   "strict": 51,
+   "wilson_loose": [
+    0.7388517410884038,
+    0.9190265075770431
+   ],
+   "wilson_strict": [
+    0.7388517410884038,
+    0.9190265075770431
+   ],
+   "early_stops": [
+    [
+     "h2q4",
+     "2.5s",
+     "2"
+    ],
+    [
+     "h2q5",
+     "52s",
+     "5"
+    ],
+    [
+     "h2q6",
+     "test_flush_warm_bucket",
+     ""
+    ],
+    [
+     "h2q7",
+     "150",
+     "1"
+    ],
+    [
+     "h2q8",
+     "pg-stg-07.internal:6432/stockroom_core_stg",
+     "pg-stg-07.internal:6432/stockr"
+    ],
+    [
+     "h3q5",
+     "28s",
+     "28"
+    ],
+    [
+     "h6q9",
+     "r2026.10.19-hf5",
+     "r2"
+    ],
+    [
+     "h6q10",
+     "plan_with_lock",
+     "plan"
+    ]
+   ],
+   "errored": 0,
+   "in_view": 9,
+   "in_excerpt": 44,
+   "absent": 9,
+   "absent_right": 7,
+   "absent_with_lookup": 9,
+   "present": 51,
+   "unnecessary_questions": 5,
+   "unnecessary_calls": 7,
+   "unnecessary_hidden": 0,
+   "lookups_q": 33,
+   "questions_with_lookup": 14,
+   "hidden_q": {},
+   "harness_lookups": 33,
+   "internal": {
+    "calls_by_tool": {},
+    "results_by_tool": {},
+    "errors": {},
+    "recall_calls": 0,
+    "invalid_ids": 0,
+    "continuations_per_response": {
+     "0": 123
+    },
+    "hidden_calls": 0,
+    "invalid_id_rate": 0.0,
+    "limit_reached": 0,
+    "responses": 123,
+    "continuations": 0,
+    "max_continuations": 0,
+    "mean_continuations": 0.0
+   },
+   "upstream_calls": 123,
+   "prompt_all": 2316806,
+   "completion_all": 13255,
+   "cached_all": 1909528,
+   "q_prompt": 1972111,
+   "q_completion": 12764,
+   "ttfvc_p50": 2.919,
+   "ttfvc_p90": 10.327,
+   "lat_p50": 3.042,
+   "lat_p90": 10.533,
+   "lat_mean": 5.545966666666667,
+   "wall_min": 7.4,
+   "explain_exit": 0,
+   "explain_pairs": 117,
+   "explain_expected": 117,
+   "unexplained": 0,
+   "causes": {
+    "append": 96,
+    "collapse": 21
+   },
+   "verify": "6/6",
+   "over_budget": "0 of 123",
+   "max_input": 22537,
+   "drift": "0 of 123",
+   "excerpt_scan": {
+    "client": {
+     "texts": 60386,
+     "leaks": 0,
+     "echoes": 0
+    },
+    "transcripts": {
+     "texts": 258,
+     "leaks": 0,
+     "echoes": 0
+    }
+   },
+   "internal_scan": {
+    "hard": {
+     "stream_calls": 0,
+     "stream_results": 0,
+     "export_calls": 0,
+     "export_results": 0,
+     "leaks": 0
+    },
+    "mentions": {
+     "model": 0,
+     "harness": 0
+    },
+    "hidden_ids": 0,
+    "hidden_results": 0
+   },
+   "front": {
+    "proxy_rejections": 0,
+    "upstream_failures": 0,
+    "client_cancels": 0
+   },
+   "front_non200": 0,
+   "front_stream_errors": 0,
+   "front_mct": [
+    8192
+   ],
+   "views_disabled": 0,
+   "unbounded": 0,
+   "foreign_between": 0,
+   "foreign_during": 0,
+   "gate_events": 0,
+   "stopped": null,
+   "by_category": {
+    "identifier:True": 12,
+    "irrelevant_matches:False": 1,
+    "irrelevant_matches:True": 5,
+    "mid_task:False": 1,
+    "mid_task:True": 5,
+    "multi_fact:False": 1,
+    "multi_fact:True": 5,
+    "oversized_read:False": 1,
+    "oversized_read:True": 5,
+    "restart_multi_eviction:False": 2,
+    "restart_multi_eviction:True": 4,
+    "superseded:True": 6,
+    "vague:False": 3,
+    "vague:True": 9
+   }
+  },
+  "a5-A": {
+   "n": 60,
+   "n_run": 55,
+   "loose": 34,
+   "strict": 34,
+   "wilson_loose": [
+    0.44103214654694856,
+    0.6842779960559936
+   ],
+   "wilson_strict": [
+    0.44103214654694856,
+    0.6842779960559936
+   ],
+   "early_stops": [
+    [
+     "h1q2",
+     "fix/ledger-rounding-37570",
+     "fix/ledger-rounding-37"
+    ],
+    [
+     "h1q3",
+     "9282",
+     "9"
+    ],
+    [
+     "h1q4",
+     "1.25s",
+     "1"
+    ],
+    [
+     "h1q5",
+     "22s",
+     "2"
+    ],
+    [
+     "h1q6",
+     "test_emit_empty_manifest",
+     "test"
+    ],
+    [
+     "h1q7",
+     "1536",
+     "1"
+    ],
+    [
+     "h1q9",
+     "r2026.10.16-hf9",
+     "r"
+    ],
+    [
+     "h1q10",
+     "round_half_even_minor",
+     "round"
+    ],
+    [
+     "h4q4",
+     "3.75s",
+     "3.75"
+    ],
+    [
+     "h4q5",
+     "30s",
+     "30"
+    ],
+    [
+     "h4q8",
+     "pg-stg-05.internal:7432/carthorse_app_stg",
+     ""
+    ],
+    [
+     "h5q4",
+     "4.25s",
+     "4"
+    ],
+    [
+     "h5q5",
+     "28s",
+     "2"
+    ],
+    [
+     "h5q6",
+     "test_build_dirty_offset",
+     "t"
+    ],
+    [
+     "h5q7",
+     "1536",
+     ""
+    ],
+    [
+     "h5q9",
+     "r2026.10.17-hf9",
+     ""
+    ],
+    [
+     "h6q4",
+     "6.0s",
+     "6"
+    ],
+    [
+     "h6q5",
+     "15s",
+     "1"
+    ]
+   ],
+   "errored": 0,
+   "in_view": 12,
+   "in_excerpt": 40,
+   "absent": 7,
+   "absent_right": 4,
+   "absent_with_lookup": 7,
+   "present": 48,
+   "unnecessary_questions": 8,
+   "unnecessary_calls": 23,
+   "unnecessary_hidden": 23,
+   "lookups_q": 59,
+   "questions_with_lookup": 15,
+   "hidden_q": {
+    "palimnesis_grep": 49,
+    "palimnesis_recall": 10
+   },
+   "harness_lookups": 0,
+   "internal": {
+    "calls_by_tool": {
+     "palimnesis_grep": 49,
+     "palimnesis_recall": 10
+    },
+    "results_by_tool": {
+     "palimnesis_grep": 49,
+     "palimnesis_recall": 10
+    },
+    "errors": {
+     "invalid_arguments": 5,
+     "limit_reached": 6
+    },
+    "recall_calls": 10,
+    "invalid_ids": 0,
+    "continuations_per_response": {
+     "0": 79,
+     "4": 4,
+     "1": 7,
+     "3": 3,
+     "2": 2
+    },
+    "hidden_calls": 59,
+    "invalid_id_rate": 0.0,
+    "limit_reached": 6,
+    "responses": 95,
+    "continuations": 36,
+    "max_continuations": 4,
+    "mean_continuations": 0.37894736842105264
+   },
+   "upstream_calls": 131,
+   "prompt_all": 2554914,
+   "completion_all": 19782,
+   "cached_all": 2190289,
+   "q_prompt": 2210010,
+   "q_completion": 11173,
+   "ttfvc_p50": 2.656,
+   "ttfvc_p90": 9.582,
+   "lat_p50": 2.722,
+   "lat_p90": 10.165,
+   "lat_mean": 5.500090909090909,
+   "wall_min": 8.1,
+   "explain_exit": 0,
+   "explain_pairs": 125,
+   "explain_expected": 125,
+   "unexplained": 0,
+   "causes": {
+    "append": 74,
+    "collapse": 17,
+    "internal_continuation": 34
+   },
+   "verify": "6/6",
+   "over_budget": "0 of 131",
+   "max_input": 22566,
+   "drift": "0 of 131",
+   "excerpt_scan": {
+    "client": {
+     "texts": 44988,
+     "leaks": 0,
+     "echoes": 0
+    },
+    "transcripts": {
+     "texts": 257,
+     "leaks": 0,
+     "echoes": 0
+    }
+   },
+   "internal_scan": {
+    "hard": {
+     "stream_calls": 0,
+     "stream_results": 0,
+     "export_calls": 0,
+     "export_results": 0,
+     "leaks": 0
+    },
+    "mentions": {
+     "model": 3,
+     "harness": 0
+    },
+    "hidden_ids": 59,
+    "hidden_results": 59
+   },
+   "front": {
+    "proxy_rejections": 0,
+    "upstream_failures": 0,
+    "client_cancels": 0
+   },
+   "front_non200": 0,
+   "front_stream_errors": 0,
+   "front_mct": [
+    24576
+   ],
+   "views_disabled": 0,
+   "unbounded": 0,
+   "foreign_between": 1,
+   "foreign_during": 0,
+   "gate_events": 0,
+   "stopped": [
+    {
+     "history": "dev-h6",
+     "after": "h6p3",
+     "error": {
+      "status": 200,
+      "error": "unparsable tool-call arguments, finish=length"
+     }
+    }
+   ],
+   "by_category": {
+    "identifier:False": 1,
+    "identifier:True": 11,
+    "irrelevant_matches:False": 4,
+    "irrelevant_matches:True": 2,
+    "mid_task:False": 2,
+    "mid_task:True": 3,
+    "multi_fact:False": 3,
+    "multi_fact:True": 2,
+    "oversized_read:False": 2,
+    "oversized_read:True": 3,
+    "restart_multi_eviction:False": 2,
+    "restart_multi_eviction:True": 3,
+    "superseded:False": 1,
+    "superseded:True": 5,
+    "vague:False": 6,
+    "vague:True": 5
+   }
+  },
+  "a5-B": {
+   "n": 60,
+   "n_run": 60,
+   "loose": 41,
+   "strict": 31,
+   "wilson_loose": [
+    0.5576599505698345,
+    0.7869429415882567
+   ],
+   "wilson_strict": [
+    0.39307594850843575,
+    0.6382515871422999
+   ],
+   "early_stops": [
+    [
+     "h1q5",
+     "22s",
+     "22"
+    ],
+    [
+     "h2q1",
+     "STO-4513-S",
+     "ST"
+    ],
+    [
+     "h2q2",
+     "fix/stockroom-double-76323",
+     "fix"
+    ],
+    [
+     "h2q3",
+     "9256",
+     "9"
+    ],
+    [
+     "h2q4",
+     "2.5s",
+     "2"
+    ],
+    [
+     "h2q5",
+     "52s",
+     "5"
+    ],
+    [
+     "h2q6",
+     "test_flush_warm_bucket",
+     ""
+    ],
+    [
+     "h2q7",
+     "150",
+     "1"
+    ],
+    [
+     "h2q8",
+     "pg-stg-07.internal:6432/stockroom_core_stg",
+     ""
+    ],
+    [
+     "h2q9",
+     "r2026.10.11-hf5",
+     ""
+    ],
+    [
+     "h3q2",
+     "fix/tidepool-duplicate-70924",
+     ""
+    ],
+    [
+     "h3q3",
+     "9260",
+     ""
+    ],
+    [
+     "h6q4",
+     "6.0s",
+     "6"
+    ],
+    [
+     "h6q5",
+     "15s",
+     "15"
+    ],
+    [
+     "h6q6",
+     "test_validate_legacy_event",
+     "test_validate"
+    ],
+    [
+     "h6q7",
+     "768",
+     ""
+    ],
+    [
+     "h6q8",
+     "pg-stg-02.internal:6432/harbor_infra_stg",
+     "pg-stg-0"
+    ],
+    [
+     "h6q9",
+     "r2026.10.19-hf5",
+     ""
+    ],
+    [
+     "h6q10",
+     "plan_with_lock",
+     ""
+    ]
+   ],
+   "errored": 0,
+   "in_view": 13,
+   "in_excerpt": 45,
+   "absent": 7,
+   "absent_right": 4,
+   "absent_with_lookup": 7,
+   "present": 53,
+   "unnecessary_questions": 13,
+   "unnecessary_calls": 31,
+   "unnecessary_hidden": 31,
+   "lookups_q": 84,
+   "questions_with_lookup": 20,
+   "hidden_q": {
+    "palimnesis_grep": 61,
+    "palimnesis_recall": 18,
+    "palimnesis_catalog": 5
+   },
+   "harness_lookups": 0,
+   "internal": {
+    "calls_by_tool": {
+     "palimnesis_grep": 61,
+     "palimnesis_recall": 18,
+     "palimnesis_catalog": 5
+    },
+    "results_by_tool": {
+     "palimnesis_grep": 61,
+     "palimnesis_recall": 18,
+     "palimnesis_catalog": 5
+    },
+    "errors": {
+     "invalid_arguments": 4,
+     "limit_reached": 7,
+     "bad_page": 1,
+     "unknown_block": 1
+    },
+    "recall_calls": 18,
+    "invalid_ids": 1,
+    "continuations_per_response": {
+     "0": 86,
+     "2": 3,
+     "4": 7,
+     "1": 9,
+     "3": 2
+    },
+    "hidden_calls": 84,
+    "invalid_id_rate": 0.05555555555555555,
+    "limit_reached": 7,
+    "responses": 107,
+    "continuations": 49,
+    "max_continuations": 4,
+    "mean_continuations": 0.45794392523364486
+   },
+   "upstream_calls": 156,
+   "prompt_all": 2940888,
+   "completion_all": 23755,
+   "cached_all": 2529812,
+   "q_prompt": 2476056,
+   "q_completion": 15048,
+   "ttfvc_p50": 2.957,
+   "ttfvc_p90": 16.312,
+   "lat_p50": 3.477,
+   "lat_p90": 12.968,
+   "lat_mean": 6.45,
+   "wall_min": 9.8,
+   "explain_exit": 0,
+   "explain_pairs": 150,
+   "explain_expected": 150,
+   "unexplained": 0,
+   "causes": {
+    "append": 88,
+    "collapse": 20,
+    "internal_continuation": 42
+   },
+   "verify": "6/6",
+   "over_budget": "0 of 156",
+   "max_input": 24263,
+   "drift": "0 of 156",
+   "excerpt_scan": {
+    "client": {
+     "texts": 51554,
+     "leaks": 0,
+     "echoes": 2
+    },
+    "transcripts": {
+     "texts": 263,
+     "leaks": 0,
+     "echoes": 2
+    }
+   },
+   "internal_scan": {
+    "hard": {
+     "stream_calls": 0,
+     "stream_results": 1,
+     "export_calls": 0,
+     "export_results": 0,
+     "leaks": 1
+    },
+    "mentions": {
+     "model": 6,
+     "harness": 0
+    },
+    "hidden_ids": 84,
+    "hidden_results": 84
+   },
+   "front": {
+    "proxy_rejections": 0,
+    "upstream_failures": 0,
+    "client_cancels": 0
+   },
+   "front_non200": 0,
+   "front_stream_errors": 0,
+   "front_mct": [
+    24576
+   ],
+   "views_disabled": 0,
+   "unbounded": 0,
+   "foreign_between": 0,
+   "foreign_during": 0,
+   "gate_events": 0,
+   "stopped": null,
+   "by_category": {
+    "identifier:False": 3,
+    "identifier:True": 9,
+    "irrelevant_matches:False": 2,
+    "irrelevant_matches:True": 4,
+    "mid_task:False": 2,
+    "mid_task:True": 4,
+    "multi_fact:False": 2,
+    "multi_fact:True": 4,
+    "oversized_read:False": 2,
+    "oversized_read:True": 4,
+    "restart_multi_eviction:False": 2,
+    "restart_multi_eviction:True": 4,
+    "superseded:False": 2,
+    "superseded:True": 4,
+    "vague:False": 4,
+    "vague:True": 8
+   }
+  }
+ },
+ "halt": {
+  "config": "a5-B",
+  "front_call": 68,
+  "session": "dev-h5-a5-B-s10",
+  "upstream_call": 92,
+  "upstream_hidden_calls": 0,
+  "first_hidden_result_seq_in_session": 126,
+  "flagged_text": "model write-call arguments copying the session's own P1 paste",
+  "matched_windows_from": [
+   "dev-h2-a5-B-s10/main seq 140",
+   "dev-h3-a5-B-s10/main seq 143"
+  ],
+  "why_distinctive": "grep snippets collapse 'INFO  canary' (two spaces, archived) to 'INFO canary'; the model wrote the same one-space form"
+ }
+}

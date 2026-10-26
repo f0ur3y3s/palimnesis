@@ -1135,3 +1135,110 @@ Code at the S12 commit. Full suite: 1277 passed, 1 skipped.
 - **Evaluation tooling:** the flaky deadline test (R25-A); per-call tap records for task runs (R25-C); the `"gold"` detector matching prose (R25-D).
 - **Deferred by design:** proxy admission, `429` and keepalives (Ph4B, O4); Anthropic error re-envelope and other harnesses (Ph4B); continuation accounting and RE2 search (3B).
 - **Cache model:** `restart_or_eviction` also counts checkpoints Strata dropped without a restart (D50.3).
+
+## R28 — Phase 3B S10 development matrix: halted after arm B (2026-10-26, development data only)
+
+**Outcome: S10 halted at its first possible defect signal, so no arm is selected.** The smoke run passed. The needle screen completed a4-d43, a5-A and a5-B. a5-B's leak scan then reported 1 hard leak: a hidden-result window in the client stream. The run stopped during a5-C, as the halt rule requires. The review below (R28-A) finds a false positive of `gate_inputs.internal_scan`, not a proxy leak; resuming is left to the lead. Not run: a5-C (killed after 17 questions; void), a5-D, selection (steps 3 and 5) and the development tasks (step 4). No held-out data was touched.
+
+**Setup.**
+- **Code:** `8055e02`, clean tree in every run (`git_provenance` dirty false). `src/` and `eval/` were not changed. Full suite: 1483 passed, 1 skipped.
+- **Strata:** Zeus (D49), 0.1.48, `qwen3.8-flash-next-iq3_xxs`, RTX 4070 Ti SUPER 16 GB, one slot. `/props` reported `n_ctx` 65536 before and after each run.
+- **Client host:** Windows 11 Pro 26200 (Intel64 Family 6 Model 204), Python 3.12.13 (venv), tokenizers 0.23.3, SQLite 3.53.1. OpenCode 2.1.4 for the smoke run.
+- **Emulated 32K (O2):** `--input-budget 24320` at 65536.
+  - The emulator does this natively.
+  - The real-OpenCode tooling cannot: `oc_stack.Stack` starts the proxy with `serve`'s default budget (48,000 at 64K), and `run.py` sets arm 1's `limit.context` to `--expect-n-ctx`.
+  - Runs therefore went through a scratch wrapper (`s10run.py`, not in the repo). It does four things:
+    - starts every non-passthrough proxy child with `--input-budget 24320`, confirmed in the proxy log (`input_budget=24320`);
+    - counts over-budget against 24,320;
+    - would give arm 1 `limit.context` 32768 (not used here);
+    - adds a halt watcher, a full per-call tap dump (R25-C), and a front tap between the emulator and the proxy, so the D62.4 leak scan can read the emulator's client stream.
+  - Recorded as a deviation. The tooling needs an `--input-budget` option before S10 resumes.
+- **Arm settings:** a5-* are arm 4's settings (q1, r1, x2, transcripts projected) plus stub / addendum / tools: A `s2/a1/t1`, B `s3/a1/t1`, C `s2/a0/t2`, D `s0/a1/t2`. Client output limit is 24,576 (O-B3); `deadline_s` 3600.
+- **D39:** Strata's activity counter rose by exactly our upstream calls in every run: 806→828 (22), →951 (123), →1082 (131), →1238 (156), →1275 (a5-C's 37). 0 gate events. All runs are labelled unaffected.
+- **Cache:** the smoke run came after 1.9 h idle (cold). The screen configs ran back to back; each session is new.
+- **Raw data:** `…/scratchpad/s10-3b/`. Sanitized fixtures in `eval/fixtures/phase3b-dev/`:
+  - `smoke/a5-A.jsonl` and `screen/{a4-d43,a5-A,a5-B}.jsonl`, written by `report.py --fixtures` (no bodies);
+  - `summary.json`, per-arm figures from the upstream tap and the halt evidence.
+
+**(1) Smoke run: dev-h1 under a5-A through real OpenCode, 17:43Z, 95 s.**
+
+| Check | Result |
+| --- | --- |
+| Loose / strict exact | 10/10 / 10 (Wilson 72–100%) |
+| Hidden calls answered | 10 calls (grep 9, recall 1), 10 results, 0 error results; continuations 7 over 15 responses (max 4) |
+| `max_completion_tokens` | 24,576 on all 15 client requests; each upstream call carried 8,192 (R) |
+| Hidden-recall leaks (D62.4) | 0 hard (stream calls, stream results, export calls, export results), 0 mentions |
+| `--explain` | exit 0, 21/21 pairs, 0 unexplained |
+| `transcripts verify` | pass (1/1) |
+| Other inputs | Import faithful (101 messages, all prior turns `client_import`); 0 of 22 over 24,320; drift 0 of 22; excerpt leaks 0 / echoes 0; 0 proxy non-200s; 0 reachable records |
+
+**(2) Needle screen (partial): dev-h1..h6 through the emulator (needle-emulator v2), one run per configuration, 17:45–18:12Z.**
+
+Figures come from the upstream tap: every call, continuations included, attributed to its step by tap order. The emulator's own `calls.jsonl` keeps only a round's last call, and its client usage reports the last call's prompt (D61). `report.py`'s token and lookup columns therefore undercount arm 5 (a5-A prompt 1.84M there, 2.55M at the tap). "Unnecessary" counts questions whose needle was in view or in an excerpt and that still made a hidden or transcript lookup.
+
+| Config | Loose exact /60 (95% Wilson) | Strict | Early stops (R21-C) | Not run | In view / excerpt / absent | Absent answered | Hidden calls (grep / recall / catalog) | Harness lookups | Invalid ids (Wilson) | Error results | Unnecessary: questions / calls | Upstream calls | Prompt / completion tokens, all steps | TTFVC p50 / p90 s | Latency p50 / p90 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| a4-d43 | 51 (74–92%) | 51 | 8 | 0 | 9 / 44 / 9 | 7/9 | – | 33 | – | – | 5 of 51 / 7 | 123 | 2,316,806 / 13,255 | 2.9 / 10.3 | 3.0 / 10.5 |
+| a5-A | 34 (44–68%) | 34 | 18 | 5 (dev-h6 Q6–Q10) | 12 / 40 / 7 | 4/7 | 49 / 10 / 0 | 0 | 0/10 (0–28%) | 5 invalid_arguments, 6 limit_reached | 8 of 48 / 23 | 131 | 2,554,914 / 19,782 | 2.7 / 9.6 | 2.7 / 10.2 |
+| a5-B | 41 (56–79%) | 31 | 19 | 0 | 13 / 45 / 7 | 4/7 | 61 / 18 / 5 | 0 | **1/18 = 5.6%** (1.0–25.8%) | 4 invalid_arguments, 7 limit_reached, 1 bad_page, 1 unknown_block | 13 of 53 / 31 | 156 | 2,940,888 / 23,755 | 3.0 / 16.3 | 3.5 / 13.0 |
+
+- **Paired with a4-d43** (both / only a4-d43 / only the arm / neither), loose exact: a5-A 27 / 21 / 7 / 0 (exact McNemar p 0.013); a5-B 40 / 11 / 1 / 8 (p 0.006). Pairs within a history are not independent, so these p-values overstate the evidence (R22).
+- **Continuations:** a5-A 36 over 95 responses (max 4); a5-B 49 over 107 (max 4, 7 responses at 4).
+- **The ranking is dominated by early stops, not by recall** (R28-B). One run per arm cannot separate them.
+- **Sensitivity, early-stopped questions excluded** (loose exact over the questions that ran, less early stops):
+
+  | Config | Loose exact | 95% Wilson | Misses left |
+  | --- | --- | --- | --- |
+  | a4-d43 | 51/52 | 90–100% | h2q9 |
+  | a5-A | 34/37 | 79–97% | h3q8, h5q8, h5q10 |
+  | a5-B | 41/41 | 91–100% | none |
+
+  On this view the order is B ≥ a4-d43 ≥ A, the reverse of the headline counts for A and B. The headline ranking hinges on R21-C noise.
+- **a5-B fails selection rule 1** (invalid ids above 5%) on 1 invalid id in 18 recall calls, an interval of 1–26%. The figure is one event, and per-arm recall counts this small cannot resolve the 5% threshold.
+- **dev-h6 under a5-A stopped after P3.** The upstream ended a paste step's response with `length` inside `glob`/`write` arguments the model began while saving the paste. The emulator stops a history whose calls it cannot resend (R21). The 5 needles count as misses.
+
+**Input checks (D44.6 / D62.4), per complete configuration** (a4-d43 / a5-A / a5-B):
+- `--explain`: exit 0, 117/117, 125/125 and 150/150 pairs (= upstream calls − 6), 0 unexplained. Arm 5 adds `internal_continuation` pairs (34 and 42).
+- `transcripts verify`: 6/6 each.
+- Over 24,320 by the pinned counter: 0 of 123 / 131 / 156. Largest input 22,537 / 22,566 / 24,263.
+- Count drift: 0 of 123 / 131 / 156, checked live on every upstream call.
+- Excerpt leaks: 0 / 0 / 0. Echoes: 0 / 0 / 2 client + 2 transcript.
+- Hidden-recall hard leaks: – / 0 / **1** (R28-A). Mentions (reported only): model 0 / 3 / 6, harness 0.
+- Proxy non-200s and stream errors: 0. "views disabled" / "forwarding unbounded": 0 / 0. Reachable records are not applicable to the emulator.
+- Relay: over all 410 upstream calls, the client stream's text equals the upstream calls' text in every response (assigned by arrival time).
+
+**R28-A. The halt: a hard-leak hit in a5-B is a false positive of the leak scan.**
+- **The hit.** Front call 68, session dev-h5, is the model's `write` call on paste step P1. It saves the pasted canary deploy log to `notes/…md`, including the line `2026-10-24T21:07:44Z INFO canary: new release tag r2026.10.17-hf9 …`.
+- **The matched windows** come from hidden grep results in *other* sessions: dev-h2 seq 140 and dev-h3 seq 143. The deploy-log template and timestamp are shared across development histories (D45, "not everything is disjoint").
+- **Why the scan called them distinctive:**
+  - The archived paste reads `INFO  canary` with two spaces.
+  - Grep snippets render it with one space, so the one-space window occurs in no earlier archived text on those branches.
+  - The model's copy also has one space.
+- **Why it cannot be a leak:**
+  - The flagged response is a single upstream call (#92, `finish: tool_calls`) with no hidden call.
+  - Session dev-h5's first hidden result comes later (seq 126), after the paste (seq 104) and these writes (105–111).
+  - Its text is the model's copy of a paste in its own input.
+- **Scan defects (eval/):** `internal_scan` matches windows of every session's results against every session's client stream, and grep snippets that normalize whitespace defeat the distinctiveness test. The same false positive could fail the D62.4 gate on ho2, because the needle driver also keeps all histories in one archive. Suggested fix: pair a session's results with that session's client stream only, and test distinctiveness on whitespace-normalized text. Not changed here.
+
+**R28-B. Upstream early stops (R21-C) recur on Zeus under x2, and more often under arm 5.**
+- **Rates:** 8, 18 and 19 per configuration (Wilson 7–24%, 20–43%, 21–44%). R22 saw 0–1 per 60 under x2 on bazzite.
+- **Pattern:** they cascade within a history (a4-d43 and a5-B dev-h2, a5-A dev-h1, a5-B dev-h6), and the answer stops after its first characters (`9` for `9282`, `test` for `test_emit_empty_manifest`).
+- **The same dev-h1 under a5-A through real OpenCode** had 0 early stops and scored 10/10.
+- **Not the arm-5 assembler.** Arm 5 rewrites the client stream (`palimnesis.assemble`), so R21-C was re-checked against the raw upstream SSE.
+  - **Three a5-A early stops, last call of each question:**
+
+    | Step | Gold | Client got | Strata's own stream |
+    | --- | --- | --- | --- |
+    | h1q2 | `fix/ledger-rounding-37570` | `fix/ledger-rounding-37` | upstream #3 streamed the same, then `finish: stop` |
+    | h1q3 | `9282` | `9` | upstream #4 streamed `9`, then `stop` |
+    | h5q4 | `4.25s` | `4` | upstream #106 streamed `4`, then `stop` |
+
+  - In each case the reasoning had just stated the full value ("…`fix/ledger-rounding-37570`. Reply with only the branch name.").
+  - **Every call, all three arms:** no upstream text was longer than what the client received, across all 410 upstream calls (see Input checks).
+- **Cause:** unknown. The text is in Strata's own stream; Zeus runs MTP with `--spec-min-p` 0.5 (D48.4). Until that is understood, or repeats per arm are run, needle retention on this server mostly measures early stops, and selection rule 2 (rank by retention) would rank noise.
+
+**R28-C. Tooling notes for S10's resumption** (eval only; nothing changed):
+1. Add `--input-budget` to `oc_stack.Stack` / `needle_opencode` / `run.py`, and a matching arm-1 `limit.context`, for O2 emulation through real OpenCode.
+2. The emulator's `calls.jsonl` and per-question hidden counts miss continuation calls that the tap records after the client's `[DONE]`.
+3. The emulator has no front tap or `internal_scan` of its own.
+4. The halt watcher checked hidden tool names live but result text only after each run. That is why a5-C had started when the hit was found.
