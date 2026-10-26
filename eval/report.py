@@ -65,6 +65,14 @@ def load(run: Path, config: str, designate: dict | None = None):
     return rows, meta, explain
 
 
+def _one_n_ctx(metas: list[dict]) -> int | None:
+    """The ``expect_n_ctx`` the designated attempts share; one run never mixes two."""
+    seen = {m.get("expect_n_ctx") for m in metas} - {None}
+    if len(seen) > 1:
+        raise ValueError(f"designated attempts ran at different n_ctx: {sorted(seen)}")
+    return seen.pop() if seen else None
+
+
 def load_attempts(run: Path, config: str, designate: dict | None = None):
     """Rows of the designated attempt per history; meta merged over those attempts."""
     import sys
@@ -97,6 +105,7 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
             "proxy_starts": sum(m.get("proxy_starts") or 0 for m in metas),
             "started": min((m.get("started", 0) for m in metas), default=0),
             "finished": max((m.get("finished", 0) for m in metas), default=0),
+            "expect_n_ctx": _one_n_ctx(metas),
             "attempts": metas, "superseded": superseded,
             "designated": {h: a["attempt"] for h, a in chosen.items()}}
     explain = {"pairs": pairs, "summary": {"pairs": len(pairs)}}

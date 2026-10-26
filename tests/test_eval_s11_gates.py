@@ -316,3 +316,13 @@ def test_clean_needles_are_judged_against_the_budget_of_the_runs_n_ctx():
         return rows[0]["clean"]
 
     assert clean({"expect_n_ctx": 65536}) and not clean({})
+
+
+def test_a_run_with_attempts_keeps_its_n_ctx_for_the_clean_budget(tmp_path):
+    run = tmp_path / "run"
+    rec = attempts.new_attempt(run, kind="needles", config="a4-d43", ids=["ho-h1"], reason=None)
+    d = Path(rec["records"])
+    (d / "questions.jsonl").write_text(json.dumps(_row("ho-h1", "q1", True)) + "\n", encoding="utf-8")
+    (d / "meta.json").write_text(json.dumps({"expect_n_ctx": 65536}), encoding="utf-8")
+    _, meta, _ = report.load_attempts(run, "a4-d43")
+    assert report.budget_for(meta) == 48_000

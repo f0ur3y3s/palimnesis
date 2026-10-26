@@ -1022,3 +1022,82 @@ Sanitized per-needle summaries are in `eval/fixtures/phase3-dev/r22/run1/` and `
   Recall by address (optional Phase 3B, A1) would avoid most of these calls.
 
 **Not run here:** the 64K report runs (D44.9) wait for Zeus to be relaunched at 65536 (D48).
+
+## R26 — S11 held-out at 64K, reported only (D44.9; 2026-10-26)
+
+**Outcome.** No gate applies at 64K (D44.9). Arm 4 answered 60/60 needles from ho-h1..h6. Both arms succeeded on all 5 held-out tasks, and the restart task ho-t3 passed under arm 4. No turn was killed, nothing was rerun, and the runner never halted.
+
+At 64K, arm 4's budget is 48,000 tokens, and these sessions barely reach it. The largest arm-4 task input was 43,830. The view moved only 5 times across the five arm-4 tasks, and the model made no transcript lookups. The 64K tasks therefore test very little of the bounded view or of recall.
+
+**Setup.**
+- **Code:** `e0a7632`, clean tree in every run. It derives arm 1's OpenCode `limit.context` from `--expect-n-ctx`, and `report.py`'s clean-subset budget from the run's recorded `n_ctx` (D48.6). `src/` is unchanged since `bc610b9`.
+- **Strata:** Zeus (D48), relaunched at `n_ctx` 65536 with the same configuration as at 32K apart from `--max-context`. Strata 0.1.48, pin passing, one slot. `/props` reported `n_ctx` 65536 before and after every history and task.
+- **Settings checked in the first run of each arm:**
+  - Arm 4's over-budget check counted against 48,000 (`input_budget_for(65536)`), and its OpenCode `limit.context` stayed 1,000,000.
+  - Arm 1's `result.json` records `opencode_limit_context` 65536, and its OpenCode config file reads `"context": 65536`.
+- **Everything else is as in R25:** drivers, OpenCode 2.1.4, client host, arm settings, the 30-minute turn limit, and the order (arm 4 first on ho-t1, ho-t3 and ho-t5).
+- **D39.** Zeus's activity counter started at 0 after the relaunch and ended at 674, exactly our 127 needle calls and 547 task calls. There were 0 gate events and 0 foreign activity.
+- **Run times (2026-10-26):** needles 12:32–12:42Z (9.4 min), tasks 12:42–14:14Z.
+- **Cache:** cold after the relaunch; the needle run was the first traffic.
+- **Raw data** stayed in the session scratchpad (`…/scratchpad/s11-heldout/heldout-needles-64k/`, `heldout-tasks-64k/`). Sanitized fixtures, in the same layout as R25, are in `eval/fixtures/phase3-heldout/64k/`: `a4-d43.jsonl`, `tasks.jsonl`, `task_turns.jsonl` and `summary.json`.
+
+**(a) Needles: arm 4, ho-h1..h6 (60 questions), against the same 60 at 32K (R25).**
+
+| Run | Machine | Loose exact | 95% Wilson | History-clustered bootstrap | Strict | In view / excerpt / absent | Fallback used when absent | Lookups (questions) | Unnecessary lookups (questions) | Upstream calls | Max input | TTFVC p50 / p90 s | Latency p50 / p90 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 64K | Zeus | 60/60 | 94–100% | 100–100% | 55 | 40 / 17 / 12 | 12/12 | 29 (12) | 0 (0 of 48) | 127 | 41,721 | 2.9 / 4.8 | 3.3 / 14.4 |
+| 32K | bazzite | 60/60 | 94–100% | 100–100% | 60 | 16 / 30 / 17 | 17/17 | 92 (34) | 33 (17 of 43) | 178 | 22,668 | 5.3 / 17.8 | 23.9 / 48.6 |
+
+- **What the categories mean:**
+  - "In view" and "in excerpt" can both hold for one question, so the three counts don't sum to 60.
+  - At 64K, more needles stayed in view and fewer were absent, so the model needed fewer lookups.
+- **Strict misses at 64K:** all 5 are the right value in backticks or quotes (ho4q2, ho4q6, ho4q10, ho5q4, ho5q5).
+- **Timings compare machines as well as contexts.** Zeus decodes about 1.8× faster than bazzite (D48.2), so the latency columns are not a 32K/64K comparison.
+- **64K inputs:** none over budget (0 of 127 above 48,000), drift 0 of 127, `--explain` exit 0 with 121/121 pairs and 0 unexplained, verify 6/6, 0 leaks and 0 echoes, 0 reachable records, 0 proxy rejections, 0 client cancels, 0 kills, longest call 15.9 s.
+- **Clean subset (R26-A):** 60/60 at a budget of 48,000.
+
+**(b) Coding tasks, one attempt per task and arm, Zeus.**
+
+| Task | Arm | Success (functional) | Constraints (stub) | Restart gate | Turns killed | Upstream calls | Prompt / completion tokens | Max input | Lookups | Compaction calls | View moves (collapse / watermark) | Latency s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ho-t1 | 4 | yes (3/3) | 3/3 (1/3) | – | none | 29 | 818,029 / 21,528 | 37,145 | 0 | 0 | 1 / 0 | 307 |
+| ho-t1 | 1 | yes (3/3) | 3/3 (1/3) | – | none | 71 | 2,014,312 / 41,262 | 52,523 | 0 | 2 | – | 563 |
+| ho-t2 | 4 | yes (3/3) | 3/3 (1/3) | – | none | 26 | 665,339 / 24,012 | 37,876 | 0 | 0 | 0 / 0 | 324 |
+| ho-t2 | 1 | yes (3/3) | 3/3 (1/3) | – | none | 75 | 2,274,533 / 65,096 | 53,036 | 0 | 4 | – | 790 |
+| ho-t3 | 4 | yes (3/3) | 3/3 (0/3) | **pass** | none | 42 | 1,225,960 / 35,409 | 43,830 | 0 | 0 | 1 / 1 | 495 |
+| ho-t3 | 1 | yes (3/3) | 3/3 (0/3) | (pass) | none | 69 | 2,174,134 / 56,134 | 51,512 | 0 | 3 | – | 707 |
+| ho-t4 | 4 | yes (3/3) | 3/3 (0/3) | – | none | 58 | 1,785,833 / 51,485 | 41,683 | 0 | 0 | 2 / 0 | 690 |
+| ho-t4 | 1 | yes (3/3) | 3/3 (0/3) | – | none | 73 | 2,138,251 / 45,723 | 50,449 | 0 | 3 | – | 596 |
+| ho-t5 | 4 | yes (3/3) | 3/3 (0/3) | – | none | 30 | 806,691 / 20,465 | 40,075 | 0 | 0 | 0 / 0 | 281 |
+| ho-t5 | 1 | yes (3/3) | 3/3 (0/3) | – | none | 74 | 2,454,443 / 45,964 | 54,769 | 0 | 2 | – | 597 |
+
+- **Per arm:**
+
+  | Arm | Successes | Constraints held | Turns killed | Compaction calls | Upstream calls | Prompt / completion tokens | Latency, all tasks |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | 4 | 5/5 | 15/15 | 0 | 0 | 185 | 5,301,852 / 152,899 | 2,099 s |
+  | 1 | 5/5 | 15/15 | 0 | 14 | 362 | 11,055,673 / 254,179 | 3,252 s |
+
+  There are no discordant pairs.
+- **Against 32K (R25), on the same tasks:**
+  - Arm 4: 3/5 successes at 32K against 5/5 here.
+  - Turn kills: 18 at 32K against 0 here.
+  - Arm 1 compaction calls: 208 at 32K against 14 here.
+
+  Most of the 32K difficulty went away at 64K. A 64K session holds about twice as much before arm 4 views or arm 1 compacts, and Zeus fits more work into each 30-minute turn. These runs do not separate the two causes, and they are one attempt per task.
+- **Arm-4 inputs per task:**
+  - Over budget: 0 of 185 calls above 48,000.
+  - `--explain`: exit 0, with 28, 25, 41, 57 and 29 pairs, 0 unexplained. The causes were 170 append, 4 collapse, 1 watermark move and 5 `view_format_change` (one per task).
+  - Verify passed 5/5.
+  - 0 leaks and 0 echoes in client data and transcripts; 0 reachable records.
+  - "views disabled" / "unbounded": 0/0.
+  - Drift 0 of 185; longest call 89.6 s.
+- **Arm-1 checks:** drift 0 of 362, longest call 87.7 s.
+- **Client cancels:** 0 on arm 4. 160 on arm 1, with no turn killed, so these are all after-`[DONE]` disconnects (R25-B).
+
+**R26-A. The clean-subset budget fix does not reach runs with an `attempts.json`.**
+- `report.py`'s `budget_for(meta)` reads `meta["expect_n_ctx"]`. For a run directory with `attempts.json`, `load_attempts` builds a merged meta that leaves that key out.
+- `budget_for` therefore falls back to 32768 (a budget of 24,320) for every OpenCode-driver run, and `report.py` printed "CLEAN subset: 1/1" for the 64K needles.
+- Recomputed in the scratchpad with `mark_clean(rows, 48000)`, the clean subset is 60/60.
+- The headline count, the Wilson interval, the bootstrap and every gate input are unaffected. 32K reports are unaffected too, because 24,320 is right there.
+- **Fixed with this result:** `load_attempts` now carries `expect_n_ctx` into the merged meta, and refuses designated attempts that ran at different `n_ctx`. The new test `test_a_run_with_attempts_keeps_its_n_ctx_for_the_clean_budget` failed before the fix. After it, `report.py` prints "CLEAN subset: 60/60" for the 64K needles. The 32K held-out report is unchanged at 120/120. Full suite: 1274 passed, 1 skipped.

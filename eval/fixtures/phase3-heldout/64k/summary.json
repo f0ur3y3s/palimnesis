@@ -1,0 +1,85 @@
+{
+ "result": "R26",
+ "decisions": [
+  "D44.9",
+  "D48",
+  "D48.6"
+ ],
+ "gate": null,
+ "reported_only": true,
+ "machine": "zeus (192.168.1.19, RTX 4070 Ti SUPER 16 GB, Control 0.2.3.1)",
+ "n_ctx": 65536,
+ "strata": "0.1.48",
+ "commit": "e0a7632d4500c75d0740e2bba656e6ae000c025d",
+ "arm4_input_budget": 48000,
+ "arm1_opencode_limit_context": 65536,
+ "needles_h1_h6": {
+  "64k": {
+   "loose": 60,
+   "n": 60,
+   "strict": 55,
+   "wilson95": [
+    0.94,
+    1.0
+   ],
+   "bootstrap95": [
+    1.0,
+    1.0
+   ],
+   "in_view": 40,
+   "in_excerpt": 17,
+   "absent": 12,
+   "fallback_used": 12,
+   "lookups": 29,
+   "upstream_calls": 127,
+   "max_input": 41721,
+   "drift_nonzero": 0,
+   "over_budget": 0,
+   "explain_pairs": 121,
+   "unexplained": 0,
+   "verify": "6/6",
+   "leaks": 0,
+   "echoes": 0,
+   "kills": 0,
+   "proxy_rejections": 0
+  },
+  "32k_same_histories": {
+   "loose": 60,
+   "n": 60,
+   "strict": 60,
+   "in_view": 16,
+   "in_excerpt": 30,
+   "absent": 17,
+   "fallback_used": 17,
+   "lookups": 92,
+   "upstream_calls": 178,
+   "max_input": 22668,
+   "machine": "bazzite"
+  }
+ },
+ "tasks": {
+  "arm4_successes": 5,
+  "arm1_successes": 5,
+  "restart_task_ho_t3_arm4": true,
+  "kills": {
+   "arm4": 0,
+   "arm1": 0
+  },
+  "compaction_calls": {
+   "arm4": 0,
+   "arm1": 14
+  },
+  "arm4_view_moves": {
+   "collapse": 4,
+   "watermark_move": 1
+  },
+  "arm4_lookups": 0
+ },
+ "d39": {
+  "zeus_activity": [
+   0,
+   674
+  ],
+  "our_upstream_calls": 674
+ }
+}
