@@ -28,6 +28,8 @@ class Settings:
     query_policy: str = "q1"
     excerpt_renderer: str = "x2"
     addendum: str = "a3"
+    # Stub format: s1, or a Phase 3B matrix variant (s0, s2, s3; docs/affordances.md).
+    stub: str = "s1"
     # Hidden recall tools (Phase 3B): the tools affordance (t1 or t2) whose schemas are
     # fixed at a session's first masked view, or None for none.
     hidden_tools: str | None = None

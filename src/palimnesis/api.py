@@ -195,11 +195,19 @@ class Proxy:
         return self.settings.hidden_tools, schemas(self.settings.hidden_tools)
 
     def _addendum_for(self):
-        """session id -> the a3 addendum naming its transcript directory, while transcript
-        files are published (D36, D37.2); None otherwise."""
+        """session id -> the addendum: a3/a4 name the session's transcript directory and
+        apply while transcript files are published (D36, D37.2); the 3B recall addenda
+        a1/a2 need no transcripts; a0 is none."""
+        from .affordances import addendum_text
+
+        which = self.settings.addendum
+        if which == "a0":
+            return None
+        if which in ("a1", "a2"):
+            text = addendum_text("", which)
+            return lambda session: (which, text)
         if self.projector is None:
             return None
-        from .affordances import addendum_text
         from .projector import session_dir
 
         root, which = self.projector.root, self.settings.addendum
@@ -246,7 +254,8 @@ class Proxy:
                                    renderer=self.settings.excerpt_renderer)
         engine = ViewEngine(upstream, mode=self.settings.view,
                             input_budget=self.settings.input_budget, excerpts=excerpts,
-                            excerpt_renderer=self.settings.excerpt_renderer)
+                            excerpt_renderer=self.settings.excerpt_renderer,
+                            stub_format=self.settings.stub)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,

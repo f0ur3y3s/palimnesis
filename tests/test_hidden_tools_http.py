@@ -111,3 +111,41 @@ def test_serve_takes_the_hidden_tools_affordance_off_by_default():
     assert serve_settings(base).hidden_tools is None
     assert serve_settings([*base, "--hidden-tools", "t2"]).hidden_tools == "t2"
     assert serve_settings([*base, "--hidden-tools", "off"]).hidden_tools is None
+
+
+# --- matrix presentation options (docs/affordances.md, 3B matrix) --------------------
+
+
+def test_the_stub_format_and_a_pathless_addendum_reach_the_upstream(tmp_path):
+    from palimnesis.affordances import REGISTRY
+
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t1", stub="s0", addendum="a1",
+                    transcripts_enabled=False) as (fake, url, settings):
+        fake.respond_sse([DONE])
+        post(url, body(_turn(history(30), "go on"), max_completion_tokens=8192))
+
+    raw = fake.requests[-1].body.decode()
+    messages = json.loads(raw)["messages"]
+    assert "[palimnesis s0 " in raw and "[palimnesis s1 " not in raw
+    assert messages[0]["content"].endswith(REGISTRY["a1"].text)
+    assert rows(settings, "SELECT DISTINCT stub_format FROM view_versions") == [("s0",)]
+
+
+def test_addendum_a0_adds_nothing(tmp_path):
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2", stub="s2",
+                    addendum="a0") as (fake, url, _):
+        fake.respond_sse([DONE])
+        post(url, body(_turn(history(30), "go on"), max_completion_tokens=8192))
+
+    messages = json.loads(fake.requests[-1].body)["messages"]
+    assert messages[0]["content"] == "You are a coding agent."
+    assert "[palimnesis s2 " in fake.requests[-1].body.decode()
+
+
+def test_serve_takes_the_stub_and_the_3b_addenda():
+    from palimnesis.cli import serve_settings
+
+    base = ["--upstream", "http://127.0.0.1:1"]
+    assert serve_settings(base).stub == "s1"
+    s = serve_settings([*base, "--stub", "s3", "--addendum", "a1"])
+    assert (s.stub, s.addendum) == ("s3", "a1")

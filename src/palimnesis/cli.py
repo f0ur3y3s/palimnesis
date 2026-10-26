@@ -54,8 +54,11 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                        help="proactive-recall query policy (D43 froze the default)")
     serve.add_argument("--excerpt-renderer", choices=["x1", "x2"], default="x2",
                        help="excerpt block rendering (D43 froze the default)")
-    serve.add_argument("--addendum", choices=["a3", "a4"], default="a3",
-                       help="transcript-search addendum (D43 froze the default)")
+    serve.add_argument("--addendum", choices=["a0", "a1", "a2", "a3", "a4"], default="a3",
+                       help="model-facing addendum: a3/a4 transcript search (D43 froze a3), "
+                            "a1/a2 hidden recall (Phase 3B), a0 none")
+    serve.add_argument("--stub", choices=["s0", "s1", "s2", "s3"], default="s1",
+                       help="stub format: s1, or a Phase 3B matrix variant")
     serve.add_argument("--hidden-tools", choices=["off", "t1", "t2"], default="off",
                        help="hidden recall tools (Phase 3B): the tool descriptions to offer "
                             "once a session first hides anything")
@@ -78,6 +81,7 @@ def _settings(args: argparse.Namespace) -> Settings:
                     db_path=db_path, synchronous=args.synchronous, view=args.view,
                     input_budget=args.input_budget, query_policy=args.query_policy,
                     excerpt_renderer=args.excerpt_renderer, addendum=args.addendum,
+                    stub=args.stub,
                     hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)

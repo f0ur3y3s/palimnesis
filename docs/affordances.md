@@ -149,7 +149,7 @@ Arms:
 | A | s2 head/tail | a1 | t1 terse |
 | B | s3 (s2 plus inline recall hint) | a1 | t1 |
 | C | s2 | a0 (none) | t2 guided |
-| D | s1 (alias and size only) | a1 | t2 |
+| D | s0 (alias and size only; was s1, see below) | a1 | t2 |
 
 - **Data:** stratified development needles, labeled recall-needed and recall-unneeded situations, and 5 development coding tasks. Runs are paired, with prompts fixed per arm.
 - **Metrics:** retention, appropriate recall, unnecessary calls, invalid ids, task success, added tokens, latency.
@@ -162,3 +162,5 @@ Arms:
 **Plan inconsistency, open for Phase 3 planning.** Arm D calls `s1` "alias and size only", but the Phase 2 module spec and golden test (`test_stub_s1_golden_text`) give `s1` head/tail previews. The format as built is `s1`, and the matrix above is kept verbatim. Before the A/B runs, either:
 - give arm D a separate header-only version (a new id), or
 - accept that D differs from A only in its hint and tool description.
+
+**Resolved for Phase 3B (2026-10-26):** arm D uses `s0`, the header-only stub (D16.2). `serve` renders every matrix variant: `--stub s0|s1|s2|s3`, `--addendum a0|a1|a2` (a1 and a2 need no transcript files), `--hidden-tools t1|t2`.

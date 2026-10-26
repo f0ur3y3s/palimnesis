@@ -111,7 +111,7 @@ class Prepared:
 class ViewEngine:
     def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
                  input_budget: int | None = None, excerpts=None,
-                 excerpt_renderer: str = RENDERER_VERSION) -> None:
+                 excerpt_renderer: str = RENDERER_VERSION, stub_format: str = STUB_FORMAT) -> None:
         self.profile = profile
         self.excerpts = excerpts if excerpts is not None else NoExcerpts()
         self.excerpt_renderer = excerpt_renderer
@@ -120,7 +120,7 @@ class ViewEngine:
         self.unsupported_rules = unsupported_rules(profile.rules)
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
-        self.view_policy = ViewPolicy()
+        self.view_policy = ViewPolicy(stub_format=stub_format)
         self._warm_lock = threading.Lock()
         self._warm_next = None
         self._warming = False
@@ -169,7 +169,8 @@ class ViewEngine:
         fixed_tokens = self.counter.count_messages(fixed, counted_tools, **args)
         if len(fixed) < len(messages):
             note = {"role": "user", "content": span_note("ZZZZZZ", "ZZZZZZ", 99_999,
-                                                        tokens=9_999_999)}
+                                                        tokens=9_999_999,
+                                                        fmt=self.view_policy.stub_format)}
             fixed_tokens = self.counter.count_messages([*fixed, note], counted_tools, **args) \
                 + RESIDUE_SLACK
         check_fixed(budget, fixed_tokens=fixed_tokens + extra_fixed)
@@ -188,7 +189,8 @@ class ViewEngine:
 
     async def build(self, prepared: Prepared, plan) -> View:
         # view="off" never masks; _prepare already verified the full history fits.
-        policy = ViewPolicy(high=float("inf")) if self.mode == "off" else self.view_policy
+        policy = (replace(self.view_policy, high=float("inf")) if self.mode == "off"
+                  else self.view_policy)
         items = with_addendum(plan.items, plan.addendum)
 
         def run() -> View:
@@ -253,6 +255,11 @@ class ViewEngine:
             selection = replace(selection, items=(), reason="over_allocation")
             rendered, charge = "", 0
         return selection, rendered, charge, allocation
+
+    @property
+    def view_format(self) -> dict:
+        """The presentation recorded with each view version and call (contracts §10)."""
+        return {"policy_version": POLICY_VERSION, "stub_format": self.view_policy.stub_format}
 
     @staticmethod
     def body(req: chat.ChatRequest, plan, prepared: Prepared, view: View) -> bytes:

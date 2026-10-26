@@ -298,3 +298,41 @@ def test_span_note_text():
     assert stubs.span_note("AAAAAA", "AAAAAA", 1) == (
         "[palimnesis s1 span §AAAAAA · 1 message · archived exactly; not shown]"
     )
+
+
+# --- Phase 3B stub variants (docs/affordances.md, 3B matrix) -------------------------
+
+
+def test_stub_s2_golden_text():
+    stub = stubs.tool_result_stub("K7Q2MX", 0, ROWS, count=word_tokens,
+                                  head_tokens=4, tail_tokens=2, fmt="s2")
+    assert stub == (
+        "[palimnesis s2 §K7Q2MX.0 tool_result · 80 tok · 40 lines · sha df8192]\n"
+        "row 00\n"
+        "row 01\n"
+        "…[74 tok not shown]…\n"
+        "row 39\n"
+        "[archived exactly]"
+    )
+
+
+def test_stub_s3_golden_text_names_the_omitted_range():
+    stub = stubs.tool_result_stub("K7Q2MX", 0, ROWS, count=word_tokens,
+                                  head_tokens=4, tail_tokens=2, fmt="s3")
+    head = len("row 00\nrow 01\n")
+    omitted = len(ROWS) - head - len("row 39\n")
+    assert stub.splitlines()[-1] == (
+        "[archived exactly · omitted part: "
+        f'palimnesis_recall(id="§K7Q2MX.0", offset={head}, limit={omitted})]')
+    assert stub.startswith("[palimnesis s3 §K7Q2MX.0 tool_result · 80 tok")
+
+
+def test_stub_s0_is_the_header_only():
+    stub = stubs.tool_result_stub("K7Q2MX", 0, ROWS, count=word_tokens,
+                                  head_tokens=4, tail_tokens=2, fmt="s0")
+    assert stub == "[palimnesis s0 §K7Q2MX.0 tool_result · 80 tok · 40 lines · sha df8192]"
+
+
+def test_an_unknown_stub_format_is_refused():
+    with pytest.raises(ValueError):
+        stubs.tool_result_stub("K7Q2MX", 0, ROWS, count=word_tokens, fmt="s9")

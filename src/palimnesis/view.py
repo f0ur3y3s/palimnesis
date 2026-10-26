@@ -67,6 +67,7 @@ class ViewPolicy:
     target: float = 0.50
     inline_tokens: int = 64  # ρ: tool results at or below stay inline
     min_recent: int = 4_096
+    stub_format: str = "s1"  # s1 (Phases 2-3) or a 3B matrix variant (docs/affordances.md)
 
 
 @dataclass(frozen=True)
@@ -208,7 +209,7 @@ class _Builder:
                 if run is not None:
                     first, last = self.items[run[0]], self.items[run[-1]]
                     messages.append({"role": "user", "content": span_note(
-                        first.alias, last.alias, len(run))})
+                        first.alias, last.alias, len(run), fmt=self.policy.stub_format)})
                 manifest.append((item.occ_id, "collapsed"))
                 continue
             maskable = not self.is_fixed(i, state) and (
@@ -310,14 +311,14 @@ def _masked(item: ViewItem, policy: ViewPolicy, counter) -> tuple[dict, bool]:
         text = message["content"]
         if count(text) > policy.inline_tokens and item.alias:
             stub = tool_result_stub(item.alias, item.blocks.get("tool_result", 0), text,
-                                    count=count)
+                                    count=count, fmt=policy.stub_format)
             if count(stub) < count(text):
                 message["content"], changed = stub, True
     reasoning = message.get("reasoning_content")
     if message.get("role") == "assistant" and isinstance(reasoning, str) and reasoning \
             and item.alias:
         stub = reasoning_stub(item.alias, item.blocks.get("reasoning", 0), reasoning,
-                              count=count)
+                              count=count, fmt=policy.stub_format)
         if count(stub) < count(reasoning):
             message["reasoning_content"], changed = stub, True
     return message, changed

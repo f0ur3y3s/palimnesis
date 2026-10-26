@@ -39,7 +39,7 @@ import json
 import logging
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import replace, dataclass, field
 from typing import Any
 
 import anyio
@@ -309,7 +309,7 @@ class Accountant:
             call.identity = [self.profile.id, *(facts.identity if facts else ()),
                              *filter(None, [getattr(self.profile.counter, "revision", None)])]
             call.budget = ViewEngine.snapshot(prepared.budget)
-            call.formats = {**VIEW_FORMAT,
+            call.formats = {**getattr(self.views, "view_format", VIEW_FORMAT),
                             "excerpt_format": getattr(self.views, "excerpt_renderer",
                                                       EXCERPT_FORMAT),
                             "addendum": _sha(plan.addendum) if plan.addendum else None,
@@ -433,8 +433,9 @@ class Accountant:
                 tools = [*(tools or []), *fixed_tools["tools"]]
             budget = Budget(**prev.budget, rewrite_limit=None)
             _, state = ledger.view_at(conn, prev.branch_id, prev.view_n)
-            policy = (ViewPolicy(high=float("inf")) if prev.view_mode == "off"
-                      else getattr(self.views, "view_policy", ViewPolicy()))
+            policy = getattr(self.views, "view_policy", ViewPolicy())
+            if prev.view_mode == "off":
+                policy = replace(policy, high=float("inf"))
             view = build(items, tools=tools, render_kwargs=kw, budget=budget, state=state,
                          policy=policy, counter=self.profile.counter,
                          drops_empty_assistant=self.profile.rules.drops_empty_assistant)

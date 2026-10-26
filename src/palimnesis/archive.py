@@ -301,7 +301,7 @@ class ArchiveHandler:
             if view.moved:
                 ledger.record_view(c, plan, view.state, budget=ViewEngine.snapshot(prepared.budget),
                                    cause=ViewEngine.cause(plan.view_state, view.state),
-                                   **VIEW_FORMAT)
+                                   **self.views.view_format)
             view_id, view_n, _ = ledger.latest_view(c, plan.branch_id)
             block_id = None
             if selected is not None:
@@ -342,7 +342,7 @@ class ArchiveHandler:
                             view_id = ledger.record_view(
                                 c, plan, rebuilt.state,
                                 budget=ViewEngine.snapshot(prepared.budget),
-                                cause=ViewEngine.cause(view.state, rebuilt.state), **VIEW_FORMAT)
+                                cause=ViewEngine.cause(view.state, rebuilt.state), **self.views.view_format)
                             return view_id, ledger.latest_view(c, plan.branch_id)[1]
 
                         # The call is attributed to the view it sends (contracts §10).
@@ -739,7 +739,7 @@ class ArchiveHandler:
                 view_id = ledger.record_view(c, next_plan, view.state,
                                              budget=ViewEngine.snapshot(prepared.budget),
                                              cause=ViewEngine.cause(next_plan.view_state,
-                                                                    view.state), **VIEW_FORMAT)
+                                                                    view.state), **self.views.view_format)
                 return view_id, ledger.latest_view(c, plan.branch_id)[1]
 
             next_plan.view_id, next_plan.view_n = await self.store.write(record)

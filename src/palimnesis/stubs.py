@@ -35,6 +35,9 @@ from typing import Callable, Iterator
 
 STUB_FORMAT = "s1"
 HINT_S1 = "archived exactly; not shown"
+# Phase 3B matrix variants (docs/affordances.md): s2 drops "not shown" from the hint, s3
+# names the omitted range as a recall call, s0 is the header only (D16.2).
+STUB_FORMATS = ("s0", "s1", "s2", "s3")
 TOOL_RESULT_HEAD_TOKENS = 192
 TOOL_RESULT_TAIL_TOKENS = 96
 REASONING_HEAD_TOKENS = 64
@@ -223,19 +226,21 @@ _STUBS_LOCK = threading.Lock()
 
 
 def _stub(kind: str, alias: str, block: int, text: str, count: Count,
-          head_tokens: int, tail_tokens: int) -> str:
+          head_tokens: int, tail_tokens: int, fmt: str = STUB_FORMAT) -> str:
     """A stub, memoized across builds: it is a pure function of these arguments,
     and fitting its previews costs dozens of uncached counts. Keyed by the text's
     SHA-256 so the cache holds stubs, not texts."""
     _check_alias(alias)
+    if fmt not in STUB_FORMATS:
+        raise ValueError(f"unknown stub format {fmt!r}")
     key = (kind, alias, block, hashlib.sha256(_bytes(text)).digest(),
-           head_tokens, tail_tokens, count)
+           head_tokens, tail_tokens, count, fmt)
     with _STUBS_LOCK:
         hit = _STUBS.get(key)
         if hit is not None:
             _STUBS.move_to_end(key)
             return hit
-    stub = _render_stub(kind, alias, block, text, count, head_tokens, tail_tokens)
+    stub = _render_stub(kind, alias, block, text, count, head_tokens, tail_tokens, fmt)
     with _STUBS_LOCK:
         _STUBS[key] = stub
         if len(_STUBS) > _STUBS_MAX:
@@ -244,11 +249,11 @@ def _stub(kind: str, alias: str, block: int, text: str, count: Count,
 
 
 def _render_stub(kind: str, alias: str, block: int, text: str, count: Count,
-                 head_tokens: int, tail_tokens: int) -> str:
+                 head_tokens: int, tail_tokens: int, fmt: str = STUB_FORMAT) -> str:
     sha = hashlib.sha256(_bytes(text)).hexdigest()[:6]
-    header = (f"[palimnesis {STUB_FORMAT} {bare_ref(alias, block)} {kind} · {count(text):,} tok · "
+    header = (f"[palimnesis {fmt} {bare_ref(alias, block)} {kind} · {count(text):,} tok · "
               f"{_plural(_lines(text), 'line')} · sha {sha}]")
-    if not text:
+    if not text or fmt == "s0":
         return header
     if count(text) <= head_tokens + tail_tokens:
         return f"{header}\n{text}"
@@ -259,32 +264,35 @@ def _render_stub(kind: str, alias: str, block: int, text: str, count: Count,
     head, middle, tail = text[:head_end], text[head_end:tail_start], text[tail_start:]
     if not middle:
         return f"{header}\n{text}"
+    hint = {"s1": HINT_S1, "s2": "archived exactly",
+            "s3": ("archived exactly · omitted part: palimnesis_recall("
+                   f'id="{bare_ref(alias, block)}", offset={len(head)}, limit={len(middle)})')}[fmt]
     return (f"{header}\n{head}{'' if head.endswith(chr(10)) or not head else chr(10)}"
             f"…[{count(middle):,} tok not shown]…\n"
             f"{tail}{'' if tail.endswith(chr(10)) or not tail else chr(10)}"
-            f"[{HINT_S1}]")
+            f"[{hint}]")
 
 
 def tool_result_stub(alias: str, block: int, text: str, *, count: Count,
                      head_tokens: int = TOOL_RESULT_HEAD_TOKENS,
-                     tail_tokens: int = TOOL_RESULT_TAIL_TOKENS) -> str:
-    """The s1 stub for a masked tool result: header, head preview, omission
-    marker, tail preview, hint. A text that fits both previews is shown whole."""
-    return _stub("tool_result", alias, block, text, count, head_tokens, tail_tokens)
+                     tail_tokens: int = TOOL_RESULT_TAIL_TOKENS, fmt: str = STUB_FORMAT) -> str:
+    """The stub for a masked tool result (s1 by default): header, head preview,
+    omission marker, tail preview, hint. A text that fits both previews is shown whole."""
+    return _stub("tool_result", alias, block, text, count, head_tokens, tail_tokens, fmt)
 
 
 def reasoning_stub(alias: str, block: int, text: str, *, count: Count,
                    head_tokens: int = REASONING_HEAD_TOKENS,
-                   tail_tokens: int = REASONING_TAIL_TOKENS) -> str:
-    """The s1 stub for masked reasoning (D14.12); same layout as a tool result."""
-    return _stub("reasoning", alias, block, text, count, head_tokens, tail_tokens)
+                   tail_tokens: int = REASONING_TAIL_TOKENS, fmt: str = STUB_FORMAT) -> str:
+    """The stub for masked reasoning (D14.12); same layout as a tool result."""
+    return _stub("reasoning", alias, block, text, count, head_tokens, tail_tokens, fmt)
 
 
 def span_note(first_alias: str, last_alias: str, n_messages: int, *,
-              tokens: int | None = None) -> str:
+              tokens: int | None = None, fmt: str = STUB_FORMAT) -> str:
     """The proxy-authored user-role note standing for a collapsed span (D14.13)."""
     span = bare_ref(first_alias) if first_alias == last_alias else (
         f"{bare_ref(first_alias)}–{bare_ref(last_alias)}")
     size = "" if tokens is None else f" · {tokens:,} tok"
-    return (f"[palimnesis {STUB_FORMAT} span {span} · {_plural(n_messages, 'message')}{size} · "
+    return (f"[palimnesis {fmt} span {span} · {_plural(n_messages, 'message')}{size} · "
             f"{HINT_S1}]")
