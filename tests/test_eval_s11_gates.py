@@ -296,3 +296,23 @@ def test_environment_allowlist(tmp_path, monkeypatch):
     assert "OPENCODE_CONFIG" not in e
     assert set(e) - {"PATH", "HOME", "USERPROFILE", "TEMP", "TMP", "PWD"} - set(oc_harness.ENV_ALLOW) \
         <= {k for k in e if k.startswith(("XDG_", "OPENCODE_"))}
+
+
+# ---------------------------------------------------------------- 64K (D44.9)
+
+def test_arm_1_compacts_at_the_servers_capacity_and_arm_4_keeps_the_shipped_limit():
+    assert task_run.opencode_context_limit(1, 32768) == 32768
+    assert task_run.opencode_context_limit(1, 65536) == 65536
+    assert task_run.opencode_context_limit(4, 65536) == 1_000_000
+
+
+def test_clean_needles_are_judged_against_the_budget_of_the_runs_n_ctx():
+    assert report.budget_for({"expect_n_ctx": 65536}) == 48_000
+    assert report.budget_for({"expect_n_ctx": 32768}) == report.budget_for({}) == 24_320
+
+    def clean(meta):
+        rows = [_row("h1", "q1", True, session="s", errors=[], calls=[{"prompt_tokens": 30_000}])]
+        report.mark_clean(rows, report.budget_for(meta))
+        return rows[0]["clean"]
+
+    assert clean({"expect_n_ctx": 65536}) and not clean({})

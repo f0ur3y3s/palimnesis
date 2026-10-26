@@ -260,22 +260,29 @@ def print_coding(run: Path, designate: dict | None) -> None:
               f"{x['superseded_by']}: {x['reason']}")
 
 
-BUDGET = 24_320
+def budget_for(meta: dict) -> int:
+    """Arm 4's input budget at the run's ``n_ctx`` (32768 for runs that record none)."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import gate_inputs as gi
+
+    return gi.input_budget_for(meta.get("expect_n_ctx") or 32768)
 
 
-def mark_clean(rows) -> None:
+def mark_clean(rows, budget: int) -> None:
     """``clean``: no error in this or any earlier step of the session, and every upstream call
     of the question within the input budget (a larger body means bounded views were off)."""
     bad = set()
     for r in rows:
         if r["errors"]:
             bad.add(r["session"])
-        over = any((c.get("prompt_tokens") or 0) > BUDGET for c in r["calls"])
+        over = any((c.get("prompt_tokens") or 0) > budget for c in r["calls"])
         r["clean"] = r["session"] not in bad and not over and not r["errors"]
 
 
 def summarize(rows, meta, explain) -> dict:
-    mark_clean(rows)
+    mark_clean(rows, budget_for(meta))
     q = [r for r in rows if r["kind"] == "question"]
     clean = [r for r in q if r["clean"]]
     n = len(q)

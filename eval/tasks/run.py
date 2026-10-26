@@ -8,7 +8,8 @@ Arms (D44.1):
   4  ``a4-d43``: the default ``serve`` (q1/r1/x2/a3, transcripts), OpenCode with
      ``compaction.auto`` off and ``limit.context`` 1,000,000 (the shipped settings).
   1  native OpenCode compaction: ``serve --passthrough``, ``compaction.auto`` on and
-     ``limit.context`` 32768, the true capacity at the held-out ``n_ctx``.
+     ``limit.context`` at ``--expect-n-ctx``, the true capacity (32768 for the gated runs,
+     65536 for the 64K report, D44.9).
 
 **Attempts** (D44.7, ``eval/attempts.py``): each invocation is a new attempt of one task
 under one arm. Records go to ``RUN/records/attempt-NNN/``; the workspace, OpenCode home
@@ -66,7 +67,6 @@ TASKS = ["dev-t1", "dev-t2", "dev-t3", "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t
 RUNNER_VERSION = "tasks-run v2"
 TURN_TIMEOUT_S = 1800
 CHECK_TIMEOUT_S = 300
-CONTEXT_32K = 32_768
 A4 = needle.CONFIGS["a4-d43"]
 
 # Executes the hidden check and writes {test id: outcome}; stderr and stdout are free.
@@ -226,6 +226,12 @@ def check_one(task, overlay: dict[str, str], python: str | None = None) -> dict:
         return run_check(task, ws, cd, python)
 
 
+def opencode_context_limit(arm: int, n_ctx: int) -> int:
+    """Arm 4 keeps the shipped 1,000,000 (Palimnesis owns the budget); arm 1 compacts at the
+    server's real capacity."""
+    return 1_000_000 if arm == 4 else n_ctx
+
+
 def restart_gate(task, check: dict) -> bool | None:
     """D45.8: the restart task passes under arm 4 only with success and its key constraint."""
     if not task.KEY_CONSTRAINT:
@@ -334,7 +340,7 @@ def run(a) -> int:
     session = f"{task.ID}-a{arm}-{a.tag}-a{n_att}"
     home = oc.Home(wsroot / "oc", ws)
     home.write_config(oc.config(stack.base_url(session),
-                                context_limit=1_000_000 if arm == 4 else CONTEXT_32K, compaction=arm == 1))
+                                context_limit=opencode_context_limit(arm, a.expect_n_ctx), compaction=arm == 1))
     sdir = None
     if troot is not None:
         from palimnesis.projector import session_dir
@@ -349,7 +355,7 @@ def run(a) -> int:
     res = {"task": task.ID, "set": task.SET, "arm": arm, "config": "a4-d43" if arm == 4 else "a1-native",
            "attempt": n_att, "session": session, "runner": RUNNER_VERSION, "opencode": "2.1.4",
            "provenance": gi.git_provenance(), "settings": stack.settings, "passthrough": arm == 1,
-           "opencode_limit_context": 1_000_000 if arm == 4 else CONTEXT_32K, "compaction_auto": arm == 1,
+           "opencode_limit_context": opencode_context_limit(arm, a.expect_n_ctx), "compaction_auto": arm == 1,
            "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
            "upstream": a.upstream, "expect_n_ctx": a.expect_n_ctx, "strata": [{"when": "before", **props}],
            "started": time.time(), "turns": [], "aborted": None}
