@@ -235,7 +235,9 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     estimate = model.expected(a, b)
     out = {"lcp_tokens": lcp, "first_diff": None, "expected_reuse_est": estimate}
     if lcp >= a.generation_start:
-        out["cause"] = "append"
+        # A call inside one visible response extends the one before it (D51).
+        out["cause"] = ("internal_continuation" if prev.request_id == cur.request_id
+                        and "#" in cur.call_id else "append")
         return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))
     ps = a.segments[s]
@@ -291,10 +293,11 @@ class Accountant:
 
     # -- before dispatch ------------------------------------------------------
 
-    def begin(self, plan, mode: str) -> Call:
-        """Register a call about to be sent (event-loop thread, in dispatch order)."""
+    def begin(self, plan, mode: str, call_id: str | None = None) -> Call:
+        """Register a call about to be sent (event-loop thread, in dispatch order). A hidden
+        continuation's call id is ``<attempt>#<k>`` (D51)."""
         view, prepared = plan.view, plan.prepared
-        call = Call(call_id=plan.attempt_id, request_id=plan.request_id,
+        call = Call(call_id=call_id or plan.attempt_id, request_id=plan.request_id,
                     branch_id=plan.branch_id, view_mode=mode if view is not None else "disabled")
         if view is not None:
             from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
@@ -412,7 +415,9 @@ class Accountant:
         if prev.disabled or prev.budget is None:
             return prev
         try:
-            req, items = ledger.replan(conn, prev.branch_id, request_id, prev.archive_seq)
+            attempt = prev.call_id.split("#")[0] if "#" in prev.call_id else None
+            req, items = ledger.replan(conn, prev.branch_id, request_id, prev.archive_seq,
+                                       attempt)
             if prev.formats.get("addendum"):
                 from .viewengine import with_addendum
 

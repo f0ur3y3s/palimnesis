@@ -175,6 +175,43 @@ class FakeUpstream:
         self._script.append(_Scripted(status=200, headers=hdrs, build=build,
                                       chunks=[] if stream else None))
 
+    def respond_turn(self, text: str = "", *, reasoning: str = "",
+                     calls: list[tuple[str, str, str]] = (), completion_tokens: int = 1,
+                     cached: int = 0) -> None:
+        """Queue a Strata-shaped streamed answer (docs/probes/strata.md §12.1): role chunk,
+        reasoning, text, then each call's first delta with its name and its arguments in a
+        second delta; usage counted from the request, as ``respond_counted``."""
+
+        def build(raw: bytes) -> list[bytes]:
+            prompt = _chat_count(json.loads(raw))
+            base = {"id": "chatcmpl-fake", "object": "chat.completion.chunk", "created": 1,
+                    "model": "m"}
+
+            def chunk(delta, finish=None, **extra):
+                return b"data: " + json.dumps({**base, "choices": [
+                    {"index": 0, "delta": delta, "finish_reason": finish}], **extra}).encode() \
+                    + b"\n\n"
+
+            out = [chunk({"role": "assistant", "content": ""})]
+            if reasoning:
+                out.append(chunk({"reasoning_content": reasoning}))
+            if text:
+                out.append(chunk({"content": text}))
+            for i, (call_id, name, arguments) in enumerate(calls):
+                out.append(chunk({"tool_calls": [{"index": i, "id": call_id, "type": "function",
+                                                  "function": {"name": name, "arguments": ""}}]}))
+                out.append(chunk({"tool_calls": [{"index": i,
+                                                  "function": {"arguments": arguments}}]}))
+            usage = {"prompt_tokens": prompt, "completion_tokens": completion_tokens,
+                     "total_tokens": prompt + completion_tokens,
+                     "prompt_tokens_details": {"cached_tokens": cached}}
+            out.append(chunk({}, "tool_calls" if calls else "stop", usage=usage))
+            out.append(b"data: [DONE]\n\n")
+            return out
+
+        self._script.append(_Scripted(status=200, headers={"content-type": "text/event-stream"},
+                                      build=build, chunks=[]))
+
     def app(self) -> FastAPI:
         app = FastAPI()
 

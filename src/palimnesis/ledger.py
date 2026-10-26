@@ -1083,9 +1083,25 @@ def context_versions(conn: sqlite3.Connection, request_id: str, occ_ids) -> set[
     return out
 
 
-def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: int):
+def attempt_items(conn: sqlite3.Connection, attempt_id: str, max_seq: int | None = None) -> list:
+    """``ViewItem``s of an attempt's own upstream parts and hidden results in seq order, up
+    to ``max_seq``: what a continuation call adds after the request's history (D51)."""
+    from .view import ViewItem
+
+    rows = conn.execute(
+        "SELECT o.occ_id, o.seq, (SELECT alias FROM aliases WHERE target_id = o.occ_id)"
+        " FROM occurrences o JOIN generations g ON g.generation_id = o.generation_id"
+        " WHERE g.attempt_id = ? AND o.seq <= ? ORDER BY o.seq",
+        (attempt_id, max_seq if max_seq is not None else 2**62)).fetchall()
+    return [ViewItem(message=message_dict(conn, occ), occ_id=occ, seq=seq, alias=alias)
+            for occ, seq, alias in rows]
+
+
+def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: int,
+           attempt_id: str | None = None):
     """(request, upstream items) of an earlier request as planned when the branch's newest
-    occurrence had ``max_seq``: the deterministic re-render after a restart (D14.8)."""
+    occurrence had ``max_seq``: the deterministic re-render after a restart (D14.8). With
+    ``attempt_id``, a continuation call's own parts and results follow (D51)."""
     (raw_id,) = conn.execute("SELECT raw_id FROM requests WHERE request_id = ?",
                              (request_id,)).fetchone()
     req = chat.parse(get_raw(conn, raw_id))
@@ -1094,6 +1110,8 @@ def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: i
     if isinstance(outcome, Divergence):
         raise ValueError(f"request {request_id} no longer reconciles: {outcome.reason}")
     _, items = _upstream_body(conn, req, archived, outcome, None, branch_id)
+    if attempt_id is not None:
+        items = [*items, *attempt_items(conn, attempt_id, max_seq)]
     return req, items
 
 
