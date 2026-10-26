@@ -231,3 +231,23 @@ def test_reasoning_carries_through_a_continuation_the_next_turn_and_a_restart(tm
     assert [p["reasoning_content"] for p in parts] == ["Search first.", "Found the definition."]
     # the same upstream history after a restart, with or without the resent reasoning
     assert restarted[:len(live)] == live
+
+
+def test_transcripts_show_hidden_results_flagged_and_verify(tmp_path):
+    from palimnesis import cli
+    from palimnesis.projector import session_dir
+
+    from .test_view_http import SID
+
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, settings):
+        fake.respond_turn("Checking. ", calls=[GREP])
+        fake.respond_turn("It is in read 3.")
+        _post(url, _masked())
+    root = tmp_path / "transcripts"
+    args = ["--db", str(settings.db_path), "--root", str(root)]
+    assert cli.main(["transcripts", "rebuild", SID, *args]) == 0
+    assert cli.main(["transcripts", "verify", SID, *args]) == 0
+    turns = sorted(session_dir(root, SID).glob("turn-*.md"))
+    last = turns[-1].read_text(encoding="utf-8")
+    result = [line for line in last.splitlines() if "tool_result" in line and "call_h1" in line]
+    assert result and "internal" in result[0]

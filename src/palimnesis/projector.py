@@ -16,10 +16,14 @@ root's ACL (per-user under ``%LOCALAPPDATA%``).
 every session directory, emptied when the Projector starts), fsynced, then moved with
 ``os.replace``, in this order:
 
-1. write-once files: sealed turns, the in-progress turn under a new ``.pKKKK`` name,
-   linked payloads (existing ones are never rewritten, except by an explicit repair);
-2. ``manifest.json``;
-3. ``index.md``;
+1. write-once files: sealed turns (a turn that was in progress is rewritten once, under
+   the same name, when it seals) and linked payloads (existing ones are never
+   rewritten, except by an explicit repair);
+2. ``manifest.json``, listing those files with their hashes and naming the in-progress
+   turn as ``live``;
+3. the in-progress turn, under its final name ``turn-NNNN.md``, replaced as it grows
+   (R25-E: a name that changed with each revision was gone by the model's next call);
+4. ``index.md``;
 
 then superseded ``.p`` files are deleted, best effort. The index therefore only names
 files that were complete before it moved. Replacing ``manifest.json`` or ``index.md``
@@ -424,6 +428,7 @@ def publish(root: Path | str, snapshot: Snapshot, *, added_tokens: Sequence[str]
     cache = {} if cache is None else cache
     writer = _Writer(root, directory)
     published: list[Published] = []
+    live: tuple[str, bytes] | None = None  # the in-progress turn, replaced after the manifest
     for n in snapshot.numbers:
         turn = snapshot.turns.get(n)
         if turn is None:
@@ -432,7 +437,18 @@ def publish(root: Path | str, snapshot: Snapshot, *, added_tokens: Sequence[str]
         rendered = projection.render_turn(turn, added_tokens=added_tokens, count=count)
         for path, blob in sorted(rendered.files.items()):
             writer.write_once(path, blob, repair=repair)
-        writer.write_once(rendered.name, rendered.data, repair=repair)
+        if turn.sealed:
+            # A turn that was in progress seals under the same name (R25-E): rewrite it
+            # once; a sealed file whose bytes already match is never rewritten.
+            current = directory / rendered.name
+            try:
+                same = current.read_bytes() == rendered.data
+            except OSError:
+                same = False
+            if not same:
+                writer.replace(rendered.name, rendered.data)
+        else:
+            live = (rendered.name, rendered.data)
         files = projection.file_meta(rendered)
         meta = Published(n, rendered.name, turn.revision, files, rendered.payloads,
                          rendered.summary)
@@ -442,10 +458,13 @@ def publish(root: Path | str, snapshot: Snapshot, *, added_tokens: Sequence[str]
     _crash_point("publish_after_files")
     revision = sum(p.revision for p in published)
     writer.replace("manifest.json", projection.manifest(
-        {path: meta for p in published for path, meta in p.files.items()},
+        {path: meta for p in published for path, meta in p.files.items()
+         if live is None or path != live[0]},
         [pl for p in published for pl in p.payloads], generation=snapshot.generation,
-        revision=revision, branch="main", profile=profile))
+        revision=revision, branch="main", profile=profile, live=live and live[0]))
     _crash_point("publish_after_manifest")
+    if live is not None:
+        writer.replace(*live)
     index = projection.render_index([p.summary for p in published],
                                     generation=snapshot.generation, revision=revision,
                                     count=count)

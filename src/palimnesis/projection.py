@@ -39,7 +39,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable, Iterable, Mapping, Sequence
 
 from .catalog import _collapse
@@ -92,7 +92,9 @@ class Turn:
 
     @property
     def name(self) -> str:
-        return turn_file_name(self.number, None if self.sealed else self.revision)
+        # The in-progress turn keeps its final name and is replaced as it grows: a name
+        # that changed with each revision was gone by the model's next call (R25-E).
+        return turn_file_name(self.number)
 
 
 @dataclass(frozen=True)
@@ -256,7 +258,13 @@ def _block_header_line(m: Message, b: Block, flags: str, linked: bool) -> str:
 # --- index and manifest ------------------------------------------------------
 
 
+SYSTEM_NOTE = "system prompt: already in your context"
+
+
 def _index_line(s: Summary, count: Count) -> str:
+    if s.number == 0:  # the model re-read it in R25-E; it is always in view
+        s = replace(s, preview=SYSTEM_NOTE)
+
     def line(tools_shown: int, preview: str) -> str:
         names = [f"{_header_field(n, 24)}×{c}" for n, c in s.tools[:tools_shown]]
         if len(s.tools) > tools_shown:
@@ -287,11 +295,14 @@ def render_index(summaries: Iterable[Summary], *, generation: int, revision: int
 
 
 def manifest(files: Mapping[str, tuple[str, int]], payloads: Iterable[Payload], *,
-             generation: int, revision: int, branch: str, profile: str) -> bytes:
-    """``manifest.json``: every published turn and payload file (path -> SHA-256, size),
-    and every payload's archive SHA-256. ``index.md`` is published after it and is not
+             generation: int, revision: int, branch: str, profile: str,
+             live: str | None = None) -> bytes:
+    """``manifest.json``: every write-once turn and payload file (path -> SHA-256, size),
+    every payload's archive SHA-256, and ``live``: the in-progress turn file, replaced as
+    it grows, so not listed with a hash. ``index.md`` is published after it and is not
     listed."""
     body = {"format": FORMAT, "generation": generation, "archive_cutoff_seq": generation,
+            "live": live,
             "revision": revision, "branch": branch, "profile": profile,
             "files": {path: {"sha256": sha, "size": size} for path, (sha, size) in files.items()},
             "payloads": {p.address: {"turn_file": p.turn_file, "linked": p.linked,
@@ -383,10 +394,17 @@ def verify(read: Callable[[str], bytes], expected: Mapping[str, bytes], *,
         index = read("index.md").decode("utf-8")
     except (OSError, ValueError) as e:
         return [f"manifest.json or index.md unreadable: {type(e).__name__}"]
+    live = manifest.get("live")
     for name in index_files(index):
-        if name not in manifest["files"]:
+        if name not in manifest["files"] and name != live:
             problems.append(f"index.md references {name}, which manifest.json does not list")
     published: dict[str, bytes] = {}
+    if live is not None:
+        try:
+            published.update(extract(read(live).decode("utf-8"), added_tokens=added_tokens,
+                                     read=read))
+        except (ProjectionError, OSError, UnicodeDecodeError) as e:
+            problems.append(f"{live} does not parse: {type(e).__name__}")
     for name, meta in sorted(manifest["files"].items()):
         try:
             data = read(name)

@@ -73,14 +73,15 @@ def test_turn_file_t1_rendering_is_exact():
     ]
 
 
-def test_in_progress_turn_gets_a_revisioned_name_and_marked_header():
+def test_in_progress_turn_keeps_its_final_name_and_a_marked_header():
+    # R25-E: a name that changed with every revision was gone by the model's next call.
     turn = Turn(number=7, status="incomplete: in progress", sealed=False, revision=57,
                 messages=(Message(seq=40, alias="AAAAAA", role="user",
                                   blocks=(Block(0, "text", b"go"),)),))
 
     rendered = projection.render_turn(turn, added_tokens=TOKENS, count=words)
 
-    assert rendered.name == "turn-0007.p0057.md"
+    assert rendered.name == "turn-0007.md"
     assert rendered.text.splitlines()[0] == (
         "# turn 7 · incomplete: in progress · seq 40–40 · revision 57 · palimnesis transcript t1")
 
@@ -208,7 +209,8 @@ def test_index_lines_list_files_counts_status_and_preview():
         "# Search; do not read whole: grep the turn files for a specific term, then read only"
         " the matching lines.\n"
         "\n"
-        "turn-0000.md · turn 0 · seq 1–1 · 1 msg · tools - · 2 tok · complete · -\n"
+        "turn-0000.md · turn 0 · seq 1–1 · 1 msg · tools - · 2 tok · complete"
+        " · system prompt: already in your context\n"
         "turn-0003.md · turn 3 · seq 10–12 · 3 msgs · tools read×1 · 8 tok · complete"
         " · fix [[it]] [[x\n")
 
@@ -256,7 +258,7 @@ def test_manifest_lists_every_file_and_payload_archive_sha():
     assert manifest["files"] == {name: {"sha256": sha(data), "size": len(data)}
                                  for name, data in files.items()}
     assert manifest["payloads"]["FFFFFF.0"] == {
-        "turn_file": "turn-0004.p0003.md", "linked": "payloads/FFFFFF.0.txt",
+        "turn_file": "turn-0004.md", "linked": "payloads/FFFFFF.0.txt",
         "sha256": sha(b"\x00z"), "size": 2}
     assert manifest["payloads"]["AAAAAA.0"]["linked"] is None
     assert set(manifest["payloads"]) == {"AAAAAA.0", "BBBBBB.0", "BBBBBB.1", "CCCCCC.0",

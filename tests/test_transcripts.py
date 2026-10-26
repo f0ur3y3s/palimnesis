@@ -96,9 +96,9 @@ def test_publish_writes_turns_manifest_index_and_verifies(archive, tmp_path):
 
     directory = root / "s1-e8bc163c82ee"
     names = sorted(tree(directory))
+    # The in-progress turn has its final name from the start (R25-E).
     assert names == ["index.md", "manifest.json", "turn-0000.md", "turn-0001.md",
-                     names[4]]
-    assert names[4].startswith("turn-0002.p") and names[4].endswith(".md")
+                     "turn-0002.md"]
     assert (result.generation, result.turns) == (7, 3)
     turn1 = (directory / "turn-0001.md").read_text(encoding="utf-8")
     assert turn1.startswith("# turn 1 · complete · seq 2–5 · palimnesis transcript t1\n")
@@ -140,7 +140,6 @@ def test_in_progress_cancelled_abandoned_superseded_marked(archive, tmp_path):
 def test_index_never_references_missing_file(archive, tmp_path):
     root = tmp_path / "t"
     directory = root / "s1-e8bc163c82ee"
-    seen_partials = set()
     archive.request(user("start"), reply=[text("a")])
     for i in range(6):
         gen = archive.request(user(f"q{i}"), reply=[text(f"part {i}")], end=None)
@@ -151,10 +150,9 @@ def test_index_never_references_missing_file(archive, tmp_path):
         archive.messages.append({"role": "assistant", "content": f"part {i}"})
         _publish(root, archive.path)
         assert _consistent(directory) == []
-        partials = {n for n in tree(directory) if ".p" in n}
-        assert len(partials) == 1  # superseded .p files are cleaned up
-        seen_partials |= partials
-    assert len(seen_partials) >= 6
+        assert not [n for n in tree(directory) if ".p" in n]  # no revisioned turn files
+        manifest = json.loads((directory / "manifest.json").read_bytes())
+        assert manifest["live"] == f"turn-{i + 2:04d}.md" not in manifest["files"]
 
 
 def test_sealed_turn_files_are_write_once(archive, tmp_path):
@@ -293,3 +291,20 @@ def test_crash_at_each_publish_step_leaves_consistent_generation(archive, tmp_pa
     subprocess.run(args[:-1] + [str(clean)], env=env, check=True, capture_output=True,
                    timeout=60)
     assert tree(directory) == tree(clean / "s1-e8bc163c82ee")
+
+
+def test_the_last_turn_keeps_its_name_while_it_grows_and_once_sealed(archive, tmp_path):
+    _conversation(archive)
+    root = tmp_path / "transcripts"
+    directory = root / "s1-e8bc163c82ee"
+    _publish(root, archive.path)
+    before = (directory / "turn-0002.md").read_bytes()
+    archive.request(user("and the tests?"), reply=[text("Added.")])
+
+    _publish(root, archive.path)
+
+    names = sorted(tree(directory))
+    assert names == ["index.md", "manifest.json", "turn-0000.md", "turn-0001.md",
+                     "turn-0002.md", "turn-0003.md"]
+    assert (directory / "turn-0002.md").read_bytes() != before  # replaced in place, sealed
+    assert _consistent(directory) == []
