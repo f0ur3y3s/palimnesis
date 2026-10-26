@@ -235,7 +235,10 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
                 j += 1
                 continue
             if message.role != "assistant":
-                if past.cancelled and not past.complete:
+                # A failed answer the client saw nothing of (only hidden calls, D51)
+                # may be omitted like a cancelled one.
+                unseen = not (past.text or past.reasoning or past.tool_calls)
+                if (past.cancelled or unseen) and not past.complete:
                     superseded.append(past.occ_id)
                     j += 1
                     continue

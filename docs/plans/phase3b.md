@@ -312,3 +312,13 @@ Seams: P pure · S store · H HTTP through the fake upstream · E eval · L live
 3. **A `length` stop makes OpenCode send a follow-up turn at once** (H1 b), with a synthetic user message asking it to break the work into smaller pieces. The cap rule stays a `length` stop (contracts §7). The follow-up is a new instruction with a fresh allowance; this goes in `harnesses.md`.
 4. **Continuation limits below 1024 get no thinking budget** (P2): the call can end in `length` with reasoning only. A continuation is therefore started only with at least 1,024 tokens of allowance left; with less, the response ends with `length` before the call.
 5. **A continuation reuses prompt1 + completion1 − 1 tokens** on an idle server (P3). `StrataCacheModel` gains an append rule for `internal_continuation`: the expected reuse is the previous call's prompt plus its generated turn.
+
+## Delta: review fixes (2026-10-26)
+
+The protocol review and cache audit of S1–S8 found 2 blockers and several should-fix items; all are fixed test-first (`tests/test_hidden_loop_http.py`, `tests/test_composite.py`, `tests/test_assemble.py`). Corrections to this plan:
+
+- **§2.2, D53.** Hidden results render in the order of the calls, among the client's results, because the pinned template pairs results by position (the plan's "call order" holds; D53's wording is corrected).
+- **§2.7.** A move during a response is recorded by its own cause (`watermark_move`, `collapse`, ...), not joined with `internal_continuation`, which marks a pure append inside one response (contracts §10).
+- **S0 delta 5 is not implemented.** `StrataCacheModel` still estimates a continuation's reuse at the previous generation-start checkpoint, 41–70 tokens low (P3). The value is labelled an estimate and no class depends on it.
+- **Text after a hidden call** re-renders before the call (one content field per message), so a continuation's prompt differs from the generated order from there on. Recorded as a known limit beside the external-call case.
+- **Requests without the tools** (`tool_choice: "none"`) in a session that has them still go through the hidden loop, so a copied `palimnesis_*` call is answered, never relayed; dropping the tools from such a request and restoring them costs two full re-reads (known limit).

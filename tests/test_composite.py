@@ -217,3 +217,47 @@ def test_a_single_generation_turn_is_unchanged(store):
     assert json.loads(nxt.upstream_body)["messages"][2] == {"role": "assistant",
                                                              "content": "Plain answer."}
     assert nxt.upstream_body == parse(nxt.upstream_body).raw  # the client's body, unchanged
+
+
+def test_a_hidden_call_without_a_result_is_never_rendered(store):
+    plan = _accept(store, [SYSTEM, ASK])
+    g1, g2 = _hidden_turn(store, plan, finish=None, delivered=False)
+    _write(store, lambda c: ledger.commit_batch(c, g2, [
+        ("tool_call", ("tool", 0), '{"id": "§AB',  # cut off mid-arguments
+         {"id": "call_r9", "name": "palimnesis_recall", "internal": True})], 20))
+    _write(store, lambda c: ledger.finish_attempt(c, g2, "attempt_failed", reason="upstream_reset"))
+    # After an error event the client keeps everything it received, flattened.
+    flattened = "I should look it up." + "Found it." + VISIBLE
+    nxt = _accept(store, [SYSTEM, ASK, {"role": "assistant", "content": flattened},
+                          {"role": "user", "content": "go on"}])
+    up = _upstream(nxt)
+    assert "call_r9" not in json.dumps(up)
+    assert up[2:5] == [PART1, RESULT_MSG, PART2]
+
+
+def test_a_failed_attempt_the_client_saw_nothing_of_never_blocks_a_retry(store):
+    plan = _accept(store, [SYSTEM, ASK])
+    g1 = Generation(plan)
+    _write(store, lambda c: ledger.commit_batch(c, g1, [
+        ("tool_call", ("tool", 0), RECALL_ARGS,
+         {"id": "call_r1", "name": "palimnesis_recall", "internal": True})], 0))
+    _write(store, lambda c: ledger.commit_internal_result(
+        c, g1, "call_r1", "palimnesis_recall", RESULT, {"ok": True}))
+    _write(store, lambda c: ledger.finish_attempt(c, g1, "attempt_failed", reason="upstream_reset"))
+
+    retry = _accept(store, [SYSTEM, ASK])  # the same request again: a new attempt
+    assert retry.request_id == plan.request_id and retry.attempt_id != plan.attempt_id
+
+
+def test_a_next_turn_may_omit_a_failed_answer_the_client_saw_nothing_of(store):
+    plan = _accept(store, [SYSTEM, ASK])
+    g1 = Generation(plan)
+    _write(store, lambda c: ledger.commit_batch(c, g1, [
+        ("tool_call", ("tool", 0), RECALL_ARGS,
+         {"id": "call_r1", "name": "palimnesis_recall", "internal": True})], 0))
+    _write(store, lambda c: ledger.commit_internal_result(
+        c, g1, "call_r1", "palimnesis_recall", RESULT, {"ok": True}))
+    _write(store, lambda c: ledger.finish_attempt(c, g1, "attempt_failed", reason="upstream_reset"))
+
+    nxt = _accept(store, [SYSTEM, ASK, {"role": "user", "content": "try again"}])
+    assert _upstream(nxt) == [SYSTEM, ASK, {"role": "user", "content": "try again"}]

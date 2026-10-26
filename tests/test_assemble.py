@@ -166,3 +166,27 @@ def test_keep_alive_comments_are_relayed():
     asm = ChatAssembler(hidden("get_weather"))
     client, _ = run(asm, evs)
     assert client.count(b": keep-alive") == raw.count(b": keep-alive") > 0
+
+
+def test_a_length_stop_inside_an_external_call_stays_a_length_stop():
+    raw, evs = events("p17_length_args_off_0")  # finish_reason "length" mid-arguments
+    asm = ChatAssembler(lambda name: False)
+    asm.hidden_total = 1  # the message already had a hidden call: terminal is rewritten
+    client, _ = run(asm, evs)
+    finishes = [c["choices"][0]["finish_reason"] for c in chunks(client + asm.terminal())
+                if c["choices"] and c["choices"][0].get("finish_reason")]
+    assert finishes == ["length"]
+
+
+def test_rewritten_chunks_survive_a_lone_surrogate():
+    from palimnesis.sse import Event
+
+    asm = ChatAssembler(lambda name: False)
+    asm.begin()
+    asm.feed(Event(raw=b"", data=json.dumps({"id": "a", "created": 1, "model": "m", "choices": [
+        {"index": 0, "delta": {"role": "assistant", "content": ""}}]})))
+    asm.begin()  # a second call: its chunks are rewritten
+    out = asm.feed(Event(raw=b"", data=json.dumps({"id": "b", "created": 2, "model": "m",
+                                                  "choices": [{"index": 0, "delta": {
+                                                      "content": "x\ud83dy"}}]})))
+    assert client_view(out.client).content == "x\ud83dy"

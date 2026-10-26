@@ -35,13 +35,14 @@ import json
 import logging
 import os
 import sqlite3
+import threading
 
 from dataclasses import replace
 
 import anyio
 import httpx
 
-from . import cacheacct, chat, ledger, recall, recalltools
+from . import cacheacct, chat, ledger, recall, recalltools, search
 from .errors import error_response
 from .fingerprint import fingerprint_v1, parse_retry_hint
 from .budget import BudgetError
@@ -196,7 +197,7 @@ class ArchiveHandler:
                 if prepared is not None and not await self._bound(scope, receive, tracked, req,
                                                                   gen, prepared, api_path):
                     return
-                if plan.hidden_tools and plan.stream and plan.view is not None:
+                if plan.hidden_loop and plan.stream and plan.view is not None:
                     await self._hidden(scope, receive, tracked, gen, api_path, headers, req)
                 else:
                     await self._run(scope, receive, tracked, gen, api_path, headers)
@@ -251,6 +252,11 @@ class ArchiveHandler:
             if fixed_tools is not None:
                 plan.hidden_tools = fixed_tools["tools"]
                 prepared = replace(prepared, tools=[*(prepared.tools or []), *plan.hidden_tools])
+        elif self.hidden_tools is not None and req.stream:
+            # Not offered here (tool_choice "none"), but a session that has them still
+            # answers a copied palimnesis_* call itself: one is never relayed (§15).
+            plan.hidden_loop = await self.store.read(
+                lambda c: ledger.fixed_hidden_tools(c, plan.branch_id)) is not None
         try:
             view = await self.views.build(prepared, plan)
             pending_addendum = candidate is not None and plan.addendum is None
@@ -344,6 +350,7 @@ class ArchiveHandler:
                     view = rebuilt
         plan.upstream_body = ViewEngine.body(req, plan, prepared, view)
         plan.view, plan.prepared = view, prepared
+        plan.hidden_loop = plan.hidden_loop or bool(plan.hidden_tools)
         return True
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
@@ -605,7 +612,37 @@ class ArchiveHandler:
     async def _hidden(self, scope, receive, send, gen, api_path, headers, req) -> None:
         """One visible response across upstream calls: answer hidden ``palimnesis_*``
         calls here and call again until the model answers, hands an external call to the
-        client, or a limit ends it with ``length`` (contracts §7)."""
+        client, or a limit ends it with ``length`` (contracts §7). Any failure ends with
+        the endpoint's error, in-stream once the response has started (contracts §5)."""
+        started = False
+
+        async def tracked(message) -> None:
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
+        try:
+            await self._hidden_loop(scope, receive, tracked, gen, api_path, headers, req)
+        except Exception as e:
+            log.warning("hidden recall loop stopped: %s", type(e).__name__)
+            with anyio.CancelScope(shield=True):
+                try:
+                    await self.store.write(lambda c: ledger.fail(c, gen, "relay_error",
+                                                                 error=type(e).__name__))
+                except Exception:
+                    log.exception("could not record the hidden loop failure")
+            if started:
+                await send({"type": "http.response.body", "more_body": True,
+                            "body": _error_event("archive_unavailable",
+                                                 "Palimnesis could not complete the response.")})
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+            else:
+                await error_response(api_path, 502, "upstream_failed",
+                                     "Palimnesis could not complete the response.",
+                                     type_="api_error")(scope, receive, send)
+
+    async def _hidden_loop(self, scope, receive, send, gen, api_path, headers, req) -> None:
         plan = gen.plan
         prepared, view = plan.prepared, plan.view
         asm = ChatAssembler(lambda name: bool(name) and name.startswith(chat.RESERVED_PREFIX))
@@ -635,6 +672,8 @@ class ArchiveHandler:
                 calls_made += 1
                 results.append((call, await self._resolve(call, call_plan, result_room)))
                 result_room -= self.views.counter.count(results[-1][1].text)
+                if results[-1][1].meta.get("error") == "limit_reached":
+                    refused = True
             if results:
                 def commit(c):
                     for call, result in results:
@@ -650,6 +689,9 @@ class ArchiveHandler:
                 return
             continuations += 1
             k += 1
+            if gen.occ_id is not None:
+                part = gen.occ_id
+                await self.store.write(lambda c: search.index_occurrence(c, part))
             gen.__dict__.update(ledger.next_generation(None, gen).__dict__)
             call_plan = await self._continuation(req, plan, call_plan, prepared,
                                                  min(allowance - consumed, prepared.budget.reserve))
@@ -665,12 +707,19 @@ class ArchiveHandler:
         ctx = dict(session_id=call_plan.session_id, branch_id=call_plan.branch_id,
                    count=self.views.counter.count, max_tokens=cap, hidden=hidden, masked=masked)
 
+        stopped = threading.Event()  # set when the request is cancelled or expires
+
         def run(conn):
-            return recalltools.run(name, call.arguments, recalltools.Context(conn=conn, **ctx))
+            return recalltools.run(name, call.arguments, recalltools.Context(
+                conn=conn, cancelled=stopped.is_set, **ctx))
 
         if cap < 1:
             return recalltools.Result(LIMIT_RESULT, False, {"error": "limit_reached"})
-        return await self.store.read(run)
+        try:
+            return await self.store.read(run)
+        except BaseException:
+            stopped.set()  # the reader thread stops scanning at its next block
+            raise
 
     async def _continuation(self, req, plan, call_plan, prepared, limit: int):
         """The next call's plan: the history so far plus this attempt's parts and results,

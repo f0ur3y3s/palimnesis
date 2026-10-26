@@ -43,7 +43,8 @@ class Out:
 
 
 def _sse(obj: dict) -> bytes:
-    return b"data: " + json.dumps(obj, ensure_ascii=False).encode("utf-8") + b"\n\n"
+    # ASCII escapes: generated text can carry lone surrogates, which UTF-8 cannot encode.
+    return b"data: " + json.dumps(obj).encode("ascii") + b"\n\n"
 
 
 class ChatAssembler:
@@ -149,6 +150,8 @@ class ChatAssembler:
         """The one finish chunk and ``[DONE]`` that end the visible message."""
         if self.calls == 1 and not self.hidden_total and finish_reason in (None, self.finish):
             return b"".join(e.raw for e in self._held)
+        if finish_reason is None and self.finish == "length":
+            finish_reason = "length"  # cut off, even inside an external call (contracts §7)
         if finish_reason is None:
             finish_reason = "tool_calls" if self.external else (
                 "stop" if self.finish in (None, "tool_calls") else self.finish)

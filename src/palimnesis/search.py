@@ -103,7 +103,8 @@ def index_occurrence(conn: sqlite3.Connection, occ_id: str) -> None:
 def backfill_chunks(conn: sqlite3.Connection) -> None:
     """Migration 5: chunk every archived block (the block index already exists)."""
     for rowid, block_id, encoding in conn.execute(
-        "SELECT rowid, block_id, encoding FROM blocks").fetchall():
+        "SELECT b.rowid, b.block_id, b.encoding FROM blocks b JOIN occurrences o"
+        " ON o.occ_id = b.occ_id WHERE o.source != 'internal_tool'").fetchall():
         _index_chunks(conn, rowid, _indexable(conn, block_id, encoding))
 
 
@@ -115,7 +116,9 @@ def clear(conn: sqlite3.Connection) -> None:
 
 def rebuild(conn: sqlite3.Connection) -> None:
     clear(conn)
-    for (occ_id,) in conn.execute("SELECT occ_id FROM occurrences").fetchall():
+    # Hidden recall results are copies of archived text: never indexed (D60).
+    for (occ_id,) in conn.execute("SELECT occ_id FROM occurrences"
+                                  " WHERE source != 'internal_tool'").fetchall():
         index_occurrence(conn, occ_id)
 
 

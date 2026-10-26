@@ -708,7 +708,7 @@ One visible response that spans several upstream calls is stored as one generati
 
 ## D53 — Mixed calls
 
-A call with hidden and external tool calls: the hidden ones are answered and archived at once, the external ones go to the client, and the response ends with `tool_calls`. The next request renders the part, its hidden results, then the client's results. Text after a hidden call is visible text of that part (S0 delta 1).
+A call with hidden and external tool calls: the hidden ones are answered and archived at once, the external ones go to the client, and the response ends with `tool_calls`. The next request renders the part, then every result in the order of the part's calls, hidden ones among the client's: the pinned template pairs results with calls by position (corrected after the 3B review). Text after a hidden call is visible text of that part (S0 delta 1). A hidden call cut off before its result is never rendered, and a failed answer the client saw nothing of (only hidden calls) blocks neither a retry nor a next turn that omits it.
 
 ## D54 — Hidden tool schemas fixed at the first mask
 

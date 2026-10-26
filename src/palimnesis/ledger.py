@@ -75,6 +75,8 @@ class Plan:
     addendum: str | None = None
     # The session's hidden recall tool schemas, appended after the client's tools (D54).
     hidden_tools: list | None = None
+    # Relay through the hidden loop: the session has hidden tools, offered here or not.
+    hidden_loop: bool = False
 
 
 @dataclass
@@ -374,10 +376,14 @@ def _set_active(conn, branch_id: str, request_id: str | None) -> None:
 
 
 def _attempt_has_output(conn, request_id: str) -> bool:
-    """Whether any attempt produced output the client did not cancel."""
+    """Whether any attempt produced visible output the client did not cancel. Hidden
+    tool calls are not visible output: a failure after them left the client nothing."""
     return conn.execute(
         "SELECT 1 FROM generations g JOIN attempts a ON g.attempt_id = a.attempt_id"
-        " WHERE a.request_id = ? AND NOT EXISTS (SELECT 1 FROM events e"
+        " JOIN occurrences o ON o.generation_id = g.generation_id"
+        " JOIN blocks b ON b.occ_id = o.occ_id"
+        " WHERE a.request_id = ? AND o.source = 'generated'"
+        " AND json_extract(b.meta, '$.internal') IS NULL AND NOT EXISTS (SELECT 1 FROM events e"
         " WHERE e.attempt_id = a.attempt_id AND e.kind = 'cancelled')",
         (request_id,),
     ).fetchone() is not None
@@ -457,6 +463,28 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
         expanded = _expand_composite(conn, past, partial_extent.get(index))
         if not expanded:
             continue
+        # The template pairs results with calls by position (D53): when the last part
+        # also made external calls, its hidden results go among the client's results
+        # that follow, in the order of the part's calls.
+        last = max(i for i, (m, _) in enumerate(expanded) if m["role"] == "assistant")
+        calls = [c["id"] for c in expanded[last][0].get("tool_calls") or []]
+        trailing = expanded[last + 1:]
+        if trailing and any(not c["function"]["name"].startswith(chat.RESERVED_PREFIX)
+                            for c in expanded[last][0].get("tool_calls") or []):
+            expanded = expanded[:last + 1]
+            end = index + 1
+            while end < len(req.messages) and req.messages[end].role == "tool":
+                end += 1
+            client_ids = {j: next((b.tool_call_id for b in req.messages[j].blocks
+                                   if b.kind == "tool_result"), None)
+                          for j in range(index + 1, end)}
+            for message, occ in trailing:
+                at = calls.index(message["tool_call_id"]) if message["tool_call_id"] in calls \
+                    else len(calls)
+                before = next((j for j, cid in client_ids.items()
+                               if cid in calls and calls.index(cid) > at), end)
+                insertions.setdefault(before, []).append(message)
+                inserted_occs.setdefault(before, []).append(occ)
         insertions.setdefault(index, []).extend(m for m, _ in expanded[:-1])
         inserted_occs.setdefault(index, []).extend(o for _, o in expanded[:-1])
         replacements[index] = expanded[-1][0]
@@ -542,10 +570,20 @@ def _expand_composite(conn, past: Archived, extent: int | None) -> list[tuple[di
     out: list[tuple[dict, str]] = []
     remaining = extent
     cut = False
+    messages = {occ: message_dict(conn, occ) for occ in past.parts}
+    answered = {m.get("tool_call_id") for m in messages.values() if m["role"] == "tool"}
     for occ in past.parts:
         if cut:
             break
-        message = message_dict(conn, occ)
+        message = messages[occ]
+        calls = message.get("tool_calls")
+        if calls:  # a hidden call cut off before its result is never rendered (§7)
+            kept = [c for c in calls if c["id"] in answered
+                    or not c["function"]["name"].startswith(chat.RESERVED_PREFIX)]
+            if len(kept) != len(calls):
+                message = {k: v for k, v in message.items() if k != "tool_calls"}
+                if kept:
+                    message["tool_calls"] = kept
         if message["role"] == "assistant" and remaining is not None:
             reasoning = message.get("reasoning_content") or ""
             text = message.get("content") or ""
@@ -1023,6 +1061,22 @@ def fix_hidden_tools(conn: sqlite3.Connection, plan: Plan, version: str, tools: 
     _event(conn, plan.request_id, plan.attempt_id, "hidden_tools_fixed", tools_version=version,
            tools=tools)
     return tools
+
+
+def fail(conn: sqlite3.Connection, gen: Generation, reason: str, **payload) -> None:
+    """Record a relay failure, unless a terminal event is already written (like
+    ``interrupt``): never a second terminal event."""
+    terminal = conn.execute(
+        "SELECT 1 FROM events WHERE attempt_id = ? AND kind IN (%s)"
+        % ",".join("?" * len(TERMINAL_EVENTS)),
+        (gen.plan.attempt_id, *TERMINAL_EVENTS),
+    ).fetchone()
+    if terminal:
+        record_delivery(conn, gen.plan, "delivery_failed", bytes_forwarded=gen.forwarded,
+                        reason=reason)
+    else:
+        finish_attempt(conn, gen, "attempt_failed", reason=reason, forwarded=gen.forwarded,
+                       **payload)
 
 
 def expire(conn: sqlite3.Connection, gen: Generation) -> None:

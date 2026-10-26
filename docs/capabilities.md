@@ -36,7 +36,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 
 | Harness | Version | Endpoint | Status | Setup |
 | --- | --- | --- | --- | --- |
-| OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37) | `harnesses.md` |
+| OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37); hidden recall tools with `--hidden-tools` (Ph3B, streaming requests) | `harnesses.md` |
 | Pi | 1.4.0 | Chat Completions / Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
 | Claude Code | 2.1.310 | Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
 
@@ -99,7 +99,7 @@ These are the limits of the first usable release. They are rejected or documente
 
 Phase 3's held-out coding gate failed at 32K (R25): Palimnesis succeeded on 3 of 5 tasks, against 5 of 5 for OpenCode's own compaction, and failed the restart task. The needle gate passed, 120/120. At 64K both arms succeeded on all 5, but the budget barely bound there (R26). Recall passed the 32K needle gate on synthetic planted facts (one attempt, one model, one harness, with 32 of the 120 needles still in view). It is unproven for long coding sessions at small contexts.
 
-- **No recall by address.** The hidden tools `palimnesis_recall` and `palimnesis_grep` are Phase 3B (A1) and not built. The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools.
+- **No recall by address in Phase 3.** The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools. Phase 3B adds hidden recall tools behind `--hidden-tools` (see "Known limits of Phase 3B").
 - **Transcript lookups cost calls** (R25-E). In the failed restart task, about half of 68 lookups were overhead:
   - the in-progress turn's file name carries a revision that changes as the archive grows (`turn-NNNN.pREV.md`, D34), so a path the model just saw can be gone on its next call;
   - the model re-read `turn-0000.md`, OpenCode's system prompt, which is always in view;
@@ -110,3 +110,15 @@ Phase 3's held-out coding gate failed at 32K (R25): Palimnesis succeeded on 3 of
 - **Some internal size estimates run a few tokens low.** Previews, the recent window and excerpt charges are sized on text with tags live (D46.4). The assembled request is counted exactly, so the budget holds.
 - **Transcript files rely on filesystem permissions.** OpenCode's shell tool bypasses its `external_directory` rule (`harnesses.md`). There is no delete command; remove `palimnesis.db*` and `transcripts` with the proxy stopped (Ph8).
 - **Deferred:** proxy FIFO admission, `429` and proxy keepalives (Ph4B, O4); continuation accounting across internal calls and RE2 regex search (3B); Anthropic error re-envelope and other harnesses (Ph4B).
+
+## Known limits of Phase 3B
+
+Hidden recall tools (`--hidden-tools t1|t2`, contracts §15) are off by default and not yet evaluated on the fresh held-out set.
+
+- **Streaming requests only** (D55). A non-streaming request gets no hidden tools.
+- **One visible message per response, but its text order can change upstream.** Text the model writes after a tool call, hidden or external, is re-rendered before the call in later requests (one content field per message), so from that point the prompt differs from what the model generated.
+- **Dropping the tools costs re-reads.** A `tool_choice: "none"` request in a session with hidden tools renders no tools, which re-reads the whole prompt, and so does the next request that restores them.
+- **The proxy does not hold the upstream slot between calls of one response** (Ph4B, O4): another client of the same Strata can run in between.
+- **Continuation reuse estimates are low** by the generated turn (41–70 tokens in probe P3). They are labelled estimates; no gate reads them.
+- **A `length` stop** (allowance or §15 limits) makes OpenCode send its own follow-up turn at once (`docs/probes/opencode_hidden_stream.md`).
+

@@ -251,3 +251,130 @@ def test_transcripts_show_hidden_results_flagged_and_verify(tmp_path):
     last = turns[-1].read_text(encoding="utf-8")
     result = [line for line in last.splitlines() if "tool_result" in line and "call_h1" in line]
     assert result and "internal" in result[0]
+
+
+# --- review fixes (protocol review of 3B) -------------------------------------------
+
+
+def test_a_failure_inside_the_loop_ends_with_an_error_event_not_a_bare_close(tmp_path,
+                                                                             monkeypatch):
+    from palimnesis import recalltools
+
+    def broken(*a, **k):
+        raise RuntimeError("tool defect")
+
+    monkeypatch.setattr(recalltools, "run", broken)
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, settings):
+        fake.respond_turn("Checking. ", calls=[GREP])
+        r = _post(url, _masked())
+
+    assert r.status_code == 200 and b'"error"' in r.content and b"palimnesis_" not in r.content
+    failed = [json.loads(p) for (p,) in rows(
+        settings, "SELECT payload FROM events WHERE kind = 'attempt_failed'")]
+    assert failed and failed[0]["reason"] == "relay_error"
+    assert rows(settings, "SELECT count(*) FROM events WHERE kind = 'cancelled'") == [(0,)]
+
+
+def test_results_follow_the_order_of_the_calls(tmp_path):
+    messages = _masked()
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn("Looking. ", calls=[EXTERNAL, GREP])  # external call first
+        _post(url, messages)
+        resent = {"role": "assistant", "content": "Looking. ", "tool_calls": [
+            {"id": "call_e1", "type": "function",
+             "function": {"name": "read", "arguments": '{"path": "x.py"}'}}]}
+        fake.respond_turn("Read it.")
+        _post(url, messages + [resent, {"role": "tool", "tool_call_id": "call_e1",
+                                        "content": "x = 1"}])
+
+    up = _messages(fake.requests[-1].body)
+    assert [tc["id"] for tc in up[-3]["tool_calls"]] == ["call_e1", "call_h1"]
+    assert [m.get("tool_call_id") for m in up[-2:]] == ["call_e1", "call_h1"]
+
+
+def test_every_part_is_full_text_indexed(tmp_path):
+    import sqlite3
+
+    from palimnesis import search
+
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, settings):
+        fake.respond_turn("Zanzibarian checking. ", calls=[GREP])
+        fake.respond_turn("It is in read 3.")
+        _post(url, _masked())
+
+    conn = sqlite3.connect(settings.db_path)
+    try:
+        assert search.search_chunks(conn, '"zanzibarian"')
+    finally:
+        conn.close()
+
+
+def test_a_session_with_hidden_tools_never_relays_a_reserved_call(tmp_path):
+    messages = _masked()
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn("ok")
+        _post(url, messages)  # fixes the hidden tools for the session
+        fake.respond_turn(calls=[GREP])  # the model copies a hidden call anyway
+        fake.respond_turn("Answered.")
+        r = _post(url, _turn(messages, "summarise", "ok"), tool_choice="none")
+
+    assert b"palimnesis_" not in r.content and _seen(r).content == "Answered."
+
+
+def test_running_out_of_result_room_counts_as_a_refusal(tmp_path, monkeypatch):
+    monkeypatch.setattr(archive, "RESULT_SHARE", 10**9)  # no room for any result
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn(calls=[GREP])
+        fake.respond_turn(calls=[("call_h9", "palimnesis_catalog", "{}")])
+        fake.respond_turn("never")
+        r = _post(url, _masked())
+
+    assert len(fake.requests) == 2 and _seen(r).finish_reason == "length"
+
+
+def test_tool_searches_see_the_cancellation_flag(tmp_path, monkeypatch):
+    from palimnesis import recalltools
+
+    seen = []
+    real = recalltools.run
+
+    def spy(name, arguments, ctx):
+        seen.append(ctx.cancelled)
+        return real(name, arguments, ctx)
+
+    monkeypatch.setattr(recalltools, "run", spy)
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn(calls=[GREP])
+        fake.respond_turn("done")
+        _post(url, _masked())
+
+    assert seen and seen[0]() is False and seen[0] is not recalltools.Context.cancelled
+
+
+def test_a_move_during_a_response_is_explained_and_survives_a_restart(tmp_path):
+    """Cache audit s6/s7: six hidden searches push the view to move between calls of one
+    response; every call is explained, and after a restart the next turn appends."""
+    messages = _masked()
+    searches = [(f"call_s{i}", "palimnesis_grep",
+                 json.dumps({"query": f"f{i}_1", "mode": "text", "scope": "all"}))
+                for i in range(6)]
+    with view_stack(tmp_path, input_budget=5000, hidden_tools="t2") as (fake, url, settings):
+        fake.respond_turn("Checking. ", reasoning="R1.", calls=searches)
+        fake.respond_turn("More. ", reasoning="R2.", calls=[("call_c", "palimnesis_catalog", "{}")])
+        fake.respond_turn("Found.", reasoning="R3.")
+        _post(url, messages)
+        live = _messages(fake.requests[-1].body)
+    with view_stack(tmp_path, input_budget=5000, hidden_tools="t2") as (fake, url, settings):
+        fake.respond_turn("Done.")
+        assert _post(url, _turn(messages, "thanks", "Checking. More. Found.")).status_code == 200
+        nxt = _messages(fake.requests[-1].body)
+
+    calls = [json.loads(p) for (p,) in rows(
+        settings, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
+    assert len(calls) == 4 and all("unexplained" not in c["cause"] for c in calls)
+    assert calls[-1]["lcp_source"] == "rerender" and calls[-1]["cause"] == "append"
+    assert nxt[:len(live)] == live
+    assert rows(settings, "SELECT count(*) FROM view_versions") >= [(2,)]
+    report = subprocess.run([sys.executable, str(REPLAY), "--explain", str(settings.db_path)],
+                            capture_output=True, text=True)
+    assert report.returncode == 0, report.stdout
