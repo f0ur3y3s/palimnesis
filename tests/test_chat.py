@@ -224,6 +224,19 @@ REJECTIONS = {
         _body(USER, extra=r',"tools":[' + TOOL + r'],"tool_choice":{"type":"function","function":{"name":"f"}}'),
         "tool_choice",
     ),
+    "reserved_tool_name": (
+        _body(USER, extra=r',"tools":[{"type":"function","function":{"name":"palimnesis_recall","parameters":{}}}]'),
+        "tools[0].function.name",
+    ),
+    "reserved_name_in_history": (
+        _body(
+            USER,
+            r'{"role":"assistant","content":null,"tool_calls":[{"id":"c1","type":"function",'
+            r'"function":{"name":"palimnesis_grep","arguments":"{}"}}]}',
+            RESULT,
+        ),
+        "messages[1].tool_calls[0].function.name",
+    ),
     "legacy_functions": (_body(USER, extra=r',"functions":[{"name":"f"}]'), "functions"),
     "legacy_function_call": (_body(USER, extra=r',"function_call":"auto"'), "function_call"),
     "user_field": (_body(USER, extra=r',"user":"u1"'), "user"),

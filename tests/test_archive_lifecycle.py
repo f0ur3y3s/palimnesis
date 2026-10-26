@@ -247,6 +247,8 @@ def test_identical_first_requests_in_two_sessions_stay_separate(lc):
                      id="text_parts"),
         pytest.param(body([user("q")], logprobs=True), id="unknown_top_level"),
         pytest.param(body([{"role": "user", "content": "q", "name": "dan"}]), id="user_name"),
+        pytest.param(body([user("q")], tools=[{"type": "function", "function": {
+            "name": "palimnesis_recall", "parameters": {}}}]), id="reserved_tool_name"),
     ],
 )
 def test_unsupported_feature_rejected_nothing_archived(lc, payload):

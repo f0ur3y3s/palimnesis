@@ -153,6 +153,8 @@ _MESSAGE_KEYS = {
     "tool": frozenset({"role", "content", "tool_call_id"}),
 }
 _TOOL_FUNCTION_KEYS = frozenset({"name", "description", "parameters", "strict"})
+# Tool names Palimnesis owns (contracts §3): never accepted from a client.
+RESERVED_PREFIX = "palimnesis_"
 
 
 def _require(ok: bool, field_path: str, what: str) -> None:
@@ -174,6 +176,8 @@ def _check_tool_call(tc: Any, path: str) -> None:
     _require(isinstance(fn, dict), f"{path}.function", "function must be an object")
     _check_keys(fn, frozenset({"name", "arguments"}), f"{path}.function.")
     _require(isinstance(fn.get("name"), str), f"{path}.function.name", "name must be a string")
+    _require(not fn["name"].startswith(RESERVED_PREFIX), f"{path}.function.name",
+             f"the {RESERVED_PREFIX} prefix is reserved for Palimnesis's own tools")
     _require(
         isinstance(fn.get("arguments"), str),
         f"{path}.function.arguments",
@@ -233,6 +237,8 @@ def _check_top_level(obj: dict[str, Any]) -> None:
             _require(isinstance(fn, dict), f"{path}.function", "function must be an object")
             _check_keys(fn, _TOOL_FUNCTION_KEYS, f"{path}.function.")
             _require(isinstance(fn.get("name"), str), f"{path}.function.name", "name must be a string")
+            _require(not fn["name"].startswith(RESERVED_PREFIX), f"{path}.function.name",
+                     f"the {RESERVED_PREFIX} prefix is reserved for Palimnesis's own tools")
     if "tool_choice" in obj:
         _require(obj["tool_choice"] in ("none", "auto"), "tool_choice",
                  'only tool_choice "none" or "auto" is supported')
