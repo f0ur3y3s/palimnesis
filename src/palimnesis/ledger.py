@@ -92,6 +92,7 @@ class Generation:
     # The upstream response object carrying usage (final chunk or body), for accounting.
     usage_payload: dict | None = None
     call_outcome: str = "incomplete"
+    ordinal: int = 1  # this upstream call's place in the attempt (hidden continuations, D51)
 
 
 # --- reading -----------------------------------------------------------------
@@ -132,14 +133,18 @@ def _attempt_events(conn: sqlite3.Connection, generation_id: str) -> set[str]:
 _SETTLED_EVENTS = frozenset({"cancelled", "attempt_failed", "attempt_abandoned",
                              "delivery_completed", "delivery_failed"})
 _OCC_COLUMNS = ("occ_id, role, source, view, content_sha256, generation_id, envelope, seq,"
-                " (SELECT alias FROM aliases WHERE target_id = occ_id)")
+                " (SELECT alias FROM aliases WHERE target_id = occ_id),"
+                " (SELECT attempt_id FROM generations g WHERE g.generation_id ="
+                " occurrences.generation_id)")
 
 
 def _archived(conn: sqlite3.Connection, row) -> tuple[Archived, bool]:
     """(archived occurrence, settled): settled ones never change again."""
     occ_id, role, source, view, sha, generation_id, _envelope = row[:7]
+    attempt_id = row[9] if len(row) > 9 else None
     if source != "generated":
-        return Archived(occ_id, role, source, view=view, content_sha256=sha), True
+        return Archived(occ_id, role, source, view=view, content_sha256=sha,
+                        attempt_id=attempt_id), True
     text = reasoning = ""
     calls = []
     for kind, meta, content in _blocks(conn, occ_id):
@@ -147,13 +152,13 @@ def _archived(conn: sqlite3.Connection, row) -> tuple[Archived, bool]:
             text += content
         elif kind == "reasoning":
             reasoning += content
-        elif kind == "tool_call":
+        elif kind == "tool_call" and not meta.get("internal"):  # hidden calls: never visible
             calls.append({"id": meta["id"], "name": meta["name"], "arguments": content})
     kinds = _attempt_events(conn, generation_id)
     archived = Archived.generated(occ_id, text=text, reasoning=reasoning, tool_calls=tuple(calls),
                                   complete="turn_complete" in kinds, view=view,
                                   cancelled="cancelled" in kinds,
-                                  delivered="delivery_completed" in kinds)
+                                  delivered="delivery_completed" in kinds, attempt_id=attempt_id)
     return archived, bool(kinds & _SETTLED_EVENTS)
 
 
@@ -235,7 +240,34 @@ def load_archived(conn: sqlite3.Connection, branch_id: str,
         else:
             position[archived.occ_id] = len(history)
             history.append(archived)
-    return history
+    return _fold(history)
+
+
+def _fold(history: list[Archived]) -> list[Archived]:
+    """One composite per attempt that made several upstream calls or hidden tool calls
+    (D51): its generated parts and the internal results between them become one visible
+    turn at the first part's position."""
+    members: dict[str, list[int]] = {}
+    for i, a in enumerate(history):
+        if a.attempt_id is not None and a.source in ("generated", "internal_tool"):
+            members.setdefault(a.attempt_id, []).append(i)
+    folded: set[int] = set()
+    for idxs in members.values():
+        group = [history[i] for i in idxs]
+        parts = [a for a in group if a.source == "generated"]
+        if len(group) < 2 or not parts or group[0].source != "generated":
+            continue
+        last = parts[-1]
+        history[idxs[0]] = Archived(
+            parts[0].occ_id, "assistant", "generated", view=parts[0].view,
+            text="".join(p.text for p in parts), reasoning="".join(p.reasoning for p in parts),
+            tool_calls=tuple(c for p in parts for c in p.tool_calls), complete=last.complete,
+            cancelled=last.cancelled, delivered=last.delivered, attempt_id=last.attempt_id,
+            parts=tuple(a.occ_id for a in group),
+            stream=tuple((kind, piece) for p in parts
+                         for kind, piece in (("reasoning", p.reasoning), ("text", p.text)) if piece))
+        folded.update(idxs[1:])
+    return [a for i, a in enumerate(history) if i not in folded]
 
 
 def message_dict(conn: sqlite3.Connection, occ_id: str) -> dict:
@@ -414,7 +446,22 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
         elif item.occ_id in position:
             aligned_seen = position[item.occ_id] + 1
     replacements = {}
+    last_occ: dict[int, str] = {}  # client message → the occurrence of its last upstream part
+    partial_extent = dict(outcome.partials)
+    for index, occ in enumerate(outcome.aligned):
+        past = by_id.get(occ)
+        if past is None or not past.parts:
+            continue
+        expanded = _expand_composite(conn, past, partial_extent.get(index))
+        if not expanded:
+            continue
+        insertions.setdefault(index, []).extend(m for m, _ in expanded[:-1])
+        inserted_occs.setdefault(index, []).extend(o for _, o in expanded[:-1])
+        replacements[index] = expanded[-1][0]
+        last_occ[index] = expanded[-1][1]
     for index, extent in outcome.partials:
+        if index in last_occ:
+            continue
         past = by_id[outcome.aligned[index]]
         sent = past.reasoning + past.text
         cut = min(extent, len(past.reasoning))
@@ -475,11 +522,42 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
     for i, message in enumerate(req.messages):
         for occ, extra in zip(inserted_occs.get(i, []), insertions.get(i, [])):
             items.append(item(extra, occ))
-        items.append(item(replacements.get(i, message.raw_object), occs[i] if i < len(occs) else None))
+        items.append(item(replacements.get(i, message.raw_object),
+                          last_occ.get(i, occs[i] if i < len(occs) else None)))
     n = len(req.messages)
     for occ, extra in zip(inserted_occs.get(n, []), insertions.get(n, [])):
         items.append(item(extra, occ))
     return body, items
+
+
+def _expand_composite(conn, past: Archived, extent: int | None) -> list[tuple[dict, str]]:
+    """A composite turn as the model saw it: (message, occ) per part and hidden result.
+
+    For a flattened partial, ``extent`` counts into the stream (each part's reasoning,
+    then its text): parts the client fully received keep their calls and results; the
+    part the cut falls in keeps reasoning and text up to the cut and no calls; later
+    parts are dropped (D10.3 applied per part)."""
+    out: list[tuple[dict, str]] = []
+    remaining = extent
+    cut = False
+    for occ in past.parts:
+        if cut:
+            break
+        message = message_dict(conn, occ)
+        if message["role"] == "assistant" and remaining is not None:
+            reasoning = message.get("reasoning_content") or ""
+            text = message.get("content") or ""
+            if remaining <= 0:
+                break
+            if remaining < len(reasoning) + len(text):
+                head = (reasoning + text)[:remaining]
+                message = {"role": "assistant", "content": head[len(reasoning):] or None}
+                if head[:len(reasoning)]:
+                    message["reasoning_content"] = head[:len(reasoning)]
+                cut = True
+            remaining -= len(reasoning) + len(text)
+        out.append((message, occ))
+    return out
 
 
 def latest_view(conn: sqlite3.Connection, branch_id: str):
@@ -790,7 +868,8 @@ def _ensure_occurrence(conn, gen: Generation) -> None:
         return
     plan = gen.plan
     gen.occ_id, gen.generation_id = new_id("occ"), new_id("gen")
-    conn.execute("INSERT INTO generations VALUES (?, ?, NULL, 1)", (gen.generation_id, plan.attempt_id))
+    conn.execute("INSERT INTO generations VALUES (?, ?, NULL, ?)",
+                 (gen.generation_id, plan.attempt_id, gen.ordinal))
     conn.execute(
         "INSERT INTO occurrences VALUES (?, ?, ?, NULL, 'assistant', 'both', 'generated', ?, ?, ?, '')",
         (gen.occ_id, plan.branch_id, _next_seq(conn, plan.branch_id), plan.request_id,
@@ -823,6 +902,8 @@ def commit_batch(conn: sqlite3.Connection, gen: Generation, parts: list[tuple],
             if kind == "tool_call" and not (meta.get("id") and meta.get("name")):
                 raise ValueError("tool call delta without id and name at its start")
             block_meta = {"id": meta["id"], "name": meta["name"]} if kind == "tool_call" else {}
+            if kind == "tool_call" and meta.get("internal"):
+                block_meta["internal"] = True  # a hidden call: rendered upstream, never visible
             # Generated text can carry lone surrogates (JSON \ud83d escapes split by
             # tokenization); WTF-8 is a superset of UTF-8, so tag every generated block.
             block_id = _insert_block(conn, gen.occ_id, len(gen.blocks), kind, "wtf-8", block_meta, None)
@@ -843,6 +924,35 @@ def commit_batch(conn: sqlite3.Connection, gen: Generation, parts: list[tuple],
         _event(conn, plan.request_id, plan.attempt_id, "delivery_progress",
                bytes_forwarded=forwarded_before)
         gen.progress_recorded = forwarded_before
+
+
+def next_generation(conn: sqlite3.Connection, gen: Generation) -> Generation:
+    """The attempt's next upstream call after hidden tool results (D51). Its generated
+    occurrence is created on its first output, after the results in seq order."""
+    return Generation(gen.plan, forwarded=gen.forwarded, delivery_started=gen.delivery_started,
+                      progress_recorded=gen.progress_recorded, ordinal=gen.ordinal + 1)
+
+
+def commit_internal_result(conn: sqlite3.Connection, gen: Generation, call_id: str, tool: str,
+                           text: str, meta: dict) -> str:
+    """Archive one hidden tool result (``view='internal'``) after the part that called it.
+    Results are copies of archived text, so they are never full-text indexed (D60)."""
+    from .stubs import encoding_of
+
+    _ensure_occurrence(conn, gen)
+    plan = gen.plan
+    occ_id = new_id("occ")
+    envelope = {"tool": tool, "call_id": call_id, **meta}
+    conn.execute(
+        "INSERT INTO occurrences VALUES (?, ?, ?, NULL, 'tool', 'internal', 'internal_tool',"
+        " ?, ?, ?, ?)",
+        (occ_id, plan.branch_id, _next_seq(conn, plan.branch_id), plan.request_id,
+         gen.generation_id, json.dumps(envelope, ensure_ascii=False),
+         hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest()))
+    _insert_block(conn, occ_id, 0, "tool_result", encoding_of(text), {"tool_call_id": call_id},
+                  text.encode("utf-8", "surrogatepass"))
+    issue_alias(conn, plan.session_id, occ_id)
+    return occ_id
 
 
 def finish_attempt(conn: sqlite3.Connection, gen: Generation, kind: str, **payload) -> None:

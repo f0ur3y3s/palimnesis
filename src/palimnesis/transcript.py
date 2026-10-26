@@ -21,7 +21,9 @@ Matching rules:
 Incomplete generated turns (a stream that failed after output) come back
 from OpenCode flattened (``docs/probes/opencode_partials.md``):
 - content is ``D[:k]``, where ``D`` is reasoning then text as Palimnesis sent it,
-  with no separator;
+  with no separator. For a composite turn (several upstream calls, D51) it is all the
+  reasoning, then all the text, of the first ``k`` streamed characters
+  (``docs/probes/opencode_hidden_stream.md``);
 - ``reasoning_content`` is empty or absent;
 - a partial tool call keeps its streamed id and name, with arguments
   replaced by ``"{}"``.
@@ -58,6 +60,13 @@ class Archived:
     complete: bool = True
     cancelled: bool = False  # the client disconnected from this attempt
     delivered: bool = True  # the full response was written to the client
+    attempt_id: str | None = None  # the attempt that generated it (generated and internal rows)
+    # A composite visible turn (D51): the occurrences of one attempt's upstream calls and
+    # the hidden results between them, in seq order. ``text``, ``reasoning`` and
+    # ``tool_calls`` are what the client saw; ``stream`` is each part's reasoning and
+    # text as (kind, text) in the order they were streamed.
+    parts: tuple[str, ...] = ()
+    stream: tuple[tuple[str, str], ...] = ()
 
     @classmethod
     def from_client(cls, occ_id: str, message: Message, source: str = "client") -> "Archived":
@@ -75,10 +84,11 @@ class Archived:
         view: str = "both",
         cancelled: bool = False,
         delivered: bool = True,
+        attempt_id: str | None = None,
     ) -> "Archived":
         return cls(occ_id, "assistant", "generated", view=view, text=text,
                    reasoning=reasoning, tool_calls=tool_calls, complete=complete,
-                   cancelled=cancelled, delivered=delivered)
+                   cancelled=cancelled, delivered=delivered, attempt_id=attempt_id)
 
 
 @dataclass(frozen=True)
@@ -151,9 +161,11 @@ def _matches_partial(message: Message, archived: Archived) -> tuple[str | None, 
     """(reason or None, acknowledged extent) for an incomplete generated turn."""
     if _block_text(message, "reasoning"):
         return "a resent partial carries reasoning; it was never completed", 0
-    sent = archived.reasoning + archived.text
     text = _block_text(message, "text") or ""
-    if not sent.startswith(text):
+    if archived.stream:
+        if text != flattened(archived.stream, len(text)):
+            return "partial text is not what was streamed, flattened", 0
+    elif not (archived.reasoning + archived.text).startswith(text):
         return "partial text is not a prefix of what was generated", 0
     calls = _tool_calls(message)
     expected = tuple(
@@ -162,6 +174,18 @@ def _matches_partial(message: Message, archived: Archived) -> tuple[str | None, 
     if calls != expected[: len(calls)] or (calls and len(calls) != len(expected)):
         return "partial tool calls differ from what was generated", 0
     return None, len(text)
+
+
+def flattened(stream: tuple[tuple[str, str], ...], k: int) -> str:
+    """What a client flattens the first ``k`` streamed characters into: their reasoning,
+    then their text."""
+    reasoning, text = [], []
+    for kind, piece in stream:
+        if k <= 0:
+            break
+        (reasoning if kind == "reasoning" else text).append(piece[:k])
+        k -= len(piece)
+    return "".join(reasoning) + "".join(text)
 
 
 def _matches_generated(message: Message, archived: Archived) -> str | None:
