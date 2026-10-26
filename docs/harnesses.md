@@ -27,7 +27,7 @@ Setup and verified behavior per supported harness. Evidence lives in `docs/probe
 
 The plugin's `model.request` hook rewrites each request's base URL to `/s/<OpenCode sessionID>/v1`. A new OpenCode session is a new Palimnesis session, and resuming an OpenCode session resumes its Palimnesis session, across processes [verified, `docs/probes/opencode_live.md`]. `palimnesis session new` is not needed for OpenCode.
 
-`X-Palimnesis-Kind` carries the request kind (`primary`, `title`, `compaction`, `generate`) for the proxy; it is never forwarded upstream.
+`X-Palimnesis-Kind` carries the request kind (`primary`, `title`, `compaction`, `generate`). The proxy does not use it yet; it is kept for diagnostics and stripped before forwarding, like every `x-palimnesis-*` header.
 
 If the plugin fails to load, requests reach the unprefixed `…/v1` base URL. The proxy then rejects them with `session_required`; it never merges chats.
 

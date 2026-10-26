@@ -210,7 +210,8 @@ def _changed_segment(prev: Call, cur: Call, s: int) -> int:
     for k in range(back, s):
         if k >= len(b.segments):
             break
-        if [prev.turns[i] for i in a.segments[k].messages] !=                 [cur.turns[i] for i in b.segments[k].messages]:
+        if ([prev.turns[i] for i in a.segments[k].messages]
+                != [cur.turns[i] for i in b.segments[k].messages]):
             return k
     return s
 
@@ -423,7 +424,8 @@ class Accountant:
             policy = (ViewPolicy(high=float("inf")) if prev.view_mode == "off"
                       else getattr(self.views, "view_policy", ViewPolicy()))
             view = build(items, tools=tools, render_kwargs=kw, budget=budget, state=state,
-                         policy=policy, counter=self.profile.counter)
+                         policy=policy, counter=self.profile.counter,
+                         drops_empty_assistant=self.profile.rules.drops_empty_assistant)
         except Exception:
             log.exception("could not re-render the previous upstream call")
             return prev

@@ -1101,3 +1101,37 @@ At 64K, arm 4's budget is 48,000 tokens, and these sessions barely reach it. The
 - Recomputed in the scratchpad with `mark_clean(rows, 48000)`, the clean subset is 60/60.
 - The headline count, the Wilson interval, the bootstrap and every gate input are unaffected. 32K reports are unaffected too, because 24,320 is right there.
 - **Fixed with this result:** `load_attempts` now carries `expect_n_ctx` into the merged meta, and refuses designated attempts that ran at different `n_ctx`. The new test `test_a_run_with_attempts_keeps_its_n_ctx_for_the_clean_budget` failed before the fix. After it, `report.py` prints "CLEAN subset: 60/60" for the 64K needles. The 32K held-out report is unchanged at 120/120. Full suite: 1274 passed, 1 skipped.
+
+## R27 — Phase 3 gate summary (2026-10-26)
+
+**Outcome: Phase 3 is not accepted.** The held-out coding gate failed at 32K (R25), and so did the restart task. Everything else Phase 3 promised is met. The `phase-3` tag is not applied. The code is usable as the first usable milestone describes, with the limits in `capabilities.md` "Known limits of Phase 3".
+
+Code at the S12 commit. Full suite: 1277 passed, 1 skipped.
+
+| A1 green light | Evidence | Status |
+| --- | --- | --- |
+| Excerpt sets and renderings survive requests and restarts | `test_retries_and_restarts_reuse_the_stored_selection`, `test_crash_after_the_excerpt_commit_reuses_the_stored_selection`, `test_a_retry_after_a_crash_before_the_excerpt_commit_selects_once` | Met |
+| Inclusion follows the view policy with recorded causes | `test_view_excerpts`; `--explain` with 0 unexplained over all 1,849 held-out arm-4 pairs (S12 cache audit) | Met |
+| Excerpts never visible to the harness | `test_the_upstream_sees_the_block_but_the_archive_and_client_do_not`; 0 leaks in R25 and R26 | Met |
+| Allocations fit the budget | `test_excerpt_charges_never_trigger_a_watermark_move`, `test_a_token_dense_tool_name_does_not_lose_the_selection`; 0 of 1,565 (R25) and 0 of 312 (R26) arm-4 inputs over budget | Met |
+| Retrieval covers spans evicted now | `test_newly_evicted_occurrences_are_reported_for_retrieval`, `test_a_needle_masked_by_this_request_is_quoted_back_to_the_upstream_only` | Met |
+| Lossless payloads, rebuild after deletion | `test_turn_payloads_roundtrip_property`, `test_rebuild_after_delete_byte_identical`; `transcripts verify` 17/17 (R25) and 11/11 (R26) | Met |
+| Consistent generations across crashes | `test_crash_at_each_publish_step_leaves_consistent_generation` | Met |
+| The first harness searches and reads transcripts | D37 gate probe; R25: 31/31 needles absent from view answered through the files | Met |
+| Oversized reads narrowed | `test_an_oversized_transcript_read_is_stubbed_and_a_narrowed_read_passes_verbatim` | Met |
+| Tool-step reasoning correct | `test_a_grep_then_bounded_read_loop_keeps_excerpts_reasoning_and_prefix_across_a_restart` | Met |
+| Held-out recall and coding meet O1 | Needles 120/120 at 32K (gate ≥ 85%). Coding: arm 4 3/5 against arm 1 5/5 (gate: ≥ arm 1). Restart task failed. | **Not met** |
+| Selection latency p95 ≤ 50 ms at 1M tokens | R18 | Met |
+| Reviews | Protocol, cache and paper-fidelity reviews at S12: no blocker. Two code defects fixed test-first (D50.1 `tool_choice: "none"` counting, D50.2 re-render of dropped turns); documentation brought to the code (D50.5) | Met |
+
+**Why the coding gate failed, as far as the evidence goes** (R25; one attempt per task, so these are observations, not measured causes):
+- **ho-t1:** a functional miss in the model's own parser (`1h 30m` accepted), with 8 transcript lookups. Not attributable to recall.
+- **ho-t3 (restart):** the key constraint stated only in turn 1 held after the restart. The run failed on IPv4 redaction and formatting. Turn 5 hit the 30-minute limit after 97 calls and 14 lookups, and about half of that task's 68 lookups were overhead (R25-E).
+- **At 64K** both arms passed all five tasks with no kills, but the budget barely bound (R26), so that is no evidence that recall fixes the 32K failures.
+
+**Carried forward:**
+- **Phase 3B (hidden recall by address) is an open decision for the user.** R25-E suggests it would remove most lookup overhead. A1 makes it optional.
+- **Transcript paths** (R25-E): a stable name for the in-progress turn, and `index.md` marking turn 0 as the system prompt.
+- **Evaluation tooling:** the flaky deadline test (R25-A); per-call tap records for task runs (R25-C); the `"gold"` detector matching prose (R25-D).
+- **Deferred by design:** proxy admission, `429` and keepalives (Ph4B, O4); Anthropic error re-envelope and other harnesses (Ph4B); continuation accounting and RE2 search (3B).
+- **Cache model:** `restart_or_eviction` also counts checkpoints Strata dropped without a restart (D50.3).

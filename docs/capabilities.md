@@ -15,7 +15,7 @@ What Palimnesis claims, per endpoint and harness. Anything absent is unsupported
 | Server | Strata 0.1.48 (`/props` `build_info`) | `docs/probes/strata.md` §1 |
 | Model | `qwen3.8-flash-next-iq3_xxs` (hybrid recurrent, MTP) | §1 |
 | Chat template | sha256 `12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce` | `eval/probes/fixtures/strata_chat_template.jinja` |
-| Tokenizer | `Qwen/Qwen3.8-Flash-Next` `tokenizer.json`; 19/19 exact against server | §4 |
+| Tokenizer | `Qwen/Qwen3.8-Flash-Next` `tokenizer.json`, loaded without its NFC normalizer, with added-token strings inside messages counted as text (D46, D47); 210 recorded counting cases exact against the server, plus `tool_choice` (p16) | §4, §11 |
 | `n_ctx` | read at runtime (observed 32768, then 65536) | §0 |
 
 Backend specifics sit behind a backend-neutral upstream profile (D15 amended, D21). v1 ships one profile, `strata-0.1.48`. A llama.cpp profile, with its own probe suite, is later work. Until then, `--passthrough` relays to any OpenAI-compatible server, but bounded views, budgets and excerpts require a pinned profile.
@@ -45,12 +45,13 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | Feature | Status | Notes |
 | --- | --- | --- |
 | `system`, `user`, `assistant`, `tool` text messages | supported (Ph1) | |
-| `developer` role | untested | OpenCode sends `system`; Pi sends `developer` |
+| `developer` role | rejected (Ph1) | OpenCode sends `system`; Pi sends `developer` (Ph4B) |
 | `reasoning_content` on assistant turns (vendor extension) | supported (Ph1) | archived separately; reconstructed for every earlier turn (contracts §9) |
 | `tools` (function), `strict` | supported (Ph1) | upstream renders the bare form |
-| `tool_choice: "none"` | supported (Ph3) | OpenCode step-limit step |
-| Other `tool_choice` forms, `parallel_tool_calls` | untested | |
-| `max_completion_tokens`, `max_tokens` | supported (Ph3) | request-wide allowance (contracts §7) |
+| `tool_choice: "auto"` | supported (Ph1) | |
+| `tool_choice: "none"` | supported (Ph3) | OpenCode step-limit step; Strata renders no tool schemas, and the counter matches (p16, D50) |
+| Other `tool_choice` forms, `parallel_tool_calls` | rejected (Ph1) | |
+| `max_completion_tokens`, `max_tokens` | supported (Ph3) | request-wide allowance (contracts §7); with both, `max_completion_tokens` wins, as on Strata (p16) |
 | `stream_options.include_usage` | supported (Ph1) | upstream always puts usage on the finish chunk |
 | `reasoning_effort`, `chat_template_kwargs.enable_thinking` | passthrough | full-prefix invalidation cause |
 | `chat_template_kwargs.preserve_thinking`, `reasoning_format` | rejected (Ph1) | ignored upstream; accepting them would misstate behavior |
@@ -93,3 +94,19 @@ These are the limits of the first usable release. They are rejected or documente
 - **No transcript-file fallback yet** (Phase 3, harness capability gate).
 - **Masking only on overflow.** Bounded views mask only when the history would cross the high watermark; below it the client's body is forwarded byte-identical. `--view off` keeps budgets and rejects over-budget history instead of masking.
 - **Watermark moves cost a deep re-read.** Strata keeps 6 checkpoints, so a move typically re-reads the post-move target (about T tokens). Measured: a move every 7–11K ingress tokens at a 24K budget and every 15–24K at 48K (R12). Live at a 12K budget, each move re-read 4.6–5.0K tokens in about 14.5 s, against a 762 ms median for append turns (R14); at 48K that scales to about 60 s (estimate). At small budgets with large outputs, moves can come almost every turn (D24.2).
+
+## Known limits of Phase 3
+
+Phase 3's held-out coding gate failed at 32K (R25): Palimnesis succeeded on 3 of 5 tasks, against 5 of 5 for OpenCode's own compaction, and failed the restart task. The needle gate passed, 120/120. At 64K both arms succeeded on all 5, but the budget barely bound there (R26). Recall passed the 32K needle gate on synthetic planted facts (one attempt, one model, one harness, with 32 of the 120 needles still in view). It is unproven for long coding sessions at small contexts.
+
+- **No recall by address.** The hidden tools `palimnesis_recall` and `palimnesis_grep` are Phase 3B (A1) and not built. The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools.
+- **Transcript lookups cost calls** (R25-E). In the failed restart task, about half of 68 lookups were overhead:
+  - the in-progress turn's file name carries a revision that changes as the archive grows (`turn-NNNN.pREV.md`, D34), so a path the model just saw can be gone on its next call;
+  - the model re-read `turn-0000.md`, OpenCode's system prompt, which is always in view;
+  - directory listings to recover from both.
+- **Excerpts are chosen once per instruction** (§13). Tool-result steps never select, so in a long agentic turn, content that leaves the view mid-turn is reachable only through the transcript files.
+- **Retrieval is lexical.** q1/r1 rank with BM25 over FTS5 chunks. There are no embeddings; an instruction that shares too few words with the evidence gets no excerpt.
+- **Watermark moves still cost a deep re-read** (Phase 2 limits), and the addendum adds one re-read of the head per session when it is fixed (D36).
+- **Some internal size estimates run a few tokens low.** Previews, the recent window and excerpt charges are sized on text with tags live (D46.4). The assembled request is counted exactly, so the budget holds.
+- **Transcript files rely on filesystem permissions.** OpenCode's shell tool bypasses its `external_directory` rule (`harnesses.md`). There is no delete command; remove `palimnesis.db*` and `transcripts` with the proxy stopped (Ph8).
+- **Deferred:** proxy FIFO admission, `429` and proxy keepalives (Ph4B, O4); continuation accounting across internal calls and RE2 regex search (3B); Anthropic error re-envelope and other harnesses (Ph4B).

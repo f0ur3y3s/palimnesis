@@ -8,6 +8,11 @@ than an edit. ``docs/affordances.md`` documents each id. After amendment A1 the
 hidden-recall variants (stubs that point at tools, tool descriptions, recall
 addenda) are optional Phase 3B; Phase 3 selects the excerpt format, caps and
 transcript-search addendum on development data instead.
+
+The a3 addendum adapts Eunoe's short recipe for searching transcript files
+(docs/papers.md). It inverts Eunoe's "skim index.md, read the whole turn file":
+grep first, then read with an offset and limit, because whole-file reads
+overflowed a 64K context (D37.1).
 """
 
 from __future__ import annotations

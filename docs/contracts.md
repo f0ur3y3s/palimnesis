@@ -9,7 +9,7 @@ Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve ·
 - `n_ctx`, `build_info` and the chat-template hash come from the upstream profile's facts reader (Strata: `GET /props`). They are read at startup and again after any transport error, 5xx, or context-window 400. **[enforced]**
 - **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). **[enforced]**
 - **Core is backend-neutral.** Backend specifics live behind `palimnesis.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
-- Counting renders the pinned template with the pinned tokenizer, cross-checked at startup by a `count_tokens` canary. Every call's `usage.prompt_tokens` is reconciled with the local count. Drift raises `M` (D22.4); persistent or large drift disables bounded views. **[enforced]**
+- Counting renders the pinned template with the pinned tokenizer, as Strata 0.1.48 encodes: without the tokenizer's NFC normalizer (D47), with added-token strings inside messages counted as text (D46), and with no tool schemas when `tool_choice` is `"none"` (D50). It is cross-checked at startup by a `count_tokens` canary. Every call's `usage.prompt_tokens` is reconciled with the local count. Drift raises `M` (D22.4); persistent or large drift disables bounded views. **[enforced]**
 
 ## 2. Budgets
 
@@ -21,6 +21,7 @@ Before every upstream call, with `I` the rendered input:
 The upstream silently clamps oversized output limits, so Palimnesis enforces both itself. The upstream output limit is set to the reserve whenever the client's limit is absent or larger (D14.11). **[enforced]**
 
 - **Floor.** If `F + min_recent + R + M > n_ctx` at startup, or after an `n_ctx` change, bounded views are refused with a message naming each term. Archiving and forwarding continue. **[enforced]**
+- **Build failure.** If the view build fails for any reason other than a budget error, the request is forwarded with the client's full history, unbounded, and the proxy logs `bounded view build failed; forwarding unbounded` (D14.9). This is the one case where `I ≤ input_budget` is not enforced; the upstream's own `n_ctx` check still applies. **[enforced]**
 - **Per request.** If the non-evictable input cannot fit, return `400 context_budget_exceeded` (`x-should-retry: false`) before acceptance, so nothing is archived. Never truncate system instructions, tool schemas or current user input. **[enforced]**
 - **Capacity change.** When `n_ctx` changes, budgets are recomputed before the next call; in-flight requests keep the budget they were admitted under. **[enforced]**
 - **Recall excerpts** (A1, D20).
@@ -44,7 +45,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
 - **Archive mode** (`--db`, the default) rewrites `POST /v1/chat/completions` only. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. **[enforced]**
 - **Rewriting** accepts only requests inside `capabilities.md` (allowlist rules in D11). Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`, and nothing is archived. Fields are never dropped silently. **[enforced]**
 - **Upstream EOF** without the endpoint's terminal event (`[DONE]`, `message_stop`) is an upstream failure, never a successful stop. On rewritten streams the finish chunk is held until `[DONE]`, so a stream cut short after it still ends in the error event. In passthrough the client sees the same abrupt close it would see directly. **[enforced]**
-- **Error shape.** Proxy-originated errors use the client endpoint's shape: OpenAI `{"error":{message,type,code,param}}`, Anthropic `{"type":"error","error":{type,message}}`. **[enforced]** Upstream errors are re-enveloped only on rewritten routes. **[defined, Ph3]**
+- **Error shape.** Proxy-originated errors use the client endpoint's shape: OpenAI `{"error":{message,type,code,param}}`, Anthropic `{"type":"error","error":{type,message}}`. **[enforced]** Upstream non-200 responses after acceptance are relayed with their status and body; re-enveloping them is deferred with the Anthropic route (Ph4B). **[defined, Ph4B]**
 
 ## 4. Session identity
 
@@ -70,8 +71,8 @@ All of the above are **[enforced]**.
 
 Per-harness facts (header wait, read-idle, total deadline, retry triggers, behavior after partial streams) live in `harnesses.md` and come from captured fixtures. **[verified for OpenCode 2.1.4: `docs/probes/opencode_faults.md`]**
 
-- **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued. **[defined, Ph3]**
-- **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph3]**
+- **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued. **[defined, Ph4B]** (O4)
+- **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph4B]** (O4: Strata itself sends a role chunk and 10 s keepalives, `docs/probes/strata.md` §10)
 - **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. At `D` after acceptance the upstream response is closed, releasing its slot, and the attempt is recorded as failed (`deadline_exceeded`). A client that stopped reading cannot hold the upstream past `D`. Queueing before acceptance is the upstream's (Strata queues FIFO; proxy admission is deferred to Phase 4B, O4). **[enforced after acceptance]**
 - **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[enforced]**
 - **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Palimnesis, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
@@ -118,11 +119,12 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 7. Request-wide generation and time limits
 
-**[defined, Ph3]**
+Each visible response is one upstream call until hidden continuations exist (optional Phase 3B, A1). The allowance and deadline are enforced; consumption across internal calls is defined for 3B.
 
-- **Allowance.** `A = min(client limit, configured cap)`.
-  - Client limit, OpenAI: `max_completion_tokens`, else `max_tokens`. Anthropic: `max_tokens`.
+- **Allowance.** `A = min(client limit, configured cap)`. **[enforced]**
+  - Client limit, OpenAI: `max_completion_tokens`, else `max_tokens`; Strata gives `max_completion_tokens` precedence the same way (probe p16). Anthropic: `max_tokens`.
   - Absent client limit: the cap.
+- **[defined, 3B]** for the rest of this section.
 - **Consumption** is upstream `completion_tokens` (includes reasoning and tool-call arguments), summed over all internal calls for one visible response.
 - **Each continuation** is capped at `min(A − consumed, n_ctx − I − M)`. Replaying a completed result does not reset consumption.
 - **Exhaustion** ends with the endpoint's length stop when the emitted structure can close validly, otherwise the partial-stream error. Never a normal stop, never an incomplete tool call.
@@ -131,14 +133,14 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 8. Scheduling and slot release
 
-**[defined, Ph3]**
+**[defined, Ph4B]** (O4) for proxy admission and dispatch: until then Strata's own FIFO queue serves requests in order (`docs/probes/strata.md` §10).
 
 - **Single dispatch.** A bounded FIFO (capacity `Q`) feeds one upstream dispatch at a time.
   - Duplicates and branch conflicts are resolved before a request enqueues.
   - Cancelled or expired entries leave the queue without inference.
   - The upstream's `/status` guards dispatch because other clients share it.
 - **Slot ownership.** An active request holds the slot across its internal continuations. It releases the slot on completion, failure, cancellation, or when it returns external tool calls.
-- **Background work** starts only when no foreground request is active or queued.
+- **Background work.** Non-inference background work (transcript projection, stub warm-up) runs off the request path and never uses the upstream slot (D35, D25). Background inference, when a later phase adds it, starts only when no foreground request is active or queued. **[enforced for non-inference work]**
 - **Released** means the upstream no longer lists the request as active. The expected bound is under 1 s during decode and one prefill chunk at the measured prefill rate during prefill. Past the hard ceiling (default 60 s), the upstream is marked unhealthy and dispatch stops.
 
 ## 9. Reasoning carryover
@@ -147,6 +149,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 - The pinned template renders `reasoning_content` for **every** earlier assistant turn, and an empty think block where there is none. Palimnesis reconstructs archived reasoning for every rendered assistant turn so upstream input matches what the model saw, whether or not the client resends it.
 - **Except turns the upstream renders as nothing.** Strata drops a completed assistant turn with no text, image or tool calls, reasoning included (#843); the final message always renders. A profile declares this as `TemplateRules.drops_empty_assistant`. Counting, layouts, the view's recent window and masking all treat such a turn as zero tokens: it is never stubbed and never reported as evicted (D41, D42). The `count_tokens` canary includes one, so a server that renders them fails the pin check. **[enforced]**
+- **Transcript-search steps are ordinary tool steps.** The model's grep and read calls on transcript files are harness tool calls, archived and restored like any other (A1 GL10; `tests/test_transcript_loop_http.py`). **[enforced]**
 - A template revision that changes this rule is a pinned-value change (§1), not a runtime branch.
 - Reasoning-effort and thinking toggles alter the first system message, so they are full-prefix invalidation causes.
 
@@ -155,14 +158,14 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 **[enforced]** (`palimnesis.cacheacct`, D22)
 
 - Every pair of consecutive upstream calls records the token longest common prefix (LCP), the cached tokens reported by the upstream, and the invalidation cause.
-- **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. These are recorded as `append`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `model_template_change`, plus `first_call` and `view_disabled` (bounded views off; no LCP is recorded). The transcript addendum (D36) is part of the presentation format: its appearance, change or removal is `view_format_change`. A call's identity includes the counter revision, so a pair whose earlier call was counted by another revision, and cannot be re-rendered to its recorded count, is `model_template_change` (D46). State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
+- **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. These are recorded as `append`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `model_template_change`, plus `first_call` and `view_disabled` (bounded views off; no LCP is recorded). The transcript addendum (D36) is part of the presentation format: its appearance, change or removal is `view_format_change`. It is fixed per session and names a session directory whose path never changes, so it is byte-stable from one call to the next. A change between `tool_choice: "none"` and other values changes whether tool schemas render, so it is `tool_change` (D50). A call's identity includes the counter revision, so a pair whose earlier call was counted by another revision, and cannot be re-rendered to its recorded count, is `model_template_change` (D46). State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
 - **Reuse is checkpoint-based.** The upstream resumes from its last checkpoint at or before the first changed token. Reported reuse below the LCP is expected and recorded as checkpoint-limited, not unexplained.
-- Restart and eviction reduce reuse without any input change.
+- Restart and eviction reduce reuse without any input change. The class `restart_or_eviction` means only "below the checkpoint estimate": it also covers Strata no longer holding a checkpoint the model assumed, with no restart (D50).
 - Latency-derived estimates are labeled as estimates.
 
 ## 11. Durability and isolation
 
-**[enforced]** except recall provenance (Ph3). Process-crash recovery is tested at three crash points (`tests/test_crash_recovery.py`). Power-loss durability is not claimed until separately tested (Ph8).
+**[enforced]** Process-crash recovery is tested at three crash points (`tests/test_crash_recovery.py`). Power-loss durability is not claimed until separately tested (Ph8).
 
 - SQLite runs with `journal_mode=WAL` and `synchronous=FULL`, both read back on every connection. `NORMAL` is an explicit, reported option and never carries the power-loss claim.
 - **Commit order.**

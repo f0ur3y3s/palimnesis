@@ -317,6 +317,8 @@ Script: `p10_concurrency.py`. Fixture: `concurrency.json`.
 | Parameter | Result |
 | --- | --- |
 | `max_tokens`, `max_completion_tokens` | honored; the cap includes reasoning tokens; `finish_reason: "length"` |
+| both `max_completion_tokens` and `max_tokens` | `max_completion_tokens` wins: 8 against 300 gave 8 tokens, 300 against 8 gave 300 (p16, Zeus, 2026-10-26) |
+| `tool_choice: "none"` | the tool schemas are **not rendered**: the probe prompt counted 69 tokens, the same as with no `tools`, against 317 for `"auto"` or no `tool_choice` (p16, Zeus, 2026-10-26) |
 | `max_tokens` ≥ 1024 with thinking on | thinking is wrapped up with 25% of the cap left [docs] |
 | `reasoning_effort` `none` / `low` / `medium` / `high` (OpenAI); `output_config.effort` and `thinking.type: disabled` (Anthropic); `reasoning.effort` (Responses) | honored; prompt token counts change as in §2 |
 | `chat_template_kwargs.enable_thinking: false` | honored, same as `none` |

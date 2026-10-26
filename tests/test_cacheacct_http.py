@@ -417,6 +417,60 @@ def test_previous_call_rerendered_after_restart(tmp_path):
     assert two["cause"] == "append"
 
 
+def test_tool_choice_none_drops_the_tools_from_the_render_as_a_tool_change(tmp_path):
+    """p16: with tool_choice "none" Strata renders no tool schemas, so the head changes
+    and the call is a tool change, not an append."""
+    messages = history(2)
+    with acct_stack(tmp_path) as (fake, url, settings):
+        fake.respond_counted()
+        assert post(url, body(messages)).status_code == 200
+        fake.respond_counted()
+        assert post(url, body(turn(messages), tool_choice="none")).status_code == 200
+
+    one, two = events(settings)
+    sent = [encoded(r.body) for r in fake.requests]
+    assert two["input_tokens"] == len(sent[1])
+    assert two["cause"] == "tool_change"
+    assert explain(settings.db_path).returncode == 0
+
+
+def _steps_with_dropped_answers(first, n):
+    """Tool steps with long reasoning, each followed by a reasoning-only answer that
+    Strata drops (D42): a watermark at a step leaves a dropped turn just behind it."""
+    out = []
+    for i in range(first, first + n):
+        out += [{"role": "assistant", "content": None, "reasoning_content": f"plan {i} " * 300,
+                 "tool_calls": [{"id": f"call_{i}", "type": "function",
+                                 "function": {"name": "read", "arguments": "{}"}}]},
+                {"role": "tool", "tool_call_id": f"call_{i}", "content": _code(i, 40)},
+                {"role": "assistant", "content": "", "reasoning_content": f"think {i} " * 300}]
+    return out
+
+
+def test_a_turn_the_upstream_drops_rerenders_as_it_was_sent_after_restart(tmp_path):
+    """D42: a reasoning-only answer renders as nothing, so the live view never masks it.
+    The re-render after a restart must build it the same way, or it no longer reproduces
+    the recorded count and the next call comes out unexplained."""
+    fake = FakeUpstream()
+    first = history(0) + _steps_with_dropped_answers(0, 12) + [{"role": "user", "content": "go on"}]
+    second = turn(first)
+    with serve(fake.app()) as upstream_url:
+        s = Settings(upstream_base_url=upstream_url, db_path=tmp_path / "archive.db",
+                     input_budget=6000)
+        with serve(create_app(s), palimnesis=True) as url:
+            fake.respond_counted()
+            assert post(url, body(first)).status_code == 200
+        with serve(create_app(s), palimnesis=True) as url:  # a new process, same archive
+            fake.respond_counted()
+            assert post(url, body(second)).status_code == 200
+
+    one, two = events(s)
+    assert one["view_n"] >= 1
+    assert two["lcp_source"] == "rerender" and two["cause"] == "append"
+    report = explain(s.db_path)
+    assert report.returncode == 0, report.stdout
+
+
 def test_live_opencode_exchanges_are_explained(tmp_path):
     """The 10 live OpenCode 2.1.4 exchanges through the proxy, answered with their recorded
     Strata responses (usage included): every call pair has an allowed cause."""

@@ -61,7 +61,7 @@ from ...profile import Layout, Segment, empty_assistant
 from . import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
-COUNTER_REVISION = "c3"  # c2: literal tags as text (D46); c3: no NFC (D47)
+COUNTER_REVISION = "c4"  # c2: literal tags as text (D46); c3: no NFC (D47); c4: tool_choice "none" (D50)
 DEFAULT_CACHE_SIZE = 65536
 IDS_CACHE_SIZE = 8192  # fragments whose token ids are memoized (cache accounting)
 
@@ -268,15 +268,16 @@ def preprocess_messages(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[s
 def render_args_from_openai(body: Mapping[str, Any]) -> dict[str, Any]:
     """``render``/``count_messages`` keyword arguments for an OpenAI Chat Completions body.
 
-    Reads ``messages``, ``tools``, ``reasoning_effort`` and
+    Reads ``messages``, ``tools``, ``tool_choice``, ``reasoning_effort`` and
     ``chat_template_kwargs.enable_thinking``; other template kwargs are ignored, as on
-    Strata 0.1.48 (``preserve_thinking`` verified ignored).
+    Strata 0.1.48 (``preserve_thinking`` verified ignored). ``tool_choice: "none"``
+    renders no tool schemas (probe p16).
     """
     kwargs = body.get("chat_template_kwargs")
     enable_thinking = kwargs.get("enable_thinking") if isinstance(kwargs, Mapping) else None
     return {
         "messages": body.get("messages") or [],
-        "tools": body.get("tools") or None,
+        "tools": None if body.get("tool_choice") == "none" else body.get("tools") or None,
         "effort": body.get("reasoning_effort"),
         "enable_thinking": enable_thinking if isinstance(enable_thinking, bool) else None,
     }

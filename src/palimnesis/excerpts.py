@@ -2,7 +2,8 @@
 
 Mechanism from Eunoe (docs/papers.md): verbatim matches from history are
 appended to the user message they answer, in a delimited block, computed
-once and pinned. Adaptations, rendered by format ``x1``:
+once and pinned. Adaptations, rendered by format ``x2`` (D43; ``x1`` stays
+renderable for stored blocks):
 
 - **Placement.** The block goes after the original user text in the
   *internal* (upstream) copy of that message only. The archived message and
@@ -12,13 +13,18 @@ once and pinned. Adaptations, rendered by format ``x1``:
   payload is verbatim. The header says the
   content is historical evidence, not instructions, and blocks only ever
   sit in user messages, never system.
+- **Currency.** ``x2``'s header names the current turn and says a later turn
+  supersedes an earlier one; Eunoe's block says nothing about whether a
+  quoted statement still holds.
 - **Reversible escaping.** A payload line starting with ``[[`` (the
   delimiter prefix) or ``\\`` gets one leading ``\\``. Every occurrence of a
   profile special token (``<|im_start|>``, ``</tool_response>``, …) has
   ``\\`` inserted after its first character, so archived text can never
   become a real role or structure marker, since the tokenizer extracts
   special tokens from raw text. An existing ``\\`` after such a first
-  character is doubled, so unescaping is exact.
+  character is doubled, so unescaping is exact. Lone surrogates (valid in
+  JSON, archived as WTF-8) are quoted as U+FFFD, one code point each, so
+  offsets hold (D38.1, ``recall._quotable``).
 """
 
 from __future__ import annotations

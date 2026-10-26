@@ -255,7 +255,7 @@ From the Phase 2 delta plan, `docs/plans/phase2.md` §Delta.
 3. **Reuse classes, in order:**
    - `full`: cached ≥ `min(LCP, generation start)`.
    - `checkpoint_limited`: cached ≥ the estimate.
-   - `restart_or_eviction`: anything lower.
+   - `restart_or_eviction`: anything lower. This includes Strata no longer holding a checkpoint the model assumed, with no restart (D50.3).
    - `unexplained`: an unexplained cause always gets this class.
 
    Causes are attributed from the first differing manifest segment (contracts §10). `eval/replay.py --explain` fails on any `unexplained`.
@@ -339,19 +339,19 @@ Adapted from Eunoe, which indexes 6-line windows of tool results with the tool c
 The query is built from the instruction's own text and never passed through as FTS5 syntax.
 
 - Runs of `[\w.\-/:#@]` become terms of `unicode61` sub-tokens. A run that splits becomes a phrase.
-- Code-like terms come first: runs that split, or contain digits, internal capitals or backticks. Plain words follow in order of first occurrence.
+- Code-like terms come first: runs that split, or contain digits, internal capitals or backticks (narrowed by D38.4). Plain words follow in order of first occurrence.
 - Dropped: one-character words and a frozen stopword and filler list. "fix" and similar verbs stay, because IDF discounts common words.
 - At most 32 terms. Long messages contribute their first 12,000 and last 4,000 code points.
 - Each term is emitted as an FTS5 string joined by `OR`, so operators, prefixes, column filters and quotes in the text are only ever searched as words. A 2,000-case fuzz test against FTS5 confirms that.
 - An empty query records `empty_query`. This covers "continue", "ok" and punctuation only.
-- q2 (adding the previous instruction's terms for very short messages) is a development variant, not built yet.
+- q2 (adding the previous instruction's terms for very short messages) is a development variant. It was built behind a setting, run in R20 and not chosen (D43).
 
 ## D29 — Retrieval r1
 
 1. **Hits.** The top 64 chunks by BM25 among the candidate blocks. Ties break by newest source, then block index, start offset and chunk rowid, so the order is total.
 2. **Relevance floor.** A chunk must contain one code-like term or two distinct terms (`below_floor`).
-3. **Focus and context.** An item is focused on the chunk's matching lines, or its best line when those exceed the cap. It then grows by up to 4 context lines a side, alternately, within its block. Overlapping or touching ranges in one block merge, keeping the best rank.
-4. **Item cap.** `min(512, allocation − block overhead)`. The overhead is the rendered block header, item header and footer, plus room for the longest provenance. Below 32 tokens the reason is `zero_allocation`.
+3. **Focus and context.** An item is the hit chunk plus up to 4 context lines a side, within its block. Overlapping or touching ranges in one block merge, keeping the best rank. Only an item over the cap is narrowed: to the chunk's matching lines, or its best line when those still exceed it, then regrown a line at a time, alternately after and before, within the chunk plus its context. (Text corrected in S12 to match the code; the code is unchanged since D38.)
+4. **Item cap.** `min(512, allocation − block overhead)`. The overhead is the rendered block header, item header and footer, plus a fixed 40 tokens per item for provenance (`_HEADER_SLACK`). A long tool name can cost more than that; packing counts the real rendering, so the charge stays exact and only the cap is approximate (D38.5). Below 32 tokens the reason is `zero_allocation`.
 5. **Packing.** Greedy in rank order: at most 8 items, 2 per source occurrence, at most 16 exact renders. An item that overshoots shrinks once by the measured excess and keeps at least 32 tokens; otherwise it is skipped. The charge never exceeds the allocation. If nothing fits, the reason is `no_fit`.
 6. **Rendering.** Chronological by source seq (D30). `source_sha256` is the SHA-256 of the excerpt's exact text, so an item can be checked against the archive range `[start, end)`.
 
@@ -677,3 +677,19 @@ Decided by the user on 2026-10-26, after the 64K report runs (R26). bazzite (192
 - **What changes.** The default `--upstream` of the eval drivers and probes, the serve command in `CLAUDE.md` and the eval-runner's host note now name Zeus.
 - **What stays.** Results, probe write-ups and probe fixtures keep the host they ran against. R25's per-machine split (D48) is unchanged.
 - **Zeus's context.** Zeus was last launched at `n_ctx` 65536 (D48.6). A run that needs 32K relaunches it with the 32K config and checks `/props` first, as every driver already does through `--expect-n-ctx`.
+
+## D50 — Phase 3 final review fixes (S12)
+
+The final protocol, cache and paper-fidelity reviews of Phase 3 ran on 2026-10-26 at `4b024b8`, over the code changed since the D38 review. Each code change landed as a red test first.
+
+1. **`tool_choice: "none"` renders no tool schemas.** Probe p16 on Zeus: the probe prompt counted 69 tokens with `tool_choice: "none"`, the same as with no `tools`, against 317 with `"auto"` or none (`eval/probes/fixtures/strata_tool_choice_output_limits.json`). The counter rendered the tools anyway. With OpenCode's tool schemas the drift would be thousands of tokens, over the 1,024 that turns bounded views off for the process (D22.4), on OpenCode's step-limit step. The held-out runs never reached that step (drift 0 everywhere).
+   - `render_args_from_openai` now drops the tools when `tool_choice` is `"none"`. The counter revision becomes `c4`.
+   - Cache accounting sees the tools change, so such a call is a `tool_change`.
+   - Tests: `test_tool_choice_none_renders_no_tool_schemas` (literal probe values) and `test_tool_choice_none_drops_the_tools_from_the_render_as_a_tool_change`.
+2. **The re-render after a restart knows dropped turns.** `cacheacct._rerender` built the previous call without `drops_empty_assistant`, unlike the live build (D42). With reasoning-only answers in the session, the re-render counted 2,543 tokens against 5,236 recorded, and the next call was `unexplained`. None of the 25 re-renders in the held-out archives hit it. Test: `test_a_turn_the_upstream_drops_rerenders_as_it_was_sent_after_restart`.
+3. **`restart_or_eviction` names a shortfall, not a cause.** The cache audit found 36 such pairs in R25's 32K tasks, all with explained causes and no restart. In each, cached equalled the head end, below a checkpoint the model expected; in 32 of them the previous call had itself reused that region from cache. The model (D22.2) assumes the previous render's checkpoints are held, and Strata evidently drops some. The class keeps its name and means "below the estimate". The model is unchanged: it is an estimate, and no gate reads it.
+4. **Both output limits.** p16: with both set, Strata uses `max_completion_tokens` (8 against 300 gave 8; 300 against 8 gave 300), which is the precedence the proxy already applies. No change.
+5. **Documentation brought to the code.**
+   - Contracts §1, §2 (the unbounded fallback after a non-budget build failure, D14.9), §3, §5, §7, §8 (deferrals to Ph4B and 3B), §9 (transcript-search steps), §10 and §11.
+   - capabilities.md: `developer`, other `tool_choice` forms and `parallel_tool_calls` are rejected, not untested; `tool_choice: "auto"` is listed; the tokenizer row; known limits of Phase 3.
+   - The paper-fidelity fixes: docstrings of `excerpts.py` (x2, U+FFFD), `affordances.py` (a3 cites Eunoe) and `projector.py` (git work trees); D28 and D29.3/.4 corrected to the code; papers.md lists the Complexity Trap and further Eunoe adaptations.

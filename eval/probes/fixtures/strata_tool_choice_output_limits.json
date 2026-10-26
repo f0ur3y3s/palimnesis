@@ -1,0 +1,16 @@
+{
+ "probe": "eval/probes/p16_tool_choice_and_output_limits.py",
+ "date": "2026-10-26",
+ "upstream": "http://192.168.1.19:8080",
+ "strata": "0.1.48",
+ "tool_choice": {
+  "none": {"local_before_fix": 317, "remote": 69},
+  "auto": {"local": 317, "remote": 317},
+  "absent": {"local": 317, "remote": 317},
+  "no tools": {"local": 69, "remote": 69}
+ },
+ "output_limits": {
+  "max_completion_tokens=8, max_tokens=300": 8,
+  "max_completion_tokens=300, max_tokens=8": 300
+ }
+}

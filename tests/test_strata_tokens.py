@@ -187,6 +187,27 @@ def test_local_count_equals_live_usage_prompt_tokens(exchange, prompt_tokens):
     assert tokens.count_messages(**tokens.render_args_from_openai(body)) == prompt_tokens
 
 
+def test_tool_choice_none_renders_no_tool_schemas():
+    """p16: Strata leaves the tools out when ``tool_choice`` is "none" (OpenCode's
+    step-limit step); the prompt counts as if no tools were sent."""
+    probe = json.loads((PROBES / "strata_tool_choice_output_limits.json").read_text("utf-8"))
+    t = probe["tool_choice"]
+    tools = [{"type": "function", "function": {
+        "name": "read", "description": "Read a file from the workspace and return its text.",
+        "parameters": {"type": "object", "properties": {"path": {"type": "string"}},
+                       "required": ["path"]}}}]
+    messages = [{"role": "system", "content": "You are a coding agent."},
+                {"role": "user", "content": "Write a long story about a lighthouse keeper."}]
+
+    def count(**extra):
+        body = {"messages": messages, **extra}
+        return tokens.count_messages(**tokens.render_args_from_openai(body))
+
+    assert count(tools=tools, tool_choice="none") == t["none"]["remote"] == t["no tools"]["remote"]
+    assert count(tools=tools, tool_choice="auto") == t["auto"]["remote"]
+    assert count(tools=tools) == t["absent"]["remote"]
+
+
 # --- fragment cache: additivity and fallback ---
 
 

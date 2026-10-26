@@ -6,8 +6,9 @@ source). Contracts §14 (proposed); docs/plans/phase3.md §3.
 **Location.** One directory per session under a root (default ``<db dir>/transcripts``),
 named ``safe(id[:40]).lower() + "-" + sha256(id)[:12]``: session ids may differ only in
 case or be Windows device names (D4), and ``safe`` maps everything outside
-``[A-Za-z0-9_-]`` (dots included, so no device stem or trailing dot) to ``_``. A root
-inside a git work tree is refused, so transcripts never land in a project repository.
+``[A-Za-z0-9_-]`` (dots included, so no device stem or trailing dot) to ``_``. An explicit
+root inside a git work tree is refused; a default root inside one turns projection off
+with a warning (D32). Transcripts never land in a project repository.
 POSIX modes are 0700 for directories and 0600 for files; on Windows files inherit the
 root's ACL (per-user under ``%LOCALAPPDATA%``).
 
