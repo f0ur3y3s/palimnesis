@@ -149,7 +149,7 @@ Arms:
 | A | s2 head/tail | a1 | t1 terse |
 | B | s3 (s2 plus inline recall hint) | a1 | t1 |
 | C | s2 | a0 (none) | t2 guided |
-| D | s0 (alias and size only; was s1, see below) | a1 | t2 |
+| D | s1 (alias and size only) | a1 | t2 |
 
 - **Data:** stratified development needles, labeled recall-needed and recall-unneeded situations, and 5 development coding tasks. Runs are paired, with prompts fixed per arm.
 - **Metrics:** retention, appropriate recall, unnecessary calls, invalid ids, task success, added tokens, latency.
