@@ -203,3 +203,31 @@ def test_a_continuation_records_no_view_move_of_its_own_when_nothing_grew(tmp_pa
     moves = rows(settings, "SELECT watermark_seq, collapse_seq FROM view_versions ORDER BY n")
     assert len(moves) == len(set(moves))  # no version repeats the one before it
 
+
+
+def test_reasoning_carries_through_a_continuation_the_next_turn_and_a_restart(tmp_path):
+    """§9 through hidden calls: each part keeps its own reasoning upstream, whether or not
+    the client resends it, and a restart renders the same tokens."""
+    messages = _masked()
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn("Checking. ", reasoning="Search first.", calls=[GREP])
+        fake.respond_turn("It is in read 3.", reasoning="Found the definition.")
+        r = _post(url, messages)
+        assert _seen(r).reasoning == "Search first.Found the definition."
+        second = _messages(fake.requests[1].body)
+        assert second[-2]["reasoning_content"] == "Search first."
+        fake.respond_turn("Done.")
+        _post(url, _turn(messages, "thanks", "Checking. It is in read 3."))
+        live = _messages(fake.requests[-1].body)
+    with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, _):
+        fake.respond_turn("More.")
+        resent = _turn(_turn(messages, "thanks", "Checking. It is in read 3."), "more", "Done.")
+        resent[-4]["reasoning_content"] = "Search first.Found the definition."
+        assert _post(url, resent).status_code == 200
+        restarted = _messages(fake.requests[-1].body)
+
+    parts = [m for m in live if m.get("reasoning_content") in ("Search first.",
+                                                               "Found the definition.")]
+    assert [p["reasoning_content"] for p in parts] == ["Search first.", "Found the definition."]
+    # the same upstream history after a restart, with or without the resent reasoning
+    assert restarted[:len(live)] == live
