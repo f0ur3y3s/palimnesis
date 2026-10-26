@@ -304,3 +304,11 @@ Seams: P pure · S store · H HTTP through the fake upstream · E eval · L live
 - **O-B5:** the R25-E transcript fixes land before the fresh baseline, so arm 4 runs with them.
 - **O-B2, O-B4, O-B8:** taken as recommended (arm 5 as excerpts plus hidden tools without a3; screen the matrix on development needles, then the top 2 on 5 development tasks, recorded as a deviation; Anthropic assembler deferred to Ph4B).
 - **O-B7:** settled by the install check (§2.8).
+
+## Delta: S0 findings (2026-10-26; `docs/probes/strata.md` §12, `docs/probes/opencode_hidden_stream.md`)
+
+1. **A call ends at the next index, the finish chunk, or a content delta.** With thinking on, Strata can stream text after a call (P1 c). The assembler treats a content delta as the end of the call before it. Text after an *internal* call is held with that part: it is visible text, forwarded and archived with the part, and the continuation still runs. `unsupported_mixed_form` is dropped. Text after an external call passes through as today; OpenCode stores it before the call, so a re-render then differs from the generated token order (inferred, recorded as a known limit).
+2. **Partial composites flatten as all reasoning, then all text** (H1 c), not in stream order. Implemented in S2: `transcript.flattened`. Completed composites resend reasoning R1+R2 and text T1+T2 (H1 a), as planned.
+3. **A `length` stop makes OpenCode send a follow-up turn at once** (H1 b), with a synthetic user message asking it to break the work into smaller pieces. The cap rule stays a `length` stop (contracts §7). The follow-up is a new instruction with a fresh allowance; this goes in `harnesses.md`.
+4. **Continuation limits below 1024 get no thinking budget** (P2): the call can end in `length` with reasoning only. A continuation is therefore started only with at least 1,024 tokens of allowance left; with less, the response ends with `length` before the call.
+5. **A continuation reuses prompt1 + completion1 − 1 tokens** on an idle server (P3). `StrataCacheModel` gains an append rule for `internal_continuation`: the expected reuse is the previous call's prompt plus its generated turn.
