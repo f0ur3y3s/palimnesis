@@ -150,8 +150,11 @@ class ViewEngine:
         await self.profile.facts.refresh(client)
         return self.profile.facts.pinned_ok
 
-    def _prepare(self, req: chat.ChatRequest, extra_fixed: int = 0) -> Prepared:
+    def _prepare(self, req: chat.ChatRequest, extra_fixed: int = 0,
+                 extra_tools: list | None = None) -> Prepared:
         tools, args = self.counter.render_args(json.loads(req.raw))
+        # extra_tools: hidden tool schemas the request may carry (D54), counted as fixed.
+        counted_tools = [*(tools or []), *extra_tools] if extra_tools else tools
         limit_field = ("max_completion_tokens" if "max_completion_tokens" in req.settings
                        else "max_tokens" if "max_tokens" in req.settings else "max_completion_tokens")
         budget = plan_budget(self.profile.facts.facts.n_ctx, client_limit=req.settings.get(limit_field),
@@ -163,11 +166,11 @@ class ViewEngine:
         # extra_fixed: proxy-added fixed input (the addendum, D36). Any older history
         # leaves at least one span note however much is collapsed, so that residue is
         # counted too: a request that cannot fit is refused before acceptance (D23, D38).
-        fixed_tokens = self.counter.count_messages(fixed, tools, **args)
+        fixed_tokens = self.counter.count_messages(fixed, counted_tools, **args)
         if len(fixed) < len(messages):
             note = {"role": "user", "content": span_note("ZZZZZZ", "ZZZZZZ", 99_999,
                                                         tokens=9_999_999)}
-            fixed_tokens = self.counter.count_messages([*fixed, note], tools, **args) \
+            fixed_tokens = self.counter.count_messages([*fixed, note], counted_tools, **args) \
                 + RESIDUE_SLACK
         check_fixed(budget, fixed_tokens=fixed_tokens + extra_fixed)
         if self.mode == "off":
@@ -179,8 +182,9 @@ class ViewEngine:
                     {"history": total, "input_budget": budget.input_budget})
         return Prepared(budget, tools, args, limit_field)
 
-    async def prepare(self, req: chat.ChatRequest, extra_fixed: int = 0) -> Prepared:
-        return await anyio.to_thread.run_sync(self._prepare, req, extra_fixed)
+    async def prepare(self, req: chat.ChatRequest, extra_fixed: int = 0,
+                      extra_tools: list | None = None) -> Prepared:
+        return await anyio.to_thread.run_sync(self._prepare, req, extra_fixed, extra_tools)
 
     async def build(self, prepared: Prepared, plan) -> View:
         # view="off" never masks; _prepare already verified the full history fits.
@@ -255,6 +259,8 @@ class ViewEngine:
         overrides: dict[str, Any] = {}
         if prepared.budget.rewrite_limit is not None:
             overrides[prepared.limit_field] = prepared.budget.rewrite_limit
+        if plan.hidden_tools:
+            overrides["tools"] = prepared.tools  # the client's, then the hidden ones (D54)
         if not overrides and view.messages == [item.message for item in plan.items]:
             return plan.upstream_body
         return chat.render_messages(req, view.messages, overrides)

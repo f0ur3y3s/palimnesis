@@ -172,6 +172,7 @@ class Proxy:
                         views=views, deadline_s=self.settings.deadline_s,
                         on_change=self.projector.trigger if self.projector else None,
                         addendum_for=self._addendum_for(),
+                        hidden_tools=self._hidden_tools(),
                     )
                     for session in interrupted if self.projector else ():
                         self.projector.trigger(session)
@@ -184,6 +185,14 @@ class Proxy:
                     self.store.close()
                 await send({"type": "lifespan.shutdown.complete"})
                 return
+
+    def _hidden_tools(self):
+        """(version, schemas) of the hidden recall tools, or None (Phase 3B, D54)."""
+        if self.settings.hidden_tools is None:
+            return None
+        from .recalltools import schemas
+
+        return self.settings.hidden_tools, schemas(self.settings.hidden_tools)
 
     def _addendum_for(self):
         """session id -> the a3 addendum naming its transcript directory, while transcript

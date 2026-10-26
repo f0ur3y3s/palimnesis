@@ -113,6 +113,42 @@ def run(name: str, arguments: str, ctx: Context) -> Result:
     return result
 
 
+# --- schemas (D54) -------------------------------------------------------------------
+
+TOOLS_VERSIONS = ("t1", "t2")
+_PARAMETERS = {
+    RECALL: {"type": "object", "properties": {
+        "id": {"type": "string"},
+        "offset": {"type": "integer", "minimum": 0},
+        "limit": {"type": "integer", "minimum": 1}}, "required": ["id"]},
+    CATALOG: {"type": "object", "properties": {
+        "cursor": {"type": "string"},
+        "page": {"type": "integer", "minimum": 1}}},
+    GREP: {"type": "object", "properties": {
+        "query": {"type": "string"},
+        "mode": {"type": "string", "enum": ["text", "regex"]},
+        "scope": {"type": "string", "enum": ["hidden", "all"]},
+        "cursor": {"type": "string"}}, "required": ["query", "mode"]},
+}
+
+
+def schemas(version: str) -> list[dict]:
+    """The hidden tools as Chat Completions function tools, described by the registered
+    affordance ``version`` (t1 or t2): one description line per tool."""
+    from .affordances import REGISTRY
+
+    affordance = REGISTRY[version]
+    if affordance.family != "tools":
+        raise ValueError(f"{version!r} is not a tools affordance")
+    described = {}
+    for line in affordance.text.split("\n"):
+        signature, _, description = line.partition(": ")
+        described[signature.split("(", 1)[0]] = description
+    return [{"type": "function", "function": {"name": name, "description": described[name],
+                                              "parameters": _PARAMETERS[name]}}
+            for name in (RECALL, CATALOG, GREP)]
+
+
 # --- arguments ---------------------------------------------------------------------
 
 _SCHEMAS: dict[str, dict[str, tuple[type, bool]]] = {

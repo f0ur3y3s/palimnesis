@@ -83,8 +83,10 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
                  forward_headers, views=None, deadline_s: float = 600.0,
-                 on_change=None, addendum_for=None) -> None:
+                 on_change=None, addendum_for=None, hidden_tools=None) -> None:
         self.store = store
+        # (version, schemas) of the hidden recall tools, or None (Phase 3B, D54).
+        self.hidden_tools = hidden_tools
         # session id -> (addendum id, text) for the upstream system message, or None (D36).
         self.addendum_for = addendum_for
         self.deadline_s = deadline_s
@@ -123,8 +125,9 @@ class ArchiveHandler:
                 if fixed is not None:
                     candidate = (fixed["addendum_id"], fixed["text"])
             extra = self.views.counter.count(candidate[1]) + 2 if candidate else 0
+            tools = await self._hidden_tools_for(session, req)
             try:
-                prepared = await self.views.prepare(req, extra)
+                prepared = await self.views.prepare(req, extra, tools or [])
             except BudgetError as e:
                 await error_response(api_path, 400, "context_budget_exceeded", str(e))(
                     scope, receive, send)
@@ -201,6 +204,15 @@ class ArchiveHandler:
             if plan.replay is None:
                 self._changed(session)
 
+    async def _hidden_tools_for(self, session: str, req) -> list | None:
+        """The hidden tool schemas this request would carry once fixed: the session's fixed
+        ones, else the configured ones; None when off or with ``tool_choice: "none"``."""
+        if self.hidden_tools is None or req.settings.get("tool_choice") == "none":
+            return None
+        fixed = await self.store.read(lambda c: ledger.fixed_hidden_tools(
+            c, ledger.branch_id_for(session)))
+        return fixed["tools"] if fixed else self.hidden_tools[1]
+
     def _changed(self, session: str) -> None:
         if self.on_change is None:
             return
@@ -216,13 +228,32 @@ class ArchiveHandler:
         if candidate is not None:
             fixed = await self.store.read(lambda c: ledger.fixed_addendum(c, plan.branch_id))
             plan.addendum = fixed["text"] if fixed else None
+        offered = (self.hidden_tools is not None
+                   and req.settings.get("tool_choice") != "none")
+        if offered:
+            fixed_tools = await self.store.read(
+                lambda c: ledger.fixed_hidden_tools(c, plan.branch_id))
+            if fixed_tools is not None:
+                plan.hidden_tools = fixed_tools["tools"]
+                prepared = replace(prepared, tools=[*(prepared.tools or []), *plan.hidden_tools])
         try:
             view = await self.views.build(prepared, plan)
-            if candidate is not None and plan.addendum is None and _masked(view.state):
-                # The first view that hides anything fixes the session's addendum (D36);
-                # until then the body stays the client's, byte for byte.
-                plan.addendum = await self.store.write(
-                    lambda c: ledger.fix_addendum(c, plan, *candidate))
+            pending_addendum = candidate is not None and plan.addendum is None
+            pending_tools = offered and plan.hidden_tools is None
+            if (pending_addendum or pending_tools) and _masked(view.state):
+                # The first view that hides anything fixes the session's addendum (D36)
+                # and hidden tools (D54); until then the body stays the client's.
+                def fix(c):
+                    addendum = (ledger.fix_addendum(c, plan, *candidate) if pending_addendum
+                                else plan.addendum)
+                    tools = (ledger.fix_hidden_tools(c, plan, *self.hidden_tools)
+                             if pending_tools else plan.hidden_tools)
+                    return addendum, tools
+
+                plan.addendum, plan.hidden_tools = await self.store.write(fix)
+                if pending_tools:
+                    prepared = replace(prepared,
+                                       tools=[*(prepared.tools or []), *plan.hidden_tools])
                 view = await self.views.build(prepared, plan)
         except BudgetError as e:
             await self.store.write(lambda c: ledger.finish_attempt(

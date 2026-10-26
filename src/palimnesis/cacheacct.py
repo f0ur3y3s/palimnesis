@@ -309,7 +309,9 @@ class Accountant:
             call.formats = {**VIEW_FORMAT,
                             "excerpt_format": getattr(self.views, "excerpt_renderer",
                                                       EXCERPT_FORMAT),
-                            "addendum": _sha(plan.addendum) if plan.addendum else None}
+                            "addendum": _sha(plan.addendum) if plan.addendum else None,
+                            "hidden_tools": _sha(plan.hidden_tools) if plan.hidden_tools
+                            else None}
             call.archive_seq = max((i.seq for i in plan.items if i.seq is not None), default=0)
             call.oversized = tuple(sorted(view.state.oversized))
             call.included_excerpts = tuple(view.included_excerpts)
@@ -419,6 +421,11 @@ class Accountant:
                     return prev
                 items = with_addendum(items, fixed["text"])
             tools, kw = self.profile.counter.render_args(json.loads(req.raw))
+            if prev.formats.get("hidden_tools"):
+                fixed_tools = ledger.fixed_hidden_tools(conn, prev.branch_id)
+                if fixed_tools is None or _sha(fixed_tools["tools"]) != prev.formats["hidden_tools"]:
+                    return prev
+                tools = [*(tools or []), *fixed_tools["tools"]]
             budget = Budget(**prev.budget, rewrite_limit=None)
             _, state = ledger.view_at(conn, prev.branch_id, prev.view_n)
             policy = (ViewPolicy(high=float("inf")) if prev.view_mode == "off"

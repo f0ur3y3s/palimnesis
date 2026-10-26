@@ -28,6 +28,9 @@ class Settings:
     query_policy: str = "q1"
     excerpt_renderer: str = "x2"
     addendum: str = "a3"
+    # Hidden recall tools (Phase 3B): the tools affordance (t1 or t2) whose schemas are
+    # fixed at a session's first masked view, or None for none.
+    hidden_tools: str | None = None
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.
     deadline_s: float = 600.0
