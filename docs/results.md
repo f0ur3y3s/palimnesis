@@ -1357,3 +1357,111 @@ They therefore stay in the screen as noise. The screen was repeated three times 
 - the two runaway turns: 29 and 59.
 
 **Flaky test (housekeeping).** `tests/test_archive_lifecycle.py::test_session_usable_after_mid_stream_commit_failure` fails intermittently with sqlite "database is locked": 1 in 6 runs on a clean `fbd9fd0` worktree, and as often with the R29 fixes applied. It holds a write lock past the writer's busy timeout, and the follow-up request can race the lock's release. It is timing-dependent; no fix yet.
+
+## R30 — Phase 3B S10b: the R29 fixes re-run on development data (2026-10-27, development data only)
+
+**Outcome: a5-Dp matches arm 1 on correctness and costs less.** a5-Dp is a5-D (s0/a1/t2) with the R29 fixes and 4,096 tokens of pinned instructions (D65–D67). On the 5 development tasks:
+- tasks passed: 5/5, the same as arm 1;
+- constraints held: 15/15, the same as arm 1;
+- prompt tokens: 4.95M, against arm 1's 5.26M (−6%);
+- upstream calls: 304, against 420;
+- wall time: 46 min, against 63.
+
+a5-Cp also passes 5/5 and holds 15/15, but spends 12.0M prompt tokens (+127%). On the needle screen, a5-Dp ranks first by the affordances rule, as a5-D did, now with a tenth of a5-D's unnecessary calls. Nothing is frozen yet: D64 waits for the user. No held-out data was touched.
+
+**Setup** (as R29 except as noted):
+- **Code:** `8fafb3f`, clean tree in every run.
+- **Arms:** a5-Dp and a5-Cp, from `eval/needle.py` (a5-D / a5-C plus `pin_tokens=4096`). Arm 1 is R29's run, not repeated.
+- **Strata:** Zeus 0.1.48, unchanged since R29. `n_ctx` 65536, emulated 32K with `--input-budget 24320`.
+- **Batch:** `s10b.sh` ran tasks first, then the screen, 03:11–06:41Z.
+- **D39:** activity rose by exactly our calls in every run (3,683 → 5,485), with 0 halts.
+- **Raw data:** `…/scratchpad/s10b/` (`tasks/`, `screen/`, `batch.log`).
+
+**R30-A. Development tasks dev-t1..t5 through real OpenCode, one attempt per task and arm.**
+
+| Task | Arm | Passed | Constraints | Calls | Prompt tokens | Lookups | Wall |
+|---|---|---|---|---|---|---|---|
+| dev-t1 | arm 1 | ✅ | 3/3 | 91 | 1,131,366 | – | 739 s |
+| | a5-Dp | ✅ 4/4 | 3/3 | 41 | 672,264 | 0 | 331 s |
+| | a5-Cp | ✅ 4/4 | 3/3 | 92 | 1,535,460 | 23 | 723 s |
+| dev-t2 | arm 1 | ✅ | 3/3 | 70 | 811,170 | – | 741 s |
+| | a5-Dp | ✅ 4/4 | 3/3 | 74 | 1,233,845 | 9 | 780 s |
+| | a5-Cp | ✅ 4/4 | 3/3 | 72 | 1,202,495 | 2 | 801 s |
+| dev-t3 | arm 1 | ✅ | 3/3 | 47 | 559,980 | – | 386 s |
+| | a5-Dp | ✅ 3/3 | 3/3 | 71 | 1,123,770 | 2 | 772 s |
+| | a5-Cp | ✅ 3/3 | 3/3 | 72 | 1,160,843 | 5 | 831 s |
+| dev-t4 | arm 1 | ✅ | 3/3 | 51 | 619,403 | – | 387 s |
+| | a5-Dp | ✅ 4/4, restart gate ✅ | 3/3 | 27 | 407,391 | 0 | 287 s |
+| | a5-Cp | ✅ 4/4, restart gate ✅ | 3/3 | 345 | 5,619,893 | 38 | 3,051 s |
+| dev-t5 | arm 1 | ✅ | 3/3 | 161 | 2,135,056 | – | 1,498 s |
+| | a5-Dp | ✅ 3/3 | 3/3 | 91 | 1,513,009 | 9 | 619 s |
+| | a5-Cp | ✅ 3/3 | 3/3 | 145 | 2,438,885 | 17 | 1,483 s |
+| **Total** | arm 1 | 5/5 | 15/15 | 420 | 5,256,975 | – | 3,751 s |
+| | a5-Dp | 5/5 | 15/15 | 304 | 4,950,279 | 20 | 2,789 s |
+| | a5-Cp | 5/5 | 15/15 | 726 | 11,957,576 | 85 | 6,889 s |
+
+- **Every run is clean:**
+  - explain exits 0;
+  - transcripts verify with 0 errors;
+  - nothing is over budget (largest prompt 24,278);
+  - 0 leaks and 0 drift;
+  - 0 proxy rejections;
+  - no compaction calls.
+- **The R29 misses all hold now:**
+  - dev-t2 C2 under a5-D;
+  - dev-t3 C1 under a5-C;
+  - dev-t5's vendor note under both arms.
+- **The lookup budget (D67) refused 10 calls in four runs:**
+  - a5-Cp dev-t1: 3;
+  - a5-Cp dev-t4: 3;
+  - a5-Cp dev-t5: 2;
+  - a5-Dp dev-t2: 2.
+
+  No turn ran away. The largest per-turn count is 17 lookups (16 answered, then refusals), in a5-Cp dev-t4 turn 8. R29's runaway turns used 29 and 59.
+- **The task logs' tracebacks are harmless.** They are Windows proactor `ConnectionResetError`s logged as OpenCode exits, as in R29's arm-5 logs.
+
+**a5-Cp's dev-t4 cost is client tool churn, not lookups.**
+- Of its 345 calls, the model made 122 `read` calls on 65 distinct files: 57 re-reads, for example `docs/rollup.md` 7 times.
+- Turn 1 alone ran 120 calls, against arm 1's 7.
+- a5-Dp made 13 reads (5 re-reads) on the same task.
+- The cause is not established. a5-C's head/tail stub (`s2`) shows more of a masked read than a5-D's header-only `s0`, so the stub alone does not explain it. a5-C also lacks a5-D's addendum (`a0` against `a1`).
+- It is one sample, but R29's a5-C dev-t4 also ran long (13 min, against 6 for arm 1).
+
+**R30-B. Needle screen: dev-h1..h6 through the emulator, 3 repeats per arm, arms interleaved.**
+
+| Arm | Loose (r1, r2, r3) | Mean | Early stops | Excluding stops | Invalid ids | Unnecessary calls | Tokens per repeat | Hidden calls | Latency p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| a5-Dp | 50, 57, 54 | **53.7**/60 | 9, 3, 5 | 98.7% | 1/47 (2.1%) | 5.0 | 2.41M | 35.0 | 2.5–3.1 s |
+| a5-Cp | 56, 47, 54 | 52.3/60 | 4, 11, 6 | 98.6% | 0/47 | 9.0 | 2.48M | 34.3 | 2.8–3.0 s |
+| *R29 a5-D* | 57, 54, 50 | 53.7/60 | 3, 6, 8 | 98.7% | 0/68 | 52.3 | 3.08M | 97.7 | 5.0–6.3 s |
+| *R29 a5-C* | 51, 56, 48 | 51.7/60 | 8, 3, 12 | 98.8% | 1/44 | 34.0 | 2.79M | 76.7 | 3.7–4.8 s |
+| *R29 a4-d43* | 56, 48, 54 | 52.7/60 | 2, 10, 4 | 96.3% | 0/0 | 11.7 | 2.58M | 0 | 3.1–3.9 s |
+
+- **Rule (affordances.md):** no arm is rejected (invalid ids ≤ 5%), and the ranking is a5-Dp, then a5-Cp.
+- **Retention is unchanged; cost fell.**
+  - a5-Dp's retention equals a5-D's. Its unnecessary calls fell from 52.3 to 5.0, hidden calls from 97.7 to 35.0, and tokens by 22%.
+  - The misses that remain are early stops (R29-A), as before.
+- **Pins put more answers in view under a5-C:**
+  - a5-C, per repeat (in view / excerpt / absent): 17/44/5, 15/43/6, 17/42/7.
+  - a5-Cp: 28/33/9, 28/33/8, 25/32/9.
+  - a5-Dp: 26/24/10, 27/23/11, 26/25/9, against a5-D's 29/33/7, 23/37/8, 27/35/5.
+  - The categories overlap, so rows do not sum to 60.
+- **Every repeat is clean:**
+  - explain exits 0 with 0 unexplained changes;
+  - transcripts verify 6/6;
+  - 0 over budget, 0 drift, 0 leaks;
+  - `max_completion_tokens` 24,576 throughout.
+
+**R30-C. Excerpts still favour the model's reasoning (the D66 follow-up).** Excerpt items in the ten task archives, by source block:
+
+| Source block | Items |
+|---|---|
+| Reasoning | 101 |
+| Tool results | 65 |
+| Tool calls | 56 |
+| Text | 18 |
+
+- Reasoning is 42% of all items, and it ranks first in 31 of the 67 selected excerpt blocks.
+- This is the hazard D66 removed from grep: unverified reasoning presented beside evidence.
+- No task or constraint failed on it here.
+- It is open; changing excerpt retrieval would change the arm under test.
