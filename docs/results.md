@@ -1242,3 +1242,118 @@ Figures come from the upstream tap: every call, continuations included, attribut
 2. The emulator's `calls.jsonl` and per-question hidden counts miss continuation calls that the tap records after the client's `[DONE]`.
 3. The emulator has no front tap or `internal_scan` of its own.
 4. The halt watcher checked hidden tool names live but result text only after each run. That is why a5-C had started when the hit was found.
+
+## R29 — Phase 3B S10: matrix resumed, development tasks, and why arm 5 lost to native compaction (2026-10-26/27, development data only)
+
+**Outcome: no arm is frozen.** The needle screen ranks a5-D first and a5-C third. On the 5 development tasks, both a5-D and a5-C fall short of arm 1:
+- tasks passed: 4/5 for each arm-5 variant, against arm 1's 5/5;
+- constraints held: 14/15 for each, against 15/15;
+- prompt tokens: 9.0M (a5-D) and 7.5M (a5-C), against 5.3M.
+
+Every arm-5 miss traces to a rule or note the user typed that left the view and was never retrieved (R29-E). The user chose to fix that before D64 (plan delta "R29 fixes", D65–D67). No held-out data was touched.
+
+**Setup** (as R28 except as noted):
+- **Code:**
+  - screen r1–r2 at `c060ad1`; r3 at `ab77f9a`;
+  - dev tasks at `ab77f9a` (dev-t1 and the dev-t2 a5-D run), then `fbd9fd0`.
+  - `src/` is identical across these commits; only `eval/` and docs changed.
+  - Clean tree in every run.
+- **Strata:** Zeus 0.1.48, relaunched with spec 6 / `mtp_max` 4 (the Phase 3 64K profile). `n_ctx` 65536, emulated 32K with `--input-budget 24320`. Arm 1 is OpenCode `limit.context` 32768 through `--passthrough`.
+- **Wrapper:** the scratch wrapper `s10run.py` (R28-C), whose leak-scan call was fixed and whose runs were recomputed from the tap dumps.
+- **D39:** activity rose by exactly our calls in every run, with 0 gate events.
+- **Raw data:** `…/scratchpad/s10-3b/` (`screen3/`, `tasks/`, `replay/`).
+
+**R29-A. Early stops are an engine behaviour, not a proxy one.** Replaying R28-B's three a5-A early stops directly against Strata, with the identical prompt, gives:
+- the same mix at spec 2, 4 and 6, and at temperature 0;
+- at spec 6: h1q2 4 full / 1 empty, h1q3 2 cut / 3 empty, h5q4 5/5 full;
+- 1,101 draft tokens offered, 690 accepted (`replay/a5-A-spec6.json`).
+
+They therefore stay in the screen as noise. The screen was repeated three times per arm so that selection does not rank one run's early stops.
+
+**R29-B. Leak-scan false positives (eval only, test-first).**
+1. **Session pairing.** R28-A's hit is fixed by pairing each session's results with its own client stream, on whitespace-normalized text (`c060ad1`).
+2. **Content joined with newlines (`15bd024`).** Earlier archived content was joined with newlines, so a window starting after a block's "L1:" framing looked new. This caused 9 more hits: grep results that quoted the model's own reasoning.
+3. **Quoted messages.** The last 4 hits were the model quoting a limit or argument-error message in its own text. D62.4 was amended before any held-out run (user decision): a hidden result's *whole* text in the client stream is a leak; a fragment the model quotes is an echo, reported (`ab77f9a`).
+
+**R29-C. Needle screen: dev-h1..h6 through the emulator, 3 repeats per arm.**
+
+| Config | Loose exact /60 per repeat | Mean | Early stops | Excluding early stops | Invalid ids | Unnecessary calls (mean) | Prompt tokens (mean) | Hidden calls (mean) | Latency p50 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| a5-D | 57, 54, 50 | 53.7 | 3, 6, 8 | 57/57, 54/54, 50/52 (98.7%) | 0/68 | 52.3 | 3.08M | 97.7 | 6.3, 5.0, 5.2 |
+| a4-d43 | 56, 48, 54 | 52.7 | 2, 10, 4 | 56/58, 48/50, 54/56 (96.3%) | – | 11.7 | 2.58M | – | 3.1, 3.9, 3.2 |
+| a5-C | 51, 56, 48 | 51.7 | 8, 3, 12 | 51/52, 56/57, 48/48 (98.8%) | 1/44 | 34.0 | 2.79M | 76.7 | 3.7, 3.8, 4.8 |
+| a5-A | 54, 47, 49 | 50.0 | 5, 11, 10 | 54/55, 47/49, 49/50 (97.4%) | 0/46 | 25.7 | 2.97M | 84.0 | 4.1, 2.9, 2.7 |
+| a5-B | 51, 39, 34 | 41.3 | 9, 19, 26 | 51/51, 39/41, 34/34 (98.4%) | 1/51 | 28.7 | 2.82M | 70.0 | 3.3, 3.7, 3.4 |
+
+- **Ranking** by `docs/affordances.md`: a5-D, a4-d43, a5-C, a5-A, a5-B.
+  - Every arm passes rule 1 (invalid ids ≤ 5%) on the pooled calls.
+  - The top two matrix arms, a5-D and a5-C, went to the tasks (O-B8).
+- **Retention.** Once early stops are excluded, every arm retains 96–99%. The arm-5 lead over arm 4 is about one question in 60, inside the repeat-to-repeat spread.
+- **Input checks, all 15 runs:**
+  - 0 hidden-recall leaks (amended D62.4) and 0 unexplained `--explain` pairs;
+  - `transcripts verify` passing;
+  - 0 inputs over 24,320 and 0 count drift.
+
+**R29-D. Development tasks dev-t1..t5 through real OpenCode, one attempt per task and arm.**
+
+| Task | Arm | Tests | Constraints | Upstream calls | Prompt / completion tokens | Hidden calls | Compactions | Minutes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| dev-t1 | 1 | 4/4 | 3/3 | 91 | 1.13M / 58K | – | 13 | 12.3 |
+| dev-t1 | a5-D | 4/4 | 3/3 | 78 | 1.31M / 42K | 2 | – | 10.4 |
+| dev-t1 | a5-C | 4/4 | 3/3 | 50 | 0.79M / 45K | 3 | – | 10.3 |
+| dev-t2 | 1 | 4/4 | 3/3 | 70 | 0.81M / 59K | – | 8 | 12.3 |
+| dev-t2 | a5-D | 4/4 | **2/3 (C2)** | 266 | 4.28M / 170K | 41 | – | 39.5, turn 5 timed out |
+| dev-t2 | a5-C | 4/4 | 3/3 | 33 | 0.55M / 20K | 0 | – | 5.0 |
+| dev-t3 | 1 | 3/3 | 3/3 | 47 | 0.56M / 29K | – | 6 | 6.4 |
+| dev-t3 | a5-D | 3/3 | 3/3 | 52 | 0.85M / 66K | 1 | – | 15.0 |
+| dev-t3 | a5-C | 3/3 | **2/3 (C1)** | 76 | 1.23M / 47K | 12 | – | 11.5 |
+| dev-t4 | 1 | 4/4 | 3/3 | 51 | 0.62M / 25K | – | 5 | 6.4 |
+| dev-t4 | a5-D | 4/4 | 3/3 | 80 | 1.30M / 38K | 4 | – | 9.6 |
+| dev-t4 | a5-C | 4/4 | 3/3 | 87 | 1.45M / 52K | 21 | – | 13.1 |
+| dev-t5 | 1 | 3/3 | 3/3 | 161 | 2.14M / 124K | – | 17 | 25.0 |
+| dev-t5 | a5-D | **1/3** | 3/3 | 79 | 1.21M / 108K | 9 | – | 23.6 |
+| dev-t5 | a5-C | **1/3** | 3/3 | 217 | 3.50M / 183K | 62 | – | 43.5, turn 5 timed out |
+
+- **Totals:**
+
+  | Arm | Tasks passed | Constraints held | Prompt tokens |
+  | --- | --- | --- | --- |
+  | 1 | 5/5 | 15/15 | 5.26M |
+  | a5-D | 4/5 | 14/15 | 8.95M |
+  | a5-C | 4/5 | 14/15 | 7.52M |
+
+- **Restart task:** dev-t4 passes its restart gate under all three arms.
+- **Every arm-5 run passed every input check:** 0 leaks, 0 unexplained pairs, `transcripts verify` exit 0, 0 over budget, 0 drift.
+- **Recovered attempts.** A post-run crash in `eval/tasks/run.py` hit dev-t1 under a5-D and a5-C, and dev-t2 under a5-D: a local named `report` shadowed the module after the last turn (fixed in `fbd9fd0`). For each, every turn had completed. A scratch `salvage.py` recomputed the post-run fields from the saved records and ran the same check. The attempts are marked `salvaged`; only `proxy_starts` and `gate_events` could not be recovered.
+
+**R29-E. Diagnosis from the saved records.**
+
+1. **User-typed rules and notes leave the view, and nothing says what left.** Span collapse absorbs user messages like any other. With s0 stubs, a5-D's turn-7 view of dev-t5 held one note: "202 messages · archived exactly; not shown".
+
+   | Miss | What was lost | When it left the view | Retrieved? |
+   | --- | --- | --- | --- |
+   | dev-t2 a5-D, C2 (whole words) | turn-1 rule | by call 11 | never; `slugify` cut words in turn 7 (call 262) |
+   | dev-t3 a5-C, C1 (never sleeps by itself) | turn-1 rule | absent from call 52 on | never; `time.sleep` added at call 52 |
+   | dev-t5 a5-D, vendor codes | turn-3 note | within 7 calls | never; no hidden call after turn 1 |
+   | dev-t5 a5-C, vendor codes | turn-3 note | — | recalled twice in turn 5; in turn 7 the model took its own masked edits for seed files and left Q71/Q72/Q75 unhandled |
+
+   - In dev-t5, a5-D credited invented labels to `docs/telemetry.md` ("sensor self-test", "calibration drift", "maintenance due").
+   - Arm 1's compaction summary carried each of these rules and notes to the end (dev-t5: "seal leak" from the note's arrival to call 161).
+   - This is the needle/task gap. A needle question asks for earlier content, which prompts recall: arm 5 retains 98–99%. A task's need is implicit, and the model fills the gap instead of searching.
+
+2. **Grep fed the model's own inventions back to it.** `palimnesis_grep` searches archived reasoning, so the model's earlier unverified claims came back as hits.
+   - **dev-t2 a5-D:** it searched for "golden", "legacy_slugs" and "zero-width" (calls 36–91). Each term first appears in a model response, and none exists in the workspace or the conversation.
+   - **dev-t5 a5-C:** 10 lookups chased a code `B7` the model had written into a test.
+
+3. **The per-response cap reset at OpenCode's length follow-up.** In dev-t5 a5-C turn 5 (154 calls), all 5 length stops came from the 4-continuation cap. Output was 1.8K–10.4K of 24,576. Each follow-up message started fresh counts. That message also counted as a new turn (the excerpts said "now turn 9" during task turn 7) and hosted excerpts.
+
+4. **The 202-call dev-t2 a5-D turn 5 never hit a per-response limit.** It made 29 hidden calls across 175 responses. Only a per-turn budget bounds that.
+
+5. **Turn-1 confusion.** In dev-t5 a5-D, masking started inside turn 1, during the long document reads. The model's reasoning then cited a "previous summary" that never existed, and that reasoning stayed in the view.
+
+**Clean-turn lookup counts** (the basis for D67's budget):
+- needle questions, all arm-5 repeats: at most 14 hidden calls per user turn;
+- clean task turns: at most 8;
+- the two runaway turns: 29 and 59.
+
+**Flaky test (housekeeping).** `tests/test_archive_lifecycle.py::test_session_usable_after_mid_stream_commit_failure` fails intermittently with sqlite "database is locked": 1 in 6 runs on a clean `fbd9fd0` worktree, and as often with the R29 fixes applied. It holds a write lock past the writer's busy timeout, and the follow-up request can race the lock's release. It is timing-dependent; no fix yet.
