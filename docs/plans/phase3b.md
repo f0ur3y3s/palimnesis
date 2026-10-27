@@ -360,3 +360,14 @@ The user chose all three fixes below. Slice S10b lands them test-first; the top 
   - Sixteen covers every clean turn observed: needle questions used at most 14 and clean task turns at most 8. The two runaway turns used 29 and 59.
 - **When spent,** each further hidden call gets "limit reached: no more archive lookups until the next user message. Continue from what you have." It counts as refused under the existing rule, so a further hidden call in a later continuation ends with `length`.
 - **Unchanged:** the per-response limits of §2.4.
+
+## Delta: D64 freeze (2026-10-27)
+
+S10 is closed. The fixes were re-run on development data (R30), and the user froze `a5-Dp` as arm 5 (D64).
+- **S11** runs `a5-d64` = `a5-Dp`. It needs Zeus relaunched at `n_ctx` 32768 with the pin and canary passing (D62.1).
+- **S12 gains one step**, taken only if D62's gates pass:
+  - `serve`'s defaults become a5-Dp as a whole (`s0`, `a1`, `t2`, `--pin-instructions 4096`);
+  - the shipped OpenCode config's `limit.output` becomes 24576;
+  - `a4-d43` names Phase 3's stub, tools and pins itself.
+
+  Until then the defaults stay Phase 3's (D64.5).

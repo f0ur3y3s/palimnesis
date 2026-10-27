@@ -773,6 +773,34 @@ Written on 2026-10-26, before the development matrix ran and before the fresh he
 5. **Reruns and defects:** as D44.7 and D44.8. No waivers.
 6. **After the verdict (report only):** arm 5 at 64K on `ho2` h1–h6 and the 5 tasks; then arm 5 on the Phase 3 set (`heldout`, `ho-t1..t5`), labelled "seen set, not evidence".
 
+## D64 — Arm 5 frozen as a5-Dp (S10, R30)
+
+Selected on development data only (R28–R30). No `ho2` or `ho` data has been run or read.
+
+1. **The arm.** `a5-d64` is `a5-Dp`: a5-D (`s0` header-only stubs, addendum `a1`, hidden tools `t2`) plus 4,096 tokens of pinned instructions (D65). It also carries D66's grep and D67's lookup budget, which have no switch. `needle.A5_FROZEN = "a5-Dp"`.
+2. **The rule (affordances.md).**
+   - No arm is rejected: every arm's invalid-id rate is at most 5%.
+   - Ranked by retention over three repeats, a5-Dp and a5-D tie at 53.7/60, ahead of a5-Cp's 52.3.
+   - The tie breaks on unnecessary calls: 5.0 for a5-Dp, against 52.3 for a5-D.
+   - a5-D without pins is not a candidate: R29 showed it loses a typed rule that leaves the view (dev-t2 C2), and the user chose the fixes before D64.
+3. **The tasks agree.**
+   - a5-Dp passed 5/5 development tasks and held 15/15 constraints, as arm 1 did.
+   - It used 4.95M prompt tokens against arm 1's 5.26M, and 46 min of wall time against 63 (R30-A).
+   - a5-Cp also passed 5/5, at 2.3× arm 1's tokens.
+   - The tasks are a check on the rule, not part of it: one attempt each, development data.
+4. **Held-out runs** use the D64 commit or a later one that changes only `eval/` and docs (D62.1). Arm 4 stays `a4-d43`, with no pins. It takes the `serve` defaults for stubs, tools and pins, so when S12 changes those defaults, `a4-d43` must name `s1`, no hidden tools and pins 0 itself. `test_arm_4_proxy_settings_are_unchanged` guards this.
+5. **Shipped defaults wait for the gate.** `serve` keeps Phase 3's defaults:
+   - `s1` stubs;
+   - no hidden tools;
+   - `--pin-instructions 0`.
+
+   The shipped `integrations/opencode/opencode.json` keeps `limit.output` 8192. These defaults change together at the phase-3b tag (S12), and only if D62's gates pass:
+   - `serve` defaults to a5-Dp as a whole;
+   - `limit.output` rises to 24576.
+
+   The output limit is safe only with the hidden loop, which caps each upstream call at R = 8,192 (D56). The user chose this order on 2026-10-27.
+6. **Known limit carried into the gate.** Excerpts still rank the model's reasoning: 42% of excerpt items in R30's task archives, and first in 31 of 67 selected blocks (R30-C). Changing that would change the arm under test, so it stays as frozen and is reported with the held-out results.
+
 ## D65 — Short user instructions stay in view (R29, before D64)
 
 Decided by the user after the development tasks (R29-E). Every arm-5 miss lost a rule or note the user had typed, while arm 1's compaction summary kept them all.

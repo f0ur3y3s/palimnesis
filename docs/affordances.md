@@ -163,4 +163,12 @@ Arms:
 - give arm D a separate header-only version (a new id), or
 - accept that D differs from A only in its hint and tool description.
 
+**Frozen for Phase 3B (D64, 2026-10-27):** `a5-Dp`, held out as `a5-d64`.
+- **Settings:** arm D (`s0` / `a1` / `t2`) plus 4,096 tokens of pinned instructions (D65), with D66's grep and D67's lookup budget.
+- **Selection:**
+  - no arm is over 5% invalid ids;
+  - a5-Dp ties a5-D on retention (53.7/60 over three repeats, R30-B);
+  - it wins the tie on unnecessary calls (5.0 against 52.3).
+- **Defaults:** `serve` keeps Phase 3's defaults until the phase-3b gate passes (D64.5).
+
 **Resolved for Phase 3B (2026-10-26):** arm D uses `s0`, the header-only stub (D16.2). `serve` renders every matrix variant: `--stub s0|s1|s2|s3`, `--addendum a0|a1|a2` (a1 and a2 need no transcript files), `--hidden-tools t1|t2`.

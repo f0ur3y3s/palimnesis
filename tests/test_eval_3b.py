@@ -77,6 +77,13 @@ def test_the_held_out_arm_5_name_refuses_until_frozen(monkeypatch):
         needle.config("a5-Z")
 
 
+def test_d64_freezes_a5_dp_as_the_held_out_arm_5():
+    assert needle.A5_FROZEN == "a5-Dp"
+    assert needle.config("a5-d64") == dict(arm=5, recall="fts", transcripts_enabled=True,
+                                           query_policy="q1", excerpt_renderer="x2", stub="s0",
+                                           addendum="a1", hidden_tools="t2", pin_tokens=4096)
+
+
 def _args(**kw):
     import argparse
 

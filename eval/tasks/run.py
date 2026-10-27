@@ -282,7 +282,8 @@ def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     if arm != 5:
         raise ValueError(f"no arm {arm}")
     if config is None:
-        raise ValueError("arm 5 needs --config (a5-A ... a5-D, or a5-d64 once frozen)")
+        raise ValueError("arm 5 needs --config: a matrix arm (a5-A ... a5-D, a5-Cp, a5-Dp), "
+                         "or a5-d64, the arm D64 froze")
     if task_set.startswith("heldout") and config != needle.A5_HELDOUT:
         raise ValueError(f"held-out tasks run arm 5 only as {needle.A5_HELDOUT}, not {config}")
     cfg = needle.config(config)
@@ -601,7 +602,7 @@ def main() -> int:
     p.add_argument("--task", choices=TASKS)
     p.add_argument("--arm", type=int, choices=[1, 4, 5])
     p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith("a5-")],
-                   help="arm 5 only: the matrix arm (a5-A ... a5-D), or a5-d64 once frozen (D64)")
+                   help="arm 5 only: a matrix arm, or a5-d64 (a5-Dp, frozen by D64)")
     p.add_argument("--out", help="run directory (attempts.json, records/)")
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")
     p.add_argument("--reason", help="why this attempt reruns the task (D44.7)")
