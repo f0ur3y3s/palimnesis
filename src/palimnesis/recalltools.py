@@ -52,7 +52,7 @@ SNIPPET_CHARS = 200
 MAX_PATTERN = 512
 MAX_SCAN_BYTES = 32 << 20
 RE2_MAX_MEM = 8 << 20
-GREP_CURSOR = "grep1"
+GREP_CURSOR = "grep2"  # grep2: reasoning left the search (D66)
 
 _SUBTOKEN = re.compile(r"[^\W_]+")  # unicode61: letters and digits; everything else separates
 _SPACE = re.compile(r"\s+")
@@ -273,12 +273,14 @@ def _text_match(query: str) -> tuple[str, re.Pattern]:
 
 def _scope_blocks(ctx: Context, scope: str, cutoff: int) -> list[tuple]:
     """(rowid, block_id, idx, kind, encoding, occ_id, seq, role) of searchable blocks,
-    newest first."""
+    newest first. Reasoning is never searched: the model's own unverified claims would
+    come back as evidence (D66)."""
     rows = ctx.conn.execute(
         "SELECT b.rowid, b.block_id, b.idx, b.kind, b.encoding, o.occ_id, o.seq, o.role"
         " FROM blocks b JOIN occurrences o ON o.occ_id = b.occ_id"
         " WHERE o.branch_id = ? AND o.seq <= ? AND o.role != 'system'"
-        " AND o.source != 'internal_tool' ORDER BY o.seq DESC, b.idx",
+        " AND o.source != 'internal_tool' AND b.kind != 'reasoning'"
+        " ORDER BY o.seq DESC, b.idx",
         (ctx.branch_id, cutoff)).fetchall()
     if scope == "all":
         return rows

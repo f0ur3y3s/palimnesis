@@ -995,6 +995,16 @@ def commit_internal_result(conn: sqlite3.Connection, gen: Generation, call_id: s
     return occ_id
 
 
+def turn_hidden_calls(conn: sqlite3.Connection, branch_id: str, since_seq: int) -> int:
+    """Hidden calls answered on the branch after ``since_seq`` (D67): archived internal
+    results, less those refused by a limit."""
+    return conn.execute(
+        "SELECT COUNT(*) FROM occurrences WHERE branch_id = ? AND seq > ?"
+        " AND source = 'internal_tool'"
+        " AND coalesce(json_extract(envelope, '$.error'), '') != 'limit_reached'",
+        (branch_id, since_seq)).fetchone()[0]
+
+
 def finish_attempt(conn: sqlite3.Connection, gen: Generation, kind: str, **payload) -> None:
     """Record the attempt's terminal event and free the branch."""
     plan = gen.plan

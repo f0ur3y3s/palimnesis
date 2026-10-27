@@ -45,6 +45,7 @@ Arm 5 (Phase 3B, plan §2.9, O-B2): arm 4's settings (q1/x2, transcripts project
 stub format, an addendum and hidden recall tools, one per A/B matrix arm
 (``docs/affordances.md``, "Phase 3B A/B matrix"):
   a5-A  s2 / a1 / t1     a5-B  s3 / a1 / t1     a5-C  s2 / a0 (none) / t2     a5-D  s0 / a1 / t2
+  a5-Cp / a5-Dp  a5-C / a5-D with 4,096 tokens of pinned instructions (R29, D65)
 ``a5-d64`` is the held-out name of whichever arm the matrix selects; it resolves only once
 ``A5_FROZEN`` names that arm (decision D64). Arm 5 also raises the client's output limit
 to 24,576 (O-B3, D56): OpenCode's ``limit.output`` and the emulator's
@@ -111,6 +112,8 @@ CONFIGS.update({
     "a5-C": dict(_A5_BASE, stub="s2", addendum="a0", hidden_tools="t2"),
     "a5-D": dict(_A5_BASE, stub="s0", addendum="a1", hidden_tools="t2"),
 })
+# The top two matrix arms with the R29 fixes' pinned instructions (D65).
+CONFIGS.update({f"{name}p": dict(CONFIGS[name], pin_tokens=4096) for name in ("a5-C", "a5-D")})
 
 # The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for. Placeholder
 # until decision D64 freezes the selected arm: set A5_FROZEN to that arm ("a5-A" ... "a5-D").
@@ -120,7 +123,7 @@ HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT)  # the only configurations held-out set
 
 # Settings the proxy child passes to ``palimnesis.config.Settings`` when present.
 PROXY_KEYS = ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer", "addendum",
-              "stub", "hidden_tools")
+              "stub", "hidden_tools", "pin_tokens")
 OUTPUT_LIMIT = {5: 24_576}  # O-B3: arm 5's client output limit; every other arm keeps 8,192
 DEFAULT_OUTPUT_LIMIT = 8192
 

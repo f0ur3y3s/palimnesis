@@ -62,6 +62,9 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
     serve.add_argument("--hidden-tools", choices=["off", "t1", "t2"], default="off",
                        help="hidden recall tools (Phase 3B): the tool descriptions to offer "
                             "once a session first hides anything")
+    serve.add_argument("--pin-instructions", type=int, default=0, metavar="TOKENS",
+                       help="keep short user instructions in view through collapses, up to "
+                            "this many tokens (D65); 0 is off")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")
@@ -76,6 +79,9 @@ def _settings(args: argparse.Namespace) -> Settings:
         print("error: --capture-dir requires --passthrough (archive mode already stores "
               "exact request bodies)", file=sys.stderr)
         raise SystemExit(2)
+    if args.pin_instructions < 0:
+        print("error: --pin-instructions takes a token count of 0 or more", file=sys.stderr)
+        raise SystemExit(2)
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
                     db_path=db_path, synchronous=args.synchronous, view=args.view,
@@ -83,6 +89,7 @@ def _settings(args: argparse.Namespace) -> Settings:
                     excerpt_renderer=args.excerpt_renderer, addendum=args.addendum,
                     stub=args.stub,
                     hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
+                    pin_tokens=args.pin_instructions,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 

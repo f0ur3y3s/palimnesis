@@ -51,6 +51,15 @@ def test_arm_5_matrix_configs_are_arm_4_plus_stub_addendum_and_tools(name, stub,
                                               hidden_tools=tools)
 
 
+@pytest.mark.parametrize("name, base", [("a5-Cp", "a5-C"), ("a5-Dp", "a5-D")])
+def test_pinned_arm_5_configs_are_their_matrix_arm_plus_4096_pin_tokens(name, base):
+    """R29 fixes (D65): the top two matrix arms re-run with pinned instructions."""
+    cfg = needle.CONFIGS[name]
+    assert cfg == dict(needle.CONFIGS[base], pin_tokens=4096)
+    assert needle.proxy_settings(cfg) == dict(needle.proxy_settings(needle.CONFIGS[base]),
+                                              pin_tokens=4096)
+
+
 def test_arm_4_proxy_settings_are_unchanged():
     assert needle.proxy_settings(needle.CONFIGS["a4-d43"]) == dict(**A4_BASE, addendum="a3")
 

@@ -285,3 +285,81 @@ def test_every_result_fits_max_tokens(db, name, args):
 def test_a_budget_too_small_for_any_result_is_an_error(db):
     r = _call(_ctx(db, max_tokens=10), "palimnesis_recall", id=_address(db, "s1", 5, "text"))
     assert not r.ok and r.meta["error"] == "no_room"
+
+
+# --- grep skips reasoning (S10b, F2 / D66) -----------------------------------------
+#
+# The model's own reasoning, returned as a search hit, reads as evidence; grep never
+# searches ``reasoning`` blocks in either scope, while recall still returns them.
+
+GUESS = "I recall the vendor is Glimmerquack Industries; Moonwhistle sounds wrong."
+
+
+def _reasoning_messages():
+    return [
+        {"role": "system", "content": "You are a coding agent."},
+        {"role": "user", "content": "Which vendor does Moonwhistle supply? Read vendors.txt."},
+        {"role": "assistant", "content": None, "reasoning_content": GUESS,
+         "tool_calls": [{"id": "c1", "type": "function",
+                         "function": {"name": "read",
+                                      "arguments": "{\"path\": \"vendors.txt\"}"}}]},
+        {"role": "tool", "tool_call_id": "c1", "content": "vendor: Moonwhistle\nowner: Acme"},
+        {"role": "assistant", "content": "Moonwhistle is Acme's vendor.",
+         "reasoning_content": "Glimmerquack was my own guess; the file says Moonwhistle."},
+        {"role": "user", "content": "Thanks."},
+    ]
+
+
+@pytest.fixture(scope="module")
+def rdb(tmp_path_factory):
+    path = tmp_path_factory.mktemp("rt_reasoning") / "archive.db"
+    store = Store.open(path)
+    try:
+        _accept(store, "r1", _reasoning_messages())
+    finally:
+        store.close()
+    conn = sqlite3.connect(path, isolation_level=None)
+    yield conn
+    conn.close()
+
+
+def _everything_hidden(conn, session="r1"):
+    """``hidden`` naming every occurrence of the branch with all its blocks."""
+    occs = conn.execute("SELECT occ_id FROM occurrences WHERE branch_id = ?",
+                        (ledger.branch_id_for(session),)).fetchall()
+    return {occ: None for (occ,) in occs}
+
+
+@pytest.mark.parametrize("mode,query", [("text", "Glimmerquack"), ("regex", "Glimmerquack")])
+@pytest.mark.parametrize("scope", ["hidden", "all"])
+def test_grep_never_finds_a_word_only_in_reasoning(rdb, mode, query, scope):
+    ctx = _ctx(rdb, "r1", hidden=_everything_hidden(rdb))
+    r = _call(ctx, "palimnesis_grep", query=query, mode=mode, scope=scope)
+    assert r.ok and r.meta["hits"] == 0 and "no matches" in r.text
+    assert "Glimmerquack" not in r.text
+
+
+@pytest.mark.parametrize("scope", ["hidden", "all"])
+def test_grep_finds_the_same_word_in_tool_results_and_user_text_but_not_reasoning(rdb, scope):
+    ctx = _ctx(rdb, "r1", hidden=_everything_hidden(rdb))
+    r = _call(ctx, "palimnesis_grep", query="Moonwhistle", mode="text", scope=scope)
+    assert r.ok
+    found = {line.split(" ", 1)[0] for line in r.text.splitlines()[1:]}
+    assert _address(rdb, "r1", 4, "tool_result") in found
+    assert _address(rdb, "r1", 2, "text") in found
+    assert _address(rdb, "r1", 5, "text") in found
+    assert _address(rdb, "r1", 3, "reasoning") not in found
+    assert _address(rdb, "r1", 5, "reasoning") not in found
+    assert all(" reasoning " not in line for line in r.text.splitlines()[1:])
+
+
+def test_recall_still_returns_a_reasoning_block_by_address(rdb):
+    r = _call(_ctx(rdb, "r1"), "palimnesis_recall", id=_address(rdb, "r1", 3, "reasoning"))
+    assert r.ok and _body(r) == GUESS
+
+
+def test_grep_cursors_carry_version_2_since_reasoning_left_the_search():
+    """Protocol review: D66 changed the hit list, so cursors issued before it are refused."""
+    from palimnesis import recalltools
+
+    assert recalltools.GREP_CURSOR == "grep2"

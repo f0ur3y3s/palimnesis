@@ -48,6 +48,7 @@ from .fingerprint import fingerprint_v1, parse_retry_hint
 from .budget import BudgetError
 from .assemble import ChatAssembler
 from .sse import SSEParser
+from .turns import is_instruction
 from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from .store import Store
 
@@ -70,6 +71,10 @@ RESULT_SHARE = 4  # hidden results take at most a quarter of the input budget pe
 RESULT_CAPS = {recalltools.RECALL: 2_048, recalltools.GREP: 1_024, recalltools.CATALOG: 1_024}
 LIMIT_RESULT = ("limit reached: no more archive lookups in this response. "
                 "Answer from what you have.")
+# Per instruction turn, across responses and synthetic follow-ups (D67, R29).
+MAX_TURN_HIDDEN_CALLS = 16
+TURN_LIMIT_RESULT = ("limit reached: no more archive lookups until the next user message. "
+                     "Continue from what you have.")
 
 
 def _masked(state) -> bool:
@@ -652,6 +657,13 @@ class ArchiveHandler:
         call_plan, k = plan, 1
         calls_made = continuations = 0
         refused = False
+        since = next((item.seq for item in reversed(plan.items)
+                      if item.seq is not None and item.message.get("role") == "user"
+                      and is_instruction("user", item.message.get("content")
+                                         if isinstance(item.message.get("content"), str) else "")),
+                     0)
+        turn_spent = await self.store.read(
+            lambda c: ledger.turn_hidden_calls(c, plan.branch_id, since))
         while True:
             asm.begin()
             call_id = plan.attempt_id if k == 1 else f"{plan.attempt_id}#{k}"
@@ -669,11 +681,17 @@ class ArchiveHandler:
                     results.append((call, recalltools.Result(LIMIT_RESULT, False,
                                                              {"error": "limit_reached"})))
                     continue
-                calls_made += 1
+                if turn_spent + calls_made >= MAX_TURN_HIDDEN_CALLS:
+                    refused = True
+                    results.append((call, recalltools.Result(TURN_LIMIT_RESULT, False,
+                                                             {"error": "limit_reached"})))
+                    continue
                 results.append((call, await self._resolve(call, call_plan, result_room)))
                 result_room -= self.views.counter.count(results[-1][1].text)
                 if results[-1][1].meta.get("error") == "limit_reached":
                     refused = True
+                else:
+                    calls_made += 1  # answered calls only, as the turn count (D67)
             if results:
                 def commit(c):
                     for call, result in results:

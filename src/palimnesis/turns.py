@@ -3,15 +3,17 @@
 A turn begins at each genuine user instruction; everything after it (assistant
 turns, tool results) belongs to that turn until the next one. Occurrences before
 the first instruction are turn 0. Harness-synthesized continuation prompts
-(OpenCode's "The previous response was interrupted…", docs/probes/opencode_partials.md)
-are user-role but not new instructions, so they do not start a turn.
+(OpenCode's "The previous response was interrupted…", docs/probes/opencode_partials.md,
+and its follow-up to a length stop, D67) are user-role but not new instructions, so they
+do not start a turn.
 """
 
 from __future__ import annotations
 
 from typing import Iterable, Mapping
 
-SYNTHETIC_USER_PREFIXES = ("The previous response was interrupted. Continue from where you left off",)
+SYNTHETIC_USER_PREFIXES = ("The previous response was interrupted. Continue from where you left off",
+                           "Your last response hit the output token limit (stop reason: length).")
 
 
 def is_instruction(role: str, text: str | None = None) -> bool:

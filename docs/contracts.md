@@ -35,6 +35,10 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
   - The view is the full history until it would exceed `H = F + 0.9·C`. Then it masks oldest-first to `T = F + 0.5·C`, at group boundaries only, and `I ≤ B_in` always holds.
   - Watermark and collapse boundaries are monotone and persisted in immutable `view_versions`, so a rebuild reproduces the same tokens.
   - The builder makes no upstream calls.
+  - **Pinned instructions** (D65, `serve --pin-instructions TOKENS`; off by default).
+    - A collapse move keeps behind its boundary every user instruction of at most 1,024 tokens, verbatim and in place. It keeps them newest first, while their total fits `min(pin_tokens, B_in / 6)`, and absorbs the rest.
+    - Pins change only with a collapse move, and an absorbed message never returns.
+    - When the view would otherwise exceed `B_in`, the collapse absorbs pins too.
 
   **[enforced]**
 
@@ -220,6 +224,8 @@ A visible response is one upstream call, or several when hidden recall tools ans
 - **Hidden.** A call whose name has the reserved prefix (§3) is never forwarded to the client. The proxy answers it from the archive (`palimnesis.recalltools`, D57–D59) and calls the upstream again with the call and its result appended. Text and reasoning stream as they arrive; external calls stream renumbered densely; the client sees one message with one id, one finish chunk and one `[DONE]` (D52).
 - **Mixed.** When a call carries hidden and external tool calls, the hidden ones are answered and archived, the external ones go to the client with `finish_reason: "tool_calls"`, and the next request renders all results after that call (D53).
 - **Limits per response.** At most 4 continuations and 8 hidden calls; results take at most a quarter of the input budget, 2,048 tokens per recall and 1,024 per search or catalog page. A call beyond a limit gets a short "limit reached" result; a further hidden call ends the response with the length stop (§7).
+- **Limit per instruction** (D67). At most 16 answered hidden calls from the latest user instruction, counted across responses. Synthetic prompts, including OpenCode's length follow-up, are not instructions. A call beyond it gets "limit reached: no more archive lookups until the next user message. Continue from what you have.", and is refused like a per-response limit.
+- **Grep** never searches reasoning blocks (D66); recall still returns them by address.
 - **Archive.** Each upstream call is its own generation; results are internal rows (`view='internal'`), never full-text indexed and never excerpted. The client's resend of the one visible message reconciles against the composite of those parts (D51); the upstream sees every part and result in order.
 - **Results** are exact by address and range, never another record's content (contracts §11 provenance), and never exceed their cap under the pinned counter.
 

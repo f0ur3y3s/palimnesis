@@ -26,3 +26,28 @@ def test_synthetic_continue_messages_do_not_start_a_turn():
     seq_roles = [(1, "user"), (2, "assistant"), (3, "user")]
 
     assert turn_numbers(seq_roles, texts={3: cont}) == {1: 1, 2: 1, 3: 1}
+
+
+# OpenCode 2.1.4's follow-up after a ``length`` stop, verbatim from the recorded fixture
+# (eval/fixtures/opencode-2.1.4/hidden_stream/b_length_text/req-03.json; S10b F3 / D67).
+LENGTH_FOLLOW_UP = ("Your last response hit the output token limit (stop reason: length). Do not "
+                    "apologize, recap, or repeat yourself. Break the remaining work into smaller "
+                    "pieces.")
+
+
+def test_the_length_follow_up_is_not_an_instruction():
+    from palimnesis.turns import is_instruction
+
+    assert is_instruction("user", LENGTH_FOLLOW_UP) is False
+    # The recorded prefix is the marker; the rest of OpenCode's wording may vary.
+    assert is_instruction("user", "Your last response hit the output token limit "
+                                  "(stop reason: length). Keep going.") is False
+    assert is_instruction("user", "Your last response was great.") is True
+
+
+def test_the_length_follow_up_does_not_start_a_turn():
+    seq_roles = [(1, "user"), (2, "assistant"), (3, "user"), (4, "assistant"), (5, "user")]
+
+    numbers = turn_numbers(seq_roles, texts={1: "fix it", 3: LENGTH_FOLLOW_UP, 5: "next"})
+
+    assert numbers == {1: 1, 2: 1, 3: 1, 4: 1, 5: 2}

@@ -772,3 +772,52 @@ Written on 2026-10-26, before the development matrix ran and before the fresh he
    Arm 4 runs the same set for comparison; its results are reported, not gated.
 5. **Reruns and defects:** as D44.7 and D44.8. No waivers.
 6. **After the verdict (report only):** arm 5 at 64K on `ho2` h1–h6 and the 5 tasks; then arm 5 on the Phase 3 set (`heldout`, `ho-t1..t5`), labelled "seen set, not evidence".
+
+## D65 — Short user instructions stay in view (R29, before D64)
+
+Decided by the user after the development tasks (R29-E). Every arm-5 miss lost a rule or note the user had typed, while arm 1's compaction summary kept them all.
+
+- `ViewPolicy.pin_tokens` is set with `serve --pin-instructions TOKENS`.
+  - Default 0, which is off: arm 4 and the Phase 2–3 views are unchanged.
+  - The arm-5 development configurations set 4,096.
+- **What pins.** A user message that is an instruction (`turns.is_instruction`) and whose own content is at most `PIN_MESSAGE_TOKENS` (1,024) is pinned. Synthetic prompts never pin, and an attached excerpt block never counts.
+- **Where pins go.** At each collapse move, pinned messages behind the new boundary stay verbatim in place, newest first, while their total fits `min(pin_tokens, input_budget // 6)`. They split span notes as kept messages already do. The rest are absorbed, oldest first.
+- **Cache stability.** The kept set changes only with a collapse move, so the cause is recorded as `collapse`. A message absorbed once stays collapsed, and a rebuild from the persisted state is identical.
+- **Last resort.** If the view still exceeds the input budget, the collapse absorbs pins as well. Pins never cause a budget error.
+- **Cause.** A move that only absorbs kept messages, pins included, is recorded as `collapse` (cache audit).
+- **Known limit: the collapse search can overshoot.** The search assumes the view shrinks as the collapse grows, and pins break that: each pin splits a span, so the total can rise along the candidates.
+  - In the audit's 1,822 pinned collapse events, the binary search always chose the same boundary as a linear scan.
+  - At worst it collapses deeper than needed; the result is persisted, so it cannot unsettle the cache.
+- **Cache cost.** Measured over random sessions in the audit, pins at 4,096 against none: the prefix lost per call was −8% at 24,320 and +5.6% at 8K. Pins split the collapsed region, so most later collapses rewrite only the last span note.
+- **Rejected:**
+  - *Pinning every user message*: unbounded, and a pasted log is not a rule.
+  - *Listing opening words in the stub*: the model would still have to recall, and R29 shows it does not when the need is implicit.
+  - *Waiting for Phase 4A*: its pinned state is model-maintained and arrives after the 3B gate.
+- **Relation to Phase 4A.** This is the deterministic floor of Phase 4A's "constraints"; 4A's state remains planned. Needle facts that sit in a short user message are now in view, so needle reports separate answers found in view from answers found by recall.
+
+## D66 — Grep never searches reasoning (R29)
+
+`palimnesis_grep` skips `reasoning` blocks in both scopes; `palimnesis_recall` still returns them by address.
+- **Why:** the model's unverified reasoning, returned as a search hit, reads as evidence. In R29 grep returned the model's own inventions:
+  - "golden", "legacy_slugs" and "zero-width" in dev-t2;
+  - the code `B7` in dev-t5.
+- **Precedent:** this follows D60, which keeps hidden results out of recall's own inputs.
+- **Scope:** excerpts (A1) still rank reasoning. That is unchanged here and reported in R30.
+
+## D67 — Lookup budget per instruction; OpenCode's length follow-up is synthetic (R29)
+
+- **The follow-up is synthetic.** `turns.SYNTHETIC_USER_PREFIXES` gains OpenCode 2.1.4's length follow-up, "Your last response hit the output token limit (stop reason: length).", recorded in `harnesses.md` beside the interrupted-response prompt.
+  - It starts no turn, hosts no excerpt, and does not reset the lookup budget.
+  - Each response still gets a fresh output allowance.
+  - This amends 3B's S0 delta 3.
+- **The budget.** `MAX_TURN_HIDDEN_CALLS` = 16 answered hidden calls per turn, from the latest instruction in the branch. It counts archived internal results after that instruction, less those a limit refused, plus the calls this response has already answered.
+  - Sixteen covers every clean turn in R29: needle questions used at most 14 and clean task turns at most 8. It stops both runaway turns (29 and 59).
+- **When spent,** each further call gets "limit reached: no more archive lookups until the next user message. Continue from what you have." It is refused under the existing rule, so a further hidden call in a later continuation ends with `length` (contracts §7).
+- **Unchanged:** the per-response limits (D55, D56). Their 8-call count now also counts answered calls only, so a call refused for lack of result room no longer uses up either budget (protocol review).
+- **Known limits:**
+  - **Over-counting.** The count includes the archived results of a failed or abandoned attempt of the same instruction, which a retry never renders. That errs toward refusing early, never toward a runaway.
+  - **Older archives.** Archives written before this decision number turns from OpenCode's length follow-up on, so their transcripts renumber on the next publication, and new excerpt headers ("now turn N") can number below older ones still in view. Rebuild them with `transcripts rebuild`. A rebuild leaves turn files that the new numbering no longer uses in place; they are not in the index or the manifest. New sessions are unaffected.
+- **Grep cursors** carry version `grep2`, because the hit list changed (D66). A `grep1` cursor gets `bad_cursor`.
+- **Rejected:**
+  - *Ending the response with `stop` at the cap*: it would end an agentic turn mid-task.
+  - *Counting per client request*: the dev-t2 spiral spread 29 calls over 175 responses.

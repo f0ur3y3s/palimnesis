@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 import sys
 
+import pytest
+
 from palimnesis.sessions import resolve_session
 
 
@@ -171,3 +173,16 @@ def test_excerpts_command_lists_each_block(tmp_path):
     out = _palimnesis("excerpts", "cli-1", "--db", str(db))
 
     assert out.count("status empty") == 3
+
+
+def test_serve_pin_instructions_defaults_off_and_rejects_negative_values(tmp_path, capsys):
+    """D65: ``--pin-instructions TOKENS``; a negative total is an error (exit 2), not a
+    silently disabled pin recorded as pinned."""
+    from palimnesis.cli import serve_settings
+
+    base = ["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db")]
+    assert serve_settings(base).pin_tokens == 0
+    assert serve_settings(base + ["--pin-instructions", "4096"]).pin_tokens == 4096
+    with pytest.raises(SystemExit) as e:
+        serve_settings(base + ["--pin-instructions", "-5"])
+    assert e.value.code == 2

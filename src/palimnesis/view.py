@@ -19,6 +19,11 @@ Mechanisms (docs/papers.md):
   its alias range (D14.13). Every entry stays addressed and listed in the
   internal catalog; model-facing catalog navigation is deferred to optional
   Phase 3B (A1, D19, D20.3), and ARC's bare-id tier is skipped (D16.6).
+- **Pinned instructions** (D65, adapted from Phase 4A's pinned constraints). With
+  ``pin_tokens`` set, a collapse move keeps short user instructions behind its
+  boundary verbatim in place, newest first, within ``min(pin_tokens, B_in // 6)``;
+  the rest are absorbed. Pins live in ``ViewState.kept``, so they change only with a
+  collapse move, and the last-resort collapse absorbs them before any budget error.
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
@@ -57,8 +62,11 @@ from .budget import Budget, BudgetError, check_fixed
 from .excerpts import attach
 from .profile import empty_assistant
 from .stubs import reasoning_stub, span_note, tool_result_stub
+from .turns import is_instruction
 
 POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
+PIN_MESSAGE_TOKENS = 1_024  # D65: longer user messages are never pinned
+PIN_BUDGET_SHARE = 6  # D65: pins take at most input_budget // 6
 
 
 @dataclass(frozen=True)
@@ -68,6 +76,7 @@ class ViewPolicy:
     inline_tokens: int = 64  # ρ: tool results at or below stay inline
     min_recent: int = 4_096
     stub_format: str = "s1"  # s1 (Phases 2-3) or a 3B matrix variant (docs/affordances.md)
+    pin_tokens: int = 0  # D65: total for pinned instructions; 0 turns pinning off
 
 
 @dataclass(frozen=True)
@@ -141,6 +150,9 @@ class _Builder:
         self.dropped = ({i for i, it in enumerate(self.items[:-1]) if empty_assistant(it.message)}
                         if drops_empty_assistant else set())
         self._stub_cache: dict[tuple[int, str], tuple[dict, bool]] = {}
+        self.pin_budget = min(policy.pin_tokens, budget.input_budget // PIN_BUDGET_SHARE)
+        self.pinnable = {i: n for i, n in ((i, self._pin_size(it)) for i, it in enumerate(self.items))
+                         if n is not None} if self.pin_budget > 0 else {}
         self._measured: dict[ViewState, tuple] = {}
 
     # -- rendering ------------------------------------------------------------
@@ -234,12 +246,38 @@ class _Builder:
                 and excerpt[0] not in state.omitted_excerpts
                 and excerpt[2] <= self.budget.excerpt_per_message)
 
-    def with_collapse(self, state: ViewState, seq: int) -> ViewState:
+    def _pin_size(self, item: ViewItem) -> int | None:
+        """Tokens of a pinnable instruction's own content, else None (D65)."""
+        content = item.message.get("content")
+        if (item.occ_id is None or item.message.get("role") != "user"
+                or not isinstance(content, str) or not is_instruction("user", content)):
+            return None
+        n = self.counter.count_cached(content)
+        return n if n <= PIN_MESSAGE_TOKENS else None
+
+    def with_collapse(self, state: ViewState, seq: int, pins: bool = True) -> ViewState:
         """A collapse move to ``seq``. It may absorb messages kept earlier (they are
-        no longer fixed); the move itself is the recorded cause of that change."""
-        absorbed = {item.occ_id for i, item in enumerate(self.items)
-                    if item.seq is not None and item.seq < seq and i not in self.fixed}
-        return self.keep_fixed(replace(state, collapse_seq=seq, kept=state.kept - absorbed))
+        no longer fixed); the move itself is the recorded cause of that change. With
+        ``pins``, instructions behind ``seq`` that are not yet collapsed stay kept,
+        newest first, within the pin budget (D65)."""
+        old = self.seq_index(state.collapse_seq) if state.collapse_seq else 0
+        behind = [i for i, item in enumerate(self.items)
+                  if item.seq is not None and item.seq < seq and i not in self.fixed]
+        pinned: set[str] = set()
+        if pins:
+            room = self.pin_budget
+            for i in reversed(behind):
+                n = self.pinnable.get(i)
+                occ = self.items[i].occ_id
+                if n is None or not (i >= old or occ in state.kept):
+                    continue
+                if n > room:
+                    break  # oldest go first: nothing older is pinned past a miss
+                pinned.add(occ)
+                room -= n
+        absorbed = {self.items[i].occ_id for i in behind} - pinned
+        return self.keep_fixed(replace(state, collapse_seq=seq,
+                                       kept=(state.kept - absorbed) | pinned))
 
     def omit_for_event(self, state: ViewState, fixed: int) -> ViewState:
         """R3: at a threshold event, omit blocks behind the watermark or collapsed,
@@ -451,6 +489,10 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
                                                         else candidates[-1]))
         *_, total = b.measure(b.keep_fixed(new_state))
+        if total > budget.input_budget and b.pinnable:  # pins give way before a budget error
+            new_state = b.with_collapse(new_state, max(new_state.collapse_seq,
+                                                       _seq(b.items, newest)), pins=False)
+            *_, total = b.measure(b.keep_fixed(new_state))
     new_state = b.keep_fixed(new_state)
     result = view(new_state, new_state != original, base_manifest)
     if result.tokens > budget.input_budget:

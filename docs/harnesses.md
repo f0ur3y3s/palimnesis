@@ -122,7 +122,7 @@ Verified against a fault-injecting fake upstream in 48 runs (`docs/probes/openco
 | `retry-after`, `retry-after-ms` | honored as a minimum delay |
 | `x-should-retry: false` | stops every resend tested, including failures inside a 200 stream and client idle timeouts |
 | After partial text or reasoning | appends the partial assistant message, with reasoning flattened into its text with no separator, plus the user message "The previous response was interrupted. Continue…", then resends. `x-should-retry` does not stop this; an in-stream error event with `x-should-retry: false` does, and so does the plugin `retry` hook. |
-| `finish_reason: "length"` | two immediate synthetic follow-ups, then failure |
+| `finish_reason: "length"` | two immediate synthetic follow-ups, then failure. The follow-up's user message begins "Your last response hit the output token limit (stop reason: length)."; Palimnesis treats it as synthetic, not an instruction (`turns.SYNTHETIC_USER_PREFIXES`, D67): it starts no turn, hosts no excerpt and keeps the turn's lookup budget |
 | Idempotency or retry-count header | none; `traceparent` keeps one trace ID per prompt with a new span ID per attempt |
 | `opencode run` exit code | 1 if any step failed, even when a later follow-up succeeded |
 

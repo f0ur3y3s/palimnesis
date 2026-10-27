@@ -111,7 +111,8 @@ class Prepared:
 class ViewEngine:
     def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
                  input_budget: int | None = None, excerpts=None,
-                 excerpt_renderer: str = RENDERER_VERSION, stub_format: str = STUB_FORMAT) -> None:
+                 excerpt_renderer: str = RENDERER_VERSION, stub_format: str = STUB_FORMAT,
+                 pin_tokens: int = 0) -> None:
         self.profile = profile
         self.excerpts = excerpts if excerpts is not None else NoExcerpts()
         self.excerpt_renderer = excerpt_renderer
@@ -120,7 +121,7 @@ class ViewEngine:
         self.unsupported_rules = unsupported_rules(profile.rules)
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
-        self.view_policy = ViewPolicy(stub_format=stub_format)
+        self.view_policy = ViewPolicy(stub_format=stub_format, pin_tokens=pin_tokens)
         self._warm_lock = threading.Lock()
         self._warm_next = None
         self._warming = False
@@ -259,7 +260,9 @@ class ViewEngine:
     @property
     def view_format(self) -> dict:
         """The presentation recorded with each view version and call (contracts §10)."""
-        return {"policy_version": POLICY_VERSION, "stub_format": self.view_policy.stub_format}
+        pins = self.view_policy.pin_tokens
+        return {"policy_version": f"{POLICY_VERSION}+pin{pins}" if pins else POLICY_VERSION,
+                "stub_format": self.view_policy.stub_format}
 
     @staticmethod
     def body(req: chat.ChatRequest, plan, prepared: Prepared, view: View) -> bytes:
@@ -278,8 +281,8 @@ class ViewEngine:
         causes = []
         if new.watermark_seq != old.watermark_seq:
             causes.append("watermark_move")
-        if new.collapse_seq != old.collapse_seq:
-            causes.append("collapse")
+        if new.collapse_seq != old.collapse_seq or old.kept - new.kept:
+            causes.append("collapse")  # absorbing kept messages, pins included, is a collapse (D65)
         if new.oversized != old.oversized:
             causes.append("oversized_output")
         if new.omitted_excerpts != old.omitted_excerpts:

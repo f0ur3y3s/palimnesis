@@ -322,3 +322,41 @@ The protocol review and cache audit of S1–S8 found 2 blockers and several shou
 - **S0 delta 5 is not implemented.** `StrataCacheModel` still estimates a continuation's reuse at the previous generation-start checkpoint, 41–70 tokens low (P3). The value is labelled an estimate and no class depends on it.
 - **Text after a hidden call** re-renders before the call (one content field per message), so a continuation's prompt differs from the generated order from there on. Recorded as a known limit beside the external-call case.
 - **Requests without the tools** (`tool_choice: "none"`) in a session that has them still go through the hidden loop, so a copied `palimnesis_*` call is answered, never relayed; dropping the tools from such a request and restoring them costs two full re-reads (known limit).
+
+## Delta: R29 fixes before D64 (2026-10-27)
+
+Neither arm-5 variant matched arm 1 on the development tasks (R29). Every arm-5 miss lost a rule or note the user had typed:
+
+| Miss | Rule or note that left the view | Recalled? |
+|---|---|---|
+| dev-t2 a5-D, C2 | turn-1 rules, gone by call 11 | never |
+| dev-t3 a5-C, C1 | turn-1 rules, absent from call 52 | never |
+| dev-t5, both arms | turn-3 vendor note | a5-D never; a5-C did, then lost track of it |
+
+Two features of the proxy made it worse and caused both 30-minute timeouts:
+
+- **Grep over the model's own reasoning.** It returned the model's earlier inventions as hits.
+- **The per-response lookup cap ending in `length`.** OpenCode answered with a follow-up message that reset every count.
+
+The user chose all three fixes below. Slice S10b lands them test-first; the top two arms then re-run, with the fixes, on the development needles (3 repeats) and the 5 development tasks before D64.
+
+**F1 (D65): instructions stay in view.**
+- `ViewPolicy.pin_tokens` (default 0, off), set with `serve --pin-instructions TOKENS`; the arm-5 development configurations set 4,096.
+- **Pinnable:** a user message that is an instruction (`turns.is_instruction`) and whose own content is at most 1,024 tokens. An attached excerpt block never counts.
+- **At each collapse move,** pinnable messages behind the new boundary stay verbatim in place, newest first, while their total fits `min(pin_tokens, input_budget // 6)`. They break span runs, as kept messages already do. The rest are absorbed.
+- **The kept set changes only at collapse moves,** so it is recorded with the move (cause `collapse`) and rebuilds are identical. A message absorbed once stays collapsed.
+- **Last resort:** when the view is still over the input budget, the collapse absorbs pins too.
+- **Unchanged:** masking never rewrote user messages, and R1 still gives excerpts only to hosts at or after the watermark.
+
+**F2 (D66): grep skips reasoning.**
+- `palimnesis_grep` never searches `reasoning` blocks, in either scope.
+- `palimnesis_recall` still returns them by address.
+- Reason: the model's unverified reasoning, returned as a search hit, reads as evidence. This follows D60's exclusion of hidden results.
+
+**F3 (D67): lookup budget per instruction.**
+- **Follow-up is synthetic.** `turns.SYNTHETIC_USER_PREFIXES` gains OpenCode's length follow-up, "Your last response hit the output token limit (stop reason: length).", as a recorded harness string beside the interrupted-response prompt (`harnesses.md`). So the follow-up starts no turn: transcript turn numbers and the excerpts' "now turn N" no longer advance, and it hosts no excerpt.
+  - This amends S0 delta 3: each response still gets a fresh allowance.
+- **Budget.** At most 16 answered hidden calls per turn: from the latest instruction in the branch, counting archived internal results after it (refusals excluded) plus the calls already answered in this response.
+  - Sixteen covers every clean turn observed: needle questions used at most 14 and clean task turns at most 8. The two runaway turns used 29 and 59.
+- **When spent,** each further hidden call gets "limit reached: no more archive lookups until the next user message. Continue from what you have." It counts as refused under the existing rule, so a further hidden call in a later continuation ends with `length`.
+- **Unchanged:** the per-response limits of §2.4.

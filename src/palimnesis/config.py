@@ -33,6 +33,9 @@ class Settings:
     # Hidden recall tools (Phase 3B): the tools affordance (t1 or t2) whose schemas are
     # fixed at a session's first masked view, or None for none.
     hidden_tools: str | None = None
+    # Pinned instructions (D65): total tokens of short user instructions a collapse keeps
+    # in view; 0 is off.
+    pin_tokens: int = 0
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.
     deadline_s: float = 600.0
