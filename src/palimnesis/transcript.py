@@ -15,6 +15,10 @@ Matching rules:
   present it must be equal. Tool calls must match by id and name exactly;
   arguments match when the strings are equal or both parse to equal JSON
   values (OpenCode resends ``JSON.stringify`` of the parsed arguments).
+  Booleans never equal numbers. Arguments that do not parse as JSON (as
+  ``JSON.parse`` sees it: no ``NaN`` or ``Infinity``) also match ``"{}"``: OpenCode
+  does not run such a call and resends it with empty arguments (``docs/harnesses.md``,
+  D68).
 - A changed system message before the first non-system message is a new
   context version (D10.5), not divergence. OpenCode embeds the date there.
 
@@ -132,11 +136,34 @@ def _block_text(message: Message, kind: str) -> str | None:
     return None
 
 
+def _no_constant(name: str):
+    raise ValueError(f"{name} is not JSON")  # JSON.parse rejects NaN and Infinity
+
+
+def _strict(text: str):
+    return json.loads(text, parse_constant=_no_constant)
+
+
+def _typed(value):
+    """``value`` with booleans kept apart from numbers (in Python, True == 1)."""
+    if isinstance(value, bool):
+        return ("bool", value)
+    if isinstance(value, dict):
+        return {k: _typed(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_typed(v) for v in value]
+    return value
+
+
 def _same_arguments(sent: str, resent: str) -> bool:
     if sent == resent:
         return True
     try:
-        return json.loads(sent) == json.loads(resent)
+        parsed = _strict(sent)
+    except ValueError:
+        return resent == "{}"  # OpenCode resends unparsable arguments as "{}" (D68)
+    try:
+        return _typed(parsed) == _typed(_strict(resent))
     except ValueError:
         return False
 

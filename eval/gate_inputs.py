@@ -443,8 +443,9 @@ RECORD_NAMES = {"questions.jsonl", "calls.jsonl", "front.jsonl", "meta.json", "r
 
 
 def reachable_records(top: Path, *, answer_keys: list[str] = (), hidden: list[str] = ()) -> list[str]:
-    """Files under ``top`` that are run records, hold an answer key (``"gold"`` or a
-    needle file's ``"answer"`` field), or contain a hidden check's text."""
+    """Files under ``top`` that are run records, hold an answer key (a ``"gold"`` or
+    ``"answer"`` field whose value is one of ``answer_keys``), or contain a hidden check's
+    text."""
     found = []
     for f in Path(top).rglob("*"):
         if not f.is_file():
@@ -456,8 +457,9 @@ def reachable_records(top: Path, *, answer_keys: list[str] = (), hidden: list[st
             text = f.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if '"gold"' in text or any(f'"answer": {json.dumps(k)}' in text or f'"answer":{json.dumps(k)}' in text
-                                   for k in answer_keys):
+        # A record's "gold" or "answer" field holding a key; the bare word is not (R31).
+        if any(f'"{field}":{sep}{json.dumps(k)}' in text
+               for k in answer_keys for field in ("gold", "answer") for sep in (" ", "")):
             found.append(str(f))
         elif any(h and h in text for h in hidden):
             found.append(str(f))

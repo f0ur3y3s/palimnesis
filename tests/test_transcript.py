@@ -141,6 +141,87 @@ def test_non_json_tool_arguments_must_match_exactly():
     assert isinstance(result, Divergence) and result.index == 2
 
 
+def test_unparsable_tool_arguments_resent_as_an_empty_object_still_match():
+    # OpenCode does not run a call whose arguments are not JSON; it resends the complete
+    # turn with arguments "{}" (docs/harnesses.md, R31).
+    cut = dict(CALL, arguments='{"path":"hello.py","content":"unterminated')
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[cut]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = "{}"
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+@pytest.mark.parametrize("sent", ['{"v": NaN}', '{"v": Infinity}', "", "   "])
+def test_arguments_javascript_cannot_parse_also_match_an_empty_object(sent):
+    # JSON.parse rejects non-finite constants and empty text; Python's json.loads would
+    # accept the constants, so they count as unparsable here (review of D68).
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[dict(CALL, arguments=sent)]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = "{}"
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+def test_unparsable_arguments_resent_unchanged_still_match():
+    cut = dict(CALL, arguments='{"path":"hel')
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[cut]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = '{"path":"hel'
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+def test_one_turn_mixing_reserialized_and_unparsable_arguments_matches():
+    calls = [dict(CALL, id="call_1", arguments='{"path": "a.py", "n": [1, 2]}'),
+             dict(CALL, id="call_2", arguments='{"path": "b.py", "content": "cut')]
+    archive = _archive(SYS, U1, generated(tool_calls=calls))
+    a = {"role": "assistant", "content": None, "tool_calls": [
+        {"id": "call_1", "type": "function",
+         "function": {"name": "write", "arguments": '{"path":"a.py","n":[1,2]}'}},
+        {"id": "call_2", "type": "function", "function": {"name": "write", "arguments": "{}"}}]}
+    t2 = {"role": "tool", "tool_call_id": "call_2", "content": "invalid"}
+
+    assert reconcile(client(SYS, U1, a, T1, t2), archive) == Extend(3)
+
+
+@pytest.mark.parametrize("sent, resent", [
+    ('{"replaceAll": true}', '{"replaceAll":1}'),
+    ('{"replaceAll": false}', '{"replaceAll":0}'),
+    ('{"n": 1}', '{"n":true}'),
+    ('[true]', '[1]'),
+])
+def test_a_boolean_and_a_number_are_different_arguments(sent, resent):
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.", tool_calls=[dict(CALL, arguments=sent)]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = resent
+
+    result = reconcile(client(SYS, U1, a, T1), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
+def test_an_integral_float_reserialized_as_an_integer_still_matches():
+    # JSON.stringify(1.0) is "1".
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.",
+                                         tool_calls=[dict(CALL, arguments='{"limit": 2.0}')]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = '{"limit":2}'
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+@pytest.mark.parametrize("sent", ['{"path":"hello.py"}', '"a string"', "[1, 2]"])
+def test_json_tool_arguments_resent_as_an_empty_object_diverge(sent):
+    archive = _archive(SYS, U1, generated(tool_calls=[dict(CALL, arguments=sent)]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = "{}"
+
+    result = reconcile(client(SYS, U1, a, T1), archive)
+
+    assert isinstance(result, Divergence) and result.index == 2
+
+
 def test_assistant_message_palimnesis_never_generated_diverges():
     archive = _archive(SYS, U1, U2)  # archived as client-sent users only
     result = reconcile(client(SYS, U1, {"role": "assistant", "content": "hi"}, U2), archive)

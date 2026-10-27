@@ -66,7 +66,7 @@ All of the above are **[enforced]**.
 - **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
 - **Reconciliation** (D10.3–D10.5, `palimnesis.transcript`). Each resend is compared position by position with the archived visible history:
   - Client messages match by content hash.
-  - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments.
+  - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments. Booleans never equal numbers. Arguments that never parsed as JSON (as `JSON.parse` sees it) also match the client's `{}`, OpenCode's resend of a call it could not run (D68).
   - A changed system message before the first non-system message is a new context version, not a divergence.
   - A flattened partial matches with its acknowledged extent, and so does a complete turn whose delivery never completed.
   - A partial the client cancelled may be omitted; it is superseded (D13.1).

@@ -269,6 +269,18 @@ def test_no_answer_key_or_hidden_check_is_reachable_from_the_workspace_tree(tmp_
     assert sorted(Path(f).name for f in found) == ["copy.py", "planted.json"]
 
 
+def test_a_quoted_gold_counts_only_with_an_answer_key(tmp_path):
+    """R31: a task's model wrote "gold" in quotes in its own code. Neither a task run (no
+    answer keys) nor a needle run counts the word alone; a copied record's gold key does."""
+    (tmp_path / "turn-0001.md").write_text('tiers = {"gold": 3, "silver": 2}', encoding="utf-8")
+
+    assert gate_inputs.reachable_records(tmp_path, hidden=["class HiddenTests"]) == []
+    assert gate_inputs.reachable_records(tmp_path, answer_keys=["x9"]) == []
+    (tmp_path / "copy.jsonl").write_text('{"gold": "x9", "answer": "y"}', encoding="utf-8")
+    assert [Path(f).name for f in gate_inputs.reachable_records(tmp_path, answer_keys=["x9"])] == [
+        "copy.jsonl"]
+
+
 def test_import_file_is_deleted_after_import(tmp_path):
     class Home:
         def import_(self, path):

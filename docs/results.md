@@ -1465,3 +1465,64 @@ a5-Cp also passes 5/5 and holds 15/15, but spends 12.0M prompt tokens (+127%). O
 - This is the hazard D66 removed from grep: unverified reasoning presented beside evidence.
 - No task or constraint failed on it here.
 - It is open; changing excerpt retrieval would change the arm under test.
+
+## R31 — S11 held-out at 32K, attempt 1: stopped on a proxy defect (2026-10-27)
+
+**Outcome: superseded by the D44.8 rerun.** The first ho2 pass ran both needle sets and one task, then stopped on a proxy defect (D68). Under D44.8 the gates are judged on the rerun at the fixed commit; this attempt is reported, not judged.
+- **Arm 5 needles:** 97/120 loose exact (80.8%). That would fail the 85% gate.
+- **Arm 4 needles:** 119/120 (99.2%).
+- **ho2-t1 under arm 5:** failed (1/4 functional, 1/3 constraints). The cause was the defect: every request from turn 5's last call on was refused `409 history_divergence`, so turns 6–8 never reached the model.
+
+**Setup.**
+- **Code:** `b086098` (D64), clean tree. Drivers: `needle-opencode v2` and `tasks-run v2`. OpenCode 2.1.4.
+- **Deterministic suite:** 1527 passed, 1 skipped at `b086098`. At the D68 fix: 1545 passed and 1 skipped, with 1 failure, the known R29 flake (`test_session_usable_after_mid_stream_commit_failure`). In a clean worktree it failed 2 of 4 runs at `b086098` and 2 of 3 with the fix, so it is timing, not the fix.
+- **Strata:** Zeus 0.1.48, relaunched by the user at `n_ctx` 32768. `/props` reported 32768 before and after every run.
+- **Before any held-out run:**
+  - `run.py --check-reference`: every task, ho2-t1..t5 included, fails on its stub and passes on its reference.
+  - `needle.py preflight --set heldout2`: 12/12 imports faithful (101/101 messages, 50 empty reasoning fields added).
+  - Live cancel check (D45.9.16), under both `a4-d43` and `a5-d64`: both taps recorded the disconnect, Strata released the slot in 0.128 s and 0.132 s, and the resend got 200.
+- **D39.** Strata's activity counter rose by exactly our upstream calls in every run:
+  - needles arm 5: 4 → 306 (302 calls);
+  - needles arm 4: 306 → 612 (306 calls);
+  - ho2-t1 arm 5: 612 → 884 (272 calls).
+
+  Foreign traffic 0 and gate events 0 throughout.
+- **Raw data:** `…/scratchpad/s11b/` (`needles-a5-d64/`, `needles-a4-d43/`, `tasks/`, `heldout.log`).
+
+**R31-A. Needles, one attempt per arm.**
+
+| Arm | Loose exact | 95% Wilson | History-clustered bootstrap | Strict | In view / excerpt / absent | Early stops | Lookups (questions) | Unnecessary (questions) | Invalid ids | Prompt / completion tokens | Latency p50 / p90 s | Wall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| a5-d64 | 97/120 (80.8%) | 72.9–86.9% | 71.7–90.0% | 87 | 54 / 55 / 23 | 22 | 112 hidden (36) | 24 (13) | 0/67 | 5.73M / 31K | 6.5 / 12.6 | 19.9 min |
+| a4-d43 | 119/120 (99.2%) | 95.4–99.9% | 97.5–100% | 103 | 29 / 70 / 25 | 1 | 133 transcript (61) | 50 (36) | – | 5.51M / 54K | 10.1 / 19.9 | 25.3 min |
+
+- **Both arms are otherwise clean:**
+  - `--explain` exits 0 with 0 unexplained pairs;
+  - transcripts verify 12/12;
+  - 0 over budget, 0 excerpt leaks, 0 hidden-recall leaks;
+  - 0 views disabled.
+- **Arm 5's misses are early stops.** 22 of its 23 misses end with finish `stop` after 19–131 completion tokens, with an empty or prefix answer, such as the first word of a branch name. The 23rd (ho2h8q2) is a full answer that does not match. No hidden call, limit or budget was involved: each call asked for 8,192 tokens and stopped on its own.
+- **The misses cluster by position.**
+  - Q2–Q5 of ho2-h2, h4, h9 and h10;
+  - h6q5, h7q2, h8q1, h8q2, h11q2, h12q4 and h12q5.
+  - By category: identifier 16/24, superseded 8/12, irrelevant matches 7/12, vague 18/24. Every other category is 12/12.
+- **The early stops come with the pinned layout (D65).**
+  - Pins split each collapsed region into alternating pinned user messages and user-role span notes.
+  - Every arm-5 question's first call had more than 30 consecutive user messages in 110 of 120 cases. All 23 misses are among those 110.
+  - None of the 10 questions with shorter runs missed.
+  - Arm 4's prompts never have more than 2 user messages in a row, and it had 1 early stop.
+  - This is an association, not a proof: no held-out prompt was replayed. A development-only test, pins on against off with the same views, is the next step.
+- **Not a defect.** The proxy rendered what D65 specifies. Changing it after these results would be selection on held-out data (D62), so `a5-d64` stays as D64 froze it for the rerun.
+
+**R31-B. ho2-t1 under arm 5, and the defect (D68).**
+- **The run:**
+  - 272 upstream calls, 4.37M prompt tokens, 16 hidden calls, 3,786 s.
+  - Turn 3 was killed at 30 minutes (one client cancel).
+  - `--explain` passed 271/271 pairs; verify, over-budget and hidden-leak checks were clean.
+- **The defect.** The model emitted a `write` call whose arguments were an unterminated JSON string (6,991 bytes). OpenCode did not run it: it replied with its `tool.input-json` error and resent the complete turn with `arguments: "{}"`. Reconciliation accepted that rewrite only for incomplete turns, so message 541 diverged, and the proxy answered 409 to that request and every later one.
+- **A second stop was an eval false positive.** `reachable_records` flagged the session's turn-1 transcript because the model had written a quoted `"gold"` in its own code. The workspace and the task module contain no such string. Fixed test-first: a file now counts only when its `"gold"` or `"answer"` field holds one of the run's answer keys (D68).
+- **Review.** The protocol review of the fix found three more cases, all fixed test-first in D68:
+  - `NaN` and `Infinity` parse in Python but not in `JSON.parse`, so they would have caused the same lockout;
+  - booleans equalled numbers under JSON equality, so an edited `true` → `1` resend passed reconciliation;
+  - composite turns render the raw arguments upstream.
+- **Per D44.8,** the batch stopped there. ho2-t1 under arms 4 and 1 and ho2-t2..t5 did not run in this attempt. The fix is D68. The whole needle set and all 15 task runs rerun at the fixed commit, and the gates are judged on that rerun.

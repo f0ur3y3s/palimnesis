@@ -140,6 +140,23 @@ def test_the_client_never_resends_hidden_calls_and_external_calls_match(store):
     assert up[5] == {"role": "tool", "tool_call_id": "call_e1", "content": "kiln ok"}
 
 
+def test_an_external_call_with_unparsable_arguments_resent_as_an_empty_object_matches(store):
+    # D68 in a composite turn: the client resends "{}", and upstream gets the parts as the
+    # model saw them, the raw arguments included, with the hidden result in its place.
+    plan = _accept(store, [SYSTEM, ASK])
+    cut = '{"path": "kiln.log", "content": "unterminated'
+    _hidden_turn(store, plan, external=[("call_e1", "write", cut)])
+    resent = {"role": "assistant", "content": VISIBLE, "tool_calls": [
+        {"id": "call_e1", "type": "function", "function": {"name": "write", "arguments": "{}"}}]}
+    nxt = _accept(store, [SYSTEM, ASK, resent,
+                          {"role": "tool", "tool_call_id": "call_e1", "content": "invalid input"}])
+    up = _upstream(nxt)
+    assert up[2:4] == [PART1, RESULT_MSG]
+    assert up[4]["tool_calls"] == [{"id": "call_e1", "type": "function",
+                                    "function": {"name": "write", "arguments": cut}}]
+    assert up[5] == {"role": "tool", "tool_call_id": "call_e1", "content": "invalid input"}
+
+
 def test_a_resend_that_includes_a_hidden_call_diverges(store):
     plan = _accept(store, [SYSTEM, ASK])
     _hidden_turn(store, plan)

@@ -849,3 +849,23 @@ Decided by the user after the development tasks (R29-E). Every arm-5 miss lost a
 - **Rejected:**
   - *Ending the response with `stop` at the cap*: it would end an agentic turn mid-task.
   - *Counting per client request*: the dev-t2 spiral spread 29 calls over 175 responses.
+
+## D68 — Unparsable tool arguments resent as `{}` reconcile (S11 defect, R31)
+
+A defect found during the first S11 held-out run (D44.8, D62.5).
+- **What happened.** On ho2-t1 under arm 5, the model emitted a `write` call whose arguments were not JSON (an unterminated string). OpenCode did not run it: it answered with its `tool.input-json` error and resent the complete turn with `arguments: "{}"`, as `docs/harnesses.md` records. Reconciliation accepted `{}` only for an incomplete turn, so the resend was `409 history_divergence`, and so was every later request in that session. Turns 6–8 never reached the model.
+- **The fix.** Tool-call arguments that do not parse as JSON also match the client's `"{}"`. Arguments that parse, including a JSON string or array, must still be JSON-equal (contracts §2, `palimnesis.transcript`).
+  - "Parse" means as JavaScript's `JSON.parse` does: `NaN` and `Infinity`, which Python's `json.loads` accepts, count as unparsable, and so does empty text.
+  - **What upstream gets:**
+    - A single-call turn: the client's copy, `{}` included, as for a partial tool call and as passthrough would.
+    - A composite turn (D51): every part as the model saw it, the raw arguments included, with the hidden results in place.
+
+    Both are protocol-safe: Strata keeps non-JSON arguments as text (#510).
+  - The archive keeps what the model generated either way.
+  - Tests, red first: `tests/test_transcript.py` (pure), `tests/test_composite.py` (composite) and `tests/test_unparsable_args_http.py` (fake upstream).
+- **Tightened in the same review: booleans never equal numbers.** JSON equality used Python's `==`, under which `true == 1`, so an edited resend of `{"replaceAll": 1}` matched an archived `{"replaceAll": true}` and went upstream as history. That breaks contracts §2 ("edited or forged history → 409"). An integral float still equals its integer, because `JSON.stringify(1.0)` is `"1"`.
+- **Unverified:** what OpenCode resends for arguments that parse but fail the tool's schema (an array, a string, a wrongly typed object). This rule does not cover them. If OpenCode also sends `{}` for those, the same lockout remains through that path. Probe before widening.
+- **Not narrowed to OpenCode.** The rule keys off the protocol shape: a call the client could not parse comes back with empty arguments. A client that resends the raw text still matches exactly.
+- **Eval fix with it (test-first).** `gate_inputs.reachable_records` treated any quoted `"gold"` as a needle answer key. In the same run the model wrote one in its own code, so the task's transcript looked like a leaked record. A file now counts only when its `"gold"` or `"answer"` field holds one of the run's answer keys, as the `"answer"` check already did.
+- **Consequence (D44.8).** The whole ho2 needle set and every task rerun on the fixed commit, and the gates are judged on the rerun. The first attempt's data is kept and reported (R31).
+- **The needle early stops are not part of this fix.** They come with the pinned layout (R31), which D65 specifies; changing it after seeing held-out results is what D62 forbids. a5-d64 stays as D64 froze it.
