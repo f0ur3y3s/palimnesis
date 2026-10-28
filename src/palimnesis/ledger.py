@@ -63,6 +63,8 @@ class Plan:
     # Upstream messages in order, each with its archived occurrence (palimnesis.view).
     items: list = field(default_factory=list)
     view_state: Any = None  # the branch's persisted ViewState when planned
+    # The notes version view_state names, {notes_id: (n, text)} (D72).
+    notes: dict = field(default_factory=dict)
     # The genuine new user instruction this request carries, which gets an excerpt
     # selection (A1); None for tool-result requests and retries.
     host_occ_id: str | None = None
@@ -615,7 +617,8 @@ def latest_view(conn: sqlite3.Connection, branch_id: str):
         masks = {"oversized": masks, "kept": []}
     return view_id, n, ViewState(watermark, collapse, frozenset(masks["oversized"]),
                                  frozenset(masks["kept"]),
-                                 frozenset(masks.get("omitted_excerpts", [])))
+                                 frozenset(masks.get("omitted_excerpts", [])),
+                                 masks.get("notes"))
 
 
 def view_at(conn: sqlite3.Connection, branch_id: str, n: int):
@@ -633,7 +636,31 @@ def view_at(conn: sqlite3.Connection, branch_id: str, n: int):
         masks = {"oversized": masks, "kept": []}
     return view_id, ViewState(watermark, collapse, frozenset(masks["oversized"]),
                               frozenset(masks["kept"]),
-                              frozenset(masks.get("omitted_excerpts", [])))
+                              frozenset(masks.get("omitted_excerpts", [])),
+                              masks.get("notes"))
+
+
+def notes_for(conn: sqlite3.Connection, notes_id: str | None) -> dict:
+    """{notes_id: (n, text)} of a committed notes version, or {} (D72)."""
+    if not notes_id:
+        return {}
+    row = conn.execute("SELECT n, text FROM notes_versions WHERE notes_id = ?"
+                       " AND status = 'committed'", (notes_id,)).fetchone()
+    return {notes_id: (row[0], row[1])} if row else {}
+
+
+def record_notes(conn: sqlite3.Connection, plan: Plan, *, base_view_n: int, text: str,
+                 status: str, reason: str | None) -> tuple[str, int]:
+    """Persist the branch's next notes version (immutable, numbered): (notes_id, n)."""
+    n = conn.execute("SELECT coalesce(max(n), 0) FROM notes_versions WHERE branch_id = ?",
+                     (plan.branch_id,)).fetchone()[0] + 1
+    notes_id = new_id("notes")
+    conn.execute("INSERT INTO notes_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 (notes_id, plan.branch_id, n, plan.request_id, base_view_n, text, status,
+                  reason, time.time()))
+    _event(conn, plan.request_id, plan.attempt_id, "notes_version", notes_id=notes_id, n=n,
+           status=status, reason=reason)
+    return notes_id, n
 
 
 def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: str,
@@ -651,7 +678,8 @@ def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: 
         (view_id, plan.branch_id, n + 1, plan.request_id, policy_version, stub_format,
          state.watermark_seq, state.collapse_seq,
          json.dumps({"oversized": sorted(state.oversized), "kept": sorted(state.kept),
-                     "omitted_excerpts": sorted(state.omitted_excerpts)}),
+                     "omitted_excerpts": sorted(state.omitted_excerpts),
+                     **({"notes": state.notes} if getattr(state, "notes", None) else {})}),
          json.dumps(budget), cause, time.time()))
     _event(conn, plan.request_id, plan.attempt_id, "view_version", view_id=view_id, n=n + 1,
            cause=cause, watermark_seq=state.watermark_seq, collapse_seq=state.collapse_seq)
@@ -787,11 +815,12 @@ def _plan(conn, session_id, branch_id, request_id, attempt_id, req, archived, ou
           client_occs=None, cache=None, host_occ_id=None, retry=False) -> Plan:
     body, items = _upstream_body(conn, req, archived, outcome, client_occs, branch_id, cache)
     view_id, view_n, state = latest_view(conn, branch_id)
+    notes = notes_for(conn, state.notes)
     if retry:
         host_occ_id = _unselected_host(conn, request_id, items)
     return Plan(session_id, branch_id, request_id, attempt_id, body, req.stream,
                 items=items, view_state=state, host_occ_id=host_occ_id,
-                view_id=view_id, view_n=view_n)
+                view_id=view_id, view_n=view_n, notes=notes)
 
 
 def _unselected_host(conn, request_id: str, items) -> str | None:
@@ -1125,7 +1154,9 @@ def last_upstream_call(conn: sqlite3.Connection, branch_id: str) -> tuple[str, d
     """(request_id, payload) of the branch's newest ``upstream_call`` event."""
     row = conn.execute(
         "SELECT request_id, payload FROM events WHERE kind = 'upstream_call'"
-        " AND json_extract(payload, '$.branch_id') = ? ORDER BY event_id DESC LIMIT 1",
+        " AND json_extract(payload, '$.branch_id') = ?"
+        " AND json_extract(payload, '$.call_id') NOT LIKE '%#notes'"  # D72: never a base
+        " ORDER BY event_id DESC LIMIT 1",
         (branch_id,)).fetchone()
     return (row[0], json.loads(row[1])) if row else None
 

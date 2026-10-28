@@ -31,6 +31,13 @@ Mechanisms (docs/papers.md):
   the turn's own groups only when the view still exceeds ``H``, oldest first to ``T``.
   Without it, a large read collapsed the steps the model had just taken, and the model
   invented their history (R33-B).
+- **Working notes** (D72; R33-D, adapting the summary checkpoint of native compaction).
+  With ``notes_tokens`` S, S is reserved out of the maskable capacity, as Q is. A state
+  naming a notes version renders its text as one user-role block right after the last
+  span note. A move that advances the collapse boundary returns ``refresh``: the request
+  as it rendered before the move, plus ``NOTES_PROMPT``, which the proxy sends upstream
+  to have the model rewrite its notes before the older messages leave its view. The
+  builder itself still makes no upstream calls.
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
@@ -74,6 +81,25 @@ from .turns import is_instruction
 POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
 PIN_MESSAGE_TOKENS = 1_024  # D65: longer user messages are never pinned
 PIN_BUDGET_SHARE = 6  # D65: pins take at most input_budget // 6
+NOTES_PROMPT = (
+    "[palimnesis notes request] Older messages of this conversation are about to leave your "
+    "view. They stay archived exactly. Rewrite your working notes so that you can continue "
+    "the task without them; they replace any earlier notes. Use these sections:\n"
+    "Objective\n"
+    "Requirements and constraints (quote the user's rules and the exact values, names and "
+    "formats from documents and specs)\n"
+    "Decisions\n"
+    "Done so far (files and functions changed, the latest test results)\n"
+    "Current step and next move\n"
+    "Dead ends (what was tried and failed, and why)\n"
+    "Write plain text, at most about 1,200 words. Do not call tools, and do not continue the "
+    "task in this reply.")
+
+
+def notes_block(n: int, text: str) -> str:
+    """The rendered working-notes block of notes version ``n`` (D72)."""
+    return (f"[palimnesis notes · v{n} · your own working notes from earlier in this "
+            f"conversation; the user's messages win]\n\n{text}")
 
 
 @dataclass(frozen=True)
@@ -85,6 +111,7 @@ class ViewPolicy:
     stub_format: str = "s1"  # s1 (Phases 2-3) or a 3B matrix variant (docs/affordances.md)
     pin_tokens: int = 0  # D65: total for pinned instructions; 0 turns pinning off
     protect_turn: bool = False  # D70: collapse the current turn last
+    notes_tokens: int = 0  # D72: the working-notes slot S; 0 turns notes off
 
 
 @dataclass(frozen=True)
@@ -108,6 +135,7 @@ class ViewState:
     # boundary means the same view on every later rebuild.
     kept: frozenset[str] = frozenset()
     omitted_excerpts: frozenset[str] = frozenset()  # excerpt block ids, monotone (R2)
+    notes: str | None = None  # D72: the notes version this view renders
 
 
 @dataclass(frozen=True)
@@ -124,6 +152,8 @@ class View:
     # Occurrences this build newly masked or collapsed: the spans retrieval
     # must cover because they are leaving the active view now (A1 Phase 3).
     evicted_now: tuple[str, ...] = ()
+    # D72: the refresh request for a move that advanced the collapse boundary.
+    refresh: "View | None" = None
 
 
 def _group_starts(items: Sequence[ViewItem]) -> list[int]:
@@ -147,8 +177,9 @@ def _text_of(message: Mapping[str, Any]) -> str:
 
 class _Builder:
     def __init__(self, items, tools, render_kwargs, budget, policy, counter,
-                 drops_empty_assistant=False):
+                 drops_empty_assistant=False, notes=None):
         self.items = list(items)
+        self.notes = dict(notes or {})
         self.tools = tools
         self.render_kwargs = dict(render_kwargs)
         self.budget = budget
@@ -232,10 +263,12 @@ class _Builder:
                 run_start = i
             runs.setdefault(run_start, []).append(i)
         collapsed = {i for run in runs.values() for i in run}
+        last_span = None
         for i, item in enumerate(self.items):
             if i in collapsed:
                 run = runs.get(i)
                 if run is not None:
+                    last_span = len(messages)
                     first, last = self.items[run[0]], self.items[run[-1]]
                     messages.append({"role": "user", "content": span_note(
                         first.alias, last.alias, len(run), fmt=self.policy.stub_format)})
@@ -255,6 +288,13 @@ class _Builder:
                 included.append(block_id)
                 charge += block_charge
             messages.append(message)
+        notes = self.notes.get(state.notes) if state.notes else None
+        if notes is not None and last_span is not None:  # D72: right after the last span note
+            at = max(k for k, (_, form) in enumerate(manifest) if form == "collapsed") + 1
+            manifest.insert(at, (f"notes:{state.notes}", "notes"))
+            block = {"role": "user", "content": notes_block(*notes)}
+            messages.insert(last_span + 1, block)
+            charge += self.counter.count_cached(block["content"])
         return messages, tuple(manifest), tuple(included), charge
 
     def excerpt_included(self, index: int, watermark: int, state: ViewState) -> bool:
@@ -350,14 +390,23 @@ class _Builder:
                 or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))
                     and i not in self.dropped))
 
+    def saving(self, i: int) -> int:
+        """Tokens item ``i``'s masked form saves; 0 when a stub would not replace it."""
+        masked, changed = self.masked_message(i)
+        if not changed:
+            return 0
+        count = self.counter.count_cached
+        return count(_text_of(self.items[i].message)) - count(_text_of(masked))
+
     def stub_largest(self, state: ViewState, lo: int, hi: int, goal: int) -> ViewState:
-        """Stub unmasked items in ``[lo, hi)`` in place, largest first, until the view's
-        non-excerpt total fits ``goal`` (D70; the oversized path stubs the same way)."""
+        """Stub unmasked items in ``[lo, hi)`` in place, largest saving first, until the
+        view's non-excerpt total fits ``goal`` (D70). Items a stub leaves unchanged are
+        never recorded: a move must change what renders."""
         watermark = self.seq_index(state.watermark_seq) if state.watermark_seq else 0
         order = sorted((i for i in range(max(lo, watermark), hi)
                         if not self.is_fixed(i, state) and self.stubbable(i)
-                        and self.items[i].occ_id not in state.oversized),
-                       key=lambda i: -self.counter.count_cached(_text_of(self.items[i].message)))
+                        and self.items[i].occ_id not in state.oversized and self.saving(i) > 0),
+                       key=lambda i: -self.saving(i))
         for i in order:
             *_, charge, total = self.measure(state)
             if total - charge <= goal:
@@ -424,13 +473,34 @@ def _seq(items: Sequence[ViewItem], index: int) -> int:
     return items[index].seq or 0
 
 
+def _refresh(b: _Builder, state: ViewState, budget: Budget) -> View | None:
+    """D72: ``state``'s rendering plus the notes prompt, within the input budget. The
+    largest unmasked results are stubbed first, the newest included, if it would overflow."""
+    prompt = {"role": "user", "content": NOTES_PROMPT}
+    order = sorted((i for i in range(len(b.items)) if not b.is_fixed(i, state) and b.stubbable(i)
+                    and b.items[i].occ_id not in state.oversized),
+                   key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
+    for i in [None, *order]:
+        if i is not None:
+            state = replace(state, oversized=state.oversized | {b.items[i].occ_id})
+        messages, manifest, included, charge, _ = b.measure(state)
+        tokens = b.count([*messages, prompt])
+        if tokens <= budget.input_budget:
+            return View([*messages, prompt], tokens, state, False, 0, 0,
+                        (*manifest, ("notes-request", "notes_request")), included, charge)
+    return None
+
+
 def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
           render_kwargs: Mapping[str, Any], budget: Budget, state: ViewState,
-          policy: ViewPolicy, counter, drops_empty_assistant: bool = False) -> View:
-    b = _Builder(items, tools, render_kwargs, budget, policy, counter, drops_empty_assistant)
+          policy: ViewPolicy, counter, drops_empty_assistant: bool = False,
+          notes: Mapping[str, tuple[int, str]] | None = None) -> View:
+    b = _Builder(items, tools, render_kwargs, budget, policy, counter, drops_empty_assistant,
+                 notes)
     fixed = b.fixed_tokens()
     check_fixed(budget, fixed_tokens=fixed)
-    capacity = budget.input_budget - budget.catalog - budget.recall_excerpts - fixed
+    capacity = (budget.input_budget - budget.catalog - budget.recall_excerpts - fixed
+                - policy.notes_tokens)
     high = fixed + policy.high * capacity
     target = fixed + policy.target * capacity
 
@@ -458,6 +528,7 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     if total - charge <= high and total <= budget.input_budget:
         return view(state, state != original)
     base_manifest = manifest
+    before = state
 
     # Advance the watermark over group starts, oldest first.
     old_w = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
@@ -539,6 +610,8 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
             *_, total = b.measure(b.keep_fixed(new_state))
     new_state = b.keep_fixed(new_state)
     result = view(new_state, new_state != original, base_manifest)
+    if policy.notes_tokens and new_state.collapse_seq != before.collapse_seq:
+        result = replace(result, refresh=_refresh(b, before, budget))
     if result.tokens > budget.input_budget:
         raise BudgetError(
             f"the view needs {result.tokens} tokens after masking everything maskable; the "
@@ -551,4 +624,5 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
 def view_state_json(state: ViewState) -> str:
     return json.dumps({"watermark_seq": state.watermark_seq, "collapse_seq": state.collapse_seq,
                        "oversized": sorted(state.oversized), "kept": sorted(state.kept),
-                       "omitted_excerpts": sorted(state.omitted_excerpts)})
+                       "omitted_excerpts": sorted(state.omitted_excerpts),
+                       **({"notes": state.notes} if state.notes else {})})

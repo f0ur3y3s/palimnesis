@@ -38,6 +38,9 @@ class Settings:
     pin_tokens: int = 0
     # The current turn's own work stays in view (D70); off keeps the frozen behaviour.
     protect_turn: bool = False
+    # Working notes (D72): the notes slot in tokens; 0 is off. A collapse move then
+    # refreshes the notes with one internal upstream call.
+    notes_tokens: int = 0
     # Excerpt retrieval: r1, or r2 without reasoning (D71).
     retrieval: str = "r1"
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,

@@ -201,3 +201,26 @@ def test_random_sessions_with_turn_protection_never_exceed_the_budget(counter, s
             assert view.tokens <= _budget().input_budget
             assert view.state.oversized >= state.oversized
             state = view.state
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_turn_stubbing_never_records_an_item_its_stub_leaves_unchanged(counter, seed):
+    rnd = random.Random(100 + seed)
+    policy = ViewPolicy(protect_turn=True)
+    s = Session().system().user(INSTRUCTION)
+    state = ViewState()
+    for i in range(30):
+        s.tool_turn(i, rnd.choice(["ok", "ok step", _code(i, lines=rnd.choice([30, 200]))]))
+        view = _view(counter, s, policy, state=state)
+        forms = _forms(view)
+        assert all(forms[occ] != "verbatim" for occ in view.state.oversized)
+        state = view.state
+
+
+def test_tiny_results_a_stub_cannot_shrink_are_never_recorded_as_stubbed(counter):
+    s = _write_turn(Session().system().user(INSTRUCTION), 30)
+
+    view = _view(counter, s, ViewPolicy(protect_turn=True))
+
+    forms = _forms(view)
+    assert all(forms[occ] != "verbatim" for occ in view.state.oversized)

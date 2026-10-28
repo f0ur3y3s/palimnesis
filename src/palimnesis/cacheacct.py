@@ -182,6 +182,8 @@ def _view_cause(p: Turn | None, c: Turn | None, prev: Call, cur: Call) -> str | 
     budget_changed = prev.budget != cur.budget
     if c.form == "collapsed" and (p.form != "collapsed" or p.occs != c.occs):
         return "collapse" if moved else None
+    if c.form == "notes" and (p.form != "notes" or p.occs != c.occs):
+        return "state_commit" if moved else None  # D72
     if p.occs != c.occs:
         return None
     if p.form != c.form:
@@ -227,6 +229,9 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     if prev.disabled or cur.disabled or prev.layout is None or cur.layout is None:
         cause = ("view_disabled" if prev.disabled or cur.disabled
                  else "model_template_change" if prev.identity != cur.identity
+                 # a previous call that cannot be rebuilt under a changed view policy or
+                 # stub format (cache audit of D70)
+                 else "view_format_change" if prev.formats != cur.formats
                  else "unexplained")  # a call counted by another counter revision (D46)
         return {"lcp_tokens": None, "first_diff": None, "cause": cause,
                 "expected_reuse_est": 0}
@@ -236,7 +241,8 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     out = {"lcp_tokens": lcp, "first_diff": None, "expected_reuse_est": estimate}
     if lcp >= a.generation_start:
         # A call inside one visible response extends the one before it (D51).
-        out["cause"] = ("internal_continuation" if prev.request_id == cur.request_id
+        out["cause"] = ("state_refresh" if cur.call_id.endswith("#notes")  # D72
+                        else "internal_continuation" if prev.request_id == cur.request_id
                         and "#" in cur.call_id else "append")
         return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))
@@ -438,7 +444,8 @@ class Accountant:
                 policy = replace(policy, high=float("inf"))
             view = build(items, tools=tools, render_kwargs=kw, budget=budget, state=state,
                          policy=policy, counter=self.profile.counter,
-                         drops_empty_assistant=self.profile.rules.drops_empty_assistant)
+                         drops_empty_assistant=self.profile.rules.drops_empty_assistant,
+                         notes=ledger.notes_for(conn, state.notes))
         except Exception:
             log.exception("could not re-render the previous upstream call")
             return prev

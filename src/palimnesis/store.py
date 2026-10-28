@@ -301,6 +301,23 @@ CREATE TABLE excerpt_items (
 ) STRICT;
 """
 
+# v6: working-notes versions (D72), immutable like the archive.
+_NOTES_KEYS = {"notes_versions": [("notes_id",), ("branch_id", "n")]}
+_NOTES = """
+CREATE TABLE notes_versions (
+    notes_id TEXT PRIMARY KEY,
+    branch_id TEXT NOT NULL REFERENCES branches,
+    n INTEGER NOT NULL,
+    request_id TEXT REFERENCES requests,
+    base_view_n INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('committed', 'failed')),
+    reason TEXT,
+    created_at REAL NOT NULL,
+    UNIQUE (branch_id, n)
+) STRICT;
+"""
+
 MIGRATIONS: list[str | tuple[str, str]] = [
     _SCHEMA_V1 + _immutability_triggers(),
     # v2: derived full-text index (palimnesis.search), filled from existing blocks.
@@ -317,6 +334,7 @@ MIGRATIONS: list[str | tuple[str, str]] = [
      " start INTEGER NOT NULL, \"end\" INTEGER NOT NULL) STRICT;\n"
      "CREATE INDEX chunk_map_block ON chunk_map (block_rowid);",
      "palimnesis.search:backfill_chunks"),
+    _NOTES + _immutability_triggers(_NOTES_KEYS),
 ]
 
 _DENIED_ACTIONS = frozenset(

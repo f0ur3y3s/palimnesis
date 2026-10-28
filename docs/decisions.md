@@ -894,3 +894,45 @@ A defect found during the first S11 held-out run (D44.8, D62.5).
 - **The rule.** r2 is r1 with reasoning blocks left out of the candidates.
 - **Why.** Excerpts returned the model's own unverified reasoning, including its inventions, under the header "historical evidence". On ho2 that included "an earlier task variant (spec A)" and a false column rule, and R30-C measured reasoning at 42% of excerpt items. D66 removed reasoning from grep for the same reason.
 - **Unchanged.** Recall by address still returns reasoning.
+
+## D72 — Working notes refreshed by the model at each collapse (R33-D, user choice B)
+
+`ViewPolicy.notes_tokens`, `serve --notes TOKENS`; 0 (off) by default, so the frozen arms keep their behaviour.
+- **The user's choice.** The options were:
+  - (A) model-maintained notes through a hidden tool;
+  - (B) a proxy-triggered refresh, in which the model writes the notes;
+  - (C) a deterministic digest assembled by the proxy.
+
+  The user chose B, because it is closest to the summary that made native compaction win in R33-D. This amends the plan's "deterministic compaction free of LLM calls" for this feature only: masking and collapse stay deterministic, and the notes are a fallible aid that the model writes.
+- **When.** Only on a view move that advances the collapse boundary. Watermark-only moves do not trigger it.
+- **The refresh call.**
+  - The proxy sends one internal call, `<attempt>#notes`, before the client's call.
+  - Its body is the request rendered under the state the move started from, plus `NOTES_PROMPT`. That is the previous view plus the new messages, so it extends the previous call's prompt and keeps the prefix cache.
+  - If that would exceed `B_in`, the largest unmasked results are stubbed first, the newest included.
+  - It uses the client's tools and settings, with the reserve as output limit and streaming on.
+  - Reasoning is discarded. It runs inside the request deadline, and a client disconnect cancels it.
+- **Commit.**
+  - The text is cut at a line so the rendered block fits S.
+  - It is stored in `notes_versions`, which is immutable and numbered per branch, and named by the view version (`ViewState.notes`).
+  - A refresh fails on any of: an upstream status, a transport error, a 180 s timeout, a tool call, an error event, or no text. A failure is recorded and keeps the previous notes.
+- **Rendering.**
+  - The notes appear as one user-role block right after the last span note, headed: "your own working notes from earlier in this conversation; the user's messages win".
+  - S is reserved out of the maskable capacity, and the block's tokens never count toward `H` or `T`, so the notes never move the watermark.
+- **Accounting.**
+  - The refresh call is `state_refresh`. The next call's first change is the collapse, so it is `collapse`.
+  - A view whose first change is its notes is `state_commit` (contracts §10).
+  - The view version's cause gains `state_commit`.
+  - A restart never takes a refresh call as its base (`last_upstream_call`).
+  - The rendering policy is recorded as `+notesS` in `policy_version`.
+- **Cost.**
+  - One upstream call per collapse move. R32 had 23–95 collapse moves per task; arm 1 made 17–90 compaction calls.
+  - The prompt is mostly cached, so the cost is the generation: roughly 15–40 s on Zeus.
+  - OpenCode waits up to 300 s for headers (harnesses.md). Other harnesses' header timeouts are unverified, which matters for 4B.
+- **Rejected.**
+  - *Refreshing in the background:* an agent loop rarely leaves the slot idle.
+  - *Putting the notes in the system message:* every refresh would re-read the whole prompt.
+  - *Putting the notes at the end of the view:* they would be re-read on every call.
+
+Cache-audit fixes to D70 (from the audit of `487c2ad`):
+- In-turn stubbing never records an item its stub leaves unchanged, and it orders by tokens saved.
+- A previous call that cannot be re-rendered because the recorded view format differs is `view_format_change`, not `unexplained`. This also covers a `--stub` change across a restart.

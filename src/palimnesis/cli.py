@@ -67,6 +67,9 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                             "this many tokens (D65); 0 is off")
     serve.add_argument("--protect-turn", action="store_true",
                        help="collapse the current turn's own work last (D70)")
+    serve.add_argument("--notes", type=int, default=0, metavar="TOKENS",
+                       help="working notes of up to this many tokens, refreshed by one "
+                            "upstream call at each collapse (D72); 0 is off")
     serve.add_argument("--retrieval", choices=["r1", "r2"], default="r1",
                        help="excerpt retrieval: r1, or r2 without reasoning (D71)")
     files = serve.add_mutually_exclusive_group()
@@ -94,7 +97,7 @@ def _settings(args: argparse.Namespace) -> Settings:
                     stub=args.stub,
                     hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
                     pin_tokens=args.pin_instructions, protect_turn=args.protect_turn,
-                    retrieval=args.retrieval,
+                    retrieval=args.retrieval, notes_tokens=args.notes,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 

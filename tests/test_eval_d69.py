@@ -44,3 +44,8 @@ def test_the_first_held_out_set_still_runs_only_the_frozen_arms():
         task_run.resolve_arm(4, "a4-tr", "heldout")
     with pytest.raises(ValueError, match="arm 4"):
         task_run.resolve_arm(4, "a5-B", "development")
+
+
+def test_a4_trn_is_a4_tr_plus_2048_tokens_of_working_notes():
+    assert needle.CONFIGS["a4-trn"] == dict(needle.CONFIGS["a4-tr"], notes_tokens=2048)
+    assert needle.proxy_settings(needle.CONFIGS["a4-trn"])["notes_tokens"] == 2048

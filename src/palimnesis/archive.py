@@ -31,6 +31,7 @@ abandoned.
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import logging
 import os
@@ -47,7 +48,7 @@ from .errors import error_response
 from .fingerprint import fingerprint_v1, parse_retry_hint
 from .budget import BudgetError
 from .assemble import ChatAssembler
-from .sse import SSEParser
+from .sse import ChatStream, SSEParser
 from .turns import is_instruction
 from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from .store import Store
@@ -73,6 +74,7 @@ LIMIT_RESULT = ("limit reached: no more archive lookups in this response. "
                 "Answer from what you have.")
 # Per instruction turn, across responses and synthetic follow-ups (D67, R29).
 MAX_TURN_HIDDEN_CALLS = 16
+NOTES_REFRESH_S = 180.0  # D72: a refresh slower than this fails; the request goes on
 TURN_LIMIT_RESULT = ("limit reached: no more archive lookups until the next user message. "
                      "Continue from what you have.")
 
@@ -200,7 +202,8 @@ class ArchiveHandler:
                 return
             with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
                 if prepared is not None and not await self._bound(scope, receive, tracked, req,
-                                                                  gen, prepared, api_path):
+                                                                  gen, prepared, api_path,
+                                                                  headers):
                     return
                 if plan.hidden_loop and plan.stream and plan.view is not None:
                     await self._hidden(scope, receive, tracked, gen, api_path, headers, req)
@@ -242,7 +245,8 @@ class ArchiveHandler:
         except Exception as e:  # noqa: BLE001 - a projection never fails a request
             log.warning("archive change hook failed: %s", type(e).__name__)
 
-    async def _bound(self, scope, receive, send, req, gen, prepared, api_path) -> bool:
+    async def _bound(self, scope, receive, send, req, gen, prepared, api_path,
+                     headers=()) -> bool:
         """Replace the planned body with the bounded view; False if it cannot fit."""
         plan = gen.plan
         candidate = self.addendum_for(plan.session_id) if self.addendum_for else None
@@ -290,6 +294,8 @@ class ArchiveHandler:
         except Exception:
             log.exception("bounded view build failed; forwarding unbounded")
             return True
+        if view.refresh is not None:
+            view = await self._refresh_notes(scope, req, plan, prepared, view, api_path, headers)
         selected = None
         hosted = any(i.excerpt for i in plan.items if i.occ_id == plan.host_occ_id)
         if plan.host_occ_id is not None and not hosted:
@@ -357,6 +363,79 @@ class ArchiveHandler:
         plan.view, plan.prepared = view, prepared
         plan.hidden_loop = plan.hidden_loop or bool(plan.hidden_tools)
         return True
+
+    async def _refresh_notes(self, scope, req, plan, prepared, view, api_path, headers):
+        """D72: before older messages leave the view, one internal upstream call asks the
+        model to rewrite its working notes from the request as it rendered before the
+        move. A committed version is rendered in the view returned; a failed one keeps the
+        notes the view had. Nothing reaches the client."""
+        overrides = {prepared.limit_field: prepared.budget.reserve, "stream": True,
+                     "stream_options": {"include_usage": True}}
+        if plan.hidden_tools:
+            overrides["tools"] = prepared.tools
+        refresh_plan = copy.copy(plan)
+        refresh_plan.view, refresh_plan.prepared = view.refresh, prepared
+        refresh_plan.upstream_body = chat.render_messages(req, view.refresh.messages, overrides)
+        call = (self.accounts.begin(refresh_plan, self.views.mode, f"{plan.attempt_id}#notes")
+                if self.accounts is not None else None)
+        stream, reason, outcome = ChatStream(), None, "ok"
+        try:
+            with anyio.move_on_after(NOTES_REFRESH_S) as window:
+                request = self._request(scope, api_path, headers, refresh_plan.upstream_body)
+                try:
+                    upstream = await self.client.send(request, stream=True)
+                except httpx.TransportError:
+                    reason = outcome = "transport_error"
+                else:
+                    try:
+                        if upstream.status_code != 200:
+                            await upstream.aread()
+                            reason = outcome = "upstream_status"
+                        else:
+                            parser = SSEParser()
+                            async for chunk in upstream.aiter_raw():
+                                for event in parser.feed(chunk):
+                                    stream.apply(event)
+                    finally:
+                        with anyio.CancelScope(shield=True):
+                            await upstream.aclose()
+            if window.cancelled_caught:
+                reason = outcome = "timeout"
+        except Exception as e:  # noqa: BLE001 - a notes defect never fails the request
+            log.warning("notes refresh failed: %s", type(e).__name__)
+            reason = outcome = "refresh_error"
+        finally:
+            if call is not None:
+                usage = {"usage": stream.usage} if stream.usage else None
+                await self.accounts.finish(refresh_plan, call, usage, outcome)
+        if reason is None:
+            reason = ("upstream_error" if stream.error else "tool_call" if stream.tool_calls
+                      else "empty" if not stream.content.strip() else None)
+        text = "" if reason else self._fit_notes(stream.content.strip())
+        base_n = plan.view_n
+
+        def record(c):
+            return ledger.record_notes(c, plan, base_view_n=base_n, text=text,
+                                       status="failed" if reason else "committed", reason=reason)
+
+        notes_id, n = await self.store.write(record)
+        if reason:
+            return view
+        plan.notes = {notes_id: (n, text)}
+        state = replace(view.state, notes=notes_id)
+        rebuilt = await self.views.build(prepared, replace(plan, view_state=state))
+        return replace(rebuilt, moved=True, evicted_now=view.evicted_now)
+
+    def _fit_notes(self, text: str) -> str:
+        """``text`` cut at a line so its rendered block fits the notes slot (D72)."""
+        from .view import notes_block
+
+        limit = self.views.view_policy.notes_tokens
+        count = self.views.counter.count_cached
+        lines = text.split("\n")
+        while lines and count(notes_block(0, "\n".join(lines))) > limit:
+            lines.pop()
+        return "\n".join(lines)
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
         """Deadline D passed after acceptance; the upstream is already closed."""

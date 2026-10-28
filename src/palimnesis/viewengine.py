@@ -112,7 +112,8 @@ class ViewEngine:
     def __init__(self, profile: UpstreamProfile, *, mode: str = "on",
                  input_budget: int | None = None, excerpts=None,
                  excerpt_renderer: str = RENDERER_VERSION, stub_format: str = STUB_FORMAT,
-                 pin_tokens: int = 0, protect_turn: bool = False) -> None:
+                 pin_tokens: int = 0, protect_turn: bool = False,
+                 notes_tokens: int = 0) -> None:
         self.profile = profile
         self.excerpts = excerpts if excerpts is not None else NoExcerpts()
         self.excerpt_renderer = excerpt_renderer
@@ -122,7 +123,7 @@ class ViewEngine:
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
         self.view_policy = ViewPolicy(stub_format=stub_format, pin_tokens=pin_tokens,
-                                      protect_turn=protect_turn)
+                                      protect_turn=protect_turn, notes_tokens=notes_tokens)
         self._warm_lock = threading.Lock()
         self._warm_next = None
         self._warming = False
@@ -199,7 +200,8 @@ class ViewEngine:
             return build(items, tools=prepared.tools, render_kwargs=prepared.render_kwargs,
                          budget=prepared.budget, state=plan.view_state, policy=policy,
                          counter=self.counter,
-                         drops_empty_assistant=self.profile.rules.drops_empty_assistant)
+                         drops_empty_assistant=self.profile.rules.drops_empty_assistant,
+                         notes=plan.notes)
 
         view = await anyio.to_thread.run_sync(run)
         if self.mode != "off":
@@ -265,6 +267,8 @@ class ViewEngine:
         version = f"{POLICY_VERSION}+pin{pins}" if pins else POLICY_VERSION
         if self.view_policy.protect_turn:
             version += "+turn"  # D70
+        if self.view_policy.notes_tokens:
+            version += f"+notes{self.view_policy.notes_tokens}"  # D72
         return {"policy_version": version,
                 "stub_format": self.view_policy.stub_format}
 
@@ -291,6 +295,8 @@ class ViewEngine:
             causes.append("oversized_output")
         if new.omitted_excerpts != old.omitted_excerpts:
             causes.append("excerpt_omitted")
+        if new.notes != old.notes:
+            causes.append("state_commit")  # D72
         return ",".join(causes) or "view_state"
 
     @staticmethod
