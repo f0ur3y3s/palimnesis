@@ -246,7 +246,7 @@ def preflight(a) -> int:
 def refusals(a, histories: list[Path]) -> list[str]:
     out = []
     if a.set in needle.HELDOUT_SETS:
-        if a.config not in needle.HELDOUT_CONFIGS:
+        if a.config not in needle.HELDOUT_CONFIGS and a.set not in needle.RETIRED_SETS:
             out.append(f"held-out needles run only {' or '.join(needle.HELDOUT_CONFIGS)} "
                        f"(D44.1, plan §2.9), not {a.config}")
         if a.questions:

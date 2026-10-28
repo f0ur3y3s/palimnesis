@@ -91,7 +91,7 @@ def _args(**kw):
                                  "resume": False, **kw})
 
 
-@pytest.mark.parametrize("set_name", ["heldout", "heldout2"])
+@pytest.mark.parametrize("set_name", ["heldout"])  # heldout2 is retired (D69)
 def test_held_out_needles_accept_arm_4_and_the_arm_5_alias_only(set_name):
     def config_refusals(config):
         return [p for p in needle_opencode.refusals(_args(set=set_name, config=config), [Path("h")])
@@ -103,6 +103,20 @@ def test_held_out_needles_accept_arm_4_and_the_arm_5_alias_only(set_name):
     # Development needles take any configuration.
     assert not [p for p in needle_opencode.refusals(_args(set="development", config="a5-A"), [Path("h")])
                 if "held-out" in p]
+
+
+def test_retired_held_out_needles_take_development_configs_and_keep_the_other_rules(monkeypatch):
+    """D69: ho2 is development data, for needles as for tasks. Only the config rule lifts."""
+    assert needle.RETIRED_SETS == ("heldout2",)
+    assert task_run.RETIRED_SETS == needle.RETIRED_SETS
+    monkeypatch.setattr(needle_opencode.gi, "git_provenance",
+                        lambda: {"dirty": True, "status": ["M x"]})
+    out = needle_opencode.refusals(_args(set="heldout2", config="a4-trn2", questions=["q1"]),
+                                   [Path("h")])
+
+    assert not [p for p in out if "held-out needles run only" in p]
+    assert any("clean git tree" in p for p in out)
+    assert any("every question" in p for p in out)
 
 
 def test_task_arms_resolve_to_a_label_and_a_config(monkeypatch):

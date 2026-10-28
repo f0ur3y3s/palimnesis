@@ -269,7 +269,7 @@ def opencode_output_limit(arm: int) -> int:
     return needle.output_limit(arm)
 
 
-RETIRED_SETS = ("heldout2",)  # judged held-out sets, now development data (D69)
+RETIRED_SETS = needle.RETIRED_SETS  # judged held-out sets, now development data (D69)
 
 
 def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:

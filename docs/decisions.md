@@ -874,7 +874,7 @@ A defect found during the first S11 held-out run (D44.8, D62.5).
 
 - **Decision.** ho2 has been judged (R32), so its records and task modules may now be read for diagnosis, as development data. The next held-out gate needs a fresh set, written and committed before any run of the design it judges, as D62.3 did for ho2.
 - **Why.** The development tasks no longer separate the arms: arm 1 and both a5 variants pass all five (R30). Every coding loss the project has measured is on held-out tasks (R25, R32). Diagnosing those losses needs their records.
-- **Runs.** ho2's tasks also take development configurations: arm 4 variants (`--arm 4 --config a4-…`) and arm-5 matrix arms (`eval/tasks/run.py`, `RETIRED_SETS`). ho is unchanged and runs only the frozen arms.
+- **Runs.** ho2's tasks also take development configurations: arm 4 variants (`--arm 4 --config a4-…`) and arm-5 matrix arms (`eval/tasks/run.py`, `RETIRED_SETS`). So do its needles (`needle.RETIRED_SETS`, added for R36), which keep the other held-out rules: real OpenCode, every question, a clean tree, no resume. ho is unchanged and runs only the frozen arms.
 - **What it costs.** ho2 can no longer judge anything shaped by what R33 found.
 
 ## D70 — The current turn is collapsed last (R33-A)

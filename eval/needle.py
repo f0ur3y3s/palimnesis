@@ -80,6 +80,9 @@ NEEDLES = ROOT / "eval" / "needles" / "dev"
 # --set: (dir, id prefix). heldout2 is the fresh Phase 3B held-out set (O-B1).
 SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2": ("heldout2", "ho2")}
 HELDOUT_SETS = ("heldout", "heldout2")
+# Judged held-out sets, now development data (D69): they take any configuration, and keep
+# the other held-out rules (real OpenCode, every question, a clean tree, no resume).
+RETIRED_SETS = ("heldout2",)
 INPUT_BUDGET = 24_320
 MAX_TOOLS = 8
 MAX_ROUNDS = 12
