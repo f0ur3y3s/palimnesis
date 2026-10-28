@@ -1526,3 +1526,75 @@ a5-Cp also passes 5/5 and holds 15/15, but spends 12.0M prompt tokens (+127%). O
   - booleans equalled numbers under JSON equality, so an edited `true` → `1` resend passed reconciliation;
   - composite turns render the raw arguments upstream.
 - **Per D44.8,** the batch stopped there. ho2-t1 under arms 4 and 1 and ho2-t2..t5 did not run in this attempt. The fix is D68. The whole needle set and all 15 task runs rerun at the fixed commit, and the gates are judged on that rerun.
+
+## R32 — S11 held-out at 32K, the D44.8 rerun: both Phase 3B gates fail (2026-10-27/28)
+
+**Outcome: FAIL on both gates.** This is the judged run (D44.8; R31 is superseded).
+- **Needle gate (D44.4):** arm 5 got 97/120 loose exact (80.8%) against the 85% bar. Arm 4 got 119/120 for comparison.
+- **Coding gate (D44.5, D62.4):** arm 5 had 2/5 successes against arm 1's 4/5. It failed the restart task ho2-t3. Its gate inputs also failed on the invalid-id rate (below).
+
+Per D64, `serve`'s defaults stay as they are and there is no `phase-3b` tag.
+
+**Setup.**
+- **Code:** `af94a2b` (D68), clean tree. Drivers: `needle-opencode v2` and `tasks-run v2`. OpenCode 2.1.4.
+- **Strata:** Zeus 0.1.48, `n_ctx` 32768 before and after every run.
+- **Schedule:** needles ran 17:50–18:38Z; the 15 task runs ran 18:38Z–13:14Z the next day, one attempt each, with the first arm rotated per task.
+- **Supersession:** every needle history and ho2-t1 under arm 5 carry the D44.8 reason. Each is superseded by its rerun attempt.
+- **D39.** Strata's activity counter rose by exactly our upstream calls in every run: needles 280 and 317, then each task run.
+- **Foreign traffic and gate events:**
+  - Foreign traffic during runs was 0.
+  - Arm 1's nonzero `foreign_between` (1–8 per task) is R25-B's late-counted disconnect.
+  - Three runs logged one `busy_before_request` gate event each, all with nothing queued. These were ho2-t2 arm 5, ho2-t4 arm 4 and ho2-t5 arm 1, each in a session where a turn had just been killed.
+- **No proxy rejections** in any run. The D68 path (a complete turn resent with `{}`) did not recur visibly, and no session was refused.
+- **Raw data:** `…/scratchpad/s11b/` (`needles-*`, `tasks/records/attempt-002..016`, `heldout.log`, `report-*.txt`).
+
+**R32-A. Needles.**
+
+| Arm | Loose exact | 95% Wilson | History-clustered bootstrap | Strict | In view / excerpt / absent | Early stops | Lookups (questions) | Unnecessary (questions) | Invalid ids | Prompt / completion tokens | Latency p50 / p90 s | Wall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| a5-d64 | 97/120 (80.8%) | 72.9–86.9% | 69.2–91.7% | 89 | 53 / 59 / 22 | 21 | 87 hidden (30) | 16 (8) | 0/61 | 5.37M / 29K | 6.4 / 11.3 | 19.8 min |
+| a4-d43 | 119/120 (99.2%) | 95.4–99.9% | 97.5–100% | 108 | 27 / 74 / 22 | 1 | 146 transcript (73) | 76 (51) | – | 5.72M / 57K | 11.1 / 18.1 | 26.9 min |
+
+- **Both arms otherwise clean:**
+  - `--explain` exit 0, 0 unexplained;
+  - verify 12/12;
+  - 0 over budget, 0 leaks, 0 hidden-recall leaks;
+  - 0 views disabled.
+- **Arm 5's score repeated attempt 1's exactly** (97/120). 21 of its 23 misses are again early stops: finish `stop` with an empty or prefix answer.
+  - The set of missed questions moved. ho2-h1 and h5 now miss, while h2, h4, h6, h7 and h8 now pass.
+  - By category: identifier 20/24, irrelevant matches 8/12, superseded 8/12, vague 18/24. The other categories are 10–11/12.
+  - R31-A's association between misses and runs of more than 30 consecutive user messages (D65 pins) was not re-measured here.
+- **Arm 4** missed one question (ho2h5q9, an early stop). It made more lookups, 51 of 98 unnecessary.
+
+**R32-B. Coding tasks.**
+
+| Task | Arm 1 | Arm 4 | Arm 5 |
+|---|---|---|---|
+| ho2-t1 | pass 4/4, constraints 2/3, kills 3 | pass 4/4, 3/3, kills 0 | pass 4/4, 3/3, kills 1 |
+| ho2-t2 | pass 3/3, 3/3, kills 0 | pass 3/3, 3/3, kills 2 | fail 0/3, 1/3, kills 2 |
+| ho2-t3 (restart) | pass 4/4, 3/3, restart gate True, kills 0 | fail 3/4, 3/3, restart gate False, kills 0 | fail 2/4, 1/3, restart gate False, kills 1 |
+| ho2-t4 | pass 4/4, 3/3, kills 0 | fail 0/4, 3/3, kills 2 | pass 4/4, 3/3, kills 2 |
+| ho2-t5 | fail 0/3, 1/3, kills 3 | fail 1/3, 3/3, kills 1 | fail 2/3, 3/3, kills 1 |
+| **Successes** | **4/5** | **2/5** | **2/5** |
+| Constraints held | 12/15 | 15/15 | 11/15 |
+| Turns killed at 30 min (tasks) | 6 (2) | 5 (3) | 7 (5) |
+| Upstream calls | 1,192 | 1,379 | 2,175 |
+| Prompt tokens | 15.96M | 22.07M | 35.28M |
+| Wall time | 5.75 h | 6.00 h | 6.73 h |
+
+- **Gate inputs (D44.6):**
+  - Arms 4 and 5: `--explain` passed with 0 unexplained pairs, verify 0, 0 over budget and 0 hard leaks in every run. 0 answer keys were reachable from any workspace.
+  - Arm 4's excerpt scan reported echoes on ho2-t4 (177 client, 1 transcript) and ho2-t5 (229, 2). Echoes are reported, never gating.
+- **Arm 5's invalid-id rate fails D62.4's 5% limit in every task:** 4/22, 2/14, 1/10, 4/18 and 5/18 recall calls named an address that does not exist. In the needles it was 0/61. The lookup limit (D67) was reached 1–8 times per task.
+- **Arm 4 held every constraint but passed 2 of 5 tasks.**
+  - On ho2-t4 its code raised in a parser function, giving 3 test errors and 1 wrong unit conversion. The constraint checks pass.
+  - Its losses are wrong or unfinished code, not lost instructions.
+- **The 30-minute turn limit (D45) cut every arm.**
+  - Generation ran at about 100 tokens/s on Zeus (measured on ho2-t1 arm 1). A killed turn is one that wrote about 130–170K completion tokens, mostly reasoning, in edit-test-fix loops with failed tool calls.
+  - Prompt processing was 100–300 s of each killed turn. No upstream call was slow (`slow_upstream_calls` 0).
+- **Cost:** arm 5 used 2.2× arm 1's prompt tokens and arm 4 used 1.4×. On ho2-t1, though, arm 4 was the cheapest arm at a third of arm 1's tokens.
+
+**R32-C. What this says.**
+- **Recall:** on held-out data, arm 4 recalls facts that left the view (99%). Arm 5 does not reach the bar, and its misses are early stops, not failed lookups.
+- **Coding:** neither Palimnesis arm matched native compaction on coding tasks. Arm 4 kept every user constraint where arm 1 lost 3, but it finished fewer tasks.
+- **Sample size:** five tasks, one attempt each, so a one-task difference is within noise. Still, this is the second held-out set on which Palimnesis trails native compaction on coding: R25 had arm 4 at 3/5 against arm 1's 5/5, and here arm 4 and arm 5 are both 2/5 against 4/5.
