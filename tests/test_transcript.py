@@ -212,10 +212,21 @@ def test_an_integral_float_reserialized_as_an_integer_still_matches():
 
 
 @pytest.mark.parametrize("sent", ['{"path":"hello.py"}', '"a string"', "[1, 2]"])
-def test_json_tool_arguments_resent_as_an_empty_object_diverge(sent):
-    archive = _archive(SYS, U1, generated(tool_calls=[dict(CALL, arguments=sent)]))
+def test_json_tool_arguments_resent_as_an_empty_object_match(sent):
+    """D73: OpenCode also resends a call it interrupted with arguments "{}" (R34)."""
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.",
+                                         tool_calls=[dict(CALL, arguments=sent)]))
     a = json.loads(json.dumps(A1))
     a["tool_calls"][0]["function"]["arguments"] = "{}"
+
+    assert reconcile(client(SYS, U1, a, T1), archive) == Extend(3)
+
+
+def test_other_json_arguments_resent_differently_still_diverge():
+    archive = _archive(SYS, U1, generated(reasoning="I will write it.",
+                                         tool_calls=[dict(CALL, arguments='{"path":"hello.py"}')]))
+    a = json.loads(json.dumps(A1))
+    a["tool_calls"][0]["function"]["arguments"] = '{"path":"other.py"}'
 
     result = reconcile(client(SYS, U1, a, T1), archive)
 

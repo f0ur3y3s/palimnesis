@@ -57,10 +57,34 @@ def test_unparsable_arguments_resent_as_an_empty_object_extend_the_session(lc):
     assert archived == [CUT.encode()]
 
 
-def test_json_arguments_resent_as_an_empty_object_still_diverge(lc):
+INTERRUPTED = '{"error":{"type":"aborted","message":"Tool execution interrupted: read"},"content":[]}'
+
+
+def test_an_interrupted_call_resent_with_empty_arguments_extends_the_session(lc):
+    """R34, D73: a turn killed while OpenCode ran a complete, valid call; OpenCode resends
+    the call with arguments "{}" and its aborted result."""
+    _call_turn(lc, '{"filePath": "notes.txt"}')
+    lc.upstream.respond_sse(answer("retrying"))
+    r = lc.post(SID, body([
+        user("write notes"),
+        {"role": "assistant", "content": "",
+         "tool_calls": [{"id": "call_w1", "type": "function",
+                         "function": {"name": "write", "arguments": "{}"}}]},
+        {"role": "tool", "tool_call_id": "call_w1", "content": INTERRUPTED},
+    ]))
+
+    assert r.status_code == 200, r.content[:300]
+    with lc.db() as c:  # the archive still holds what the model generated
+        archived = [b for (b,) in c.execute(
+            "SELECT s.bytes FROM segments s JOIN blocks b ON b.block_id = s.block_id"
+            " WHERE b.kind = 'tool_call'")]
+    assert archived == [b'{"filePath": "notes.txt"}']
+
+
+def test_json_arguments_resent_with_other_values_still_diverge(lc):
     _call_turn(lc, '{"filePath": "notes.txt"}')
 
-    r = _resend(lc, "{}")
+    r = _resend(lc, '{"filePath": "other.txt"}')
 
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "history_divergence"

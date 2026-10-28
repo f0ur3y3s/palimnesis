@@ -15,10 +15,11 @@ Matching rules:
   present it must be equal. Tool calls must match by id and name exactly;
   arguments match when the strings are equal or both parse to equal JSON
   values (OpenCode resends ``JSON.stringify`` of the parsed arguments).
-  Booleans never equal numbers. Arguments that do not parse as JSON (as
-  ``JSON.parse`` sees it: no ``NaN`` or ``Infinity``) also match ``"{}"``: OpenCode
-  does not run such a call and resends it with empty arguments (``docs/harnesses.md``,
-  D68).
+  Booleans never equal numbers. Any arguments also match ``"{}"``: OpenCode resends a
+  call it did not run with empty arguments, whether its arguments never parsed as JSON
+  (D68) or the turn was interrupted while the call ran (D73, ``docs/harnesses.md``).
+  Known limit: an edit that blanks a call's arguments to ``"{}"`` is not detected; the
+  archive keeps the generated arguments.
 - A changed system message before the first non-system message is a new
   context version (D10.5), not divergence. OpenCode embeds the date there.
 
@@ -156,12 +157,12 @@ def _typed(value):
 
 
 def _same_arguments(sent: str, resent: str) -> bool:
-    if sent == resent:
+    if sent == resent or resent == "{}":  # a call OpenCode did not run (D68, D73)
         return True
     try:
         parsed = _strict(sent)
     except ValueError:
-        return resent == "{}"  # OpenCode resends unparsable arguments as "{}" (D68)
+        return False
     try:
         return _typed(parsed) == _typed(_strict(resent))
     except ValueError:
