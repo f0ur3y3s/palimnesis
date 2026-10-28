@@ -1723,3 +1723,56 @@ Setup:
 3. Cut the refresh latency, for example by limiting its reasoning.
 4. Repeat the `a4-trn` runs to measure variance, and run ho2-t1 and ho2-t5 and the needle sets.
 5. Then decide on a gate run on fresh held-out tasks.
+
+## R35 — Working-notes format n2 on ho2 (2026-10-28, development data per D69)
+
+**Outcome.** Arm 4 with notes format n2 (`a4-trn2`, D74, commit `56d29d2`) passed ho2-t2, t3 and t4. Each was one attempt, the same as R34's `a4-trn`.
+- Every committed notes version kept all six sections. Under n1, 8 of 36 kept *Current step* and 2 kept *Dead ends*.
+- Refreshes took about half as long.
+- ho2-t4 held 2 of 3 constraints. Its notes carried the missed rule.
+
+Records: `…/scratchpad/s12dev/tasks/records/attempt-008..010`, tag `dev-r33`.
+
+| Task | `a4-trn2` (n2) | `a4-trn` (n1, R34) | R32 arm 1 (native) |
+|---|---|---|---|
+| ho2-t2 | pass 3/3, 3/3 · 114 calls · 31 min | pass 3/3, 3/3 · 85 · 20 min | pass 3/3, 3/3 · 132 · 29 min |
+| ho2-t3 (restart) | pass 4/4, 3/3, restart gate True · 146 · 21 min | pass 4/4, 3/3, True · 178 · 40 min | pass 4/4, 3/3, True · 172 · 31 min |
+| ho2-t4 | pass 4/4, **2/3** · 121 · 22 min | pass 4/4, 3/3 · 167 · 33 min | pass 4/4, 3/3 · 202 · 40 min |
+
+All three runs had:
+- no 30-minute kills and no proxy rejections;
+- every cache change explained, no over-budget calls and no leaks;
+- Strata's activity counter rising by exactly our upstream calls (D39).
+
+The longest turn was ho2-t2 turn 7: 58 calls, 1,182 s.
+
+**R35-A. The notes.**
+
+| | ho2-t2 | ho2-t3 | ho2-t4 |
+|---|---|---|---|
+| Refreshes (committed / failed) | 11 (11 / 0) | 13 (11 / 2) | 13 (12 / 1) |
+| Committed from reasoning | 1 | 2 | 0 |
+| Committed length, characters | 3,893–5,570 | 3,867–6,931 | 4,063–4,893 |
+| Versions with all six sections | 11/11 | 11/11 | 12/12 |
+| Refresh time, median · total | 24 s · 5.1 min | 17 s · 3.6 min | 15 s · 3.5 min |
+| Share of the run's wall time | 17% (n1: 31%) | 17% (n1: 29%) | 16% (n1: 26%) |
+| Refresh prompt cached · share of all prompt tokens | 86% · 12% | 90% · 11% | 85% · 13% |
+
+- **Failures.** Three refreshes still failed `empty`: their reasoning held no draft with three sections that had content. Under n1, 6 of 42 failed `empty`; under n2, 3 of 37 did, and 3 more were recovered from reasoning.
+- **Refresh time.** Refreshes are shorter because the notes are shorter. n1 asked for about 1,200 words; n2 asks for about 600 at S = 2,048.
+
+**R35-B. ho2-t4's missed constraint (C2).**
+- The hidden check expects `scale_line("1/2 tsp  sea salt, flaky ", 2)` to keep the double space after the unit. The model's parser collapsed it.
+- 11 of the 12 notes versions quoted the rule "kept exactly as written". So the rule was in view, and the model did not apply it to whitespace. This is not lost state.
+- The task still passes: its success is the visible tests, 4/4.
+- R32's arm 1 and R34's `a4-trn` both held C2 on this task.
+
+**R35-C. Reading.**
+- Over R34 and R35, notes n1 and n2 each passed all three tasks that native compaction passed, and that arm 4 failed in R32.
+- n2 fixes R34-C's truncation and halves the refresh cost.
+- On wall time the two formats split: n2 was faster on t3 and t4, slower on t2.
+- These are single attempts on development data, which supports adopting n2. It is not a gate result.
+- Next (R34-E 4–5):
+  - repeat attempts for variance;
+  - run ho2-t1 and ho2-t5 and the needle sets under `a4-trn2`;
+  - then fresh held-out tasks for a gate.
