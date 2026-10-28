@@ -36,6 +36,10 @@ class Settings:
     # Pinned instructions (D65): total tokens of short user instructions a collapse keeps
     # in view; 0 is off.
     pin_tokens: int = 0
+    # The current turn's own work stays in view (D70); off keeps the frozen behaviour.
+    protect_turn: bool = False
+    # Excerpt retrieval: r1, or r2 without reasoning (D71).
+    retrieval: str = "r1"
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.
     deadline_s: float = 600.0

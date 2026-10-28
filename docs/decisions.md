@@ -874,4 +874,23 @@ A defect found during the first S11 held-out run (D44.8, D62.5).
 
 - **Decision.** ho2 has been judged (R32), so its records and task modules may now be read for diagnosis, as development data. The next held-out gate needs a fresh set, written and committed before any run of the design it judges, as D62.3 did for ho2.
 - **Why.** The development tasks no longer separate the arms: arm 1 and both a5 variants pass all five (R30). Every coding loss the project has measured is on held-out tasks (R25, R32). Diagnosing those losses needs their records.
+- **Runs.** ho2's tasks also take development configurations: arm 4 variants (`--arm 4 --config a4-…`) and arm-5 matrix arms (`eval/tasks/run.py`, `RETIRED_SETS`). ho is unchanged and runs only the frozen arms.
 - **What it costs.** ho2 can no longer judge anything shaped by what R33 found.
+
+## D70 — The current turn is collapsed last (R33-A)
+
+`ViewPolicy.protect_turn`, `serve --protect-turn`; off by default, so the frozen arms keep their behaviour.
+- **The rule.** A move masks oldest-first as before (D14), and its collapse then reaches only up to the current turn. The turn starts at the latest genuine instruction (`turns.is_instruction`), so OpenCode's synthetic follow-ups do not start one. If the view still exceeds `T`, the move stubs the turn's own largest tool results and reasoning in place (`ViewState.oversized`), never the newest group's. It collapses the turn's own groups, oldest first to `T`, only when the view still exceeds `H`. A view left between `T` and `H` is accepted.
+- **Why.** In 90–91% of the mid-turn calls in arms 4 and 5, part of the turn's own work was already hidden (R33-A). A 300-line read collapsed the steps before it, and the model then invented their history and rewrote files from memory (R33-B). Assistant calls survive a stub but not a collapse.
+- **Cost.** In-turn stubs change messages near the end of the prompt, so they cost little of the prefix cache. Views between `T` and `H` mean more frequent moves in long turns. Each such move is recorded as `oversized_output` or `collapse`; no new cause is needed.
+- **Recorded** as `policy_version` `v2+turn` (or `v2+pinN+turn`).
+- **Rejected.**
+  - *Lowering `T` or raising `H` globally:* it changes every view, not the turn the model is working in.
+  - *Keeping edit and write calls by tool name:* the core keys off protocol, never off a harness's tool names.
+
+## D71 — Excerpt retrieval r2: no reasoning (R33-C)
+
+`FtsExcerpts(retrieval="r2")`, `serve --retrieval r2`; r1 stays the default for the frozen arms.
+- **The rule.** r2 is r1 with reasoning blocks left out of the candidates.
+- **Why.** Excerpts returned the model's own unverified reasoning, including its inventions, under the header "historical evidence". On ho2 that included "an earlier task variant (spec A)" and a false column rule, and R30-C measured reasoning at 42% of excerpt items. D66 removed reasoning from grep for the same reason.
+- **Unchanged.** Recall by address still returns reasoning.

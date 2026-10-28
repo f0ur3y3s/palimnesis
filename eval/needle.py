@@ -115,6 +115,9 @@ CONFIGS.update({
 # The top two matrix arms with the R29 fixes' pinned instructions (D65).
 CONFIGS.update({f"{name}p": dict(CONFIGS[name], pin_tokens=4096) for name in ("a5-C", "a5-D")})
 
+# R33's changes on the frozen arm 4, for development runs (D70, D71).
+CONFIGS["a4-tr"] = dict(CONFIGS["a4-d43"], protect_turn=True, retrieval="r2")
+
 # The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for: D64 froze a5-Dp
 # (R30), a5-D with pinned instructions.
 A5_HELDOUT = "a5-d64"
@@ -123,7 +126,7 @@ HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT)  # the only configurations held-out set
 
 # Settings the proxy child passes to ``palimnesis.config.Settings`` when present.
 PROXY_KEYS = ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer", "addendum",
-              "stub", "hidden_tools", "pin_tokens")
+              "stub", "hidden_tools", "pin_tokens", "protect_turn", "retrieval")
 OUTPUT_LIMIT = {5: 24_576}  # O-B3: arm 5's client output limit; every other arm keeps 8,192
 DEFAULT_OUTPUT_LIMIT = 8192
 

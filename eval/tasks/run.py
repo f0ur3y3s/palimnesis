@@ -269,22 +269,34 @@ def opencode_output_limit(arm: int) -> int:
     return needle.output_limit(arm)
 
 
+RETIRED_SETS = ("heldout2",)  # judged held-out sets, now development data (D69)
+
+
 def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     """{arm, label, config, cfg} for ``--arm`` and ``--config``. ``label`` names the attempt
     config and the records directory: ``a4`` and ``a1`` as in Phase 3, the configuration
-    name for arm 5. Held-out tasks run arm 5 only as ``a5-d64`` (resolved once frozen)."""
-    if arm in (1, 4):
+    name for arm 5 and for an arm-4 development variant. Held-out tasks run only the
+    frozen arms; a retired set's tasks run any configuration (D69)."""
+    held = task_set.startswith("heldout") and task_set not in RETIRED_SETS
+    if arm == 1:
         if config is not None:
-            raise ValueError(f"--config applies to arm 5 only; arm {arm} is fixed")
-        if arm == 4:
-            return {"arm": 4, "label": "a4", "config": "a4-d43", "cfg": needle.CONFIGS["a4-d43"]}
+            raise ValueError("--config applies to arms 4 and 5; arm 1 is native compaction")
         return {"arm": 1, "label": "a1", "config": "a1-native", "cfg": None}
+    if arm == 4:
+        if config is None or config == "a4-d43":
+            return {"arm": 4, "label": "a4", "config": "a4-d43", "cfg": needle.CONFIGS["a4-d43"]}
+        if held:
+            raise ValueError(f"held-out tasks run arm 4 only as a4-d43, not {config}")
+        cfg = needle.config(config)
+        if cfg.get("arm") != 4:
+            raise ValueError(f"{config} is not a configuration of arm 4")
+        return {"arm": 4, "label": config, "config": config, "cfg": cfg}
     if arm != 5:
         raise ValueError(f"no arm {arm}")
     if config is None:
         raise ValueError("arm 5 needs --config: a matrix arm (a5-A ... a5-D, a5-Cp, a5-Dp), "
                          "or a5-d64, the arm D64 froze")
-    if task_set.startswith("heldout") and config != needle.A5_HELDOUT:
+    if held and config != needle.A5_HELDOUT:
         raise ValueError(f"held-out tasks run arm 5 only as {needle.A5_HELDOUT}, not {config}")
     cfg = needle.config(config)
     if cfg.get("arm") != 5:
@@ -601,7 +613,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--task", choices=TASKS)
     p.add_argument("--arm", type=int, choices=[1, 4, 5])
-    p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith("a5-")],
+    p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith(("a4-", "a5-"))],
                    help="arm 5 only: a matrix arm, or a5-d64 (a5-Dp, frozen by D64)")
     p.add_argument("--out", help="run directory (attempts.json, records/)")
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")

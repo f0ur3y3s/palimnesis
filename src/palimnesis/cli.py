@@ -65,6 +65,10 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
     serve.add_argument("--pin-instructions", type=int, default=0, metavar="TOKENS",
                        help="keep short user instructions in view through collapses, up to "
                             "this many tokens (D65); 0 is off")
+    serve.add_argument("--protect-turn", action="store_true",
+                       help="collapse the current turn's own work last (D70)")
+    serve.add_argument("--retrieval", choices=["r1", "r2"], default="r1",
+                       help="excerpt retrieval: r1, or r2 without reasoning (D71)")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")
@@ -89,7 +93,8 @@ def _settings(args: argparse.Namespace) -> Settings:
                     excerpt_renderer=args.excerpt_renderer, addendum=args.addendum,
                     stub=args.stub,
                     hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
-                    pin_tokens=args.pin_instructions,
+                    pin_tokens=args.pin_instructions, protect_turn=args.protect_turn,
+                    retrieval=args.retrieval,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 

@@ -29,6 +29,9 @@ back verbatim in a block appended to that message. Adaptations:
   the exact count of the block as it renders, provenance included, so the
   charge never exceeds the allocation.
   Rank decides survival; the block renders chronologically (A1, D30).
+- **Retrieval r2 (D71).** r1 without reasoning blocks: the model's unverified
+  reasoning, quoted as historical evidence, returned its own inventions as facts
+  (R30-C, R33-C). D66 did the same for grep. r1 stays for the frozen configurations.
 - **No currency judgment.** Each item carries its turn and provenance; a
   high score does not make a statement current.
 """
@@ -42,6 +45,7 @@ from dataclasses import dataclass
 
 QUERY_VERSION = "q1"
 RETRIEVAL_VERSION = "r1"
+RETRIEVALS = ("r1", "r2")  # r2: no reasoning (D71)
 MAX_HITS = 64
 CONTEXT_LINES = 4
 ITEM_CAP = 512
@@ -280,12 +284,14 @@ def _quotable(text: str) -> str:
 class FtsExcerpts:
     """The Phase 3 excerpt source: q1 queries, r1 retrieval over the archive."""
 
-    retrieval_version = RETRIEVAL_VERSION
-
     def __init__(self, store, counter, *, query_policy: str = QUERY_VERSION,
+                 retrieval: str = RETRIEVAL_VERSION,
                  renderer: str = "x2"):
         if query_policy not in QUERY_POLICIES:
             raise ValueError(f"unknown query policy {query_policy!r}")
+        if retrieval not in RETRIEVALS:
+            raise ValueError(f"unknown retrieval {retrieval!r}")
+        self.retrieval_version = retrieval
         self.store = store
         self.counter = counter
         self.query_version = query_policy
@@ -349,7 +355,8 @@ class FtsExcerpts:
             " FROM blocks b JOIN occurrences o ON o.occ_id = b.occ_id"
             " WHERE b.occ_id IN (SELECT value FROM json_each(?))",
             (json.dumps(sorted(found)),)).fetchall()
-        blocks = {r[0]: r for r in rows if found[r[5]] is None or r[3] in found[r[5]]}
+        blocks = {r[0]: r for r in rows if (found[r[5]] is None or r[3] in found[r[5]])
+                  and not (self.retrieval_version == "r2" and r[3] == "reasoning")}
         hits = search.search_chunks(conn, query.match, block_rowids=list(blocks), limit=MAX_HITS)
         if not hits:
             return [], "no_match"

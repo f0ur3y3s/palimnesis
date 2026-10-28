@@ -24,6 +24,13 @@ Mechanisms (docs/papers.md):
   boundary verbatim in place, newest first, within ``min(pin_tokens, B_in // 6)``;
   the rest are absorbed. Pins live in ``ViewState.kept``, so they change only with a
   collapse move, and the last-resort collapse absorbs them before any budget error.
+- **The current turn last** (D70, R33-A). With ``protect_turn``, a collapse move first
+  reaches only up to the current turn, which starts at the latest genuine instruction
+  (``turns.is_instruction``). Inside the turn it then stubs the largest tool results and
+  reasoning in place (``ViewState.oversized``), never the newest group's, and collapses
+  the turn's own groups only when the view still exceeds ``H``, oldest first to ``T``.
+  Without it, a large read collapsed the steps the model had just taken, and the model
+  invented their history (R33-B).
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
@@ -77,6 +84,7 @@ class ViewPolicy:
     min_recent: int = 4_096
     stub_format: str = "s1"  # s1 (Phases 2-3) or a 3B matrix variant (docs/affordances.md)
     pin_tokens: int = 0  # D65: total for pinned instructions; 0 turns pinning off
+    protect_turn: bool = False  # D70: collapse the current turn last
 
 
 @dataclass(frozen=True)
@@ -123,6 +131,13 @@ def _group_starts(items: Sequence[ViewItem]) -> list[int]:
     return [i for i, item in enumerate(items) if item.message.get("role") in ("user", "assistant")]
 
 
+def _content_text(message: Mapping[str, Any]) -> str:
+    content = message.get("content")
+    if isinstance(content, list):
+        return "".join(p.get("text") or "" for p in content if isinstance(p, dict))
+    return content if isinstance(content, str) else ""
+
+
 def _text_of(message: Mapping[str, Any]) -> str:
     parts = [message.get("content") or "", message.get("reasoning_content") or ""]
     for call in message.get("tool_calls") or []:
@@ -145,6 +160,8 @@ class _Builder:
         if self.last_user is not None:
             self.fixed.add(self.last_user)
         self.starts = _group_starts(self.items)
+        self.turn_start = max((i for i in self.users if is_instruction(
+            "user", _content_text(self.items[i].message))), default=0)
         # Turns the upstream renders as nothing (TemplateRules.drops_empty_assistant):
         # they count zero toward min_recent and are never masked.
         self.dropped = ({i for i, it in enumerate(self.items[:-1]) if empty_assistant(it.message)}
@@ -326,6 +343,28 @@ class _Builder:
                 break
         return candidate
 
+    def stubbable(self, i: int) -> bool:
+        """A tool result, or an assistant message with reasoning, that a stub could replace."""
+        message = self.items[i].message
+        return (message.get("role") == "tool"
+                or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))
+                    and i not in self.dropped))
+
+    def stub_largest(self, state: ViewState, lo: int, hi: int, goal: int) -> ViewState:
+        """Stub unmasked items in ``[lo, hi)`` in place, largest first, until the view's
+        non-excerpt total fits ``goal`` (D70; the oversized path stubs the same way)."""
+        watermark = self.seq_index(state.watermark_seq) if state.watermark_seq else 0
+        order = sorted((i for i in range(max(lo, watermark), hi)
+                        if not self.is_fixed(i, state) and self.stubbable(i)
+                        and self.items[i].occ_id not in state.oversized),
+                       key=lambda i: -self.counter.count_cached(_text_of(self.items[i].message)))
+        for i in order:
+            *_, charge, total = self.measure(state)
+            if total - charge <= goal:
+                break
+            state = replace(state, oversized=state.oversized | {self.items[i].occ_id})
+        return state
+
     def search(self, candidates: list[int], make_state, target: int):
         """Smallest candidate whose view fits ``target``; total is monotone in it."""
         lo, hi = 0, len(candidates) - 1
@@ -432,16 +471,28 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
                                                        else candidates[-1]))
     messages, _, _, charge, total = b.measure(new_state)
 
+    def collapse_to(state: ViewState, limit: int) -> ViewState:
+        """The smallest collapse move up to group start ``limit`` that reaches the target."""
+        old_c = b.seq_index(state.collapse_seq) if state.collapse_seq else 0
+        candidates = [s for s in b.starts if old_c < s <= limit]
+        if not candidates:
+            return state
+        found = b.search(candidates, lambda i: b.with_collapse(state, _seq(b.items, i)), target)
+        return b.with_collapse(state, _seq(b.items, found if found is not None
+                                           else candidates[-1]))
+
     # Collapse the oldest masked span when stubs alone do not reach the target.
     if total - charge > target:
-        old_c = b.seq_index(new_state.collapse_seq) if new_state.collapse_seq else 0
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
-        candidates = [s for s in b.starts if old_c < s <= w_index]
-        if candidates:
-            found = b.search(candidates,
-                             lambda i: b.with_collapse(new_state, _seq(b.items, i)), target)
-            new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
-                                                        else candidates[-1]))
+        if not policy.protect_turn:
+            new_state = collapse_to(new_state, w_index)
+        else:  # D70: what precedes the turn, then the turn's largest items, then the turn
+            new_state = collapse_to(new_state, min(w_index, b.turn_start))
+            newest = b.starts[-1] if b.starts else len(b.items)
+            new_state = b.stub_largest(new_state, b.turn_start, newest, target)
+            *_, charge, total = b.measure(new_state)
+            if total - charge > high:
+                new_state = collapse_to(new_state, w_index)
 
     # A threshold event: excerpt omissions are scheduled with it (R3).
     new_state = b.omit_for_event(b.keep_fixed(new_state), fixed)
@@ -455,16 +506,9 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     # and assistant reasoning in place (the newest output may be the culprit).
     if total > budget.input_budget:
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
-
-        def stubbable(i: int) -> bool:
-            message = b.items[i].message
-            return (message.get("role") == "tool"
-                    or (message.get("role") == "assistant" and bool(message.get("reasoning_content"))
-                        and i not in b.dropped))
-
         unmasked = sorted(
             (i for i in range(w_index, len(b.items))
-             if not b.is_fixed(i, new_state) and stubbable(i)
+             if not b.is_fixed(i, new_state) and b.stubbable(i)
              and b.items[i].occ_id not in new_state.oversized),
             key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
         for i in unmasked:

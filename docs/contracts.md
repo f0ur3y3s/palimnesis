@@ -29,6 +29,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
   - **Effective total.** `min(Q, max(0, B_in − P − F − min_recent))`. It falls to zero before fixed input or the minimum recent window would give way.
   - **Never squeezes anything else.** Excerpts never count in F, never consume R or M, never move the watermark, and never cause a budget error.
   - **Catalog slot.** P is 0 until Phase 3B.
+  - **Retrieval r2** (D71, `serve --retrieval r2`) never quotes reasoning blocks; r1, the default, may.
 
   **[enforced]**
 - **Bounded view** (`palimnesis.view`, D14).
@@ -39,6 +40,10 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
     - A collapse move keeps behind its boundary every user instruction of at most 1,024 tokens, verbatim and in place. It keeps them newest first, while their total fits `min(pin_tokens, B_in / 6)`, and absorbs the rest.
     - Pins change only with a collapse move, and an absorbed message never returns.
     - When the view would otherwise exceed `B_in`, the collapse absorbs pins too.
+  - **The current turn last** (D70, `serve --protect-turn`; off by default).
+    - A collapse reaches only up to the current turn, which starts at the latest genuine instruction.
+    - If the view still exceeds `T`, the turn's own largest tool results and reasoning are stubbed in place, never the newest group's.
+    - The turn's own groups are collapsed, oldest first to `T`, only when the view still exceeds `H`.
 
   **[enforced]**
 

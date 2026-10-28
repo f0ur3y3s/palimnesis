@@ -251,12 +251,14 @@ class Proxy:
 
             excerpts = FtsExcerpts(self.store, upstream.counter,
                                    query_policy=self.settings.query_policy,
+                                   retrieval=self.settings.retrieval,
                                    renderer=self.settings.excerpt_renderer)
         engine = ViewEngine(upstream, mode=self.settings.view,
                             input_budget=self.settings.input_budget, excerpts=excerpts,
                             excerpt_renderer=self.settings.excerpt_renderer,
                             stub_format=self.settings.stub,
-                            pin_tokens=self.settings.pin_tokens)
+                            pin_tokens=self.settings.pin_tokens,
+                            protect_turn=self.settings.protect_turn)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,
