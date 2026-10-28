@@ -1654,3 +1654,72 @@ Arm 1 then made targeted edits; it never rewrote a file from memory.
 5. **Isolate task workspaces** from the user's repositories.
 
 None of these is tested yet. ho2 can serve as the development loop for them (D69); development tasks dev-t1..t5 do not reproduce the losses.
+
+## R34 — The R33 fixes on ho2: current turn kept, no reasoning in excerpts, working notes (2026-10-28, development data per D69)
+
+**Outcome.** With working notes (D72), arm 4 passed ho2-t2, t3 and t4, the three tasks where R33 traced its losses. Without notes (D70 and D71 only) it passed t2 and t4 and failed t3. Each cell is one attempt on development data, so this shows a direction, not a gate result. The runs also found a reconciliation defect, fixed as D73.
+
+Setup:
+- Arm 4 dev configs `a4-tr` (`a4-d43` + `--protect-turn` + `--retrieval r2`) and `a4-trn` (`a4-tr` + `--notes 2048`).
+- 32K on Zeus, `--tag dev-r33`, workspaces under `%TEMP%\pmxdev\ws` (R33-E 5).
+- Commits `487c2ad`, `32c57bd` and `2b694c9`. Records: `…/scratchpad/s12dev/tasks/records/attempt-001..007`.
+
+| Task | `a4-trn` (notes) | `a4-tr` | R32 arm 4 (`a4-d43`) | R32 arm 1 (native) |
+|---|---|---|---|---|
+| ho2-t2 | **pass** 3/3, 3/3 · 85 calls · 20 min | pass 3/3, 3/3 · 194 · 35 min | pass 3/3, 3/3 · 473 · 94 min, kills 2 | pass 3/3, 3/3 · 132 · 29 min |
+| ho2-t3 (restart) | **pass** 4/4, 3/3, restart gate True · 178 · 40 min | fail 2/4, 2/3, restart gate False · 178 · 36 min | fail 3/4, 3/3, restart gate False · 194 · 65 min | pass 4/4, 3/3, restart gate True · 172 · 31 min |
+| ho2-t4 | **pass** 4/4, 3/3 · 167 · 33 min | pass 4/4, 3/3 · 204 · 43 min (attempt 4) | fail 0/4, 3/3 · 456 · 113 min, kills 2 | pass 4/4, 3/3 · 202 · 40 min |
+
+- `a4-trn` counts include the notes refresh calls. Arm 1's counts include its compaction calls.
+- No `a4-tr` or `a4-trn` run had a 30-minute kill, except the voided attempt 3 below. Every run had:
+  - 0 proxy rejections, after the D73 fix;
+  - every cache change explained (`--explain`), 0 over-budget calls, 0 leaks and 0 model or harness mentions;
+  - Strata's activity counter rising by exactly our upstream calls (D39).
+- The longest turns stayed under the limit: ho2-t3 `a4-trn` turn 7 (79 calls, 1,240 s) and ho2-t4 `a4-tr` turn 3 (99 calls, 1,235 s).
+
+**R34-A. ho2-t4 `a4-tr` attempt 3 is void (D73).**
+- The 30-minute kill of turn 5 landed while OpenCode ran a complete, valid `read` call.
+- OpenCode resent that call with `arguments: "{}"` and an aborted tool result. Reconciliation took that as edited history, so turns 6–8 were refused with 409 `history_divergence`.
+- D73 accepts `{}` against any archived arguments. Attempt 4 was the rerun, with its reason recorded.
+- R32 is unaffected: none of its killed turns landed while a tool ran, and it had no 409s.
+
+**R34-B. Working notes: what they cost.**
+
+| | ho2-t2 | ho2-t3 | ho2-t4 |
+|---|---|---|---|
+| Refreshes (committed / failed) | 10 (8 / 2) | 19 (15 / 4) | 13 (13 / 0) |
+| Refresh time, median · total | 37 s · 6.1 min | 34 s · 11.8 min | 34 s · 8.5 min |
+| Share of the run's wall time | 31% | 29% | 26% |
+| Refresh prompt tokens, cached | 80% | 89% | 91% |
+| Share of all prompt tokens | 15% | 13% | 10% |
+
+- Refresh time runs from the request's start to the end of its refresh call. The client waits for it before the visible call starts.
+- Each refresh generated 2,000–6,000 completion tokens, and a third to a half of those were reasoning.
+- Even with refreshes, every `a4-trn` run took about arm 1's wall time or less, and fewer calls than `a4-tr`.
+
+**R34-C. Working notes: two defects in the notes themselves.**
+- **Every committed version was cut.**
+  - The model wrote 8–12K characters against the prompt's "about 1,200 words". Fitting to the 2,048-token slot kept the first 5–7K.
+  - The sections are written in order, so the cut fell on the last ones. Of 36 committed versions:
+    - all kept *Requirements* and *Decisions*;
+    - 32 kept *Done so far*;
+    - 8 kept *Current step and next move*;
+    - 2 kept *Dead ends*.
+  - The runs passed on the requirements and the record of work done. The next move and the dead ends mostly never reached the view.
+- **6 of 42 refreshes failed as `empty`.** Each ended `stop` with the notes written only in reasoning (700–12,300 characters) and no content. The view kept the previous version, which D72 allows.
+
+**R34-D. What this does not show.**
+- Variance. Each cell is one attempt, while R32 had kills and failures that varied by turn.
+- ho2-t5 and ho2-t1, and the needle sets, were not run under the new configs.
+- Arm 5 with these changes was not run.
+- ho2 is development data now (D69), so a gate needs tasks the fixes were not tuned on.
+
+**R34-E. Next.**
+1. Make the cut harmless:
+   - put *Current step and next move* first in the requested order;
+   - ask for a tighter length;
+   - when the text is cut, keep whole sections instead of a prefix.
+2. When a refresh's content is empty, use its reasoning, or retry once.
+3. Cut the refresh latency, for example by limiting its reasoning.
+4. Repeat the `a4-trn` runs to measure variance, and run ho2-t1 and ho2-t5 and the needle sets.
+5. Then decide on a gate run on fresh held-out tasks.
