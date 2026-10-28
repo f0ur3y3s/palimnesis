@@ -41,6 +41,9 @@ class Settings:
     # Working notes (D72): the notes slot in tokens; 0 is off. A collapse move then
     # refreshes the notes with one internal upstream call.
     notes_tokens: int = 0
+    # Working-notes format: n1 (D72), or n2 with the current step second, a slot-sized
+    # length, cuts by section and notes taken from reasoning when the reply is empty (D74).
+    notes_format: str = "n1"
     # Excerpt retrieval: r1, or r2 without reasoning (D71).
     retrieval: str = "r1"
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,

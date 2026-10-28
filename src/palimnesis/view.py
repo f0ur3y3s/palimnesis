@@ -38,7 +38,11 @@ Mechanisms (docs/papers.md):
   is collapsed: a fixed place, so a later collapse never moves it past a kept message. A move that advances the collapse boundary returns ``refresh``: the request
   as it rendered before the move, plus ``NOTES_PROMPT``, which the proxy sends upstream
   to have the model rewrite its notes before the older messages leave its view. The
-  builder itself still makes no upstream calls.
+  builder itself still makes no upstream calls. Notes format n2 (D74, R34-C) asks for the
+  current step second and for a length sized to S, and ``fit_notes`` then cuts every
+  section to its first lines instead of cutting the text to a prefix. A reply with no
+  text whose reasoning holds a draft of the notes is committed from that draft
+  (``notes_from_reasoning``).
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
@@ -70,13 +74,14 @@ Invariants:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field, replace
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from .budget import Budget, BudgetError, check_fixed
 from .excerpts import attach
 from .profile import empty_assistant
-from .stubs import reasoning_stub, span_note, tool_result_stub
+from .stubs import fit_prefix, reasoning_stub, span_note, tool_result_stub
 from .turns import is_instruction
 
 POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
@@ -97,6 +102,119 @@ NOTES_PROMPT = (
     "task in this reply.")
 
 
+# D74: n2 puts the current step right after the objective, so a cut that still falls on
+# the last sections loses the least-used ones (R34-C).
+NOTES_SECTIONS = ("Objective", "Current step and next move", "Requirements and constraints",
+                  "Decisions", "Done so far", "Dead ends")
+_SECTION_KEYS = ("Objective", "Current step", "Requirements", "Decisions", "Done so far",
+                 "Dead ends")
+NOTES_FORMATS = ("n1", "n2")
+
+
+def notes_prompt(policy: "ViewPolicy") -> str:
+    """The refresh prompt of ``policy``'s notes format: n1 is D72's ``NOTES_PROMPT``."""
+    if policy.notes_format not in NOTES_FORMATS:
+        raise ValueError(f"unknown notes format {policy.notes_format!r}")
+    if policy.notes_format == "n1":
+        return NOTES_PROMPT
+    words = max(100, round(policy.notes_tokens * 0.3, -2))
+    return (
+        "[palimnesis notes request] Older messages of this conversation are about to leave "
+        "your view. They stay archived exactly. Rewrite your working notes so that you can "
+        "continue the task without them; they replace any earlier notes. Use these "
+        "sections, in this order:\n"
+        "Objective\n"
+        "Current step and next move\n"
+        "Requirements and constraints (quote the user's rules and the exact values, names "
+        "and formats from documents and specs)\n"
+        "Decisions\n"
+        "Done so far (files and functions changed, the latest test results)\n"
+        "Dead ends (what was tried and failed, and why)\n"
+        f"Write plain text, at most about {words:.0f} words, as your reply, not in your "
+        "reasoning. Do not call tools, and do not continue the task in this reply.")
+
+
+_HEADINGS = {name.lower(): key for name, key in
+             (*zip(NOTES_SECTIONS, _SECTION_KEYS), *zip(_SECTION_KEYS, _SECTION_KEYS))}
+
+
+def _section_key(line: str) -> str | None:
+    """The notes section ``line`` heads, if it is a heading of its own: the section's name
+    or key in any case, after Markdown heading marks, a number or bold, and before an
+    optional parenthetical and colon. Bullets and sentences are not headings."""
+    bare = line.strip()
+    if bare.startswith(("- ", "* ", "+ ")):
+        return None
+    bare = re.sub(r"^#+\s*", "", bare)
+    bare = re.sub(r"^\d+[.)]\s*", "", bare).replace("**", "").replace("__", "")
+    bare = re.sub(r"\s*\(.*\)\s*:?\s*$", "", bare).strip().rstrip(":").strip()
+    return _HEADINGS.get(bare.lower())
+
+
+def notes_from_reasoning(text: str) -> str | None:
+    """D74: notes the model wrote only as reasoning, or None. A draft starts at a heading
+    and ends where a section repeats; the last draft in which at least three distinct
+    sections have a line under them is taken, from its first heading to the end."""
+    lines = text.split("\n")
+    drafts: list[tuple[int, set[str], set[str]]] = []  # (start, keys, keys with a body)
+    current = None
+    for i, line in enumerate(lines):
+        key = _section_key(line)
+        if key:
+            if current is None or key in drafts[-1][1]:
+                drafts.append((i, set(), set()))
+            drafts[-1][1].add(key)
+            current = key
+        elif current is not None and line.strip():
+            drafts[-1][2].add(current)
+    for start, _, bodied in reversed(drafts):
+        if len(bodied) >= 3:
+            return "\n".join(lines[start:]).strip()
+    return None
+
+
+def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
+    """``text`` cut so ``fits`` holds (D72, D74). With ``sections`` every section keeps
+    its heading and its first k non-blank lines, the largest k that fits; otherwise, or
+    when the headings alone do not fit, the text is cut at a line."""
+    if fits(text):
+        return text
+    lines = text.split("\n")
+    if sections and any(map(_section_key, lines)):
+        parts: list[tuple[str | None, list[str]]] = [(None, [])]
+        for line in lines:
+            if _section_key(line):
+                parts.append((line, []))
+            elif line.strip():
+                parts[-1][1].append(line)
+
+        def render(k: int) -> str:
+            return "\n".join(line for head, body in parts
+                             for line in ([head] if head else []) + body[:k])
+
+        if fits(render(1)):  # headings alone are no notes: then cut at a line
+            lo, hi = 1, max(len(body) for _, body in parts)
+            while lo < hi:  # the most first lines per section that fit (binary search)
+                mid = (lo + hi + 1) // 2
+                if fits(render(mid)):
+                    lo = mid
+                else:
+                    hi = mid - 1
+            return render(lo)
+    lo, hi = 0, len(lines)  # the longest line prefix that fits (binary search)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if fits("\n".join(lines[:mid])):
+            lo = mid
+        else:
+            hi = mid - 1
+    if lo:
+        return "\n".join(lines[:lo])
+    if not fits(""):  # not even the header fits the slot
+        return ""
+    return fit_prefix(lines[0], fits)  # one line longer than the slot: cut it
+
+
 def notes_block(n: int, text: str) -> str:
     """The rendered working-notes block of notes version ``n`` (D72)."""
     return (f"[palimnesis notes · v{n} · your own working notes from earlier in this "
@@ -113,6 +231,7 @@ class ViewPolicy:
     pin_tokens: int = 0  # D65: total for pinned instructions; 0 turns pinning off
     protect_turn: bool = False  # D70: collapse the current turn last
     notes_tokens: int = 0  # D72: the working-notes slot S; 0 turns notes off
+    notes_format: str = "n1"  # D74: n1 (D72) or n2
 
 
 @dataclass(frozen=True)
@@ -491,7 +610,7 @@ def _refresh(b: _Builder, state: ViewState, budget: Budget) -> View | None:
     """D72: ``state``'s rendering plus the notes prompt, within the input budget. If it
     would overflow, unmasked results are stubbed newest first, so the previous call's
     prompt stays a prefix as long as the new messages suffice."""
-    prompt = {"role": "user", "content": NOTES_PROMPT}
+    prompt = {"role": "user", "content": notes_prompt(b.policy)}
     watermark = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
     order = [i for i in reversed(range(watermark, len(b.items)))
              if not b.is_fixed(i, state) and b.stubbable(i)

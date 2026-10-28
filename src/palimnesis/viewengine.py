@@ -52,7 +52,7 @@ from .budget import (
 from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
 from .profile import UpstreamProfile, unsupported_rules
 from .stubs import STUB_FORMAT, span_note
-from .view import POLICY_VERSION, View, ViewPolicy, build, warm
+from .view import NOTES_FORMATS, POLICY_VERSION, View, ViewPolicy, build, warm
 
 
 log = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ class ViewEngine:
                  input_budget: int | None = None, excerpts=None,
                  excerpt_renderer: str = RENDERER_VERSION, stub_format: str = STUB_FORMAT,
                  pin_tokens: int = 0, protect_turn: bool = False,
-                 notes_tokens: int = 0) -> None:
+                 notes_tokens: int = 0, notes_format: str = "n1") -> None:
         self.profile = profile
         self.excerpts = excerpts if excerpts is not None else NoExcerpts()
         self.excerpt_renderer = excerpt_renderer
@@ -122,8 +122,11 @@ class ViewEngine:
         self.unsupported_rules = unsupported_rules(profile.rules)
         self.mode = mode
         self.policy = BudgetPolicy() if input_budget is None else BudgetPolicy(input_cap=input_budget)
+        if notes_format not in NOTES_FORMATS:
+            raise ValueError(f"unknown notes format {notes_format!r}")
         self.view_policy = ViewPolicy(stub_format=stub_format, pin_tokens=pin_tokens,
-                                      protect_turn=protect_turn, notes_tokens=notes_tokens)
+                                      protect_turn=protect_turn, notes_tokens=notes_tokens,
+                                      notes_format=notes_format)
         self._warm_lock = threading.Lock()
         self._warm_next = None
         self._warming = False
@@ -269,6 +272,8 @@ class ViewEngine:
             version += "+turn"  # D70
         if self.view_policy.notes_tokens:
             version += f"+notes{self.view_policy.notes_tokens}"  # D72
+            if self.view_policy.notes_format != "n1":
+                version += self.view_policy.notes_format  # D74
         return {"policy_version": version,
                 "stub_format": self.view_policy.stub_format}
 

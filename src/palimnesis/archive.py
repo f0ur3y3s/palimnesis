@@ -50,6 +50,7 @@ from .budget import BudgetError
 from .assemble import ChatAssembler
 from .sse import ChatStream, SSEParser
 from .turns import is_instruction
+from .view import fit_notes, notes_block, notes_from_reasoning
 from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from .store import Store
 
@@ -399,9 +400,12 @@ class ArchiveHandler:
                             reason, status = "upstream_status", upstream.status_code
                         else:
                             parser = SSEParser()
-                            async for chunk in upstream.aiter_raw():
-                                for event in parser.feed(chunk):
-                                    stream.apply(event)
+                            try:
+                                async for chunk in upstream.aiter_raw():
+                                    for event in parser.feed(chunk):
+                                        stream.apply(event)
+                            except ValueError:  # an event the parser rejects
+                                reason = "malformed"
                     finally:
                         with anyio.CancelScope(shield=True):
                             await upstream.aclose()
@@ -409,12 +413,15 @@ class ArchiveHandler:
                     reason = "transport_error"
             if window.cancelled_caught:
                 reason = "timeout"
+            written, source = stream.content.strip(), None
+            if (not written and self.views.view_policy.notes_format == "n2"
+                    and (drafted := notes_from_reasoning(stream.reasoning))):
+                written, source = drafted, "from_reasoning"  # D74
             if reason is None:
                 reason = ("upstream_error" if stream.error else "incomplete" if not stream.done
                           else "tool_call" if stream.tool_calls
-                          else "empty" if not stream.content.strip() else None)
-            text = ("" if reason else
-                    await anyio.to_thread.run_sync(self._fit_notes, stream.content.strip()))
+                          else "empty" if not written else None)
+            text = "" if reason else await anyio.to_thread.run_sync(self._fit_notes, written)
             if reason is None and not text:
                 reason = "too_long"
             outcome = reason or "ok"
@@ -430,7 +437,8 @@ class ArchiveHandler:
         def record(c):
             return ledger.record_notes(c, plan, base_view_n=base_n, text=text,
                                        status="failed" if reason else "committed",
-                                       reason=f"{reason}:{status}" if status else reason)
+                                       reason=f"{reason}:{status}" if status
+                                       else reason or source)
 
         notes_id, n = await self.store.write(record)
         if reason:
@@ -443,31 +451,16 @@ class ArchiveHandler:
         return replace(rebuilt, moved=True, evicted_now=evicted)
 
     def _fit_notes(self, text: str) -> str:
-        """``text`` cut at a line so its rendered block fits the notes slot (D72)."""
-        from .view import notes_block
-
-        from .stubs import fit_prefix
-
+        """``text`` cut so its rendered block fits the notes slot (D72, D74)."""
+        policy = self.views.view_policy
         # The header is counted at a 6-digit version, never below the real one.
-        limit = self.views.view_policy.notes_tokens - 8  # the message's own template tokens
+        limit = policy.notes_tokens - 8  # the message's own template tokens
         count = self.views.counter.count_cached
 
         def fits(t: str) -> bool:
             return count(notes_block(999_999, t)) <= limit
 
-        if fits(text):
-            return text
-        lines = text.split("\n")
-        lo, hi = 0, len(lines)  # the longest line prefix that fits (binary search)
-        while lo < hi:
-            mid = (lo + hi + 1) // 2
-            if fits("\n".join(lines[:mid])):
-                lo = mid
-            else:
-                hi = mid - 1
-        if lo:
-            return "\n".join(lines[:lo])
-        return fit_prefix(lines[0], fits)  # one line longer than the slot: cut it
+        return fit_notes(text, fits, sections=policy.notes_format == "n2")
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
         """Deadline D passed after acceptance; the upstream is already closed."""

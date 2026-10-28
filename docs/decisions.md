@@ -965,3 +965,33 @@ Cache-audit fixes to D70 (from the audit of `487c2ad`):
 - **Known limit.** An edit that blanks a call's arguments to `{}` is not detected. It can only remove information; it can inject none.
 - **Rejected:** matching OpenCode's `aborted` result text in the core. The core keys off protocol, never off a harness's strings.
 - **Affected runs.** The frozen arms carry the same rule as D68. R32 was not affected: none of its kills landed while a tool ran, and it had no 409s. The R34 ho2-t4 `a4-tr` run is void and reruns at the fix.
+
+## D74 — Working-notes format n2: the cut keeps every section; notes taken from reasoning (R34-C)
+
+- **The problems (R34-C).**
+  - The model wrote 8–12K characters of notes against a 2,048-token slot. A line-prefix cut kept the first sections: of 36 committed versions, 8 kept *Current step and next move* and 2 kept *Dead ends*.
+  - 6 of 42 refreshes ended with no text. In 5 the reasoning held complete notes with every section; the sixth had stopped after one section.
+- **n2** (`--notes-format n2`, dev arm `a4-trn2`):
+  - **Section order.** The prompt asks for *Current step and next move* second, after the objective.
+  - **Length.** The requested length is sized to the slot: about 0.3 words per token, rounded to 100 (600 words at 2,048). n1 asked for about 1,200 words at any S.
+  - **Reply, not reasoning.** The prompt asks for the notes as the reply.
+  - **A cut keeps every section.** Each section keeps its heading and its first k non-blank lines, with the largest k that fits. When the text has no section headings, or the headings alone do not fit, it is cut at a line as in n1.
+  - **Notes from reasoning.** A reply with no text is committed from its reasoning when at least three distinct section headings stand on lines of their own. The text starts at the first heading. It is recorded `committed` with reason `from_reasoning`; otherwise the refresh fails `empty` as before.
+- **Why reasoning is acceptable here, when D71 keeps it out of excerpts.** D71 removed old reasoning that resurfaced as evidence for a later question. Here the reasoning is the requested notes, written for this purpose, and it is rendered under the same "your own working notes" header as notes written as the reply.
+- **Rejected:**
+  - Retrying an empty refresh. It costs another 30–60 s, and the reasoning already holds the notes in 5 of 6 cases.
+  - Dropping whole trailing sections. A cut inside *Done so far* still kept useful lines in R34, and the order alone does not protect the last sections.
+- **n1 stays the default**, as D70 and D71 left the frozen behaviour as the default. `a4-trn` keeps n1, so R34's runs stay reproducible. The view's `policy_version` names n2 (`+notes{S}n2`). Under n1, D72's "reasoning is discarded" still holds.
+
+**Review fixes** (protocol review of the D74 draft):
+- **No notes of bare headings.** When not even one line per section fits (one very long first line), n2 cuts at a line instead.
+- **Headings.** Matching is case-insensitive and allows numbers, bold and the prompt's own long parenthetical. Bullets and sentences that start with a section's name are not headings.
+- **Reasoning.** A draft needs three distinct sections with a line under them, so an echo of the prompt's section list is not notes. Of several drafts the last is taken.
+- **D72 defects found in review:**
+  - A slot smaller than the block's header looped forever in `fit_prefix`; fitting now returns nothing, and the refresh fails `too_long`.
+  - A refresh stream with an event the parser rejects was recorded `cancelled` with no notes row; it now fails `malformed`.
+- An unknown notes format is refused when the engine starts.
+- **Known limits:**
+  - Meta-text after a draft in the reasoning stays in the last section.
+  - A reasoning-only refresh that stops on `length` commits what it has, as a cut reply does under D72.
+  - A draft that fails `too_long` is not marked as taken from reasoning.

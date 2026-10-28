@@ -49,3 +49,11 @@ def test_the_first_held_out_set_still_runs_only_the_frozen_arms():
 def test_a4_trn_is_a4_tr_plus_2048_tokens_of_working_notes():
     assert needle.CONFIGS["a4-trn"] == dict(needle.CONFIGS["a4-tr"], notes_tokens=2048)
     assert needle.proxy_settings(needle.CONFIGS["a4-trn"])["notes_tokens"] == 2048
+
+
+def test_the_n2_dev_arm_is_a4_trn_with_notes_format_n2():
+    """D74: a4-trn keeps n1; a4-trn2 changes only the notes format."""
+    cfg = needle.CONFIGS["a4-trn2"]
+    assert cfg == dict(needle.CONFIGS["a4-trn"], notes_format="n2")
+    assert needle.proxy_settings(cfg)["notes_format"] == "n2"
+    assert "notes_format" not in needle.proxy_settings(needle.CONFIGS["a4-trn"])
