@@ -1598,3 +1598,59 @@ Per D64, `serve`'s defaults stay as they are and there is no `phase-3b` tag.
 - **Recall:** on held-out data, arm 4 recalls facts that left the view (99%). Arm 5 does not reach the bar, and its misses are early stops, not failed lookups.
 - **Coding:** neither Palimnesis arm matched native compaction on coding tasks. Arm 4 kept every user constraint where arm 1 lost 3, but it finished fewer tasks.
 - **Sample size:** five tasks, one attempt each, so a one-task difference is within noise. Still, this is the second held-out set on which Palimnesis trails native compaction on coding: R25 had arm 4 at 3/5 against arm 1's 5/5, and here arm 4 and arm 5 are both 2/5 against 4/5.
+
+## R33 — Why Palimnesis loses coding tasks: diagnosis from the ho2 records (2026-10-28, development data per D69)
+
+**Outcome.** Every Palimnesis loss on ho2-t2, t3 and t4 traces to the same cause. The view hides the model's own work in the turn it is doing, and nothing in the view says what that work was. Native compaction fails less because its checkpoint is a working summary. No proxy defect was found.
+
+The findings come from per-call reconstruction of four failed runs, each against the same task's passing runs: ho2-t2 arm 5, ho2-t3 arms 4 and 5, and ho2-t4 arm 4. A replay of recorded edits reproduces the final files byte for byte. Scratch: `…/scratchpad/diag/`, `…/scratchpad/diag2/`.
+
+**R33-A. The current turn's own work leaves the view.**
+- In 91% of arm 4's mid-turn calls (1,220 of 1,339), at least one of the turn's own tool calls or results was collapsed or masked. Arm 5's figure is 90% (1,908 of 2,121).
+- It starts early. ho2-t3 arm 4 collapsed six messages of turn 1 at call 4, after one 18K-token read. ho2-t2 arm 5 had collapsed its turn-7 work into a 24-message span, then 60, then 120.
+- A span note says only "N messages · archived exactly; not shown". At the start of turn 7 on ho2-t2, arm 4's view was:
+  - that note, covering 584 messages;
+  - the last turn's answer;
+  - excerpts that were mostly the model's own reasoning and stray grep lines.
+
+**R33-B. What the model does without its own work in view.** Each of these is verified at specific calls in the reconstructions:
+- **It invents a history.**
+  - ho2-t3: "in the previous turn I read overlap.py" (arm 4); "previous attempt I created tests/data/" (arm 5).
+  - ho2-t2 arm 5: "Reads of workspace files are serving stale snapshots" and "test file on disk has been replaced with a … graded suite". No view ever contained such content.
+- **It rewrites whole files from memory.**
+  - ho2-t2 arm 5: a 12.5K rewrite at call 141 broke slash chords, which had passed before it.
+  - ho2-t4 arm 4: the rewrite at call 317 dropped turn 5's promotion and broke mixed numbers. In that request the doc and the old `scale.py` were head/tail stubs.
+- **It trusts its own text over the spec.** ho2-t3 arm 4 removed a correct `end == start` check because "the file's real docstring" allowed it. The model had written that docstring in turn 1.
+- **It re-verifies instead of progressing.** Compared with arm 1 across all runs:
+
+  | | Arm 1 | Arm 4 | Arm 5 |
+  |---|---|---|---|
+  | Test runs | 64 | 171 | 217 |
+  | Test reruns with no edit since the last run | 36 | 118 | 131 |
+  | git commands | 26 | 128 | 109 |
+
+  The killed turns were made of this.
+- **It leaves the workspace.** Across arms, including arm 1, 35 tool calls in 8 runs guessed paths under `C:\Users\Daniel\repos\mnemon`, the Palimnesis repo. None reached `eval/tasks/` or a hidden test, and the repo is unchanged. It is an eval-hygiene risk all the same.
+
+**R33-C. The proxy's own text adds to it.**
+- **Excerpts and transcript greps return the model's earlier unverified reasoning, labelled "historical evidence".** This includes its hallucinations: "an earlier task variant (spec A)" (ho2-t4), "saladkit" (ho2-t4), and a false column rule (ho2-t2). R30-C measured reasoning at 42% of excerpt items.
+- **The model copies the placeholder format into its own reasoning.** This happened in 30 arm-4 responses and 22 arm-5 responses. On ho2-t4 arm 4, turn 5 ended on a self-written `[archived exactly; not shown]` with no answer, leaving a `NameError` unfixed.
+- **Arm 5 only:**
+  - On ho2-t3 turn 7, between alternating pins and span notes, the model took the current instruction for an old one: "current turn = Turn E". It made no edits that turn. This is the layout R31 associated with needle early stops.
+  - A refused lookup ended the response with `length`, and OpenCode's synthetic "hit the output token limit" follow-up then read as a truncated turn (ho2-t2).
+
+**R33-D. What arm 1 had instead.** OpenCode's checkpoint is a structured summary of about 9K characters, refreshed in-turn when needed. Its sections are objective, requirements, decisions, and active state with next move. In every pair it carried what the failing arm lost:
+- ho2-t3: "`end == start` is an error, not a 24-hour shift".
+- ho2-t4: the promotion thresholds and "1 tsp = 5 ml, 1 tbsp = 15 ml, 1 cup = 240 ml".
+- ho2-t2: the column formula, and "transpose_sheet — still raise NotImplementedError".
+
+Arm 1 then made targeted edits; it never rewrote a file from memory.
+
+**R33-E. Where this points.**
+1. **A working state in view.** This is Phase 4A's pinned state (goal, constraints, decisions, current step, dead ends). R33 is the evidence that recall without state loses to a summary.
+2. **Keep the current turn's own edits and results in view** in preference to older turns. Size it so one oversized read cannot evict them.
+3. **Keep reasoning out of excerpts**, as D66 did for grep.
+4. **Make placeholders say what they replace**, for example the file read and its lines, so a placeholder is information rather than something to copy.
+5. **Isolate task workspaces** from the user's repositories.
+
+None of these is tested yet. ho2 can serve as the development loop for them (D69); development tasks dev-t1..t5 do not reproduce the losses.

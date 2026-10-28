@@ -869,3 +869,9 @@ A defect found during the first S11 held-out run (D44.8, D62.5).
 - **Eval fix with it (test-first).** `gate_inputs.reachable_records` treated any quoted `"gold"` as a needle answer key. In the same run the model wrote one in its own code, so the task's transcript looked like a leaked record. A file now counts only when its `"gold"` or `"answer"` field holds one of the run's answer keys, as the `"answer"` check already did.
 - **Consequence (D44.8).** The whole ho2 needle set and every task rerun on the fixed commit, and the gates are judged on the rerun. The first attempt's data is kept and reported (R31).
 - **The needle early stops are not part of this fix.** They come with the pinned layout (R31), which D65 specifies; changing it after seeing held-out results is what D62 forbids. a5-d64 stays as D64 froze it.
+
+## D69 — ho2 becomes development data after its gate (R32, R33)
+
+- **Decision.** ho2 has been judged (R32), so its records and task modules may now be read for diagnosis, as development data. The next held-out gate needs a fresh set, written and committed before any run of the design it judges, as D62.3 did for ho2.
+- **Why.** The development tasks no longer separate the arms: arm 1 and both a5 variants pass all five (R30). Every coding loss the project has measured is on held-out tasks (R25, R32). Diagnosing those losses needs their records.
+- **What it costs.** ho2 can no longer judge anything shaped by what R33 found.
