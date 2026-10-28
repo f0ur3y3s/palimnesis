@@ -45,9 +45,15 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
     - If the view still exceeds `T`, the turn's own largest tool results and reasoning are stubbed in place, never the newest group's.
     - The turn's own groups are collapsed, oldest first to `T`, only when the view still exceeds `H`.
   - **Working notes** (D72, `serve --notes TOKENS`; off by default).
-    - The notes slot S is reserved out of the maskable capacity; the block's tokens never count toward `H` or `T`.
+    - The notes slot S is reserved out of the maskable capacity, and the oversized and last-resort steps leave it free. The block's tokens never count toward `H` or `T`.
     - A move that advances the collapse boundary first sends one internal call upstream: the request as it rendered before the move, plus the notes prompt, within `B_in`. The client sees nothing of it.
-    - Its text, cut at a line to fit S, becomes the next immutable notes version, rendered as one user-role block right after the last span note. A failed call (status, transport, timeout of 180 s, a tool call, no text) is recorded and keeps the notes the view had.
+    - Its text, cut to fit S, becomes the next immutable notes version. It is rendered as one user-role block right after the leading system message once anything is collapsed.
+    - A failed call keeps the notes the view had, and is recorded with its reason:
+      - an HTTP status or a transport error;
+      - the 180 s timeout;
+      - an error event, or a stream that ends without `[DONE]`;
+      - a tool call, or no text.
+    - A notes defect never fails the request.
     - The builder itself makes no upstream calls.
 
   **[enforced]**

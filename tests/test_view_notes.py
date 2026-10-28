@@ -82,7 +82,7 @@ def test_no_refresh_without_the_slot_or_without_a_collapse(counter):
     assert _view(counter, small, ViewPolicy(notes_tokens=2048)).refresh is None
 
 
-def test_the_notes_block_follows_the_last_collapsed_run(counter):
+def test_the_notes_block_sits_right_after_the_system_message(counter):
     s = _long()
     policy = ViewPolicy(notes_tokens=2048)
     moved = _view(counter, s, policy)
@@ -90,10 +90,10 @@ def test_the_notes_block_follows_the_last_collapsed_run(counter):
 
     view = _view(counter, s, policy, state=state, notes={"notes_1": (1, "Objective: finish.")})
 
-    k = next(i for i, m in enumerate(view.messages) if m.get("content") == notes_block(1, "Objective: finish."))
-    assert _is_span(view.messages[k - 1])
-    assert not any(_is_span(m) for m in view.messages[k + 1:])
-    assert ("notes:notes_1", "notes") in view.manifest
+    assert view.messages[0]["role"] == "system"
+    assert view.messages[1] == {"role": "user", "content": notes_block(1, "Objective: finish.")}
+    assert _is_span(view.messages[2])
+    assert view.manifest[1] == ("notes:notes_1", "notes")
     assert view.moved is False and view.tokens <= _budget().input_budget
 
 
@@ -118,3 +118,55 @@ def test_a_refresh_that_would_overflow_stubs_the_newest_large_results_first(coun
     view = _view(counter, s, ViewPolicy(notes_tokens=2048))
 
     assert view.refresh is not None and view.refresh.tokens <= _budget().input_budget
+
+
+def _notes_of(counter, tokens_wanted):
+    words, text = 0, ""
+    while counter.count_cached(notes_block(99, text)) < tokens_wanted - 20:
+        words += 50
+        text = " ".join(f"n{k}" for k in range(words))
+    return text
+
+
+@pytest.mark.parametrize("lines", [850, 880, 910, 940, 970])
+def test_a_committed_block_of_the_slot_never_forces_another_move(counter, lines):
+    policy = ViewPolicy(notes_tokens=2048)
+    s = _long()
+    s.tool_turn(999, _code(999, lines=lines))  # newest result near B_in by itself
+    first = _view(counter, s, policy)
+    state = first.state.__class__(**{**first.state.__dict__, "notes": "n1"})
+
+    again = _view(counter, s, policy, state=state, notes={"n1": (99, _notes_of(counter, 2048))})
+
+    assert again.moved is False and again.tokens <= _budget().input_budget
+
+
+
+def _pinned_session():
+    s = Session().system()
+    for t in range(4):
+        s.user(f"Rule {t}: keep it short.")
+        for i in range(6):
+            s.tool_turn(t * 100 + i, "ok")
+            s.answer(" ".join(f"w{t}_{i}_{k}" for k in range(150)))
+    return s
+
+
+def test_the_block_never_moves_past_a_kept_message_between_moves(counter):
+    """Cache audit 1: a later collapse past a pinned instruction must not move the block."""
+    from palimnesis.cacheacct import describe
+
+    policy = ViewPolicy(notes_tokens=2048, pin_tokens=4096)
+    s = _pinned_session().user("Go on.")
+    first = _view(counter, s, policy)
+    state = first.state.__class__(**{**first.state.__dict__, "notes": "n1"})
+    v1 = _view(counter, s, policy, state=state, notes={"n1": (1, "Objective: a.")})
+    for i in range(12):
+        s.tool_turn(900 + i, "ok")
+        s.answer(" ".join(f"x{i}_{k}" for k in range(150)))
+    v2 = _view(counter, s, policy, state=v1.state, notes={"n1": (1, "Objective: a.")})
+
+    assert v2.state.collapse_seq > v1.state.collapse_seq
+    for v in (v1, v2):
+        assert v.messages[1]["content"].startswith("[palimnesis notes")
+        assert describe(s.items, v) is not None

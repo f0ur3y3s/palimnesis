@@ -926,13 +926,31 @@ A defect found during the first S11 held-out run (D44.8, D62.5).
   - The rendering policy is recorded as `+notesS` in `policy_version`.
 - **Cost.**
   - One upstream call per collapse move. R32 had 23–95 collapse moves per task; arm 1 made 17–90 compaction calls.
-  - The prompt is mostly cached, so the cost is the generation: roughly 15–40 s on Zeus.
+  - The prompt is mostly cached, so the cost is the generation: an estimated 15–40 s on Zeus (unmeasured until R34).
   - OpenCode waits up to 300 s for headers (harnesses.md). Other harnesses' header timeouts are unverified, which matters for 4B.
 - **Rejected.**
   - *Refreshing in the background:* an agent loop rarely leaves the slot idle.
   - *Putting the notes in the system message:* every refresh would re-read the whole prompt.
   - *Putting the notes at the end of the view:* they would be re-read on every call.
 
+**Review fixes** (protocol review and cache audit of `a3a2b8c`):
+- **A fixed place.** The block sits right after the leading system message once anything is collapsed. After the last span note, a later collapse moved it past a kept message (a pin, or the current instruction), and that pair was unexplained.
+- **Room for the notes.** The oversized and last-resort steps leave S free, and the block's whole message is charged, so committing notes never forces another move or a budget error.
+- **Stubbing to fit.** A refresh that must stub to fit `B_in` stubs newest first, and only items whose stub changes something. Every `#notes` call is `state_refresh`.
+- **More failure reasons:**
+  - `incomplete`: the stream ended without `[DONE]`;
+  - `upstream_error`;
+  - `upstream_status:<code>`;
+  - `too_long`: nothing fits the slot. Notes whose first line is longer than the slot are cut inside that line instead.
+- **Outcomes.** A failure's reason is the refresh call's outcome, and a cancelled refresh is recorded `cancelled`.
+- **A notes defect never fails the request.** Any error in building, storing or rebuilding returns the view without new notes. Fitting runs off the event loop and counts the header at a 6-digit version.
+- **A rebuild that moves again** keeps what it evicted visible to retrieval.
+- **Known limits:**
+  - A collapse made by a hidden-tool continuation inside one visible response does not refresh; the next request's move will.
+  - A refresh that cannot fit even fully stubbed is skipped without a row.
+  - A refresh that stops on `length` is committed after the cut.
+  - Refresh failures do not re-read the upstream facts; the visible call does.
+
 Cache-audit fixes to D70 (from the audit of `487c2ad`):
 - In-turn stubbing never records an item its stub leaves unchanged, and it orders by tokens saved.
-- A previous call that cannot be re-rendered because the recorded view format differs is `view_format_change`, not `unexplained`. This also covers a `--stub` change across a restart.
+- A previous call that cannot be re-rendered because the recorded view format differs is `view_format_change`, not `unexplained`. This also covers a `--stub` change across a restart. It applies only when `policy_version` or `stub_format` differ.

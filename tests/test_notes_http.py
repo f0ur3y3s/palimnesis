@@ -64,8 +64,9 @@ def test_a_collapse_move_refreshes_the_notes_before_the_clients_call(tmp_path):
     assert refresh[-2] == {"role": "user", "content": "Now finish the last part."}
     assert not _spans(refresh)  # the request as it was before the move
     assert upstream_tokens(fake.requests[0].body) <= BUDGET
-    [k] = _spans(visible)[-1:]
-    assert visible[k + 1] == {"role": "user", "content": notes_block(1, NOTES)}
+    assert visible[0]["role"] == "system"
+    assert visible[1] == {"role": "user", "content": notes_block(1, NOTES)}
+    assert _spans(visible)
     assert upstream_tokens(fake.requests[1].body) <= BUDGET
     assert _notes_rows(s) == [(1, "committed", None, NOTES)]
 
@@ -94,7 +95,7 @@ def test_a_failed_refresh_keeps_the_notes_it_had_and_still_answers(tmp_path):
     assert len(fake.requests) == 2
     assert not any("palimnesis notes" in str(m.get("content")) for m in _sent(fake, 1))
     [(n, status, reason, text)] = _notes_rows(s)
-    assert (status, text) == ("failed", "") and reason == "upstream_status"
+    assert (status, text) == ("failed", "") and reason == "upstream_status:503"
 
 
 def test_a_refresh_that_calls_a_tool_is_failed(tmp_path):
@@ -142,7 +143,7 @@ def test_the_refresh_and_the_next_call_are_explained(tmp_path):
     causes = [json.loads(p)["cause"] for (p,) in rows(
         s, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
     assert causes[0] in ("first_call", "state_refresh")
-    assert causes[1].split(",")[0] == "collapse"
+    assert causes[1].split(",")[0] in ("state_commit", "collapse")  # the block leads the change
     assert causes[2] == "append"
     assert "unexplained" not in causes
     ids = [json.loads(p)["call_id"] for (p,) in rows(
@@ -161,3 +162,99 @@ def test_the_view_version_records_the_notes_and_the_policy(tmp_path):
     assert policy.endswith("+notes2048")
     [(notes_id,)] = rows(s, "SELECT notes_id FROM notes_versions")
     assert json.loads(masks)["notes"] == notes_id
+
+
+# --- protocol review of a3a2b8c ---------------------------------------------------------
+
+def _chunk(delta, finish=None):
+    from .archive_helpers import chunk
+
+    return chunk(delta, finish)
+
+
+def _big_result():
+    """A large newest result: the request before the move no longer fits B_in."""
+    from .test_view_http import _code
+
+    return [{"role": "assistant", "content": None, "tool_calls": [
+        {"id": "call_big", "type": "function", "function": {"name": "read", "arguments": "{}"}}]},
+        {"role": "tool", "tool_call_id": "call_big", "content": _code(999, 600)}]
+
+
+def test_a_refresh_stream_without_done_is_failed_and_never_committed(tmp_path):
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048) as (fake, url, s):
+        fake.respond_sse([_chunk({"role": "assistant", "content": ""}),
+                          _chunk({"content": "Objective\nhalf of it"})])  # no finish, no [DONE]
+        fake.respond_counted("visible answer")
+        assert post(url, _body(_messages())).status_code == 200
+
+    [(_, status, reason, text)] = _notes_rows(s)
+    assert (status, reason, text) == ("failed", "incomplete", "")
+    assert not any("palimnesis notes" in str(m.get("content")) for m in _sent(fake, 1))
+
+
+def test_a_refresh_error_event_is_failed(tmp_path):
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048) as (fake, url, s):
+        fake.respond_sse([_chunk({"content": "Objective"}),
+                          b'data: {"error": {"message": "boom"}}\n\n', b"data: [DONE]\n\n"])
+        fake.respond_counted("visible answer")
+        assert post(url, _body(_messages())).status_code == 200
+
+    [(_, status, reason, _)] = _notes_rows(s)
+    assert (status, reason) == ("failed", "upstream_error")
+
+
+def test_notes_of_one_line_longer_than_the_slot_are_cut_never_emptied(tmp_path):
+    one_line = "word " * 3000
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=1024) as (fake, url, s):
+        fake.respond_counted(one_line)
+        fake.respond_counted("visible answer")
+        assert post(url, _body(_messages())).status_code == 200
+
+    [(_, status, _, text)] = _notes_rows(s)
+    assert status == "committed" and text and one_line.startswith(text)
+
+
+def test_a_refresh_that_stubs_to_fit_is_explained(tmp_path):
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048) as (fake, url, s):
+        fake.respond_counted(NOTES)
+        fake.respond_counted(tool_call=("call_big", "read", "{}"))
+        assert post(url, _body(_messages())).status_code == 200
+        fake.respond_counted(NOTES + "\nDone so far\nread the big file.")
+        fake.respond_counted("visible answer")
+        r = post(url, _body(_messages(_big_result())))
+        assert r.status_code == 200, r.text[:300]
+
+    assert len(fake.requests) == 4
+    assert upstream_tokens(fake.requests[2].body) <= BUDGET  # the refresh had to stub
+    assert b"def f999_300(" not in fake.requests[2].body and b"def f999_300(" in fake.requests[3].body
+    causes = [json.loads(p)["cause"] for (p,) in rows(
+        s, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
+    assert "unexplained" not in causes and causes.count("state_refresh") >= 1
+
+
+def test_a_notes_storage_failure_never_fails_the_request(tmp_path, monkeypatch):
+    from palimnesis import ledger
+
+    def broken(*a, **kw):
+        raise RuntimeError("disk on fire")
+
+    monkeypatch.setattr(ledger, "record_notes", broken)
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048) as (fake, url, s):
+        fake.respond_counted(NOTES)
+        fake.respond_counted("visible answer")
+        r = post(url, _body(_messages()))
+
+    assert r.status_code == 200 and "visible answer" in r.text
+    assert not any("palimnesis notes" in str(m.get("content")) for m in _sent(fake, 1))
+
+
+def test_a_failed_refresh_records_its_outcome(tmp_path):
+    with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048) as (fake, url, s):
+        fake.respond_counted(tool_call=("call_x", "read", "{}"))
+        fake.respond_counted("visible answer")
+        assert post(url, _body(_messages())).status_code == 200
+
+    [first, *_] = [json.loads(p) for (p,) in rows(
+        s, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
+    assert first["call_id"].endswith("#notes") and first["outcome"] == "tool_call"

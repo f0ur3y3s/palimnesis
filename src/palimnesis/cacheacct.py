@@ -231,7 +231,9 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
                  else "model_template_change" if prev.identity != cur.identity
                  # a previous call that cannot be rebuilt under a changed view policy or
                  # stub format (cache audit of D70)
-                 else "view_format_change" if prev.formats != cur.formats
+                 else "view_format_change" if any(
+                     prev.formats.get(k) != cur.formats.get(k)
+                     for k in ("policy_version", "stub_format"))
                  else "unexplained")  # a call counted by another counter revision (D46)
         return {"lcp_tokens": None, "first_diff": None, "cause": cause,
                 "expected_reuse_est": 0}
@@ -239,10 +241,14 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     lcp = common_prefix(a.ids, b.ids)
     estimate = model.expected(a, b)
     out = {"lcp_tokens": lcp, "first_diff": None, "expected_reuse_est": estimate}
+    if cur.call_id.endswith("#notes"):
+        # D72: the proxy's own refresh call, built from the previous view plus the new
+        # messages (newest stubbed first if it must fit B_in) and the notes prompt.
+        out["cause"] = "state_refresh"
+        return out
     if lcp >= a.generation_start:
         # A call inside one visible response extends the one before it (D51).
-        out["cause"] = ("state_refresh" if cur.call_id.endswith("#notes")  # D72
-                        else "internal_continuation" if prev.request_id == cur.request_id
+        out["cause"] = ("internal_continuation" if prev.request_id == cur.request_id
                         and "#" in cur.call_id else "append")
         return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))

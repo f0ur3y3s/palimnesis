@@ -32,9 +32,10 @@ Mechanisms (docs/papers.md):
   Without it, a large read collapsed the steps the model had just taken, and the model
   invented their history (R33-B).
 - **Working notes** (D72; R33-D, adapting the summary checkpoint of native compaction).
-  With ``notes_tokens`` S, S is reserved out of the maskable capacity, as Q is. A state
-  naming a notes version renders its text as one user-role block right after the last
-  span note. A move that advances the collapse boundary returns ``refresh``: the request
+  With ``notes_tokens`` S, S is reserved out of the maskable capacity, as Q is, and the
+  oversized and last-resort steps leave S free. A state naming a notes version renders
+  its text as one user-role block right after the leading system message, once anything
+  is collapsed: a fixed place, so a later collapse never moves it past a kept message. A move that advances the collapse boundary returns ``refresh``: the request
   as it rendered before the move, plus ``NOTES_PROMPT``, which the proxy sends upstream
   to have the model rewrite its notes before the older messages leave its view. The
   builder itself still makes no upstream calls.
@@ -180,6 +181,8 @@ class _Builder:
                  drops_empty_assistant=False, notes=None):
         self.items = list(items)
         self.notes = dict(notes or {})
+        self.notes_charges: dict[ViewState, int] = {}  # per measured state (D72)
+        self._wrap: int | None = None
         self.tools = tools
         self.render_kwargs = dict(render_kwargs)
         self.budget = budget
@@ -289,13 +292,24 @@ class _Builder:
                 charge += block_charge
             messages.append(message)
         notes = self.notes.get(state.notes) if state.notes else None
-        if notes is not None and last_span is not None:  # D72: right after the last span note
-            at = max(k for k, (_, form) in enumerate(manifest) if form == "collapsed") + 1
-            manifest.insert(at, (f"notes:{state.notes}", "notes"))
+        if notes is not None and last_span is not None:  # D72: right after the system message
+            lead = next((k for k, it in enumerate(self.items) if it.message.get("role") != "system"),
+                        len(self.items))
+            manifest.insert(lead, (f"notes:{state.notes}", "notes"))
             block = {"role": "user", "content": notes_block(*notes)}
-            messages.insert(last_span + 1, block)
-            charge += self.counter.count_cached(block["content"])
+            messages.insert(lead, block)
+            n = self.counter.count_cached(block["content"]) + self.message_overhead()
+            self.notes_charges[state] = n
+            charge += n
         return messages, tuple(manifest), tuple(included), charge
+
+    def message_overhead(self) -> int:
+        """Template tokens one user message adds beyond its content."""
+        if self._wrap is None:
+            one = [{"role": "user", "content": "x"}]
+            self._wrap = (self.count(one + one) - self.count(one)
+                          - self.counter.count_cached("x"))
+        return self._wrap
 
     def excerpt_included(self, index: int, watermark: int, state: ViewState) -> bool:
         excerpt = self.items[index].excerpt
@@ -474,12 +488,14 @@ def _seq(items: Sequence[ViewItem], index: int) -> int:
 
 
 def _refresh(b: _Builder, state: ViewState, budget: Budget) -> View | None:
-    """D72: ``state``'s rendering plus the notes prompt, within the input budget. The
-    largest unmasked results are stubbed first, the newest included, if it would overflow."""
+    """D72: ``state``'s rendering plus the notes prompt, within the input budget. If it
+    would overflow, unmasked results are stubbed newest first, so the previous call's
+    prompt stays a prefix as long as the new messages suffice."""
     prompt = {"role": "user", "content": NOTES_PROMPT}
-    order = sorted((i for i in range(len(b.items)) if not b.is_fixed(i, state) and b.stubbable(i)
-                    and b.items[i].occ_id not in state.oversized),
-                   key=lambda i: -b.counter.count_cached(_text_of(b.items[i].message)))
+    watermark = b.seq_index(state.watermark_seq) if state.watermark_seq else 0
+    order = [i for i in reversed(range(watermark, len(b.items)))
+             if not b.is_fixed(i, state) and b.stubbable(i)
+             and b.items[i].occ_id not in state.oversized and b.saving(i) > 0]
     for i in [None, *order]:
         if i is not None:
             state = replace(state, oversized=state.oversized | {b.items[i].occ_id})
@@ -573,9 +589,15 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         new_state = replace(new_state, omitted_excerpts=new_state.omitted_excerpts | set(included))
         messages, _, included, charge, total = b.measure(new_state)
 
+    # D72: with notes on, the filling steps below leave the notes slot free.
+    fill = budget.input_budget - policy.notes_tokens
+
+    def over(st, total) -> bool:
+        return total - b.notes_charges.get(st, 0) > fill
+
     # Oversized items in the recent window: stub the largest unmasked tool results
     # and assistant reasoning in place (the newest output may be the culprit).
-    if total > budget.input_budget:
+    if over(new_state, total):
         w_index = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
         unmasked = sorted(
             (i for i in range(w_index, len(b.items))
@@ -585,12 +607,12 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         for i in unmasked:
             new_state = replace(new_state, oversized=new_state.oversized | {b.items[i].occ_id})
             *_, total = b.measure(new_state)
-            if total <= budget.input_budget:
+            if not over(new_state, total):
                 break
 
     # Last resort before a budget error: let the recent window shrink below
     # min_recent to the newest group, masking and collapsing everything older.
-    if total > budget.input_budget and b.starts:
+    if over(new_state, total) and b.starts:
         newest = b.starts[-1]
         old_w = b.seq_index(new_state.watermark_seq) if new_state.watermark_seq else 0
         if newest > old_w:
@@ -599,12 +621,11 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
         candidates = [s for s in b.starts if old_c < s <= newest]
         if candidates:
             found = b.search(candidates,
-                             lambda i: b.with_collapse(new_state, _seq(b.items, i)),
-                             budget.input_budget)
+                             lambda i: b.with_collapse(new_state, _seq(b.items, i)), fill)
             new_state = b.with_collapse(new_state, _seq(b.items, found if found is not None
                                                         else candidates[-1]))
         *_, total = b.measure(b.keep_fixed(new_state))
-        if total > budget.input_budget and b.pinnable:  # pins give way before a budget error
+        if over(b.keep_fixed(new_state), total) and b.pinnable:  # pins give way first
             new_state = b.with_collapse(new_state, max(new_state.collapse_seq,
                                                        _seq(b.items, newest)), pins=False)
             *_, total = b.measure(b.keep_fixed(new_state))

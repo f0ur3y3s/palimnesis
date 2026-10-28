@@ -368,7 +368,16 @@ class ArchiveHandler:
         """D72: before older messages leave the view, one internal upstream call asks the
         model to rewrite its working notes from the request as it rendered before the
         move. A committed version is rendered in the view returned; a failed one keeps the
-        notes the view had. Nothing reaches the client."""
+        notes the view had. Nothing reaches the client, and a notes defect never fails
+        the request: any error returns ``view`` unchanged."""
+        try:
+            return await self._refresh_notes_once(scope, req, plan, prepared, view, api_path,
+                                                  headers)
+        except Exception as e:  # noqa: BLE001 - cancellation still propagates
+            log.warning("notes refresh skipped: %s", type(e).__name__)
+            return view
+
+    async def _refresh_notes_once(self, scope, req, plan, prepared, view, api_path, headers):
         overrides = {prepared.limit_field: prepared.budget.reserve, "stream": True,
                      "stream_options": {"include_usage": True}}
         if plan.hidden_tools:
@@ -378,19 +387,16 @@ class ArchiveHandler:
         refresh_plan.upstream_body = chat.render_messages(req, view.refresh.messages, overrides)
         call = (self.accounts.begin(refresh_plan, self.views.mode, f"{plan.attempt_id}#notes")
                 if self.accounts is not None else None)
-        stream, reason, outcome = ChatStream(), None, "ok"
+        stream, reason, status, outcome = ChatStream(), None, None, "ok"
         try:
             with anyio.move_on_after(NOTES_REFRESH_S) as window:
                 request = self._request(scope, api_path, headers, refresh_plan.upstream_body)
                 try:
                     upstream = await self.client.send(request, stream=True)
-                except httpx.TransportError:
-                    reason = outcome = "transport_error"
-                else:
                     try:
                         if upstream.status_code != 200:
                             await upstream.aread()
-                            reason = outcome = "upstream_status"
+                            reason, status = "upstream_status", upstream.status_code
                         else:
                             parser = SSEParser()
                             async for chunk in upstream.aiter_raw():
@@ -399,24 +405,32 @@ class ArchiveHandler:
                     finally:
                         with anyio.CancelScope(shield=True):
                             await upstream.aclose()
+                except httpx.TransportError:
+                    reason = "transport_error"
             if window.cancelled_caught:
-                reason = outcome = "timeout"
-        except Exception as e:  # noqa: BLE001 - a notes defect never fails the request
-            log.warning("notes refresh failed: %s", type(e).__name__)
-            reason = outcome = "refresh_error"
+                reason = "timeout"
+            if reason is None:
+                reason = ("upstream_error" if stream.error else "incomplete" if not stream.done
+                          else "tool_call" if stream.tool_calls
+                          else "empty" if not stream.content.strip() else None)
+            text = ("" if reason else
+                    await anyio.to_thread.run_sync(self._fit_notes, stream.content.strip()))
+            if reason is None and not text:
+                reason = "too_long"
+            outcome = reason or "ok"
+        except BaseException:
+            outcome = "cancelled"
+            raise
         finally:
             if call is not None:
                 usage = {"usage": stream.usage} if stream.usage else None
                 await self.accounts.finish(refresh_plan, call, usage, outcome)
-        if reason is None:
-            reason = ("upstream_error" if stream.error else "tool_call" if stream.tool_calls
-                      else "empty" if not stream.content.strip() else None)
-        text = "" if reason else self._fit_notes(stream.content.strip())
         base_n = plan.view_n
 
         def record(c):
             return ledger.record_notes(c, plan, base_view_n=base_n, text=text,
-                                       status="failed" if reason else "committed", reason=reason)
+                                       status="failed" if reason else "committed",
+                                       reason=f"{reason}:{status}" if status else reason)
 
         notes_id, n = await self.store.write(record)
         if reason:
@@ -424,18 +438,36 @@ class ArchiveHandler:
         plan.notes = {notes_id: (n, text)}
         state = replace(view.state, notes=notes_id)
         rebuilt = await self.views.build(prepared, replace(plan, view_state=state))
-        return replace(rebuilt, moved=True, evicted_now=view.evicted_now)
+        # A rebuild that moves again keeps what it evicted visible to retrieval (A1).
+        evicted = tuple(dict.fromkeys((*view.evicted_now, *rebuilt.evicted_now)))
+        return replace(rebuilt, moved=True, evicted_now=evicted)
 
     def _fit_notes(self, text: str) -> str:
         """``text`` cut at a line so its rendered block fits the notes slot (D72)."""
         from .view import notes_block
 
-        limit = self.views.view_policy.notes_tokens
+        from .stubs import fit_prefix
+
+        # The header is counted at a 6-digit version, never below the real one.
+        limit = self.views.view_policy.notes_tokens - 8  # the message's own template tokens
         count = self.views.counter.count_cached
+
+        def fits(t: str) -> bool:
+            return count(notes_block(999_999, t)) <= limit
+
+        if fits(text):
+            return text
         lines = text.split("\n")
-        while lines and count(notes_block(0, "\n".join(lines))) > limit:
-            lines.pop()
-        return "\n".join(lines)
+        lo, hi = 0, len(lines)  # the longest line prefix that fits (binary search)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if fits("\n".join(lines[:mid])):
+                lo = mid
+            else:
+                hi = mid - 1
+        if lo:
+            return "\n".join(lines[:lo])
+        return fit_prefix(lines[0], fits)  # one line longer than the slot: cut it
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
         """Deadline D passed after acceptance; the upstream is already closed."""
