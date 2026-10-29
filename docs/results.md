@@ -1875,3 +1875,44 @@ Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scrat
   - speculative decoding on or off, if Strata allows it per request.
   
   That shows whether the cut follows the notes' content, their placement, or the decoder, before any change to the notes.
+
+## R38 — Replaying the early stops directly against Strata, with the notes varied (2026-10-29, development data per D69)
+
+**Outcome.** The early stop is a per-call event, not a fixed property of a prompt. Varying the notes block changed its rate at most modestly, and not significantly. Removing the notes did not stop it.
+
+**Method** (R29-A's). 9 needle answer calls from R36/R37 bodies were sent straight to Strata, 4 times each in four forms (144 calls). Strata was otherwise idle.
+- **The prompts:** 7 that stopped early in the run (4 `a4-trn`, 3 `a4-trn2`, at most one per history per arm) and 2 `a4-trn` controls that were answered correctly. In each, the gold value is in the notes block and also elsewhere in the view.
+- **The four forms:**
+  - `orig`: as sent;
+  - `no_notes`: the notes message removed;
+  - `masked`: the gold value inside the notes replaced by `[elided]`;
+  - `in_system`: the notes text appended to the system message instead.
+- Only the short answer, finish reason, counts and timings were recorded. Script and data: `…/scratchpad/r37/replay_notes.py`, `replay_notes.json`.
+
+| Form | Early-stopped prompts: exact | … early stops (empty or cut short) | Controls: exact |
+|---|---|---|---|
+| `orig` | 19/28 | 9/28 | 8/8 |
+| `no_notes` | 20/28 | 4/28 | 7/8 |
+| `masked` | 20/28 | 6/28 | 7/8 |
+| `in_system` | 19/28 | 9/28 | 8/8 |
+
+- **The run's early stop reproduces about one call in three.** The same prompt, sent again, mostly answers in full. Every prompt that stopped early in the run answered exactly in at least one of its four `orig` replays.
+- **The notes matter little within a prompt.** Removing them gives 4 early stops against 9, which is not significant (Fisher, p ≈ 0.2). Masking the value gives 6. Moving the notes into the system message changes nothing (9).
+- **Shape of the stops (all 144 calls):**
+  - 29 early stops: 7 empty and 22 cut short, at a token boundary (`4300` for `4300ms`, `bug` for `bugfix/…`).
+  - In 17 of the 29, the reasoning had just stated the full value.
+  - Every one finished `stop`, with 18–40 completion tokens.
+  - Drafts were accepted at 0.66–0.71 on early stops, against 0.75 on full answers.
+- **R29-A's replays, read again.**
+  - At temperature 0 they still varied between full, cut and empty answers. Greedy decoding without drafting would give one answer.
+  - Its "spec 2, no MTP" replay still offered 603 draft tokens, so drafting was never off in any replay so far.
+
+**R38-B. Reading.**
+- **Why the arm's rate rises with notes.** It cannot be the notes block itself, which the replay shows at most weakly. The more likely cause is what the notes do to the turn.
+  - **With notes**, the facts are in view, so the model answers directly in a short completion. In the replay, about one such call in five to three stops early.
+  - **Without notes** (`a4-tr`, `a4-d43`), the same categories answer after a lookup (about 130 lookups against 15–19).
+  - This is consistent with R37: with notes the misses are in identifier, superseded, irrelevant matches and vague, which are the categories `a4-tr` answers by lookup.
+- **Engine hypothesis (unverified).** Zeus runs MTP drafting with `--spec-min-p` 0.5. If that accepts drafted tokens other than the model's own choice, a drafted end-of-turn token right after the first token of a value would give exactly these cuts at temperature 0. Strata has no per-request switch for drafting: six candidate fields left `timings.draft_n` unchanged.
+- **Next:** relaunch Strata on Zeus with drafting off, or with `--spec-min-p` that only accepts the model's own token. Then replay `orig` for these 9 prompts, 8 times each.
+  - If the stops disappear, the cause is the engine. The fix is server configuration, and earlier needle results under drafting need that caveat.
+  - If they remain, the fix belongs in how the notes shape the answer turn.
