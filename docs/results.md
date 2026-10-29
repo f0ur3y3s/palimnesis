@@ -1961,3 +1961,44 @@ Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scrat
 - **Not tested here:**
   - whether the sentence changes anything else the model does with its notes, in coding tasks;
   - whether a header change costs cache reuse (it does not: the header is part of the notes block, which is already re-rendered at each `state_commit`).
+
+## R39 — Notes header h2 (D75) on the ho2 needles, ho2-t3 and ho2-t4 (2026-10-29, development data per D69)
+
+**Outcome.** With h2, the needles score 111/120, against 107 for `a4-trn2` and 119 without notes (`a4-tr`). Early stops fall from 10 to 7, in the direction R38-E predicted. One run cannot separate the two arms, though (Fisher p = 0.62). Both tasks passed, and ho2-t4 missed constraint C2, which it has missed before under three arms.
+
+Commit `e8d6181`, clean tree, 05:17–06:58Z, tag `dev-r39`, Strata on Zeus in its normal 32K configuration (drafting on). Records: `…/scratchpad/s12dev/needles-a4-trn2h/` and `…/s12dev/tasks/records/attempt-016/`, `attempt-017/`.
+
+| Arm | Loose exact | Misses: empty / cut short / right value with extra text | Needle in view | Misses with the needle in view | Lookups | Prompt tokens | Upstream calls | Wall |
+|---|---|---|---|---|---|---|---|---|
+| `a4-tr` (R37) | 119/120 | 1 / 0 / 0 | 29 | 0 of 29 | 131 | 4.95M | 328 | 29 min |
+| `a4-trn` (R37) | 105/120 | 1 / 13 / 1 | 103 | 15 of 103 | 15 | 3.85M | 260 | 49 min |
+| `a4-trn2` (R36) | 107/120 | 4 / 6 / 3 | 101 | 9 of 101 | 19 | 3.92M | 275 | 45 min |
+| `a4-trn2h` | **111/120** | 4 / 3 / 2 | 99 | 8 of 99 | 22 | 4.30M | 292 | 49 min |
+
+- **Early stops: 7, against 10 (n2) and 14 (n1).** Under h2 they are 4 empty answers and 3 cut short (`47000` for `47000ms`, `bug` for a branch name, `4` for a four-digit value).
+- **The misses fall on different questions in each run.** Across the three notes arms, only ho2-h1 q2 missed every time. It is R38-C's prompt that stops even under greedy decoding.
+- **A run of misses in one history.** Four consecutive questions in ho2-h11 (q2–q5) stopped early. None of them missed under `a4-trn2`, and two missed under `a4-trn`. R36's ho2-h1 had a similar run.
+- **A new kind of miss in ho2-h6.**
+  - On q6 (oversized read), the model went back to the coding task first: it made 24 rounds and 19 workspace tool calls and reported a committed fix. Only then did it answer, with the right value inside 300 characters of report.
+  - q7 was answered with a run report that contains the gold.
+  - No earlier arm did this on these questions (q6 took 1–4 rounds and no workspace calls). It is one occurrence; whether the header or the notes' "Current step" prompted it is unverified.
+- **Checks:** every cache change was explained (280/280), verification passed 12/12, there were no leaks or hidden calls, and Strata's activity rose by exactly the tap's call count (292).
+
+| Task | Arm (attempt) | Result | Constraints | Calls | Lookups | Wall | Notes refreshes: committed / failed |
+|---|---|---|---|---|---|---|---|
+| ho2-t3 | `a4-trn2` (a9, a14) | pass, pass | 3/3, 3/3 | 146, 121 | 0, 0 | 21, 19 min | 12 / 0 (a14) |
+| ho2-t3 | `a4-trn2h` (a16) | **pass** | **3/3**, restart gate held | 61 | 0 | 13 min | 7 / 0 |
+| ho2-t4 | `a4-trn2` (a10, a15) | pass, pass | 2/3 (C2), 3/3 | 121, 258 | 0, 1 | 22, 39 min | 18 / 2 empty (a15) |
+| ho2-t4 | `a4-trn2h` (a17) | **pass** | **2/3 (C2)** | 216 | 6 | 40 min | 17 / 2 empty |
+
+- **C2 on ho2-t4 is a coin flip across arms.** It held in 1 of 2 `a4-tr` attempts (the other missed C3), in 1 of 1 `a4-trn`, in 1 of 2 `a4-trn2` and in 0 of 1 `a4-trn2h`. Nothing here ties the miss to the header.
+- **Strata's activity matched the upstream calls** (61 and 216). There were no kills; ho2-t4 had one client cancel.
+- **The notes behaved as under n2.** Every committed version had all six sections, refreshes took 15–19% of wall time, and the two failed refreshes were empty, as in `a4-trn2` a15.
+
+**R39-B. Reading.**
+- **h2 is no worse than n2's header on this data, and probably better on recall.** The needles rose 107 → 111, early stops fell 10 → 7, and both tasks passed as before. Neither difference is significant from one run.
+- **The notes still cost recall.** `a4-trn2h` is 8 below `a4-tr` (111 against 119, p = 0.02 on misses), mostly through early stops on questions whose needle is in view. The header narrows the gap; it does not close it.
+- **The ho2-h6 miss is the one to watch.** A needle question that sends the model back into the coding task changes the workspace, not just the score. If it recurs, look at whether the notes' "Current step" reads to the model as an instruction.
+- **Next:**
+  - a second ho2 needle attempt under `a4-trn2h`, to separate it from `a4-trn2`;
+  - `a4-trn2h` on ho2-t1, t2 and t5, to see the whole development set under one arm before choosing the held-out configuration.
