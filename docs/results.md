@@ -1916,3 +1916,28 @@ Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scrat
 - **Next:** relaunch Strata on Zeus with drafting off, or with `--spec-min-p` that only accepts the model's own token. Then replay `orig` for these 9 prompts, 8 times each.
   - If the stops disappear, the cause is the engine. The fix is server configuration, and earlier needle results under drafting need that caveat.
   - If they remain, the fix belongs in how the notes shape the answer turn.
+
+**R38-C. Drafting off, then temperature 0** (same 9 prompts, `orig` only). Strata on Zeus was relaunched at 32K with no drafter: `--spec 2`, no `--mtp`, `--suffix-draft 0`. `/metrics` showed drafting `off`, `mtp_max` 0 and `lookup` 0, and 0 drafts were offered over all 108 calls.
+
+| Condition | Early-stopped prompts: exact | … early stops | Controls: exact |
+|---|---|---|---|
+| Drafting on, temperature default (R38) | 19/28 | 9/28 | 8/8 |
+| **Drafting off**, temperature default, 8 each | 35/56 | **21/56** | 14/16 |
+| **Drafting off, temperature 0**, 4 each | 20/28 | **8/28** | 8/8 |
+
+- **Drafting is not the cause.** With no drafter at all, the stops stay (38% of calls), with the same shape: 8 empty and 15 cut short, all finishing `stop`. R38's engine hypothesis is refuted.
+- **Sampling causes most of them.** OpenCode sends no temperature, so Strata samples at its defaults (1.0 / 0.95 / top-k 20, D48.3). At temperature 0, 5 of the 7 prompts answer exactly in 4 of 4 calls.
+- **ho2-h1 q2 stops under greedy decoding.**
+  - Under both notes formats it answers `bug` (6 times) or nothing (once), and the full branch name only twice. So the model's most likely next token after `bug` is the end of the turn.
+  - That is a model-level failure on this prompt, and on R36's ho2-h1 cascade, not sampling luck.
+- **The engine is not exactly deterministic at temperature 0** even without drafting.
+  - Identical requests produced different completion lengths, for example 29, 57 and 66 tokens for one control.
+  - The first, uncached call often differs from the cached repeats. Prefill against cache reuse, or `--adapt-*` expert swapping, are plausible sources, both unverified.
+  - R29-A's temperature-0 variation fits this.
+
+**R38-D. Reading.**
+- **The early stops come from the model,** sampled at temperature 1.0, ending its turn right after the first token of a value. In one prompt the model ends there even when greedy.
+- **The proxy does not set sampling** (contracts: the request's parameters are forwarded). So the remaining question is why turns with notes make the model end early more often.
+  - The leading explanation is R38-B's: with the facts in its notes, the model answers directly after very short reasoning (median 47–113 characters in these replays), instead of after a lookup.
+  - That is untested.
+- **For evaluation:** needle scores on this server include a sampling-driven early-stop rate. Every arm runs under the same defaults, so comparisons between arms stay fair, but single runs are noisy (R29's lesson).
