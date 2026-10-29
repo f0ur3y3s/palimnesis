@@ -1842,3 +1842,36 @@ Records: `…/scratchpad/s12dev/tasks/records/attempt-011..015` and `…/s12dev/
 - **Next:**
   1. needles under `a4-tr` (no notes) and `a4-trn` (n1), to find which change brings the early stops on;
   2. then fresh held-out tasks for a gate.
+
+## R37 — Which change brings R36's early stops on: ho2 needles without notes, and with notes n1 (2026-10-29, development data per D69)
+
+**Outcome.** The notes bring them on. Without notes (`a4-tr`) the needles score 119/120, as arm 4 did in R32. With notes they score 105/120 (n1) and 107/120 (n2, R36), and almost every miss is an answer that stops early.
+
+Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scratchpad/s12dev/needles-a4-tr/` and `…/needles-a4-trn/`.
+
+| Arm | Adds to `a4-d43` | Loose exact | Misses: empty / cut short / right value with extra text | Needle in view | Misses with the needle in view | Lookups | Prompt tokens | Upstream calls | Wall |
+|---|---|---|---|---|---|---|---|---|---|
+| `a4-d43` (R32, 2 attempts) | – | 119/120, 119/120 | 1 / 0 / 0 each | 27–29 | 0 | 133–146 | 4.75M–4.97M | 306–317 | 25–27 min |
+| `a4-tr` | current turn kept (D70), no reasoning in excerpts (D71), retrieval r2 | **119/120** | 1 / 0 / 0 | 29 | 0 of 29 | 131 | 4.95M | 328 | 29 min |
+| `a4-trn` | + notes n1 | **105/120** | 1 / 13 / 1 | 103 | 15 of 103 | 15 | 3.85M | 260 | 49 min |
+| `a4-trn2` (R36) | + notes n2 | **107/120** | 4 / 6 / 3 | 101 | 9 of 101 | 19 | 3.92M | 275 | 45 min |
+
+- **"Cut short"** means the answer is a prefix of the gold: `bug` for `bugfix/loomline/thread-876769`, `47` for `4739`, `4150` for `4150ms`. "Right value with extra text" includes R36's two follow-on answers in ho2-h1.
+- **D70, D71 and retrieval r2 cost nothing on needles.** `a4-tr` matches `a4-d43` on score, misses, the needle in view, lookups and tokens.
+- **What the notes change.** The notes carry the facts, so the needle is in view for 101–103 questions instead of 29, and the model looks things up 15–19 times instead of about 130. Its answers then stop early: 15 times under n1 and 10 under n2.
+- **Not just "in view."** Without notes, the 29 questions whose needle was in view had 0 misses. With notes, the misses fall on questions whose needle was in view: 15 of 15 under n1, 9 of 13 under n2.
+- **Not tied to the refresh turn.** Under n1, 7 of 45 questions whose turn held a refresh missed, against 8 of 75 without one.
+- **Mechanism unverified.** R21-C first suggested a hypothesis for these early stops: Strata's speculative decoding (MTP) copying an answer from text in the prompt. R29-A showed they reproduce directly against Strata. Neither run tests whether the notes block, or the fact being in it, causes the cut.
+- **Checks:** both runs explained every cache change (316/316 and 248/248), passed verification 12/12, had no leaks and no hidden calls, and Strata's activity rose by exactly the tap's call count (328 and 260).
+
+**R37-B. Reading.**
+- **On ho2 the notes trade recall for coding.**
+  - Recall: they cost 12–14 needles, through early stops.
+  - Coding: they won tasks. R34's `a4-trn` passed ho2-t3, which `a4-tr` failed, and `a4-trn2` passed t2–t4 twice (R35, R36).
+- **n2 vs n1:** n2 stops early less often than n1 (10 against 15), but one run each cannot separate them.
+- **Next:** take a few early-stop prompts from these bodies and replay them directly against Strata, as R29-A did. Vary one thing at a time:
+  - the notes block present or removed;
+  - the value inside the notes kept or masked;
+  - speculative decoding on or off, if Strata allows it per request.
+  
+  That shows whether the cut follows the notes' content, their placement, or the decoder, before any change to the notes.
