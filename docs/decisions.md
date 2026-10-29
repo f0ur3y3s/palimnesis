@@ -995,3 +995,28 @@ Cache-audit fixes to D70 (from the audit of `487c2ad`):
   - Meta-text after a draft in the reasoning stays in the last section.
   - A reasoning-only refresh that stops on `length` commits what it has, as a cut reply does under D72.
   - A draft that fails `too_long` is not marked as taken from reasoning.
+
+## D75 — Working-notes header h2: values quoted from the notes in full (R36–R38)
+
+- **The problem.** With working notes, ho2's needles scored 105–107/120, against 119/120 without them (R37). Almost every miss is an answer cut short or empty.
+  - Those stops are the model's own. They persist with drafting off, and at temperature 0 most of them go away (R38-C).
+  - The notes make them more frequent: the facts are in view, so the model answers straight from its notes.
+- **h2** (`--notes-header h2`, dev arm `a4-trn2h` = `a4-trn2` + h2) adds one sentence inside the notes header: "When you quote a value from these notes, write it out in full, exactly as recorded".
+  - Replayed against Strata, it cut the early stops on the stopping prompts from 19/42 to 6/42, with the controls unchanged (R38-E).
+- **Why a header sentence.**
+  - The proxy sets no sampling parameters, and changing the harness's sampling would not be harness-neutral.
+  - The header is already part of every notes block, so a fixed sentence adds no new cache invalidation; the block still changes only at `state_commit`.
+- **Rejected:**
+  - "Confirm before quoting" (`hint_check`). It did not help significantly (13/42), and it never led to a lookup.
+  - Removing the notes from the answer turn. That loses the task gains the notes bring (R34–R36).
+- **h1 stays the default**, as with D70–D74, so earlier runs stay reproducible. The header is counted when the notes are fitted to S, so h2 leaves slightly less room for the notes text.
+- **Unverified:** whether h2 changes how the model uses its notes in coding tasks. R39 checks the needles and ho2-t3 and ho2-t4.
+- **Review** (cache audit of the D75 draft): no unexplained prefix change.
+  - Both callers of `notes_block`, the view and the fit, use the policy's header, and so does the refresh call.
+  - h1 stays byte-identical to before.
+  - `policy_version` is only stored and compared.
+- **Known limit:** changing the header across a restart within one session is unsupported.
+  - Notes are fitted once, under the header in use when they are saved. Rendered later under the longer h2 header, notes saved under h1 near the full slot can exceed S by the sentence's ~20 tokens.
+  - A view filled to its limit can then fail its budget check.
+  - The cache explanation stays correct: the pair is a `view_format_change`.
+  - Runs fix the header for their whole length.

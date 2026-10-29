@@ -215,10 +215,18 @@ def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
     return fit_prefix(lines[0], fits)  # one line longer than the slot: cut it
 
 
-def notes_block(n: int, text: str) -> str:
-    """The rendered working-notes block of notes version ``n`` (D72)."""
+NOTES_HEADERS = ("h1", "h2")
+# D75: h2 asks for values quoted from the notes in full (R38-E: fewer answers cut short).
+_HEADER_TAILS = {"h1": "", "h2": ". When you quote a value from these notes, write it out in "
+                               "full, exactly as recorded"}
+
+
+def notes_block(n: int, text: str, header: str = "h1") -> str:
+    """The rendered working-notes block of notes version ``n`` (D72) with ``header`` (D75)."""
+    if header not in NOTES_HEADERS:
+        raise ValueError(f"unknown notes header {header!r}")
     return (f"[palimnesis notes · v{n} · your own working notes from earlier in this "
-            f"conversation; the user's messages win]\n\n{text}")
+            f"conversation; the user's messages win{_HEADER_TAILS[header]}]\n\n{text}")
 
 
 @dataclass(frozen=True)
@@ -232,6 +240,7 @@ class ViewPolicy:
     protect_turn: bool = False  # D70: collapse the current turn last
     notes_tokens: int = 0  # D72: the working-notes slot S; 0 turns notes off
     notes_format: str = "n1"  # D74: n1 (D72) or n2
+    notes_header: str = "h1"  # D75: h1 (D72) or h2
 
 
 @dataclass(frozen=True)
@@ -415,7 +424,7 @@ class _Builder:
             lead = next((k for k, it in enumerate(self.items) if it.message.get("role") != "system"),
                         len(self.items))
             manifest.insert(lead, (f"notes:{state.notes}", "notes"))
-            block = {"role": "user", "content": notes_block(*notes)}
+            block = {"role": "user", "content": notes_block(*notes, self.policy.notes_header)}
             messages.insert(lead, block)
             n = self.counter.count_cached(block["content"]) + self.message_overhead()
             self.notes_charges[state] = n

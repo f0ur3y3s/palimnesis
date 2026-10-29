@@ -458,7 +458,7 @@ class ArchiveHandler:
         count = self.views.counter.count_cached
 
         def fits(t: str) -> bool:
-            return count(notes_block(999_999, t)) <= limit
+            return count(notes_block(999_999, t, policy.notes_header)) <= limit
 
         return fit_notes(text, fits, sections=policy.notes_format == "n2")
 

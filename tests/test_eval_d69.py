@@ -57,3 +57,11 @@ def test_the_n2_dev_arm_is_a4_trn_with_notes_format_n2():
     assert cfg == dict(needle.CONFIGS["a4-trn"], notes_format="n2")
     assert needle.proxy_settings(cfg)["notes_format"] == "n2"
     assert "notes_format" not in needle.proxy_settings(needle.CONFIGS["a4-trn"])
+
+
+def test_the_h2_dev_arm_is_a4_trn2_with_notes_header_h2():
+    """D75: a4-trn2 keeps h1; a4-trn2h changes only the notes header."""
+    cfg = needle.CONFIGS["a4-trn2h"]
+    assert cfg == dict(needle.CONFIGS["a4-trn2"], notes_header="h2")
+    assert needle.proxy_settings(cfg)["notes_header"] == "h2"
+    assert "notes_header" not in needle.proxy_settings(needle.CONFIGS["a4-trn2"])

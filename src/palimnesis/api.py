@@ -260,7 +260,8 @@ class Proxy:
                             pin_tokens=self.settings.pin_tokens,
                             protect_turn=self.settings.protect_turn,
                             notes_tokens=self.settings.notes_tokens,
-                            notes_format=self.settings.notes_format)
+                            notes_format=self.settings.notes_format,
+                            notes_header=self.settings.notes_header)
         if engine.unsupported_rules:
             log.warning("bounded views disabled: profile %s declares template rules the "
                         "view builder does not implement: %s", upstream.id,

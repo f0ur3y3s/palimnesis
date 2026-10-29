@@ -62,6 +62,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
       - A reply with no text is committed from its reasoning when the reasoning holds a draft of the notes: a run of headings in which at least three distinct sections have a line under them. A draft ends where a section repeats; the last such draft is taken, from its first heading to the end. It is recorded with reason `from_reasoning`. Reasoning never rescues a failed stream.
       - An unknown format is refused at startup.
       - The view's `policy_version` ends `+notes{S}n2`.
+    - **Header h2** (D75, `--notes-header h2`; h1 is the default): the block's header ends "the user's messages win. When you quote a value from these notes, write it out in full, exactly as recorded". Fitting to S counts the header in use. An unknown header is refused at startup. `policy_version` adds `h2` after the format (`+notes{S}h2`, `+notes{S}n2h2`).
     - The builder itself makes no upstream calls.
 
   **[enforced]**

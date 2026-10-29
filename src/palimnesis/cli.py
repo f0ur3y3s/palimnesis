@@ -72,6 +72,8 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                             "upstream call at each collapse (D72); 0 is off")
     serve.add_argument("--notes-format", choices=["n1", "n2"], default="n1",
                        help="working-notes format: n1, or n2 by section (D74)")
+    serve.add_argument("--notes-header", choices=["h1", "h2"], default="h1",
+                       help="working-notes header: h1, or h2 asking for values in full (D75)")
     serve.add_argument("--retrieval", choices=["r1", "r2"], default="r1",
                        help="excerpt retrieval: r1, or r2 without reasoning (D71)")
     files = serve.add_mutually_exclusive_group()
@@ -100,7 +102,7 @@ def _settings(args: argparse.Namespace) -> Settings:
                     hidden_tools=None if args.hidden_tools == "off" else args.hidden_tools,
                     pin_tokens=args.pin_instructions, protect_turn=args.protect_turn,
                     retrieval=args.retrieval, notes_tokens=args.notes,
-                    notes_format=args.notes_format,
+                    notes_format=args.notes_format, notes_header=args.notes_header,
                     transcripts=args.transcripts,
                     transcripts_enabled=not args.no_transcripts)
 
