@@ -2002,3 +2002,76 @@ Commit `e8d6181`, clean tree, 05:17–06:58Z, tag `dev-r39`, Strata on Zeus in i
 - **Next:**
   - a second ho2 needle attempt under `a4-trn2h`, to separate it from `a4-trn2`;
   - `a4-trn2h` on ho2-t1, t2 and t5, to see the whole development set under one arm before choosing the held-out configuration.
+
+## R40 — `a4-trn2h` again: a second ho2 needle attempt, and ho2-t1, t2 and t5 (2026-10-29, development data per D69)
+
+**Outcome.**
+- **Needles: the second attempt scores 102/120.** Over both attempts, `a4-trn2h` stops early as often as `a4-trn2`: 20 of 240 answers against 10 of 120. R38-E's two-thirds cut in replay does not carry over to live runs, so R39's 111 was run-to-run variation.
+- **Tasks: all three passed with every constraint held.** That includes ho2-t5, which every earlier arm failed, native compaction included. With R39, `a4-trn2h` has passed all five ho2 tasks, one attempt each.
+
+Commit `5048e8f`, clean tree, 14:02–16:23Z, tag `dev-r40`, Strata on Zeus in its normal 32K configuration (drafting on). Records: `…/scratchpad/s12dev/needles-a4-trn2h/records/attempt-002/` and `…/s12dev/tasks/records/attempt-018..020/`.
+
+**R40-A. Needles.**
+
+| Arm (attempt) | Loose exact | Misses: empty / cut short / right value with extra text / other | Needle in view | Lookups | Prompt tokens | Upstream calls | Wall |
+|---|---|---|---|---|---|---|---|
+| `a4-tr` (R37) | 119/120 | 1 / 0 / 0 / 0 | 29 | 131 | 4.95M | 328 | 29 min |
+| `a4-trn2` (R36) | 107/120 | 4 / 6 / 3 / 0 | 101 | 19 | 3.92M | 275 | 45 min |
+| `a4-trn2h` a1 (R39) | 111/120 | 4 / 3 / 2 / 0 | 99 | 22 | 4.30M | 292 | 49 min |
+| `a4-trn2h` a2 | **102/120** | 8 / 5 / 4 / 1 | 100 | 18 | 4.34M | 291 | 45 min |
+
+- **Early stops (empty or cut short):**
+  - `a4-trn2h`: 7 and 13 in its two attempts, 20/240 (8.3%);
+  - `a4-trn2`: 10/120 (8.3%);
+  - `a4-trn`: 14/120.
+- **7 of the 18 misses come from the restart questions.**
+  - In four histories (ho2-h1, h3, h8, h12), the question right after the proxy restart (q9, restart with multiple evictions) got an empty answer. Each finished `stop` after 29–119 completion tokens.
+  - In three of those histories, the next question (q10) was answered with q9's value followed by its own, which counts as extra text.
+  - In R36, R37 and R39, none of the 36 restart questions under notes arms missed.
+- **The restart is not the cause; the per-call early stop is.** R38's method was used on the q9 answer calls from both attempts: each was sent to Strata 6 times, unchanged. Script and data: `…/scratchpad/r40/replay_restart.py`, `replay_restart.json`.
+
+  | Bodies from | ho2-h1 q9 | ho2-h3 q9 | ho2-h8 q9 | ho2-h12 q9 |
+  |---|---|---|---|---|
+  | a1 (answered in the run) | 6/6 exact | 5/6 exact, 1 tool call | 6/6 exact | 6/6 exact |
+  | a2 (empty in the run) | 6/6 tool call | 5/6 exact, 1 empty | 3/6 exact, 3 empty | 6/6 exact |
+
+  - Three of the four empty prompts mostly answer exactly when sent again. ho2-h8 q9 stops early in half its calls, which is the per-call event R38 described.
+  - In the a2 body for ho2-h1 q9, the value is not in the notes, and the replay always asks for a lookup. In the run, that call ended with no text and no tool call.
+  - Four such stops landing on one question number in one attempt is chance, on top of a rate that is the same across the two attempts.
+- **ho2-h6 q6 did not recur.** The question was answered in 4 rounds with no workspace tool calls. R39's return to the coding task happened once in two attempts.
+- **The run of misses in one history moved to ho2-h1** (q6–q10, five in a row: `test_steep_nim` for `test_steep_nimble_parcel`, `4` for `425`, `r` for a host string, empty, `debounce` for `debounce_adaptive`).
+- **Checks:** every cache change was explained (279/279), verification passed 12/12, there were no leaks or hidden calls, and Strata's activity rose by exactly the tap's call count (291).
+
+**R40-B. Tasks.**
+
+| Task | `a4-trn2h` (R39/R40) | `a4-trn2` (R35/R36) | R32 arm 1 (native) | R32 arm 4 (`a4-d43`) |
+|---|---|---|---|---|
+| ho2-t1 | **pass 4/4, 3/3** · 177 calls · 43 min | pass 4/4, 3/3 · 257 · 59 min | pass 4/4, 2/3, kills 3 | pass 4/4, 3/3, kills 0 |
+| ho2-t2 | **pass 3/3, 3/3** · 77 · 16 min | pass 3/3, 3/3 (×2) · 95–114 · 16–31 min | pass 3/3, 3/3 | pass 3/3, 3/3, kills 2 |
+| ho2-t3 (restart) | pass 4/4, 3/3, restart gate True · 61 · 13 min | pass 4/4, 3/3, True (×2) | pass 4/4, 3/3, True | fail 3/4, 3/3, False |
+| ho2-t4 | pass 4/4, 2/3 (C2) · 216 · 40 min | pass 4/4, 2/3 and 3/3 | pass 4/4, 3/3 | fail 0/4, 3/3, kills 2 |
+| ho2-t5 | **pass 3/3, 3/3** · 147 · 35 min | fail 2/3, 3/3 | fail 0/3, 1/3, kills 3 | fail 1/3, 3/3, kills 1 |
+
+- **ho2-t5 passes for the first time.** The hidden match test (`test_f_match`), which `a4-trn2` failed, now passes. One attempt cannot tell whether the header or chance did it.
+- **All three runs:**
+  - no 30-minute kills, no proxy rejections and no client cancels; the longest turn was ho2-t1 turn 6, 1,182 s;
+  - every cache change explained and verification passed;
+  - Strata's activity rising by exactly our upstream calls (177, 77 and 147).
+  - On t1 and t2, the tap counted 1 foreign request between calls and none during a call, with Strata's total matching ours. This is R25-B's late-counted request.
+- **The notes behaved as under n2.**
+
+  | | ho2-t1 | ho2-t2 | ho2-t5 |
+  |---|---|---|---|
+  | Refreshes (committed / failed) | 20 (19 / 1 empty) | 7 (6 / 1 tool call) | 14 (14 / 0) |
+  | Share of wall time | 18% | 16% | 15% |
+
+  Every committed version had all six sections, except one t1 version without "Dead ends".
+
+**R40-C. Reading.**
+- **Header h2 does not reduce live early stops.** Two attempts give the same rate as n2's single one. R38-E's replay effect was measured on prompts chosen because they had stopped, so their stop rate was bound to fall on resending; the live runs are the fairer test. h1 stays the default (D75); h2 has no recall case.
+- **On ho2 the notes arm now passes every task, and costs 8–17 needles.**
+  - Tasks: `a4-trn2h` passed 5 of 5 tasks, with 14 of 15 constraints held. R32's arm 4 passed 2 of 5, and native compaction 4 of 5 with 13 of 15 constraints.
+  - Recall: needles are 102–111 against 119 without notes. The loss is the sampling-driven early stop of R38-C, on answers the notes put in view.
+- **Next decision (the user's):** what goes to a fresh held-out set.
+  - `a4-trn2` or `a4-trn2h` as is, accepting the needle cost.
+  - Or a change aimed at the early stop first. The proxy sets no sampling parameters (R38-D), so the options are a harness-side temperature or a change in how the notes shape the answer turn, and either is a new decision.
