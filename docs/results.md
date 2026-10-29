@@ -2068,9 +2068,9 @@ Commit `5048e8f`, clean tree, 14:02–16:23Z, tag `dev-r40`, Strata on Zeus in i
   Every committed version had all six sections, except one t1 version without "Dead ends".
 
 **R40-C. Reading.**
-- **Header h2 does not reduce live early stops.** Two attempts give the same rate as n2's single one. R38-E's replay effect was measured on prompts chosen because they had stopped, so their stop rate was bound to fall on resending; the live runs are the fairer test. h1 stays the default (D75); h2 has no recall case.
+- **Header h2 does not reduce live early stops.** Two attempts give the same rate as n2's single one. R38-E measured the sentence on 7 prompts chosen because they had stopped, against the unchanged form of the same prompts. The live runs cover all 120 questions, and there the effect does not show. h1 stays the default (D75); h2 has no recall case.
 - **On ho2 the notes arm now passes every task, and costs 8–17 needles.**
-  - Tasks: `a4-trn2h` passed 5 of 5 tasks, with 14 of 15 constraints held. R32's arm 4 passed 2 of 5, and native compaction 4 of 5 with 13 of 15 constraints.
+  - Tasks: `a4-trn2h` passed 5 of 5 tasks, with 14 of 15 constraints held. R32's arm 4 passed 2 of 5, and native compaction 4 of 5 with 12 of 15 constraints.
   - Recall: needles are 102–111 against 119 without notes. The loss is the sampling-driven early stop of R38-C, on answers the notes put in view.
 - **Next decision (the user's):** what goes to a fresh held-out set.
   - `a4-trn2` or `a4-trn2h` as is, accepting the needle cost.
