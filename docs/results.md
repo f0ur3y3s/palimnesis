@@ -1776,3 +1776,69 @@ The longest turn was ho2-t2 turn 7: 58 calls, 1,182 s.
   - repeat attempts for variance;
   - run ho2-t1 and ho2-t5 and the needle sets under `a4-trn2`;
   - then fresh held-out tasks for a gate.
+
+## R36 — `a4-trn2` on all of ho2: second attempts, ho2-t1, ho2-t5 and the needles (2026-10-28/29, development data per D69)
+
+**Outcome.** Commit `5f0e5bf`, clean tree, one batch, 22:22–01:43Z.
+- **Tasks.** The second attempts at t2, t3 and t4 passed with every constraint held. ho2-t1 passed and ho2-t5 failed. Over R35 and R36, `a4-trn2` passed 6 of 6 attempts on t2–t4 and 7 of 8 task runs in all.
+- **Needles.** 107/120 loose exact (Wilson 82.3–93.6%), against arm 4's 119/120 in R32. 10 of the 13 misses are upstream early stops (R21-C); arm 4 had 1.
+
+Records: `…/scratchpad/s12dev/tasks/records/attempt-011..015` and `…/s12dev/needles-a4-trn2/`, tags `dev-r33` (tasks) and `dev-r36` (needles).
+
+**R36-A. Tasks.**
+
+| Task | `a4-trn2` R36 | `a4-trn2` R35 | R32 arm 1 (native) | R32 arm 4 (`a4-d43`) |
+|---|---|---|---|---|
+| ho2-t1 | pass 4/4, 3/3 · 257 calls · 59 min | – | pass 4/4, 2/3, kills 3 | pass 4/4, 3/3, kills 0 |
+| ho2-t2 | pass 3/3, 3/3 · 95 · 16 min | pass 3/3, 3/3 · 114 · 31 min | pass 3/3, 3/3 | pass 3/3, 3/3, kills 2 |
+| ho2-t3 (restart) | pass 4/4, 3/3, restart gate True · 121 · 19 min | pass 4/4, 3/3, True · 146 · 21 min | pass 4/4, 3/3, True | fail 3/4, 3/3, False |
+| ho2-t4 | pass 4/4, 3/3 · 258 · 39 min | pass 4/4, **2/3** · 121 · 22 min | pass 4/4, 3/3 | fail 0/4, 3/3, kills 2 |
+| ho2-t5 | **fail 2/3**, 3/3 · 86 · 20 min | – | fail 0/3, 1/3, kills 3 | fail 1/3, 3/3, kills 1 |
+
+- **All five runs:**
+  - no 30-minute kills and no proxy rejections;
+  - every cache change explained, and payload verification passed;
+  - Strata's activity counter rising by exactly our upstream calls (D39).
+- **Longest turns:** ho2-t4 turn 1 took 1,159 s (105 calls), and ho2-t1 turn 7 took 1,072 s.
+- **ho2-t3:** the tap counted 1 foreign request between calls and 1 during a call. Strata's total matched our calls, so this is R25-B's late-counted request, not foreign traffic.
+- **ho2-t4:** one client cancel without a kill (OpenCode's interrupted call, D73).
+- **ho2-t5** fails the hidden match test (`test_f_match`), with every constraint held. It is the best result on this task so far; every R32 arm failed it, native included.
+- **Variance:** the same task under the same arm took 16–31 min (t2) and 22–39 min (t4) across two attempts. ho2-t4 missed C2 once and held it once.
+
+**R36-B. The notes.** Same measures as R35-A.
+
+| | ho2-t1 | ho2-t2 | ho2-t3 | ho2-t4 | ho2-t5 |
+|---|---|---|---|---|---|
+| Refreshes (committed / failed) | 26 (25 / 1) | 9 (9 / 0) | 12 (12 / 0) | 20 (18 / 2) | 10 (10 / 0) |
+| Committed from reasoning | 4 | 0 | 0 | 4 | 0 |
+| Versions with all six sections | 25/25 | 9/9 | 12/12 | 17/18 | 10/10 |
+| Refresh time, median · share of wall time | 21 s · 17% | 19 s · 19% | 18 s · 20% | 19 s · 17% | 25 s · 20% |
+
+- Every failure was `empty`.
+- The one ho2-t4 version without *Dead ends* was written that way; it was not cut.
+
+**R36-C. Needles.**
+
+| Arm | Loose exact | Early stops | Needle in view | Lookups | Prompt tokens | Wall |
+|---|---|---|---|---|---|---|
+| `a4-trn2` (R36) | 107/120 | 10 | 101 | 19 | 3.92M | 44.7 min |
+| `a4-d43` (R32, 2 attempts) | 119/120, 119/120 | 1 | 27–29 | 133–146 | 4.75M–4.97M | 25–27 min |
+
+- **The misses:**
+  - **10 early stops** (finish `stop`): 4 empty answers and 6 cut short, such as `180` for `18000ms`, `4` for `4450ms`, and `test_reckon_nimble` for `test_reckon_nimble_lattice`.
+  - **2 follow-on misses** in ho2-h1. After the empty answer at q2, q3 and q4 also answered the previous step; the correct value follows the earlier one.
+  - **1 right value with commentary** (h8q4), which loose exact does not accept.
+  - So when the model answered, it answered correctly in 107 of 108 questions, as in R32.
+- **Where the misses fall:** identifier 23/24, superseded 11/12, irrelevant matches 8/12, vague 19/24, oversized read 10/12. Every other category is 12/12.
+- **The needle is now usually in view.** 101 of 120 facts were in the view (R32: 27–29), so the model looked things up 19 times. The gold value was in that history's notes for 98 of 120 questions.
+- **Not R31's layout.** R31 tied arm 5's early stops to long runs of user messages. Here every prompt has runs of at most 3, for hits and misses alike.
+- **A weak association with refreshes.** 46 questions had a notes refresh in their turn, and 7 of them missed (15%); 6 of the other 74 missed (8%). This is not significant on its own.
+- **Not run:** no ablation separates the three changes from arm 4 (current turn kept, retrieval r2, notes). The early stops are an engine behaviour (R29-A), and something in this arm's prompts brings them on more often.
+- **Checks:** every cache change explained (263/263), payload verification 12/12, no leaks, no hidden calls.
+
+**R36-D. Reading.**
+- **Tasks:** `a4-trn2` matched or beat native compaction on all five ho2 tasks, on development data. Both attempts on t2–t4 passed.
+- **Needles:** 107/120 would clear the 85% bar, but it is 12 below arm 4. The cause is early stops, not recall, and this run cannot say which change brings them on.
+- **Next:**
+  1. needles under `a4-tr` (no notes) and `a4-trn` (n1), to find which change brings the early stops on;
+  2. then fresh held-out tasks for a gate.
