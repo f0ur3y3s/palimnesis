@@ -1937,7 +1937,7 @@ Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scrat
 
 **R38-D. Reading.**
 - **The early stops come from the model,** sampled at temperature 1.0, ending its turn right after the first token of a value. In one prompt the model ends there even when greedy.
-- **The proxy does not set sampling** (contracts: the request's parameters are forwarded). So the remaining question is why turns with notes make the model end early more often.
+- **The proxy sets no sampling parameters of its own;** the harness's request decides them, and OpenCode sends none. So the remaining question is why turns with notes make the model end early more often.
   - The leading explanation is R38-B's: with the facts in its notes, the model answers directly after very short reasoning (median 47–113 characters in these replays), instead of after a lookup.
   - That is untested.
 - **For evaluation:** needle scores on this server include a sampling-driven early-stop rate. Every arm runs under the same defaults, so comparisons between arms stay fair, but single runs are noisy (R29's lesson).
