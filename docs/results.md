@@ -1941,3 +1941,23 @@ Commit `f4d898b`, clean tree, 02:55–04:13Z, tag `dev-r37`. Records: `…/scrat
   - The leading explanation is R38-B's: with the facts in its notes, the model answers directly after very short reasoning (median 47–113 characters in these replays), instead of after a lookup.
   - That is untested.
 - **For evaluation:** needle scores on this server include a sampling-driven early-stop rate. Every arm runs under the same defaults, so comparisons between arms stay fair, but single runs are noisy (R29's lesson).
+
+**R38-E. One sentence in the notes header.** Same 9 prompts, 6 calls per form, drafting still off (R38-C showed drafting does not change the rate). Each prompt's unchanged form ran in the same session as the control. The sentence is added inside the header's brackets:
+- `hint_check`: "Notes can abbreviate or go stale: before you quote an exact value from them, confirm it against the conversation or the archived transcript".
+- `hint_full`: "When you quote a value from these notes, write it out in full, exactly as recorded".
+
+| Form | Early-stopped prompts: exact | … early stops | Controls: exact | Tool calls | Reasoning, median characters |
+|---|---|---|---|---|---|
+| `orig` | 23/42 | 19/42 | 11/12 | 0 | 91 |
+| `hint_check` | 29/42 | 13/42 | 12/12 | 0 | 103 |
+| `hint_full` | **36/42** | **6/42** | 11/12 | 0 | 88 |
+
+- **`hint_full` cuts the early stops by about two thirds.**
+  - Fisher's exact test gives p = 0.004 over the 7 prompts, but calls on one prompt are not independent.
+  - By prompt: fewer stops in 5, the same in 1, more in 1 (ho2-h6 q4, 0 → 1).
+  - ho2-h1 q2, which stops even when greedy, fell from 3/6 to 1/6 under n1 and from 6/6 to 3/6 under n2.
+- **`hint_check` does not help significantly** (p = 0.26), and it never made the model look anything up.
+- **Short reasoning is not the mechanism.** `hint_full` did not lengthen the reasoning (88 against 91 characters). The sentence acts on the answer itself.
+- **Not tested here:**
+  - whether the sentence changes anything else the model does with its notes, in coding tasks;
+  - whether a header change costs cache reuse (it does not: the header is part of the notes block, which is already re-rendered at each `state_commit`).
