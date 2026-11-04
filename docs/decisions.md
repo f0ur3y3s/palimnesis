@@ -1044,3 +1044,23 @@ Decided by the user on 2026-11-03: Zeus is busy and cannot be used (D49 suspende
 - **Also fixed while bringing the suite up on Linux** (1,668 passed, 2 failed before; both pass now):
   - `test_fingerprint` took the "first live request" with `next(glob())`, whose order is filesystem-dependent; it now takes `min()`.
   - Capture wrote `request.json` and `response.json` in place, so a reader could load half a file; each is now written under a temporary name and renamed (contracts §12). `test_capture`'s wait now also waits for the response half.
+
+## D77 — Held-out protocol for the working-notes arm on ho3, fixed before any run
+
+Written on 2026-11-03, after R40 and before the fresh set `ho3` was run or read by the lead. The user left the choice between R40-C's two options to the lead: the arm goes to a fresh held-out set as it is, accepting the needle cost R36–R40 measured on development data, instead of first changing it for the sampling-driven early stop. Nothing here changes after held-out results are seen (plan §7). It mirrors D44 and D62.
+
+1. **Configurations.**
+   - **Arm 4 is `a4-d77`**: `a4-trn2h` (R39/R40) frozen under its held-out name. That is `a4-d43` plus D70 (current turn collapsed last), D71 (retrieval r2), D72/D74 working notes (2,048 tokens, format n2) and D75's header h2. It runs at the D77 commit or a later one that changes only `eval/` and docs.
+   - h2, not h1: `a4-trn2h` is the configuration with all five ho2 tasks passing and 240 needles measured; R40 found h2 neither helps nor hurts recall live.
+   - **Arm 1** is native OpenCode compaction through `--passthrough`, `limit.context` 32768, as D44.1.
+   - `a4-d43` and arm 5 are not run: pythia's speed (D76) makes each arm-task pair cost hours, and neither is gated.
+2. **Upstream and driver.** Strata on pythia (D76), engine 0.1.54 at `n_ctx` 32768 with the pin and canary passing, checked before every run (`--expect-n-ctx 32768`). Real OpenCode 2.1.4 runs the needles and tasks (D44.2), on pythia, with the D45 config; the driver, proxy and OpenCode run on the same host. Each task's two arms run on the same machine.
+3. **Held-out set.** `ho3`: 12 histories × 10 questions (`eval/needles/heldout3/`, seeds 7400–7411) and 5 tasks `ho3-t1..t5`, `ho3-t3` the restart task. It was written by an author separate from the development work, who did not read R33–R40, D69 onward or the notes, view and recall code, with themes, seeds, wording and scenarios disjoint from dev, `ho` and `ho2`. It is committed before its first run.
+4. **Gates, all at 32K on `ho3`:**
+   - needles: `a4-d77` loose exact ≥ 85% over all 120, reported as D44.4 (count, Wilson and history-clustered bootstrap intervals, strict exact; every non-answer, early stop and timeout is a miss);
+   - coding: `a4-d77`'s successes ≥ arm 1's over the 5 tasks, and `ho3-t3` passes under `a4-d77` with its key constraint (D45.8); one attempt per task and arm;
+   - every `a4-d77` archive: the D44.6 inputs (0 over-budget inputs, 0 excerpt text visible to the client, `--explain` 0 unexplained, `transcripts verify` passing).
+5. **The turn limit** stays 30 minutes of wall time per turn (D44, D45) for both arms. pythia decodes at about 40% of Zeus's speed, so more turns may be cut than in R25 or R32; kills are reported per arm.
+6. **Reruns and defects:** as D44.7 and D44.8. No waivers.
+7. **What a verdict means.** It judges `a4-d77` on fresh data at 32K on pythia. It does not revise R32's Phase 3B verdict on arm 5, and results stay per machine and build (D48, D76): no number here is compared with a Zeus run as evidence.
+8. **Order.** Needles first (one `a4-d77` attempt), then the tasks, `a4-d77` then arm 1 for each task, t1 to t5.

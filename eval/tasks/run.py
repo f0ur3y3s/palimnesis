@@ -84,7 +84,8 @@ import report  # noqa: E402
 
 TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
          "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5",
-         "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5"]
+         "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5",
+         "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5"]  # ho3: D77's fresh set
 RUNNER_VERSION = "tasks-run v2"
 TURN_TIMEOUT_S = 1800
 CHECK_TIMEOUT_S = 300
@@ -285,8 +286,9 @@ def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     if arm == 4:
         if config is None or config == "a4-d43":
             return {"arm": 4, "label": "a4", "config": "a4-d43", "cfg": needle.CONFIGS["a4-d43"]}
-        if held:
-            raise ValueError(f"held-out tasks run arm 4 only as a4-d43, not {config}")
+        if held and config != needle.A4_HELDOUT3:
+            raise ValueError(f"held-out tasks run arm 4 only as a4-d43 or "
+                             f"{needle.A4_HELDOUT3} (D77), not {config}")
         cfg = needle.config(config)
         if cfg.get("arm") != 4:
             raise ValueError(f"{config} is not a configuration of arm 4")

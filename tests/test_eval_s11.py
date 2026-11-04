@@ -300,7 +300,7 @@ def test_task_definitions():
         assert t.ID == tid
         assert t.SET == ("development" if tid.startswith("dev-") else
                          "heldout" if tid.startswith("ho-") else t.SET)
-        assert t.SET in ("development", "heldout", "heldout2")
+        assert t.SET in ("development", "heldout", "heldout2", "heldout3")
         assert 0 < t.RESTART_BEFORE < len(t.TURNS)
         assert set(t.CONSTRAINTS) == {"C1", "C2", "C3"} and t.TRAP
         hidden = "\n".join(t.HIDDEN.values())
@@ -316,6 +316,8 @@ def test_task_definitions():
     assert sum(t.startswith("dev-") for t in task_run.TASKS) == 5
     assert sum(t.startswith("ho-") for t in task_run.TASKS) == 5
     assert sum(t.startswith("ho2-") for t in task_run.TASKS) == 5
+    assert sum(t.startswith("ho3-") for t in task_run.TASKS) == 5
+    assert [t for t in restart_tasks if t.startswith("ho3-")] == ["ho3-t3"]  # D77
 
 
 def test_restart_task_states_its_key_constraint_only_before_the_restart():

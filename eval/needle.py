@@ -77,9 +77,11 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / "eval" / "fixtures" / "opencode-2.1.4" / "live" / "exchanges"
 NEEDLES = ROOT / "eval" / "needles" / "dev"
-# --set: (dir, id prefix). heldout2 is the fresh Phase 3B held-out set (O-B1).
-SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2": ("heldout2", "ho2")}
-HELDOUT_SETS = ("heldout", "heldout2")
+# --set: (dir, id prefix). heldout2 is the fresh Phase 3B held-out set (O-B1); heldout3 the
+# fresh set for D77's gate.
+SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2": ("heldout2", "ho2"),
+        "heldout3": ("heldout3", "ho3")}
+HELDOUT_SETS = ("heldout", "heldout2", "heldout3")
 # Judged held-out sets, now development data (D69): they take any configuration, and keep
 # the other held-out rules (real OpenCode, every question, a clean tree, no resume).
 RETIRED_SETS = ("heldout2",)
@@ -123,12 +125,15 @@ CONFIGS["a4-tr"] = dict(CONFIGS["a4-d43"], protect_turn=True, retrieval="r2")
 CONFIGS["a4-trn"] = dict(CONFIGS["a4-tr"], notes_tokens=2048)  # plus working notes (D72)
 CONFIGS["a4-trn2"] = dict(CONFIGS["a4-trn"], notes_format="n2")  # notes format n2 (D74)
 CONFIGS["a4-trn2h"] = dict(CONFIGS["a4-trn2"], notes_header="h2")  # notes header h2 (D75)
+# D77: the arm frozen for the heldout3 gate, a4-trn2h under its held-out name.
+A4_HELDOUT3 = "a4-d77"
+CONFIGS[A4_HELDOUT3] = dict(CONFIGS["a4-trn2h"])
 
 # The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for: D64 froze a5-Dp
 # (R30), a5-D with pinned instructions.
 A5_HELDOUT = "a5-d64"
 A5_FROZEN: str | None = "a5-Dp"
-HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT)  # the only configurations held-out sets run
+HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT, A4_HELDOUT3)  # the only configurations held-out sets run
 
 # Settings the proxy child passes to ``palimnesis.config.Settings`` when present.
 PROXY_KEYS = ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer", "addendum",

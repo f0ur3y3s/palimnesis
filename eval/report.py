@@ -38,7 +38,7 @@ from pathlib import Path
 
 ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43",
          "a5-A", "a5-B", "a5-C", "a5-D", "a5-d64"]
-SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10)}  # D44.3, O-B1: histories x questions
+SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10)}  # D44.3, O-B1: histories x questions
 INVALID_ID_ERRORS = ("unknown_address", "ambiguous_address", "unknown_block")
 INVALID_ID_MAX = 0.05  # O-B6
 NEEDLE_GATE = 0.85  # D44.4
@@ -142,7 +142,8 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
 def expected_needles(set_name: str, root: Path | None = None) -> dict[str, list[dict]]:
     """{history id: [{id, category, answer}] per question} of a committed needle set
     (``eval/needles/<dir>``; empty while the set is not written)."""
-    folder = {"heldout": "heldout", "heldout2": "heldout2", "development": "dev"}[set_name]
+    folder = {"heldout": "heldout", "heldout2": "heldout2", "heldout3": "heldout3",
+              "development": "dev"}[set_name]
     out = {}
     for f in sorted((root or Path(__file__).resolve().parent / "needles").joinpath(folder).glob("*.json")):
         h = json.loads(f.read_text(encoding="utf-8"))
@@ -223,11 +224,14 @@ HELDOUT_TASKS = ["ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5"]
 RESTART_TASK = "ho-t3"
 HELDOUT2_TASKS = ["ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5"]  # O-B1
 RESTART_TASK2 = "ho2-t3"  # D62.3
+HELDOUT3_TASKS = ["ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5"]  # D77
+RESTART_TASK3 = "ho3-t3"  # D77
+A4_LABEL3 = "a4-d77"  # needle.A4_HELDOUT3: arm 4's frozen configuration for heldout3
 A5_LABEL = "a5-d64"  # needle.A5_HELDOUT: arm 5's held-out configuration (D64)
 
 
 def load_task_results(run: Path, designate: dict | None = None,
-                      arm5: str | None = None) -> tuple[dict, list[dict]]:
+                      arm5: str | None = None, arm4: str = "a4") -> tuple[dict, list[dict]]:
     """{(task, arm): result.json of the designated attempt}, superseded attempts. Arms 4 and
     1 are read under their Phase 3 labels ``a4`` and ``a1``; arm 5 under ``arm5``, its
     configuration name (``a5-d64`` for held-out runs)."""
@@ -238,7 +242,7 @@ def load_task_results(run: Path, designate: dict | None = None,
 
     manifest = att.load(run)
     out, sup = {}, []
-    labels = [(4, "a4"), (1, "a1")] + ([(5, arm5)] if arm5 else [])
+    labels = [(4, arm4), (1, "a1")] + ([(5, arm5)] if arm5 else [])
     for arm, label in labels:
         override = {k.split(":")[0]: v for k, v in (designate or {}).items() if k.endswith(f":{label}")}
         chosen, superseded = att.designate(manifest, "task", label, override)
@@ -293,7 +297,10 @@ def print_coding(run: Path, designate: dict | None, set_name: str | None = None)
     fresh = set_name == "heldout2"
     tasks, arm = (HELDOUT2_TASKS, 5) if fresh else (HELDOUT_TASKS, 4)
     restart_task = RESTART_TASK2 if fresh else RESTART_TASK
-    results, sup = load_task_results(run, designate, arm5=A5_LABEL if fresh else None)
+    arm4 = "a4"
+    if set_name == "heldout3":  # D77: arm 4 as a4-d77 against arm 1
+        tasks, arm, restart_task, arm4 = HELDOUT3_TASKS, 4, RESTART_TASK3, A4_LABEL3
+    results, sup = load_task_results(run, designate, arm5=A5_LABEL if fresh else None, arm4=arm4)
     print("| Task | Arm | Attempt | Success | Constraints (stub) | Restart gate | Turns | Tokens in/out | "
           "Lookups | Latency s | Compaction calls | Proxy rejections | --explain | verify | Over budget | "
           "Leaks:echoes client/transcripts | Aborted |")
@@ -624,7 +631,7 @@ def main() -> None:
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
     p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
-    p.add_argument("--set", choices=["development", "heldout", "heldout2"],
+    p.add_argument("--set", choices=["development", "heldout", "heldout2", "heldout3"],
                    help="print the needle gate over the whole committed set (missing = miss)")
     p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
     p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")

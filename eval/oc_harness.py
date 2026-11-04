@@ -25,12 +25,28 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import signal
 import subprocess
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXE = Path(os.environ.get("APPDATA", "")) / "npm/node_modules/@opencode/cli/bin/opencode.exe"
+WINDOWS = os.name == "nt"
+
+
+def _exe() -> Path:
+    """OpenCode 2.1.4's binary: ``OPENCODE_EXE`` if set; on Windows the npm package's
+    native ``opencode.exe`` (the ``.cmd`` shim would add a cmd.exe layer); elsewhere the
+    ``opencode`` on PATH (pythia, D76)."""
+    if os.environ.get("OPENCODE_EXE"):
+        return Path(os.environ["OPENCODE_EXE"])
+    if WINDOWS:
+        return Path(os.environ.get("APPDATA", "")) / "npm/node_modules/@opencode/cli/bin/opencode.exe"
+    return Path(shutil.which("opencode") or "opencode")
+
+
+EXE = _exe()
 MODEL_ID = "qwen3.8-flash-next-iq3_xxs"
 PROVIDER = "palimnesis"
 
@@ -58,7 +74,10 @@ ENV_ALLOW = ("SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "OS",
              # Kept real: the system ``python`` is a Python install manager alias that keeps
              # its installs under LOCALAPPDATA. Isolated, it updated itself and downloaded a
              # new Python into the isolated tree (observed 2026-10-25).
-             "APPDATA", "LOCALAPPDATA")
+             "APPDATA", "LOCALAPPDATA",
+             # POSIX (pythia, D76): the login names and the user's shell. Whether 2.1.4's
+             # bash tool reads SHELL is unverified; kept so the model's shell matches.
+             "USER", "LOGNAME", "SHELL")
 
 
 def base_env(root: Path) -> dict:
@@ -127,6 +146,17 @@ def session_base_url(port: int, session: str | None = None) -> tuple[str, str]:
     return sid, url
 
 
+def kill_tree(p: subprocess.Popen) -> None:
+    """Kill a process and everything it started (OpenCode's server and the model's shells)."""
+    if WINDOWS:
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+    else:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
 class Home:
     """One isolated OpenCode home plus its workspace (a fresh git repo)."""
 
@@ -151,9 +181,10 @@ class Home:
         stem = f"{self.n:03d}-{label}"
         meta = {"label": label, "args": args, "started": time.time()}
         with open(logs / f"{stem}.stdout", "wb") as so, open(logs / f"{stem}.stderr", "wb") as se:
+            # POSIX: a new session, so the timeout kill reaches the whole process group.
             p = subprocess.Popen([str(EXE), *args], cwd=self.ws, env=env(self.root, self.ws),
                                  stdin=subprocess.DEVNULL if stdin is None else subprocess.PIPE,
-                                 stdout=so, stderr=se)
+                                 stdout=so, stderr=se, start_new_session=not WINDOWS)
             if stdin is not None:
                 p.stdin.write(stdin)
                 p.stdin.close()
@@ -161,7 +192,7 @@ class Home:
             while p.poll() is None and time.time() < deadline:
                 time.sleep(0.05)
             if p.poll() is None:
-                subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+                kill_tree(p)
                 meta["timeout_killed"] = True
             meta["exit"] = p.wait()
         meta["ended"] = time.time()
