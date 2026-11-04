@@ -11,7 +11,7 @@ import httpx  # noqa: E402
 
 from palimnesis.upstreams.strata import tokens  # noqa: E402
 
-U = "http://192.168.1.19:8080"
+U = "http://127.0.0.1:8080"
 c = tokens.default()
 
 

@@ -152,6 +152,29 @@ async def test_build_info_mismatch_not_pinned_ok(fake):
     assert state.mismatches == ("build_info: 'Strata 0.1.49' != pinned 'Strata 0.1.48'",)
 
 
+async def test_build_verified_equivalent_for_the_pin_is_pinned_ok(fake):
+    # D76: Strata 0.1.54 on pythia serves the pinned template and matched all 210
+    # recorded counting cases, so the pin lists it as an equivalent build.
+    fake.count_tokens_handler = _strata_count_tokens
+    fake.props_build_info = "Strata 0.1.54"
+    state = UpstreamState(fake.url, pins.load(), tokens.default())
+    async with httpx.AsyncClient() as client:
+        await state.refresh(client)
+    assert state.mismatches == ()
+    assert state.pinned_ok
+
+
+async def test_equivalent_build_with_another_template_still_mismatches(fake):
+    fake.count_tokens_handler = _strata_count_tokens
+    fake.props_build_info = "Strata 0.1.54"
+    fake.props_chat_template = fake.props_chat_template + "\n"
+    state = UpstreamState(fake.url, pins.load(), tokens.default())
+    async with httpx.AsyncClient() as client:
+        await state.refresh(client)
+    assert not state.pinned_ok
+    assert [m.split(":")[0] for m in state.mismatches] == ["chat_template_sha256"]
+
+
 def test_canary_conversion_matches_recorded_server_counts():
     """The documented Anthropic -> render conversion reproduces the server's counts."""
     for name, case in upstream_facts.CANARY_CASES:

@@ -10,7 +10,8 @@
   re-reads them before the next build. It does nothing while the facts are fresh and a
   canary is on record. A failed read keeps the cached facts (still stale) or, at
   startup, none: they are then fetched lazily on the next ``refresh``.
-- ``mismatches`` compares ``build_info`` and the template hash with the pin.
+- ``mismatches`` compares ``build_info`` with the pin's accepted builds (its own and any
+  verified equivalent, D76) and the template hash with the pin.
 - ``canary`` compares local counts with ``POST /v1/messages/count_tokens`` on
   ``CANARY_CASES`` (``CountTokensCrossCheck.canary``); it runs after the first good read
   and again, on the next refresh, whenever the build or template changes or the previous
@@ -154,7 +155,7 @@ async def fetch_facts(
 
 def pin_mismatches(facts: Props, pin: pins.Pin) -> tuple[str, ...]:
     out = []
-    if facts.build_info != pin.build_info:
+    if facts.build_info not in pin.accepted_builds:
         out.append(f"build_info: {facts.build_info!r} != pinned {pin.build_info!r}")
     if facts.chat_template_sha256 != pin.template_sha256:
         out.append(f"chat_template_sha256: {facts.chat_template_sha256} != pinned {pin.template_sha256}")

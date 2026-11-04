@@ -1,6 +1,9 @@
 {
   "pin": "strata-0.1.48",
   "build_info": "Strata 0.1.48",
+  "equivalent_builds": {
+    "Strata 0.1.54": "D76 (2026-11-03, pythia): GET /props chat_template sha256 equal to this pin's; all 210 recorded counting cases (174 literal-tag, 10 normalization, 6 NFC, 20 count_tokens) give the same counts; same sampling defaults (1.0/0.95/20)"
+  },
   "model_alias": "qwen3.8-flash-next-iq3_xxs",
   "files": {
     "chat_template.jinja": {

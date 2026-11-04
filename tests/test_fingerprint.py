@@ -9,7 +9,9 @@ import pytest
 
 from palimnesis.fingerprint import FINGERPRINT_VERSION, fingerprint_v1, parse_retry_hint
 
-L0 = next(
+# min(): glob order is filesystem-dependent (sorted on NTFS, not on ext4); exchange
+# directory names start with the arrival timestamp, so the smallest is the first request.
+L0 = min(
     (Path(__file__).resolve().parents[1] / "eval/fixtures/opencode-2.1.4/live/exchanges").glob(
         "*/*/request.body"
     )

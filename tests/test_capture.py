@@ -90,7 +90,13 @@ def test_exchanges_load_in_arrival_order(capturing_stack):
 def _eventually_exchanges(capture_dir, n: int = 1):
     # Generous: a disconnected exchange is written when the relay next notices the
     # client is gone, which under full-suite load can take several seconds.
-    assert _eventually(lambda: len(load_exchanges(capture_dir)) == n, timeout=10.0)
+    # Wait for the response half too: request.json lands first, and an exchange without
+    # response.json loads as incomplete with an empty body.
+    def recorded():
+        exchanges = load_exchanges(capture_dir)
+        return len(exchanges) == n and all(ex.status is not None for ex in exchanges)
+
+    assert _eventually(recorded, timeout=10.0)
     return load_exchanges(capture_dir)
 
 

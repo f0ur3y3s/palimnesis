@@ -621,7 +621,7 @@ def main() -> int:
     p.add_argument("--expect-n-ctx", type=int, default=32768)
     p.add_argument("--input-budget", type=int,
                    help="development only (O2): emulate a smaller context, e.g. 24320 at 65536")
-    p.add_argument("--upstream", default="http://192.168.1.19:8080")
+    p.add_argument("--upstream", default="http://127.0.0.1:8080")
     p.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     p.add_argument("--check-reference", action="store_true")
     a = p.parse_args()

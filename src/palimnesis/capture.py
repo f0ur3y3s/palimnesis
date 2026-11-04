@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass
@@ -130,12 +131,21 @@ async def _attempt(write, *args) -> bool:
 def _write_request(folder: Path, meta: dict, body: bytes) -> None:
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "request.body").write_bytes(body)
-    (folder / "request.json").write_text(json.dumps(meta, indent=2), "utf-8")
+    _write_json(folder / "request.json", meta)
 
 
 def _write_response(folder: Path, meta: dict, body: bytes) -> None:
     (folder / "response.body").write_bytes(body)
-    (folder / "response.json").write_text(json.dumps(meta, indent=2), "utf-8")
+    _write_json(folder / "response.json", meta)
+
+
+def _write_json(path: Path, meta: dict) -> None:
+    # Written under a temporary name and renamed, so a reader sees no file or the whole
+    # file. Each body is written before its .json, so a visible .json means its body is
+    # complete too (load_exchanges keys on the .json files).
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(meta, indent=2), "utf-8")
+    os.replace(tmp, path)
 
 
 def load_exchanges(capture_dir: Path) -> list[Exchange]:

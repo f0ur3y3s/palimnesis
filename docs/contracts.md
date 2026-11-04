@@ -7,7 +7,7 @@ Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve ·
 ## 1. Upstream facts are read, not assumed
 
 - `n_ctx`, `build_info` and the chat-template hash come from the upstream profile's facts reader (Strata: `GET /props`). They are read at startup and again after any transport error, 5xx, or context-window 400. **[enforced]**
-- **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). **[enforced]**
+- **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). A build matches when it is the pin's own or one the pin lists as verified equivalent, with its evidence (D76). **[enforced]**
 - **Core is backend-neutral.** Backend specifics live behind `palimnesis.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
 - Counting renders the pinned template with the pinned tokenizer, as Strata 0.1.48 encodes: without the tokenizer's NFC normalizer (D47), with added-token strings inside messages counted as text (D46), and with no tool schemas when `tool_choice` is `"none"` (D50). It is cross-checked at startup by a `count_tokens` canary. Every call's `usage.prompt_tokens` is reconciled with the local count. Drift raises `M` (D22.4); persistent or large drift disables bounded views. **[enforced]**
 
@@ -221,6 +221,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 - Credentials are redacted: `authorization`, `proxy-authorization`, `x-api-key`, `api-key`, `cookie`.
 - Exchanges cut short by disconnect are recorded as `complete: false`.
 - Capture fails open: a write error is logged and the relay continues unchanged.
+- Each exchange's `request.json` and `response.json` appear whole (written under a temporary name, then renamed) and only after their body file, so the capture directory can be read while the proxy is still writing.
 
 ## 13. Proactive recall
 

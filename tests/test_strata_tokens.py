@@ -27,6 +27,8 @@ def test_default_pin_loads_verified():
     pin = pins.load()
     assert pin.id.startswith("strata-0.1.48@")
     assert pin.build_info == "Strata 0.1.48"
+    # D76: builds verified to render and count as the pinned one (pythia, 2026-11-03).
+    assert pin.accepted_builds == ("Strata 0.1.48", "Strata 0.1.54")
     assert pin.template_sha256 == TEMPLATE_SHA
     assert pin.tokenizer_sha256 == TOKENIZER_SHA
     assert pin.chat_template == (PROBES / "strata_chat_template.jinja").read_text(encoding="utf-8")

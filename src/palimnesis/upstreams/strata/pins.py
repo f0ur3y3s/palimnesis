@@ -3,7 +3,8 @@
 A pin lives in ``palimnesis/upstreams/strata/pins_data/<name>/`` (inside the package, so
 it ships in the wheel) as ``chat_template.jinja``, ``tokenizer.json`` and ``PIN.json``. ``PIN.json``
 records the build it was taken from, each file's SHA-256, the tokenizer revision and
-Strata's message preprocessing rules. Every file is verified on load; the manifest
+Strata's message preprocessing rules. ``equivalent_builds`` lists other builds verified to
+serve the same template and count the same way, each with its evidence (D76). Every file is verified on load; the manifest
 itself is checked against ``KNOWN_PINS``, so changing a pin is a code change.
 """
 
@@ -20,7 +21,7 @@ DEFAULT_PIN = "strata-0.1.48"
 
 # sha256 of each known pin's PIN.json.
 KNOWN_PINS = {
-    "strata-0.1.48": "cf3b5a426570e0220450ec09626c24b1849cd6349414430d77961bdd76cef096",
+    "strata-0.1.48": "79a81d4791cf66ca25956bec0e41666b499bb38384b032d78344b59144377ae7",
 }
 
 _TEMPLATE = "chat_template.jinja"
@@ -38,6 +39,8 @@ class Pin:
     # name plus a prefix of the manifest hash; keys anything derived from the pin.
     id: str
     build_info: str
+    # build_info first, then each equivalent build (D76): the builds that count as pinned.
+    accepted_builds: tuple[str, ...]
     template_sha256: str
     tokenizer_sha256: str
     tokenizer_revision: str
@@ -86,6 +89,7 @@ def load(directory: Path | str | None = None) -> Pin:
         name=name,
         id=f"{name}@{manifest_sha[:12]}",
         build_info=manifest["build_info"],
+        accepted_builds=(manifest["build_info"], *manifest.get("equivalent_builds", {})),
         template_sha256=files[_TEMPLATE]["sha256"],
         tokenizer_sha256=files[_TOKENIZER]["sha256"],
         tokenizer_revision=files[_TOKENIZER]["revision"],

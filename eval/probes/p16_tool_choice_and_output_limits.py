@@ -30,7 +30,7 @@ MESSAGES = [{"role": "system", "content": "You are a coding agent."},
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--upstream", default="http://192.168.1.19:8080")
+    ap.add_argument("--upstream", default="http://127.0.0.1:8080")
     u = ap.parse_args().upstream.rstrip("/")
     c = tokens.default()
 

@@ -1020,3 +1020,27 @@ Cache-audit fixes to D70 (from the audit of `487c2ad`):
   - A view filled to its limit can then fail its budget check.
   - The cache explanation stays correct: the pair is a `view_format_change`.
   - Runs fix the header for their whole length.
+
+## D76 — pythia is the Strata host; Strata 0.1.54 is an equivalent build of the 0.1.48 pin
+
+Decided by the user on 2026-11-03: Zeus is busy and cannot be used (D49 suspended), and tests and live runs move to pythia (`ssh pythia`). pythia's other services are stopped for the duration.
+
+- **The host.** pythia: Linux, RTX 3060 12 GB, 46 GB RAM, at 192.168.1.173. It is bazzite (D48) reinstalled, confirmed by the user: same hardware, new OS, Strata and engine. Strata Terminal 0.2.8 with engine **0.1.54** (CUDA 13), the same `qwen3.8-flash-next-iq3_xxs` model, launched from a copy of its saved preset with `--max-context 32768` (`~/.local/state/strata/launch/iq3_xxs-32k.json`: `--kv int8`, `--mmap-experts`, `--expert-cache auto`, `--spec 4`, `--spec-min-p 0.5`, MTP), `--host 0.0.0.0 --port 8080 --parallel 1 --no-api-key`. The driver, proxy and harness run on pythia too, so live defaults name `http://127.0.0.1:8080`.
+- **Equivalence shown before any run, as D48 did for Zeus.**
+  - **Template:** `/props` `chat_template` sha `12827f24…`, equal to the pin.
+  - **Counting:** all 210 recorded counting cases give the same counts, 0 differences: 174 literal-tag (p14), 10 normalization (p12), 6 NFC (p15), 20 `count_tokens` (p04).
+  - **Generation defaults:** temperature 1.0, top_p 0.95, top_k 20, as recorded.
+  - **Release:** the slot is idle 0.13 s after a client disconnects mid-stream.
+  - **D39:** `/v1/status` `activity.requests` counts inference requests only (190 after the 190 probe completions; the 20 `count_tokens` calls are not counted).
+- **What differs, and isn't verified.**
+  - `build_info` is "Strata 0.1.54". The serve and engine code changed between builds; outputs are not compared, only counts.
+  - Speed: prefill 690 tok/s and decode 37 tok/s on a 29K-token prompt with drafting on, against Zeus's 1,226–1,411 and 91 (D48) and the same machine's 708–770 and 52 as bazzite. The prompts differ, so the decode gap to bazzite is not attributed (engine, `--kv int8` and `--mmap-experts` are candidates). Live runs take about twice Zeus's wall time, and the 30-minute turn limit cuts more work.
+  - The thinking cap's answer-room rule (D48.3) is not re-measured.
+- **The pin.** The pin's `build_info` would refuse 0.1.54 and disable bounded views (contracts §1). `PIN.json` gains `equivalent_builds`, each build with its evidence; `Pin.accepted_builds` is the pin's own build followed by those, and the build check accepts any of them. Template hash and the `count_tokens` canary are still checked against the live server at every start.
+  - Rejected: a separate `strata-0.1.54` pin and profile. The template and tokenizer are byte-identical, so it would duplicate the 12.8 MB tokenizer and fork the profile id that archives record, for no difference in rendering or counting.
+  - Rejected: dropping the build check. A future build that changes rendering without changing the template text would then pass on the canary alone.
+  - The manifest's sha changes, so `Pin.id` becomes `strata-0.1.48@79a81d4791cf`. It keys only the in-memory counting cache and the facts diagnostics.
+- **Comparability.** Results stay per machine and per build (D48, D49). The R32 baselines and the R33–R40 development runs ran on Zeus; R25's bazzite runs used engine 0.1.48 on the old install. A held-out comparison on pythia needs its arms run on pythia.
+- **Also fixed while bringing the suite up on Linux** (1,668 passed, 2 failed before; both pass now):
+  - `test_fingerprint` took the "first live request" with `next(glob())`, whose order is filesystem-dependent; it now takes `min()`.
+  - Capture wrote `request.json` and `response.json` in place, so a reader could load half a file; each is now written under a temporary name and renamed (contracts §12). `test_capture`'s wait now also waits for the response half.
