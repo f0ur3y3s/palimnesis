@@ -205,3 +205,23 @@ Supersedes D84 item 7, and settles the counter fix D82 asked for.
    - If a capture shows one, the Messages split is where to mark it.
 3. **Claude Code's interrupt marker is unverified.** No capture holds Claude Code's message after a user interrupts a tool call. `test_cc_interrupt_marker_hosts_no_excerpt` waits for one. Recording it needs an interactive run, which S13's live smoke can include. If it is a harness-written user message, its prefix goes into `integrations/claude-code/`.
 4. **What S7 does cover:** a late system entry starts no turn (D86), and a tool-result-only user turn adds no instruction. Both are tested on the neutral split.
+
+## D91: Pi through the proxy; failed partials may be omitted (Phase 4B S8, S9)
+
+1. **Chat subset: user content as text parts** (O-4B-9). Pi sends it with no switch to turn it off. Only `{type: "text", text}` parts are accepted, and only in user messages; other part types stay rejected. The parts join with `""` into one text block, as Strata joins them, so a part list and the same string hash and render alike. The client's own object still goes upstream unchanged when nothing is spliced.
+2. **Excerpts on a part list** get the string form's `\n\n` separator inside the appended part, since parts join with nothing between them.
+3. **O-4B-5 in reconciliation.** Any incomplete generated turn may be left out of a resend; it stays archived, superseded (`partial_superseded`). Before, only a client-cancelled or unseen one could be. OpenCode always resent server-failed partials, so it never meets the change; Pi always omits them (HP4.3). A complete turn left out is still a divergence.
+4. **The Pi adapter** (`integrations/pi/`): the two providers, settings with compaction off, and the HP2 session extension. Setup is in `harnesses.md`.
+5. **Replay tests over recorded bodies** (`tests/harness_replay.py`): the fault-server captures are replayed through the proxy, with each answer rebuilt from the assistant turn the harness resent next. Pi's default-settings captures are mapped through the two compat flags (`developer` to `system`, `store` dropped), which HP3 verified change nothing else.
+   - `test_pi_chat_session_round_trip` and `test_pi_messages_session_round_trip` (HP3 tool loops) archive every request with no divergence.
+   - `test_pi_retry_after_partial_policy` (HP4.3): the failed partial is superseded and turn 2 is accepted.
+   - S8: `test_pi_manual_compact_request_is_divergence` (HP5) and the recorded Claude Code `/compact` both answer 409 and archive nothing; summary-shaped text in an ordinary turn is accepted.
+
+## D92: Claude Code is backlogged
+
+The user decided on 2026-11-05: "Claude code is closed source so let's skip supporting it", then "Put in the docs to backlog it". It is in `docs/backlog.md`, with what exists and what picking it up would take.
+
+- **Out of Phase 4B:** S10 (the Claude Code adapter and wrapper), its rows in S11–S14, and O-4B-13 (Strata at 64K for Claude Code); pythia stays at 32K. `capabilities.md` lists Claude Code as backlogged.
+- **Kept, because Pi uses them:** the Messages route, emitter, errors and admission (D84–D89). The Messages mapping copies Strata's own Messages route, including the billing-stamp pinning, which is harmless for other clients.
+- **Kept as evidence:** the S0 probes and fixtures (`docs/probes/claude_code.md`), and the S8 test that replays Claude Code's recorded `/compact`. They test the Messages protocol with real bodies, not a supported harness.
+- **Harness-neutral core is unchanged.** Pi and OpenCode remain the peers of position 4; the AST check still forbids harness names in core.

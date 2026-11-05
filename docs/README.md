@@ -20,6 +20,7 @@ Where each document lives and when to read it. Labels such as `a4-d77`, `ho3`, `
 | [plan/v1_plan.md](plan/v1_plan.md) | The v1 plan: phases, green lights, open decisions |
 | [plan/amendments/](plan/amendments/) | Amendments to the plan (A1: proactive recall and transcript files) |
 | [plan/phases/](plan/phases/) | Each phase's planner output: seams, slices and tests |
+| [backlog.md](backlog.md) | Work set aside on purpose: why, what exists, what picking it up would take |
 
 ## The record: append-only
 

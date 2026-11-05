@@ -97,7 +97,7 @@ All of the above are **[enforced]**.
   - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments. Booleans never equal numbers. Any arguments also match the client's `{}`, OpenCode's resend of a call it did not run: arguments that never parsed (D68), or a call interrupted while it ran (D73). An edit that blanks arguments to `{}` is therefore not detected; the archive keeps the generated arguments.
   - A changed system message before the first non-system message is a new context version, not a divergence.
   - A flattened partial matches with its acknowledged extent, and so does a complete turn whose delivery never completed.
-  - A partial the client cancelled may be omitted; it is superseded (D13.1).
+  - An incomplete partial may be omitted, whether the client cancelled it or saw it fail; it stays archived and is superseded (D13.1, extended by O-4B-5: Pi leaves every failed partial out, D91). A complete turn may not be omitted.
   **[enforced]**
 
 ## 5. Client timeouts and retries

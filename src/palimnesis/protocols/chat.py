@@ -111,6 +111,14 @@ def _content_form(m: dict[str, Any]) -> str:
     return "null" if m["content"] is None else "string"
 
 
+def _text_parts(content: Any) -> Any:
+    """User content given as text parts joins with "" into one text, as Strata joins
+    them (``_text_of``); a string stays as it is (O-4B-9, D91)."""
+    if isinstance(content, list):
+        return "".join(part["text"] for part in content)
+    return content
+
+
 def _blocks(m: dict[str, Any]) -> tuple[Block, ...]:
     role = m["role"]
     if role == "tool":
@@ -119,7 +127,7 @@ def _blocks(m: dict[str, Any]) -> tuple[Block, ...]:
     if "reasoning_content" in m:
         out.append(Block("reasoning", m["reasoning_content"]))
     if m.get("content") is not None:
-        out.append(Block("text", m["content"]))
+        out.append(Block("text", _text_parts(m["content"])))
     for tc in m.get("tool_calls", ()):
         fn = tc["function"]
         out.append(Block("tool_call", fn["arguments"], tool_call_id=tc["id"], name=fn["name"]))
@@ -212,6 +220,14 @@ def _check_message(m: Any, i: int) -> None:
                      "tool_calls must be an array")
             for j, tc in enumerate(m["tool_calls"]):
                 _check_tool_call(tc, f"{path}.tool_calls[{j}]")
+    elif role == "user" and isinstance(content, list):
+        # An array of text parts (Pi's default, O-4B-9); nothing else is accepted in it.
+        for j, part in enumerate(content):
+            ppath = f"{path}.content[{j}]"
+            _require(isinstance(part, dict), ppath, "content part must be an object")
+            _require(part.get("type") == "text", f"{ppath}.type", "only text parts are supported")
+            _check_keys(part, frozenset({"type", "text"}), f"{ppath}.")
+            _require(isinstance(part.get("text"), str), f"{ppath}.text", "text must be a string")
     else:
         _require(isinstance(content, str), f"{path}.content",
                  "only string content is supported")

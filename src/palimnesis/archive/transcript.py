@@ -37,11 +37,11 @@ Such a message matches with acknowledged extent ``k`` (D10.3). The same
 applies to a complete turn whose delivery never completed: a crash after
 its final commit leaves the client holding only a prefix.
 
-A partial may be *omitted* only when the client itself cancelled that
-attempt. OpenCode drops a reply interrupted from the client side
-(results R9). Such a partial stays archived but is superseded, and the
-resend aligns past it (D10.4). A server-failed partial that is omitted is
-divergence, because OpenCode always resends those.
+A partial may be *omitted*: it stays archived but is superseded, and the resend
+aligns past it (D10.4). OpenCode drops a reply interrupted from the client side
+(results R9); Pi drops every failed partial, server-failed ones included, on both
+protocols and with its retries on or off (``docs/probes/pi.md`` HP4.3, O-4B-5, D82).
+A complete turn the client received in full may not be omitted.
 """
 
 from __future__ import annotations
@@ -263,10 +263,10 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
                 j += 1
                 continue
             if message.role != "assistant":
-                # A failed answer the client saw nothing of (only hidden calls, D51)
-                # may be omitted like a cancelled one.
-                unseen = not (past.text or past.reasoning or past.tool_calls)
-                if (past.cancelled or unseen) and not past.complete:
+                # An incomplete answer may be left out of the resend, whether the client
+                # cancelled it, saw nothing of it (only hidden calls, D51) or saw it fail
+                # (O-4B-5, D82): it is superseded, never merged.
+                if not past.complete:
                     superseded.append(past.occ_id)
                     j += 1
                     continue

@@ -128,3 +128,21 @@ Verified against a fault-injecting fake upstream in 48 runs (`docs/probes/openco
 | `opencode run` exit code | 1 if any step failed, even when a later follow-up succeeded |
 
 Scripted runs need `--standalone`, stdin at EOF (non-TTY stdin is read to EOF), and `PWD` set to the intended directory. `opencode run` takes its directory from `PWD` before the process cwd.
+
+## Pi 1.5.0 (Phase 4B; Chat Completions or Messages)
+
+Evidence: `docs/probes/pi.md` (HP1–HP7). Adapter: `integrations/pi/`.
+
+- **Setup.** Copy `models.json` and `settings.json` into Pi's agent directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`), and load the session extension: `pi -e integrations/pi/extensions/palimnesis-session.ts`.
+  - `palimnesis` is the Chat provider (`baseUrl` `http://127.0.0.1:9000/v1`) with `supportsDeveloperRole: false` and `supportsStore: false`. `palimnesis-messages` is the Messages provider (`baseUrl` `http://127.0.0.1:9000`; Pi joins `/v1/messages?beta=true`) with `allowEmptySignature: true`, so Palimnesis's empty thinking signatures replay as thinking (HP3, O-4B-2).
+  - `contextWindow` is 1,000,000, as for OpenCode: Palimnesis bounds the view, and a large window keeps Pi's output limit at `maxTokens` (HP3).
+  - `compaction.enabled: false` (HP5).
+- **Association.** The extension sets `X-Palimnesis-Session` to Pi's own session id on every request, through `/new`, `/fork`, `/clone`, `/resume` and restarts (HP2). `--session-id <id>` lets a driver choose it.
+- **Discontinuities, never merged (409 `history_divergence`):** `/tree` to an earlier entry, a branch summary, and a manual `/compact` (S8 replays the recorded `/compact`). Start a new Pi session (`/new`) to continue after one.
+- **Failed partials.** Pi leaves a failed partial out of every later request; Palimnesis keeps it archived and superseded (O-4B-5, D91). The proxy's in-stream error wording matches none of Pi's retry patterns, so Pi does not retry such a turn (HP4.3).
+- **Timeouts.** `httpIdleTimeoutMs` (300 s) is both header wait and read idle; comments and `event: ping` reset it (HP4.1), so admission's H and K keep queued requests alive (D89).
+- **Not yet verified through the proxy:** the live tool loop and the transcript gate (S13).
+
+## Claude Code: backlogged
+
+Backlogged by the user on 2026-11-05 because it is closed source (D92). `backlog.md` lists what exists and what picking it up would take. The S0 probes stay in `docs/probes/claude_code.md`; nothing in `integrations/` configures it.

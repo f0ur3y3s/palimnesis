@@ -182,5 +182,7 @@ def attach(message: dict, rendered: str) -> dict:
         raise ValueError("excerpt blocks attach only to user messages")
     content = message.get("content")
     if isinstance(content, list):
-        return {**message, "content": [*content, {"type": "text", "text": rendered}]}
+        # Text parts join with "" upstream, so the part carries the same separator the
+        # string form gets.
+        return {**message, "content": [*content, {"type": "text", "text": f"\n\n{rendered}"}]}
     return {**message, "content": f"{content or ''}\n\n{rendered}"}

@@ -37,15 +37,16 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | Harness | Version | Endpoint | Status | Setup |
 | --- | --- | --- | --- | --- |
 | OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37); hidden recall tools with `--hidden-tools` (Ph3B, streaming requests) | `harnesses.md` |
-| Pi | 1.4.0 | Chat Completions / Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
-| Claude Code | 2.1.310 | Messages | planned (Ph4B) | `docs/probes/harnesses.md` |
+| Pi | 1.5.0 | Chat Completions / Messages | adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; "supported" waits for the live smoke and transcript gate (S13, position 5) | `harnesses.md`, `docs/probes/pi.md` |
+| Claude Code | 2.1.318 | Messages | **backlogged: closed source** (user, 2026-11-05; D92, `backlog.md`). Probes kept in `docs/probes/claude_code.md` | — |
 
 ## Chat Completions request features (first harness)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
 | `system`, `user`, `assistant`, `tool` text messages | supported (Ph1) | |
-| `developer` role | rejected (Ph1) | OpenCode sends `system`; Pi sends `developer` (Ph4B) |
+| `developer` role | rejected (Ph1) | OpenCode sends `system`; Pi's adapter sets `supportsDeveloperRole: false`, so Pi sends `system` (D82, D91) |
+| User content as an array of text parts | supported (Ph4B, D91) | Pi's default; parts join with `""`, as Strata joins them, so it hashes and renders like the same string |
 | `reasoning_content` on assistant turns (vendor extension) | supported (Ph1) | archived separately; reconstructed for every earlier turn (contracts §9) |
 | `tools` (function), `strict` | supported (Ph1) | upstream renders the bare form |
 | `tool_choice: "auto"` | supported (Ph1) | |
@@ -128,12 +129,13 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 - **Streaming requests only** (D55). A non-streaming request gets no hidden tools.
 - **One visible message per response, but its text order can change upstream.** Text the model writes after a tool call, hidden or external, is re-rendered before the call in later requests (one content field per message), so from that point the prompt differs from what the model generated.
 - **Dropping the tools costs re-reads.** A `tool_choice: "none"` request in a session with hidden tools renders no tools, which re-reads the whole prompt, and so does the next request that restores them.
-- **The proxy does not hold the upstream slot between calls of one response** (Ph4B, O4): another client of the same Strata can run in between.
+- **Other clients of the same Strata** can still run between two requests: admission holds the slot for a whole response and its `/status` guard waits for other clients' work before dispatch, but cannot stop a client that bypasses the proxy (D89).
 - **Continuation reuse estimates are low** by the generated turn (41–70 tokens in probe P3). They are labelled estimates; no gate reads them.
 - **A `length` stop** (allowance or §15 limits) makes OpenCode send its own follow-up turn at once (`docs/probes/opencode_hidden_stream.md`).
 
 ### Deferred
 
-- **Phase 4B:** Pi and Claude Code (proxy admission, the Messages archive route and its error envelope landed in S4–S6: D87–D89).
+- **Phase 4B:** Pi's live smoke and transcript gate (S13); proxy admission, the Messages archive route and its error envelope landed in S4–S6 (D87–D89).
+- **Backlog:** Claude Code (`backlog.md`, D92).
 - **Phase 3B, not built:** continuation accounting across internal calls, and RE2 regex search.
 - **Phase 8:** streaming replay, deletion and export, and power-loss durability.

@@ -1,0 +1,21 @@
+# Backlog
+
+Work set aside on purpose, with the reason, what already exists and what picking it up would take. An item leaves the backlog when a phase plan takes it on; its decision then says so.
+
+## Claude Code support
+
+- **Status:** backlogged by the user on 2026-11-05 because Claude Code is closed source (D92).
+- **What exists:**
+  - S0 probes HC1–HC9 with recorded fixtures: `docs/probes/claude_code.md`, `eval/probes/fixtures/claude-code-2.1.318/`, drivers `eval/probes/cc_*.py`.
+  - The Messages archive route, emitter, error envelope and admission that Claude Code would use (D84–D89). Pi uses them too, so they stay supported.
+  - A test that replays Claude Code's recorded `/compact` through the proxy (`tests/test_discontinuity.py`, S8): real Claude Code bodies, with 23 tools, the mid-conversation system entry and adaptive thinking, archive, and the summarizer request is refused with 409.
+- **What picking it up would take** (the Phase 4B plan's S10 and the Claude Code parts of S11–S14):
+  - **Context.** Strata at 64K on pythia: Claude Code's fixed input is 18,812 tokens interactively, more than 32K allows (O-4B-13, HC3). The user approved that restart for Claude Code work.
+  - **Adapter.** `integrations/claude-code/`: a wrapper that runs `palimnesis session new` or `session url <id>` and sets `ANTHROPIC_BASE_URL` per process, plus the candidate environment (`CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`, `DISABLE_AUTO_COMPACT=1`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000`, HC3, HC6).
+  - **Tests and evidence still missing:**
+    - the interrupt marker after a user stops a tool call (D90);
+    - the non-streaming fallback resend policy (HC5);
+    - resume fidelity through the proxy (HC7);
+    - the transcript gate with `--add-dir` (HC8);
+    - a live smoke.
+  - **Re-probe first:** the S0 facts are for 2.1.318; the client changes with every release.

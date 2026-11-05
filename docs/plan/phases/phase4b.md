@@ -1,6 +1,6 @@
 # Phase 4B plan: harness expansion
 
-> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). S3 done (D85). Late system kept as `system`, counter c5 (D86). S4 done (D87). S5 done (D88). S6 done (D89). S7 done as far as evidence allows (D90). Next: S8–S12.
+> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). S3 done (D85). Late system kept as `system`, counter c5 (D86). S4 done (D87). S5 done (D88). S6 done (D89). S7 done as far as evidence allows (D90). S8 and S9 done (D91). Claude Code backlogged (D92, `docs/backlog.md`): S10 and O-4B-13 are out of 4B. Next: S11, S12, then S13 (Pi live smoke and transcript gate).
 
 Planner output, 2026-11-05, at `8df2a68` (after `phase-3`, R42). Module paths follow D80's layout.
 
@@ -340,11 +340,7 @@ All runs are on pythia at `n_ctx` 32768 with the pin and canary passing (D77.2).
 
 ## 7. Risks and deferred
 
-**Risks.**
-- **Claude Code's fixed input may not fit 32K** (O-4B-13).
-- **Claude Code's side calls and quota probes,** if they can't be switched off (HC2), could seed or fork sessions.
-- **Feature-flag-dependent behavior.** Claude Code is pinned with `DISABLE_GROWTHBOOK=1`; behavior can still change per build.
-- **Claude Code's watchdogs** may not accept comments (HC5), which is why `ping` is used on Messages.
+**Risks.** (The Claude Code risks moved to `docs/backlog.md` with Claude Code, D92.)
 - **Translation parity gaps** (M2) shift what the model sees between arm 1 and arm 4. They are reported, and they block a cell only if content is lost.
 - **Pi's partial-replay retry** (O-4B-5).
 - **Unsigned-thinking demotion breaking reconciliation** (O-4B-2).
@@ -352,6 +348,7 @@ All runs are on pythia at `n_ctx` 32768 with the pin and canary passing (D77.2).
 - **Harness drift.** Static facts are about two weeks old, and the harness versions may have moved.
 
 **Deferred, with reasons.**
+- Claude Code: backlogged, closed source (D92, `docs/backlog.md`).
 - Hidden recall tools and the Anthropic assembler: off by default, failed gates (R32).
 - Accepting compaction as a discontinuity, and branching: Ph8.
 - An identity-header alias (O-4B-4).

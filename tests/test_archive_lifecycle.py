@@ -243,8 +243,9 @@ def test_identical_first_requests_in_two_sessions_stay_separate(lc):
     [
         pytest.param(body([user("q")], n=1), id="n"),
         pytest.param(body([{"role": "developer", "content": "x"}, user("q")]), id="developer"),
-        pytest.param(body([{"role": "user", "content": [{"type": "text", "text": "q"}]}]),
-                     id="text_parts"),
+        pytest.param(body([{"role": "user", "content": [{"type": "image_url",
+                                                          "image_url": {"url": "x"}}]}]),
+                     id="image_part"),
         pytest.param(body([user("q")], logprobs=True), id="unknown_top_level"),
         pytest.param(body([{"role": "user", "content": "q", "name": "dan"}]), id="user_name"),
         pytest.param(body([user("q")], tools=[{"type": "function", "function": {

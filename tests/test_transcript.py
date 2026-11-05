@@ -362,15 +362,6 @@ def test_partial_tool_call_with_another_id_or_name_diverges(call):
     assert isinstance(result, Divergence) and result.index == 2
 
 
-def test_a_resend_that_omits_an_archived_partial_diverges():
-    # Never observed from OpenCode (probe rule 5); treated strictly.
-    archive = _archive(SYS, U1, PARTIAL)
-
-    result = reconcile(client(SYS, U1, U2), archive)
-
-    assert isinstance(result, Divergence) and result.index == 2
-
-
 def test_resend_up_to_the_failed_user_message_is_a_retry_of_that_request():
     archive = _archive(SYS, U1, PARTIAL)
 
@@ -421,8 +412,18 @@ def test_history_continues_after_a_superseded_partial():
     assert result.aligned == (archive[0].occ_id, archive[1].occ_id, archive[3].occ_id, "occ-gen")
 
 
-def test_a_server_failed_partial_still_may_not_be_omitted():
+def test_a_server_failed_partial_may_be_omitted_and_is_superseded():
+    """O-4B-5 (D82, D91): Pi leaves every failed partial out of later requests."""
     archive = _archive(SYS, U1, PARTIAL)  # failed upstream, not cancelled by the client
+
+    result = reconcile(client(SYS, U1, U2), archive)
+
+    assert isinstance(result, Extend) and result.matched == 2
+    assert result.superseded == (PARTIAL.occ_id,)
+
+
+def test_a_complete_turn_still_may_not_be_omitted():
+    archive = _archive(SYS, U1, generated(text="answer"))
 
     assert isinstance(reconcile(client(SYS, U1, U2), archive), Divergence)
 

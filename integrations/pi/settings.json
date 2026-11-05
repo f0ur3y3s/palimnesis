@@ -1,0 +1,7 @@
+{
+  "defaultProvider": "palimnesis",
+  "defaultModel": "qwen3.8-flash-next-iq3_xxs",
+  "compaction": {
+    "enabled": false
+  }
+}

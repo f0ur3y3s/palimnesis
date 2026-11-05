@@ -162,15 +162,20 @@ REJECTIONS = {
     "unknown_role": (_body(r'{"role":"function","content":"d"}', USER), "messages[0].role"),
     "missing_role": (_body(r'{"content":"d"}', USER), "messages[0].role"),
     "message_not_object": (_body('"hi"', USER), "messages[0]"),
-    "text_part_array": (
-        _body(r'{"role":"user","content":[{"type":"text","text":"hi"}]}'), "messages[0].content"
-    ),
     "image_part": (
         _body(r'{"role":"user","content":[{"type":"image_url","image_url":{"url":"x"}}]}'),
-        "messages[0].content",
+        "messages[0].content[0].type",
     ),
     "audio_part": (
         _body(r'{"role":"user","content":[{"type":"input_audio","input_audio":{}}]}'),
+        "messages[0].content[0].type",
+    ),
+    "text_part_extra_key": (
+        _body(r'{"role":"user","content":[{"type":"text","text":"hi","cache_control":{}}]}'),
+        "messages[0].content[0].cache_control",
+    ),
+    "system_text_parts": (
+        _body(r'{"role":"system","content":[{"type":"text","text":"s"}]}', USER),
         "messages[0].content",
     ),
     "user_content_null": (_body(r'{"role":"user","content":null}'), "messages[0].content"),
@@ -483,3 +488,16 @@ def test_render_messages_appends_an_absent_override_at_the_end():
     out = render_messages(req, [{"role": "user", "content": "hi"}], overrides={"max_tokens": 8192})
 
     assert out == b'{"model":"m","messages":[{"role":"user","content":"hi"}],"stream":true,"max_tokens":8192}'
+
+
+def test_user_text_parts_join_into_one_text_block_like_a_string():
+    """O-4B-9 (D91): Pi sends user content as text parts; Strata joins them with ""."""
+    from palimnesis.protocols.chat import content_sha256, parse
+
+    parts = parse(_body(r'{"role":"user","content":[{"type":"text","text":"a"},{"type":"text","text":"b"}]}'))
+    string = parse(_body(r'{"role":"user","content":"ab"}'))
+
+    [m] = parts.messages
+    assert [(b.kind, b.text) for b in m.blocks] == [("text", "ab")]
+    assert content_sha256(m) == content_sha256(string.messages[0])
+    assert m.raw_object["content"] == [{"type": "text", "text": "a"}, {"type": "text", "text": "b"}]

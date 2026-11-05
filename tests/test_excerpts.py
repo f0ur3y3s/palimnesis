@@ -62,7 +62,9 @@ def test_block_is_appended_as_an_extra_text_part_for_part_lists():
 
     attached = attach(original, "BLOCK")
 
-    assert attached["content"] == [{"type": "text", "text": "fix it"}, {"type": "text", "text": "BLOCK"}]
+    # Text parts join with "" upstream, so the part carries the string form's separator.
+    assert attached["content"] == [{"type": "text", "text": "fix it"},
+                                   {"type": "text", "text": "\n\nBLOCK"}]
 
 
 def test_attach_refuses_non_user_hosts():
