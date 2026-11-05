@@ -1,0 +1,450 @@
+{
+ "base": "http://127.0.0.1:8080",
+ "build": "Strata 0.1.54",
+ "n_ctx": 32768,
+ "started": "2026-11-05T13:44:13Z",
+ "cases": [
+  {
+   "name": "malformed_json",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.001,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "102",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "Expecting value: line 1 column 29 (char 28)"
+    }
+   },
+   "sent_raw": "{\"model\": \"m\", \"messages\": ["
+  },
+  {
+   "name": "malformed_json_count_tokens",
+   "path": "/v1/messages/count_tokens",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.001,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "102",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "Expecting value: line 1 column 29 (char 28)"
+    }
+   },
+   "sent_raw": "{\"model\": \"m\", \"messages\": ["
+  },
+  {
+   "name": "not_an_object",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.001,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "77",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "send a JSON object"
+    }
+   },
+   "sent_raw": "[1, 2]"
+  },
+  {
+   "name": "empty_object",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "80",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "No messages provided."
+    }
+   },
+   "sent_fields": [],
+   "sent_max_tokens": null
+  },
+  {
+   "name": "empty_messages",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "80",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "No messages provided."
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "messages_not_list",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "130",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "messages must be a list of objects (a string was sent that is not JSON)"
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "unknown_role",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "83",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "Unexpected message role."
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "unknown_role_stream",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "83",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "Unexpected message role."
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "stream"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "missing_content",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "80",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "No messages provided."
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "openai_wrapped_tools",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.001,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "139",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "tools[0] has no name: each tool must be {\"name\": ..., \"input_schema\": {...}}"
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking",
+    "tools"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "overflow_count_tokens",
+   "path": "/v1/messages/count_tokens",
+   "method": "POST",
+   "status": 200,
+   "elapsed_s": 0.019,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "23",
+    "connection": "close"
+   },
+   "body": {
+    "input_tokens": 35480
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "overflow_nonstream",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.026,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "194",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "request exceeds the context window: prompt (35480 tokens) leaves no room to answer in the context (32768); requests are never truncated"
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "overflow_stream",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 400,
+   "elapsed_s": 0.018,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "194",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "type": "invalid_request_error",
+     "message": "request exceeds the context window: prompt (35480 tokens) leaves no room to answer in the context (32768); requests are never truncated"
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "stream",
+    "thinking"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "prompt_plus_max_over_ctx_fit_false",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 200,
+   "elapsed_s": 29.622,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "332",
+    "connection": "close"
+   },
+   "body": {
+    "id": "msg_02666f9227014365ba920ab2",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 19944,
+     "cache_read_input_tokens": 0
+    }
+   },
+   "sent_fields": [
+    "fit_max_tokens",
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 16000,
+   "usage": {
+    "input_tokens": 1,
+    "output_tokens": 2,
+    "cache_creation_input_tokens": 19944,
+    "cache_read_input_tokens": 0
+   },
+   "content_types": [
+    "text"
+   ]
+  },
+  {
+   "name": "prompt_plus_max_over_ctx",
+   "path": "/v1/messages",
+   "method": "POST",
+   "status": 200,
+   "elapsed_s": 0.247,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "332",
+    "connection": "close"
+   },
+   "body": {
+    "id": "msg_496371c524a8490ebef1a624",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 6,
+     "cache_read_input_tokens": 19938
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 16000,
+   "usage": {
+    "input_tokens": 1,
+    "output_tokens": 2,
+    "cache_creation_input_tokens": 6,
+    "cache_read_input_tokens": 19938
+   },
+   "content_types": [
+    "text"
+   ]
+  },
+  {
+   "name": "unknown_subroute",
+   "path": "/v1/messages/batches",
+   "method": "POST",
+   "status": 404,
+   "elapsed_s": 0.002,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "35",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "message": "not found"
+    }
+   },
+   "sent_fields": [
+    "max_tokens",
+    "messages",
+    "model",
+    "thinking"
+   ],
+   "sent_max_tokens": 8
+  },
+  {
+   "name": "get_messages",
+   "path": "/v1/messages",
+   "method": "GET",
+   "status": 404,
+   "elapsed_s": 0.001,
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "35",
+    "connection": "close"
+   },
+   "body": {
+    "error": {
+     "message": "not found"
+    }
+   }
+  }
+ ],
+ "finished": "2026-11-05T13:45:00Z"
+}

@@ -1,0 +1,5256 @@
+{
+ "base": "http://127.0.0.1:8080",
+ "build": "Strata 0.1.54",
+ "started": "2026-11-05T13:39:19Z",
+ "cases": [
+  {
+   "name": "base",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.158,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 58,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.134,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "base_no_system",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 54
+   },
+   "local": {
+    "count": 54
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.992,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 53,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 54,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.113,
+    "prompt": 54,
+    "cached": 49,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "system_blocks",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": [
+     {
+      "type": "text",
+      "text": "You are terse."
+     },
+     {
+      "type": "text",
+      "text": "Answer in English."
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse.Answer in English."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 63
+   },
+   "local": {
+    "count": 63
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.114,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 62,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 63,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.132,
+    "prompt": 63,
+    "cached": 58,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "join_newline": {
+     "local": {
+      "count": 64
+     },
+     "render_equals_neutral": false
+    },
+    "join_blank_line": {
+     "local": {
+      "count": 64
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "system_string_joined",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.Answer in English.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse.Answer in English."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 63
+   },
+   "local": {
+    "count": 63
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.116,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 58
+    },
+    "prompt": 63,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.115,
+    "prompt": 63,
+    "cached": 58,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "billing_header_system",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "x-anthropic-billing-header: cc_version=2.1.170.bf4; cc_entrypoint=sdk-cli; cch=b145e;\nYou are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "x-anthropic-billing-header: cc_version=2.1.170.bf4; cc_entrypoint=sdk-cli; cch=b145e;\nYou are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 94
+   },
+   "local": {
+    "count": 97
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.196,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 93,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 94,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 1.192,
+    "prompt": 97,
+    "cached": 0,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "pinned_stamp": {
+     "local": {
+      "count": 94
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": false
+  },
+  {
+   "name": "user_multi_text",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "Part one."
+       },
+       {
+        "type": "text",
+        "text": "Part two."
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Part one.Part two."
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 62
+   },
+   "local": {
+    "count": 62
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.035,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 61,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 62,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.114,
+    "prompt": 62,
+    "cached": 57,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "join_newline": {
+     "local": {
+      "count": 64
+     },
+     "render_equals_neutral": false
+    },
+    "join_blank_line": {
+     "local": {
+      "count": 64
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "user_text_joined",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Part one.Part two."
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Part one.Part two."
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 62
+   },
+   "local": {
+    "count": 62
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.119,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 57
+    },
+    "prompt": 62,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.133,
+    "prompt": 62,
+    "cached": 57,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "assistant_multi_text",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "A1 part one."
+       },
+       {
+        "type": "text",
+        "text": "A1 part two."
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1 part one.A1 part two."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 84
+   },
+   "local": {
+    "count": 84
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.974,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 83,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 84,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.113,
+    "prompt": 84,
+    "cached": 79,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "join_newline": {
+     "local": {
+      "count": 86
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "tool_result_string",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "18C, clear"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C, clear"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.006,
+    "input_tokens": 367
+   },
+   "local": {
+    "count": 367
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.72,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 366,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 367,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.138,
+    "prompt": 367,
+    "cached": 362,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "tool_result_text_blocks",
+   "ref": "tool_result_string",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": [
+         {
+          "type": "text",
+          "text": "18C,"
+         },
+         {
+          "type": "text",
+          "text": " clear"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C, clear"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 367
+   },
+   "local": {
+    "count": 367
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.119,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 362
+    },
+    "prompt": 367,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.12,
+    "prompt": 367,
+    "cached": 362,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "join_newline": {
+     "local": {
+      "count": 368
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_result_plain_boom",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "boom: city not found"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "boom: city not found"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 367
+   },
+   "local": {
+    "count": 367
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.728,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 366,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 367,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.145,
+    "prompt": 367,
+    "cached": 362,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "tool_result_is_error",
+   "ref": "tool_result_plain_boom",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "boom: city not found",
+        "is_error": true
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "boom: city not found"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.005,
+    "input_tokens": 367
+   },
+   "local": {
+    "count": 367
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 362
+    },
+    "prompt": 367,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "prompt": 367,
+    "cached": 362,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_result_then_text",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "18C, clear"
+       },
+       {
+        "type": "text",
+        "text": "Now summarize."
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C, clear"
+     },
+     {
+      "role": "user",
+      "content": "Now summarize."
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 375
+   },
+   "local": {
+    "count": 375
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.253,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 12,
+     "cache_read_input_tokens": 362
+    },
+    "prompt": 375,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.149,
+    "prompt": 375,
+    "cached": 370,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "text_then_tool_result",
+   "ref": "tool_result_then_text",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "Now summarize."
+       },
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "18C, clear"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C, clear"
+     },
+     {
+      "role": "user",
+      "content": "Now summarize."
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 375
+   },
+   "local": {
+    "count": 375
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.126,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 370
+    },
+    "prompt": 375,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.125,
+    "prompt": 375,
+    "cached": 370,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "text_first": {
+     "local": {
+      "count": 375
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_use_unsorted_input",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "write_file",
+      "description": "Write a text file.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "path": {
+         "type": "string"
+        },
+        "content": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "path",
+        "content"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "write_file",
+        "input": {
+         "path": "a.txt",
+         "content": "hi"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "ok"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "write_file",
+         "arguments": "{\"content\":\"hi\",\"path\":\"a.txt\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "ok"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "write_file",
+       "description": "Write a text file.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "path": {
+          "type": "string"
+         },
+         "content": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "path",
+         "content"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.005,
+    "input_tokens": 385
+   },
+   "local": {
+    "count": 385
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.66,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 384,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 385,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 2.743,
+    "prompt": 385,
+    "cached": 0,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "insertion_order_args": {
+     "local": {
+      "count": 385
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "tool_use_sorted_input",
+   "ref": "tool_use_unsorted_input",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "tools": [
+     {
+      "name": "write_file",
+      "description": "Write a text file.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "path": {
+         "type": "string"
+        },
+        "content": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "path",
+        "content"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "I need the tool.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "Checking."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "write_file",
+        "input": {
+         "content": "hi",
+         "path": "a.txt"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "ok"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "What is the weather in Paris?"
+     },
+     {
+      "role": "assistant",
+      "content": "Checking.",
+      "reasoning_content": "I need the tool.",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "write_file",
+         "arguments": "{\"content\":\"hi\",\"path\":\"a.txt\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "ok"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "write_file",
+       "description": "Write a text file.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "path": {
+          "type": "string"
+         },
+         "content": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "path",
+         "content"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 385
+   },
+   "local": {
+    "count": 385
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.115,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 380
+    },
+    "prompt": 385,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.114,
+    "prompt": 385,
+    "cached": 380,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_no_description",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 297
+   },
+   "local": {
+    "count": 293
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.433,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 296,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 297,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 2.405,
+    "prompt": 293,
+    "cached": 0,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "description_empty": {
+     "local": {
+      "count": 297
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": false
+  },
+  {
+   "name": "tools_only",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 305
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.482,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 304,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 305,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.111,
+    "prompt": 305,
+    "cached": 300,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "mid_system_with_top",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 91
+   },
+   "local": {
+    "error": "RenderError: System message must be at the beginning."
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.021,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 90,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 91,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.136,
+    "prompt": 91,
+    "cached": 86,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "late_system_as_user": {
+     "local": {
+      "count": 91
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "mid_system_as_user_control",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "user",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "user",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 91
+   },
+   "local": {
+    "count": 91
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.116,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 86
+    },
+    "prompt": 91,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.118,
+    "prompt": 91,
+    "cached": 86,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "mid_system_no_top",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 86
+   },
+   "local": {
+    "error": "RenderError: System message must be at the beginning."
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 1.04,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 85,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 86,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.136,
+    "prompt": 86,
+    "cached": 81,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "late_system_as_user": {
+     "local": {
+      "count": 86
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "mid_system_blocks",
+   "ref": "mid_system_with_top",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": [
+       {
+        "type": "text",
+        "text": "Hook context: the user prefers metric units."
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "system",
+      "content": "Hook context: the user prefers metric units."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 91
+   },
+   "local": {
+    "error": "RenderError: System message must be at the beginning."
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.128,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 86
+    },
+    "prompt": 91,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.113,
+    "prompt": 91,
+    "cached": 86,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "late_system_as_user": {
+     "local": {
+      "count": 91
+     },
+     "render_equals_neutral": false
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "first_message_system",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.924,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 58,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.123,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "cache_control_stripped",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": [
+     {
+      "type": "text",
+      "text": "You are terse."
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "Weather?"
+       }
+      ]
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "18C"
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Weather?"
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 351
+   },
+   "local": {
+    "count": 351
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.628,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 350,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 351,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.109,
+    "prompt": 351,
+    "cached": 346,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "cache_control",
+   "ref": "cache_control_stripped",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": [
+     {
+      "type": "text",
+      "text": "You are terse.",
+      "cache_control": {
+       "type": "ephemeral"
+      }
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      },
+      "cache_control": {
+       "type": "ephemeral"
+      }
+     }
+    ],
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "Weather?",
+        "cache_control": {
+         "type": "ephemeral"
+        }
+       }
+      ]
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "get_weather",
+        "input": {
+         "city": "Paris"
+        },
+        "cache_control": {
+         "type": "ephemeral"
+        }
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "18C",
+        "cache_control": {
+         "type": "ephemeral"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Weather?"
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01",
+        "type": "function",
+        "function": {
+         "name": "get_weather",
+         "arguments": "{\"city\":\"Paris\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "toolu_01",
+      "content": "18C"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 351
+   },
+   "local": {
+    "count": 351
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.111,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 346
+    },
+    "prompt": 351,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.129,
+    "prompt": 351,
+    "cached": 346,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "thinking_signed",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "Short reasoning about Q1.",
+        "signature": "EuYBCkQYAiJAk3Xf0aZ1c2lnbmF0dXJlLWJsb2ItZm9yLXByb2Jl"
+       },
+       {
+        "type": "text",
+        "text": "A1"
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1",
+      "reasoning_content": "Short reasoning about Q1."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 84
+   },
+   "local": {
+    "count": 84
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.385,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 24,
+     "cache_read_input_tokens": 59
+    },
+    "prompt": 84,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.126,
+    "prompt": 84,
+    "cached": 79,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "thinking_no_signature",
+   "ref": "thinking_signed",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "Short reasoning about Q1."
+       },
+       {
+        "type": "text",
+        "text": "A1"
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1",
+      "reasoning_content": "Short reasoning about Q1."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.007,
+    "input_tokens": 84
+   },
+   "local": {
+    "count": 84
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.127,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 79
+    },
+    "prompt": 84,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.145,
+    "prompt": 84,
+    "cached": 79,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "thinking_empty_signature",
+   "ref": "thinking_signed",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "Short reasoning about Q1.",
+        "signature": ""
+       },
+       {
+        "type": "text",
+        "text": "A1"
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1",
+      "reasoning_content": "Short reasoning about Q1."
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 84
+   },
+   "local": {
+    "count": 84
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 79
+    },
+    "prompt": 84,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "prompt": 84,
+    "cached": 79,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "no_thinking_prior",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "A1"
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 77
+   },
+   "local": {
+    "count": 77
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.317,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 22,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 77,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.138,
+    "prompt": 77,
+    "cached": 72,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true
+  },
+  {
+   "name": "redacted_thinking",
+   "ref": "no_thinking_prior",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "redacted_thinking",
+        "data": "opaque-bytes"
+       },
+       {
+        "type": "text",
+        "text": "A1"
+       }
+      ]
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     },
+     {
+      "role": "assistant",
+      "content": "A1"
+     },
+     {
+      "role": "user",
+      "content": "Q2"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "messages[1]: assistant redacted_thinking block dropped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 77
+   },
+   "local": {
+    "count": 77
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.127,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 72
+    },
+    "prompt": 77,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.121,
+    "prompt": 77,
+    "cached": 72,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "thinking_adaptive",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "adaptive"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "thinking {'type': 'adaptive'} not mapped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.122,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "thinking_enabled_no_budget",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "enabled"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "thinking {'type': 'enabled'} not mapped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.106,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.106,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "budget_1024",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "enabled",
+     "budget_tokens": 1024
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "thinking {'type': 'enabled', 'budget_tokens': 1024} not mapped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 47
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.744,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 46,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 47,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.135,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "as_effort_low": {
+     "local": {
+      "count": 47
+     },
+     "render_equals_neutral": true
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": false,
+   "field_class": "rendered (ct 47 vs ref 59)"
+  },
+  {
+   "name": "budget_4096",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "enabled",
+     "budget_tokens": 4096
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "thinking {'type': 'enabled', 'budget_tokens': 4096} not mapped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 21
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.304,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 20,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 21,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.118,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "as_effort_medium": {
+     "local": {
+      "count": 21
+     },
+     "render_equals_neutral": true
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": false,
+   "field_class": "rendered (ct 21 vs ref 59)"
+  },
+  {
+   "name": "budget_16000",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "enabled",
+     "budget_tokens": 16000
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "thinking {'type': 'enabled', 'budget_tokens': 16000} not mapped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "as_effort_xhigh": {
+     "local": {
+      "count": 59
+     },
+     "render_equals_neutral": true
+    }
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "thinking_disabled",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "disabled"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "none"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 23
+   },
+   "local": {
+    "count": 23
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.134,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 6,
+     "cache_read_input_tokens": 16
+    },
+    "prompt": 23,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "text"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.117,
+    "prompt": 23,
+    "cached": 16,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "rendered (ct 23 vs ref 59)"
+  },
+  {
+   "name": "effort_low",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "low"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "low"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 47
+   },
+   "local": {
+    "count": 47
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.12,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 42
+    },
+    "prompt": 47,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "prompt": 47,
+    "cached": 42,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "rendered (ct 47 vs ref 59)"
+  },
+  {
+   "name": "effort_medium",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "medium"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "medium"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 21
+   },
+   "local": {
+    "count": 21
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.124,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 16
+    },
+    "prompt": 21,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.106,
+    "prompt": 21,
+    "cached": 16,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "rendered (ct 21 vs ref 59)"
+  },
+  {
+   "name": "effort_high",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "high"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "high"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.121,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.117,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "effort_xhigh",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "xhigh"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "xhigh"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "effort_max",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "max"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "max"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "error": "RenderError: Unexpected reasoning effort max. Supported types are xhigh (default), medium, and low."
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "alts": {
+    "as_effort_xhigh": {
+     "local": {
+      "count": 59
+     },
+     "render_equals_neutral": true
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "effort_bogus",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "output_config": {
+     "effort": "bogus"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "bogus"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 400,
+    "elapsed_s": 0.001,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "unknown reasoning effort 'bogus': use none, low, medium or high"
+     }
+    }
+   },
+   "local": {
+    "error": "RenderError: Unexpected reasoning effort bogus. Supported types are xhigh (default), medium, and low."
+   },
+   "mr": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "unknown reasoning effort 'bogus': use none, low, medium or high"
+     }
+    }
+   },
+   "cr": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "unknown reasoning effort 'bogus': use none, low, medium or high"
+     }
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": false,
+   "mr_equals_cr": false,
+   "field_class": "400"
+  },
+  {
+   "name": "disabled_plus_effort_low",
+   "ref": "thinking_disabled",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "thinking": {
+     "type": "disabled"
+    },
+    "output_config": {
+     "effort": "low"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "reasoning_effort": "none"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 23
+   },
+   "local": {
+    "count": 23
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.134,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 6,
+     "cache_read_input_tokens": 16
+    },
+    "prompt": 23,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "text"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.126,
+    "prompt": 23,
+    "cached": 16,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_choice_auto",
+   "ref": "tools_only",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ],
+    "tool_choice": "auto"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 305
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 2.445,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 304,
+     "cache_read_input_tokens": 0
+    },
+    "prompt": 305,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.127,
+    "prompt": 305,
+    "cached": 300,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_choice_any",
+   "ref": "tools_only",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "any"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ],
+    "tool_choice": "required"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 305
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.108,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 300
+    },
+    "prompt": 305,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.108,
+    "prompt": 305,
+    "cached": 300,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_choice_tool",
+   "ref": "tools_only",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "tool",
+     "name": "get_weather"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "function",
+     "function": {
+      "name": "get_weather"
+     }
+    }
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 305
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.108,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 300
+    },
+    "prompt": 305,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.115,
+    "prompt": 305,
+    "cached": 300,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "tool_choice_none",
+   "ref": "tools_only",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "none"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ],
+    "tool_choice": "none"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.123,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.106,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": false,
+   "mr_equals_cr": true,
+   "field_class": "rendered (ct 305 vs ref 305)"
+  },
+  {
+   "name": "tool_choice_auto_no_parallel",
+   "ref": "tools_only",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_weather",
+      "description": "Get the current weather for a city.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "city": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "city"
+       ]
+      }
+     }
+    ],
+    "tool_choice": {
+     "type": "auto",
+     "disable_parallel_tool_use": true
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "tools": [
+     {
+      "type": "function",
+      "function": {
+       "name": "get_weather",
+       "description": "Get the current weather for a city.",
+       "parameters": {
+        "type": "object",
+        "properties": {
+         "city": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "city"
+        ]
+       }
+      }
+     }
+    ],
+    "tool_choice": "auto"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 305
+   },
+   "local": {
+    "count": 305
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.121,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 300
+    },
+    "prompt": 305,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.111,
+    "prompt": 305,
+    "cached": 300,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "top_k",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "top_k": 5
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "top_k": 5
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.121,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "top_k_string",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "top_k": "5"
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "top_k": "5"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "temperature_top_p",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "temperature": 0.2,
+    "top_p": 0.9
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "temperature": 0.2,
+    "top_p": 0.9
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.008,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "stop_sequences",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "stop_sequences": [
+     "END"
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "stop": [
+     "END"
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "stop_sequences_string",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "stop_sequences": "END"
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "stop": "END"
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "stop_sequences must be a list of strings"
+     }
+    }
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "stop_sequences must be a list of strings"
+     }
+    }
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": false,
+   "mr_equals_cr": false,
+   "field_class": "400"
+  },
+  {
+   "name": "metadata",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "metadata": {
+     "user_id": "user-123"
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "top-level metadata dropped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "unknown_top_level_field",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ],
+    "palimnesis_probe_unknown": {
+     "x": 1
+    }
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "top-level palimnesis_probe_unknown dropped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.108,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "document_block",
+   "ref": "base",
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "system": "You are terse.",
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "Q1"
+       },
+       {
+        "type": "document",
+        "source": {
+         "type": "text",
+         "media_type": "text/plain",
+         "data": "doc body"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are terse."
+     },
+     {
+      "role": "user",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [
+    "messages[0]: user document block dropped"
+   ],
+   "ct": {
+    "status": 200,
+    "elapsed_s": 0.001,
+    "input_tokens": 59
+   },
+   "local": {
+    "count": 59
+   },
+   "mr": {
+    "status": 200,
+    "elapsed_s": 0.108,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 54
+    },
+    "prompt": 59,
+    "stop_reason": "max_tokens",
+    "content_types": [
+     "thinking"
+    ]
+   },
+   "cr": {
+    "status": 200,
+    "elapsed_s": 0.107,
+    "prompt": 59,
+    "cached": 54,
+    "finish_reason": "length"
+   },
+   "ct_equals_local": true,
+   "ct_equals_mr": true,
+   "mr_equals_cr": true,
+   "field_class": "not rendered (count equals ref)"
+  },
+  {
+   "name": "unknown_role",
+   "ref": null,
+   "messages_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "bot",
+      "content": "Q1"
+     }
+    ]
+   },
+   "chat_body": {
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "messages": [
+     {
+      "role": "bot",
+      "content": "Q1"
+     }
+    ]
+   },
+   "mapping_notes": [],
+   "ct": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "Unexpected message role."
+     }
+    }
+   },
+   "local": {
+    "error": "RenderError: Unexpected message role."
+   },
+   "mr": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "Unexpected message role."
+     }
+    }
+   },
+   "cr": {
+    "status": 400,
+    "elapsed_s": 0.002,
+    "error": {
+     "error": {
+      "type": "invalid_request_error",
+      "message": "Unexpected message role."
+     }
+    }
+   },
+   "ct_equals_local": false,
+   "ct_equals_mr": false,
+   "mr_equals_cr": false
+  }
+ ],
+ "finished": "2026-11-05T13:42:02Z"
+}

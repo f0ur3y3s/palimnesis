@@ -1,0 +1,192 @@
+{
+ "base": "http://127.0.0.1:8080",
+ "build": "Strata 0.1.54",
+ "sent_headers": {
+  "anthropic-version": "2023-06-01",
+  "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
+  "x-api-key": "sk-probe-dummy",
+  "authorization": "Bearer probe-dummy"
+ },
+ "started": "2026-11-05T13:44:01Z",
+ "variants": [
+  {
+   "name": "plain",
+   "path": "/v1/messages",
+   "headers_sent": [],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "beta_query",
+   "path": "/v1/messages?beta=true",
+   "headers_sent": [],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "headers",
+   "path": "/v1/messages",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "beta_query_headers",
+   "path": "/v1/messages?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "unknown_beta",
+   "path": "/v1/messages?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "beta_query_headers_stream",
+   "path": "/v1/messages?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "event_types": [
+    "message_start",
+    "content_block_start",
+    "content_block_delta",
+    "content_block_delta",
+    "content_block_stop",
+    "message_delta",
+    "message_stop"
+   ]
+  },
+  {
+   "name": "v1_v1_alias",
+   "path": "/v1/v1/messages?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "328",
+    "connection": "close"
+   },
+   "prompt": 24,
+   "stop_reason": "end_turn"
+  },
+  {
+   "name": "count_plain",
+   "path": "/v1/messages/count_tokens",
+   "headers_sent": [],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "20",
+    "connection": "close"
+   },
+   "prompt": 24
+  },
+  {
+   "name": "count_beta_query_headers",
+   "path": "/v1/messages/count_tokens?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "20",
+    "connection": "close"
+   },
+   "prompt": 24
+  },
+  {
+   "name": "count_v1_v1_alias",
+   "path": "/v1/v1/messages/count_tokens?beta=true",
+   "headers_sent": [
+    "anthropic-beta",
+    "anthropic-version",
+    "authorization",
+    "x-api-key"
+   ],
+   "status": 200,
+   "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "application/json",
+    "content-length": "20",
+    "connection": "close"
+   },
+   "prompt": 24
+  }
+ ],
+ "finished": "2026-11-05T13:44:13Z"
+}

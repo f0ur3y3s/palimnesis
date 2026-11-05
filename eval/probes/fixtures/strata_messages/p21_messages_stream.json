@@ -1,0 +1,2343 @@
+{
+ "base": "http://127.0.0.1:8080",
+ "build": "Strata 0.1.54",
+ "n_ctx": 32768,
+ "started": "2026-11-05T13:50:05Z",
+ "runs": [
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     31
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_6524fb5fc752461c91ecf62e",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 36,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "end_turn",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 35,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 32
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 31,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "The sky appears blue because molecules in the Earth's atmosphere scatter shorter wavelengths of sunlight, such as blue and violet, more effectively than longer wavelengths like red."
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.5287,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 0.6204,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0087,
+     "message_start"
+    ],
+    [
+     0.5287,
+     "comment"
+    ],
+    [
+     0.6204,
+     "comment"
+    ],
+    [
+     0.6457,
+     "content_block_start"
+    ],
+    [
+     0.6458,
+     "content_block_delta"
+    ],
+    [
+     1.8218,
+     "content_block_stop"
+    ],
+    [
+     1.8218,
+     "message_delta"
+    ],
+    [
+     1.8218,
+     "message_stop"
+    ]
+   ],
+   "case": "text_off",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 1.822,
+   "waited_idle_s": 2.0,
+   "max_tokens": 64,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 36,
+    "generated": 31,
+    "max_tokens": 64,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:thinking",
+     1
+    ],
+    [
+     "delta:thinking_delta[0]",
+     50
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[1]",
+     32
+    ],
+    [
+     "stop[1]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_3538237f3efe45f5a972f44f",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 60,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "end_turn",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 59,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 85
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+     },
+     "deltas": 50,
+     "delta_types": [
+      "thinking_delta"
+     ],
+     "stopped": true,
+     "text": "The user wants a brief, one-sentence explanation for why the sky is blue. The core reason is Rayleigh scattering: shorter (blue) wavelengths of sunlight scatter more off atmospheric molecules than longer wavelengths. I'll keep it concise and accurate.\n"
+    },
+    {
+     "index": 1,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 32,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "The sky is blue because nitrogen and oxygen molecules in the atmosphere scatter shorter (blue) wavelengths of sunlight more strongly than longer ones—a phenomenon called Rayleigh scattering."
+    }
+   ],
+   "comments": [
+    {
+     "t": 1.0605,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 1.1223,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0105,
+     "message_start"
+    ],
+    [
+     1.0605,
+     "comment"
+    ],
+    [
+     1.1223,
+     "comment"
+    ],
+    [
+     1.1432,
+     "content_block_start"
+    ],
+    [
+     1.1432,
+     "content_block_delta"
+    ],
+    [
+     3.5656,
+     "content_block_stop"
+    ],
+    [
+     3.5657,
+     "message_delta"
+    ],
+    [
+     3.5657,
+     "message_stop"
+    ]
+   ],
+   "case": "thinking_low",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 3.566,
+   "waited_idle_s": 2.0,
+   "max_tokens": 1024,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "output_config",
+    "stream",
+    "system"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 60,
+    "generated": 84,
+    "max_tokens": 1024,
+    "reasoning_recoveries": 0,
+    "thinking_budget": 512
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[0]",
+     6
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_9cf88a6855f34e88ab14e207",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 345,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "tool_use",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 344,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 26
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "tool_use",
+      "id": "call_8e4c698e343f4805950c9541",
+      "name": "get_weather",
+      "input": {}
+     },
+     "deltas": 6,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"city\":",
+      "\"",
+      "Paris",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 6,
+     "json": "{\"city\":\"Paris\"}",
+     "json_parses": true,
+     "input": {
+      "city": "Paris"
+     }
+    }
+   ],
+   "comments": [
+    {
+     "t": 2.5868,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 2.7236,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0113,
+     "message_start"
+    ],
+    [
+     2.5868,
+     "comment"
+    ],
+    [
+     2.7236,
+     "comment"
+    ],
+    [
+     2.9188,
+     "content_block_start"
+    ],
+    [
+     2.9188,
+     "content_block_delta"
+    ],
+    [
+     3.3721,
+     "content_block_stop"
+    ],
+    [
+     3.3722,
+     "message_delta"
+    ],
+    [
+     3.3722,
+     "message_stop"
+    ]
+   ],
+   "case": "tool_off",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 3.372,
+   "waited_idle_s": 2.0,
+   "max_tokens": 256,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "tool call complete",
+    "prompt_tokens": 345,
+    "generated": 25,
+    "max_tokens": 256,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:thinking",
+     1
+    ],
+    [
+     "delta:thinking_delta[0]",
+     29
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[1]",
+     6
+    ],
+    [
+     "stop[1]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_2a21d6822b564891a579a084",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 369,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "tool_use",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 368,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 57
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+     },
+     "deltas": 29,
+     "delta_types": [
+      "thinking_delta"
+     ],
+     "stopped": true,
+     "text": "The user wants to know the current weather in Paris. I need to use the get_weather tool with \"Paris\" as the city parameter.\n"
+    },
+    {
+     "index": 1,
+     "start": {
+      "type": "tool_use",
+      "id": "call_3def316986b343718c0d89a9",
+      "name": "get_weather",
+      "input": {}
+     },
+     "deltas": 6,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"city\":",
+      "\"",
+      "Paris",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 6,
+     "json": "{\"city\":\"Paris\"}",
+     "json_parses": true,
+     "input": {
+      "city": "Paris"
+     }
+    }
+   ],
+   "comments": [
+    {
+     "t": 2.7603,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 2.8727,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.013,
+     "message_start"
+    ],
+    [
+     2.7603,
+     "comment"
+    ],
+    [
+     2.8727,
+     "comment"
+    ],
+    [
+     2.8937,
+     "content_block_start"
+    ],
+    [
+     2.8938,
+     "content_block_delta"
+    ],
+    [
+     4.096,
+     "content_block_stop"
+    ],
+    [
+     4.096,
+     "message_delta"
+    ],
+    [
+     4.096,
+     "message_stop"
+    ]
+   ],
+   "case": "tool_low",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 4.096,
+   "waited_idle_s": 2.0,
+   "max_tokens": 1024,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "output_config",
+    "stream",
+    "system",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "tool call complete",
+    "prompt_tokens": 369,
+    "generated": 56,
+    "max_tokens": 1024,
+    "reasoning_recoveries": 0,
+    "thinking_budget": 512
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     9
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[1]",
+     6
+    ],
+    [
+     "stop[1]",
+     1
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[2]",
+     7
+    ],
+    [
+     "stop[2]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_e900cde47cb74a5dbcbb0a95",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 360,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "tool_use",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 359,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 63
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 9,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "I'll fetch both weather reports at once."
+    },
+    {
+     "index": 1,
+     "start": {
+      "type": "tool_use",
+      "id": "call_c7a1a4726c3b490cbf5ceb8b",
+      "name": "get_weather",
+      "input": {}
+     },
+     "deltas": 6,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"city\":",
+      "\"",
+      "Paris",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 6,
+     "json": "{\"city\":\"Paris\"}",
+     "json_parses": true,
+     "input": {
+      "city": "Paris"
+     }
+    },
+    {
+     "index": 2,
+     "start": {
+      "type": "tool_use",
+      "id": "call_0ca634d07f53421f8212f2b6",
+      "name": "get_weather",
+      "input": {}
+     },
+     "deltas": 7,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"city\":",
+      "\"",
+      "Os",
+      "lo",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 7,
+     "json": "{\"city\":\"Oslo\"}",
+     "json_parses": true,
+     "input": {
+      "city": "Oslo"
+     }
+    }
+   ],
+   "comments": [
+    {
+     "t": 2.6889,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 2.8155,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.011,
+     "message_start"
+    ],
+    [
+     2.6889,
+     "comment"
+    ],
+    [
+     2.8155,
+     "comment"
+    ],
+    [
+     2.8366,
+     "content_block_start"
+    ],
+    [
+     2.8367,
+     "content_block_delta"
+    ],
+    [
+     4.1949,
+     "content_block_stop"
+    ],
+    [
+     4.1949,
+     "message_delta"
+    ],
+    [
+     4.1949,
+     "message_stop"
+    ]
+   ],
+   "case": "parallel_off",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 4.195,
+   "waited_idle_s": 2.0,
+   "max_tokens": 256,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "tool call complete",
+    "prompt_tokens": 360,
+    "generated": 62,
+    "max_tokens": 256,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     12
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_608ae862ab844c43af42f968",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 39,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "max_tokens",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 38,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 12
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 12,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "1, 2, 3, 4, "
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.6158,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 0.6999,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0119,
+     "message_start"
+    ],
+    [
+     0.6158,
+     "comment"
+    ],
+    [
+     0.6999,
+     "comment"
+    ],
+    [
+     0.7231,
+     "content_block_start"
+    ],
+    [
+     0.7232,
+     "content_block_delta"
+    ],
+    [
+     0.9877,
+     "content_block_stop"
+    ],
+    [
+     0.9878,
+     "message_delta"
+    ],
+    [
+     0.9878,
+     "message_stop"
+    ]
+   ],
+   "case": "length_text",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 0.988,
+   "waited_idle_s": 2.0,
+   "max_tokens": 12,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 39,
+    "generated": 12,
+    "max_tokens": 12,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     1
+    ],
+    [
+     "start:thinking",
+     1
+    ],
+    [
+     "delta:thinking_delta[0]",
+     24
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_ef1718da3c39468fb36a5340",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 60,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "max_tokens",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 4,
+     "cache_read_input_tokens": 55,
+     "output_tokens": 24
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "thinking",
+      "thinking": "",
+      "signature": ""
+     },
+     "deltas": 24,
+     "delta_types": [
+      "thinking_delta"
+     ],
+     "stopped": true,
+     "text": "The user wants a concise, one-sentence explanation of why the sky is blue. The key concept is Rayleigh scattering"
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.1156,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0106,
+     "message_start"
+    ],
+    [
+     0.1156,
+     "comment"
+    ],
+    [
+     0.1367,
+     "content_block_start"
+    ],
+    [
+     0.1367,
+     "content_block_delta"
+    ],
+    [
+     0.1997,
+     "content_block_delta"
+    ],
+    [
+     0.7809,
+     "content_block_stop"
+    ],
+    [
+     0.7809,
+     "message_delta"
+    ],
+    [
+     0.7809,
+     "message_stop"
+    ]
+   ],
+   "case": "length_thinking",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 0.781,
+   "waited_idle_s": 2.0,
+   "max_tokens": 24,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "output_config",
+    "stream",
+    "system"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "thinking",
+    "prompt_tokens": 60,
+    "generated": 24,
+    "max_tokens": 24,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[0]",
+     20
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_6d9708f5bfd441539458a889",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 355,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "max_tokens",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 354,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 40
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "tool_use",
+      "id": "call_1441fa1f6e5a4d56869bda61",
+      "name": "write_file",
+      "input": {}
+     },
+     "deltas": 20,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"path\":",
+      "\"",
+      "po",
+      "em",
+      ".txt",
+      "\"",
+      ",\"content\":",
+      "\"",
+      "A",
+      " river",
+      " is",
+      " a",
+      " sentence",
+      " the",
+      " mountains",
+      " write",
+      ",",
+      "\\nstarting",
+      " in"
+     ],
+     "json_piece_count": 20,
+     "json": "{\"path\":\"poem.txt\",\"content\":\"A river is a sentence the mountains write,\\nstarting in",
+     "json_parses": false,
+     "input": null
+    }
+   ],
+   "comments": [
+    {
+     "t": 2.6148,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 2.7431,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0121,
+     "message_start"
+    ],
+    [
+     2.6148,
+     "comment"
+    ],
+    [
+     2.7431,
+     "comment"
+    ],
+    [
+     2.8891,
+     "content_block_start"
+    ],
+    [
+     2.8892,
+     "content_block_delta"
+    ],
+    [
+     3.9349,
+     "content_block_stop"
+    ],
+    [
+     3.935,
+     "message_delta"
+    ],
+    [
+     3.935,
+     "message_stop"
+    ]
+   ],
+   "case": "length_tool_args",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 3.935,
+   "waited_idle_s": 2.0,
+   "max_tokens": 40,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "writing a tool call: write_file",
+    "prompt_tokens": 355,
+    "generated": 40,
+    "max_tokens": 40,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     18
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_4bbcdd078aa947998dc74dab",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 38,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "stop_sequence",
+     "stop_sequence": "7,"
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 37,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 20
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 18,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "1, 2, 3, 4, 5, 6, "
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.5314,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 0.6046,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0118,
+     "message_start"
+    ],
+    [
+     0.5314,
+     "comment"
+    ],
+    [
+     0.6046,
+     "comment"
+    ],
+    [
+     0.6264,
+     "content_block_start"
+    ],
+    [
+     0.6264,
+     "content_block_delta"
+    ],
+    [
+     1.0752,
+     "content_block_stop"
+    ],
+    [
+     1.0753,
+     "message_delta"
+    ],
+    [
+     1.0753,
+     "message_stop"
+    ]
+   ],
+   "case": "stop_sequence",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 1.075,
+   "waited_idle_s": 2.0,
+   "max_tokens": 128,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stop_sequences",
+    "stream",
+    "system",
+    "thinking"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 38,
+    "generated": 20,
+    "max_tokens": 128,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[0]",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "delta:input_json_delta[0]",
+     5
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_01c2a9ae0b414a15accff604",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 343,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "tool_use",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 342,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 18
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "tool_use",
+      "id": "call_7cb76badc9c44946ade453bd",
+      "name": "get_weather",
+      "input": {}
+     },
+     "deltas": 6,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"city\":",
+      "\"",
+      "Paris",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 6,
+     "json": "{\"city\":\"Paris\"}",
+     "json_parses": true,
+     "input": {
+      "city": "Paris"
+     }
+    }
+   ],
+   "comments": [
+    {
+     "t": 2.5317,
+     "text": ": keep-alive",
+     "after": "content_block_delta"
+    },
+    {
+     "t": 2.7729,
+     "text": ": keep-alive",
+     "after": "content_block_delta"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0136,
+     "message_start"
+    ],
+    [
+     0.0136,
+     "content_block_start"
+    ],
+    [
+     0.0136,
+     "content_block_delta"
+    ],
+    [
+     2.5317,
+     "comment"
+    ],
+    [
+     2.7729,
+     "comment"
+    ],
+    [
+     3.1194,
+     "content_block_stop"
+    ],
+    [
+     3.1194,
+     "message_delta"
+    ],
+    [
+     3.1195,
+     "message_stop"
+    ]
+   ],
+   "case": "forced_tool_named",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 3.12,
+   "waited_idle_s": 2.0,
+   "max_tokens": 128,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tool_choice",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "tool call complete",
+    "prompt_tokens": 343,
+    "generated": 17,
+    "max_tokens": 128,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     1
+    ],
+    [
+     "start:tool_use",
+     1
+    ],
+    [
+     "delta:input_json_delta[0]",
+     14
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_6b0d2efa1a554d3e8ecbf924",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 340,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "tool_use",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 11,
+     "cache_read_input_tokens": 328,
+     "output_tokens": 37
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "tool_use",
+      "id": "call_ddd182ef641740d9ae531376",
+      "name": "write_file",
+      "input": {}
+     },
+     "deltas": 14,
+     "delta_types": [
+      "input_json_delta"
+     ],
+     "stopped": true,
+     "json_pieces": [
+      "{",
+      "\"path\":",
+      "\"",
+      "hello",
+      ".txt",
+      "\"",
+      ",\"content\":",
+      "\"",
+      "Hello",
+      "!",
+      " ",
+      "\\ud83d\\udc4b",
+      "\"",
+      "}"
+     ],
+     "json_piece_count": 14,
+     "json": "{\"path\":\"hello.txt\",\"content\":\"Hello! \\ud83d\\udc4b\"}",
+     "json_parses": true,
+     "input": {
+      "path": "hello.txt",
+      "content": "Hello! 👋"
+     }
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.1688,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0087,
+     "message_start"
+    ],
+    [
+     0.1688,
+     "comment"
+    ],
+    [
+     0.2497,
+     "content_block_start"
+    ],
+    [
+     0.2498,
+     "content_block_delta"
+    ],
+    [
+     0.3853,
+     "content_block_delta"
+    ],
+    [
+     0.8293,
+     "content_block_stop"
+    ],
+    [
+     0.8293,
+     "message_delta"
+    ],
+    [
+     0.8293,
+     "message_stop"
+    ]
+   ],
+   "case": "forced_tool_any",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 0.829,
+   "waited_idle_s": 2.0,
+   "max_tokens": 128,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tool_choice",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "tool call complete",
+    "prompt_tokens": 340,
+    "generated": 36,
+    "max_tokens": 128,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     2
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     84
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_a69cb372830f4914920dd96a",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 38,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "end_turn",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 37,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 90
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 84,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "I don't have access to real-time data or weather APIs, so I cannot check the current weather in Paris for you.\n\nTo get the most accurate and up-to-date information, please check a reliable weather service such as:\n*   **Météo-France** (official French meteorological service)\n*   **AccuWeather**\n*   **The Weather Channel**\n*   A local news app or search engine"
+    }
+   ],
+   "comments": [
+    {
+     "t": 0.5314,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 0.6051,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0117,
+     "message_start"
+    ],
+    [
+     0.5314,
+     "comment"
+    ],
+    [
+     0.6051,
+     "comment"
+    ],
+    [
+     0.6265,
+     "content_block_start"
+    ],
+    [
+     0.6265,
+     "content_block_delta"
+    ],
+    [
+     3.038,
+     "content_block_stop"
+    ],
+    [
+     3.038,
+     "message_delta"
+    ],
+    [
+     3.0381,
+     "message_stop"
+    ]
+   ],
+   "case": "tool_choice_none",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 3.038,
+   "waited_idle_s": 2.0,
+   "max_tokens": 128,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking",
+    "tool_choice",
+    "tools"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 38,
+    "generated": 89,
+    "max_tokens": 128,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "order": [
+    [
+     "message_start",
+     1
+    ],
+    [
+     "comment",
+     6
+    ],
+    [
+     "start:text",
+     1
+    ],
+    [
+     "delta:text_delta[0]",
+     2
+    ],
+    [
+     "stop[0]",
+     1
+    ],
+    [
+     "message_delta",
+     1
+    ],
+    [
+     "message_stop",
+     1
+    ]
+   ],
+   "message_start": {
+    "type": "message_start",
+    "message": {
+     "id": "msg_1b2ea7d24fe1485981c3196a",
+     "type": "message",
+     "role": "assistant",
+     "model": "qwen3.8-flash-next-iq3_xxs",
+     "content": [],
+     "stop_reason": null,
+     "stop_sequence": null,
+     "usage": {
+      "input_tokens": 19932,
+      "output_tokens": 0
+     }
+    }
+   },
+   "message_delta": {
+    "type": "message_delta",
+    "delta": {
+     "stop_reason": "end_turn",
+     "stop_sequence": null
+    },
+    "usage": {
+     "input_tokens": 1,
+     "cache_creation_input_tokens": 19931,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 3
+    }
+   },
+   "blocks": [
+    {
+     "index": 0,
+     "start": {
+      "type": "text",
+      "text": ""
+     },
+     "deltas": 2,
+     "delta_types": [
+      "text_delta"
+     ],
+     "stopped": true,
+     "text": "cobalt"
+    }
+   ],
+   "comments": [
+    {
+     "t": 10.0664,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 10.4827,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 20.486,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 21.072,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 28.8542,
+     "text": ": keep-alive",
+     "after": "message_start"
+    },
+    {
+     "t": 29.3123,
+     "text": ": keep-alive",
+     "after": "message_start"
+    }
+   ],
+   "ping_events": 0,
+   "event_name_mismatches": [],
+   "ends_with_message_stop": true,
+   "timeline": [
+    [
+     0.0207,
+     "message_start"
+    ],
+    [
+     10.0664,
+     "comment"
+    ],
+    [
+     10.4827,
+     "comment"
+    ],
+    [
+     20.486,
+     "comment"
+    ],
+    [
+     21.072,
+     "comment"
+    ],
+    [
+     29.4237,
+     "content_block_stop"
+    ],
+    [
+     29.4238,
+     "message_delta"
+    ],
+    [
+     29.4238,
+     "message_stop"
+    ]
+   ],
+   "case": "long_prefill",
+   "rep": 0,
+   "status": 200,
+   "content_type": "text/event-stream",
+   "elapsed_s": 29.424,
+   "waited_idle_s": 2.0,
+   "max_tokens": 16,
+   "request_fields": [
+    "max_tokens",
+    "model",
+    "stream",
+    "system",
+    "thinking"
+   ],
+   "headers": {
+    "server": "BaseHTTP/0.6 Python/3.12.15",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+    "connection": "close"
+   },
+   "status_after": {
+    "busy": false,
+    "queued": 0,
+    "phase": "answering",
+    "prompt_tokens": 19932,
+    "generated": 2,
+    "max_tokens": 16,
+    "reasoning_recoveries": 0,
+    "thinking_budget": null
+   }
+  },
+  {
+   "case": "length_tool_args_nonstream",
+   "status": 200,
+   "content_type": "application/json",
+   "elapsed_s": 1.257,
+   "body": {
+    "id": "msg_b78cba1130cc49bfb29cb09d",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "content": [],
+    "stop_reason": "max_tokens",
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 40,
+     "cache_creation_input_tokens": 6,
+     "cache_read_input_tokens": 348
+    }
+   }
+  },
+  {
+   "case": "tool_off_nonstream",
+   "status": 200,
+   "content_type": "application/json",
+   "elapsed_s": 3.218,
+   "body": {
+    "id": "msg_b7d18630da364f1e9badfd48",
+    "type": "message",
+    "role": "assistant",
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "call_b80546beedf64909932328bd",
+      "name": "get_weather",
+      "input": {
+       "city": "Paris"
+      }
+     }
+    ],
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 1,
+     "output_tokens": 26,
+     "cache_creation_input_tokens": 344,
+     "cache_read_input_tokens": 0
+    }
+   }
+  }
+ ],
+ "finished": "2026-11-05T13:51:40Z"
+}

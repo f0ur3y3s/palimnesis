@@ -1,0 +1,1137 @@
+{
+ "base": "http://127.0.0.1:8080",
+ "build": "Strata 0.1.54",
+ "hit_slack": 16,
+ "started": "2026-11-05T13:46:18Z",
+ "identity": [
+  {
+   "name": "base",
+   "messages": {
+    "status": 200,
+    "prompt": 395,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 395,
+     "reused": 0,
+     "prompt_read": 395,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 395,
+    "cached": 390,
+    "metrics": {
+     "prompt_tokens": 395,
+     "reused": 390,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "system_blocks",
+   "messages": {
+    "status": 200,
+    "prompt": 400,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 400,
+     "reused": 0,
+     "prompt_read": 400,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 400,
+    "cached": 395,
+    "metrics": {
+     "prompt_tokens": 400,
+     "reused": 395,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "user_multi_text",
+   "messages": {
+    "status": 200,
+    "prompt": 399,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 399,
+     "reused": 0,
+     "prompt_read": 399,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 399,
+    "cached": 394,
+    "metrics": {
+     "prompt_tokens": 399,
+     "reused": 394,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "assistant_multi_text",
+   "messages": {
+    "status": 200,
+    "prompt": 422,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 422,
+     "reused": 0,
+     "prompt_read": 422,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 422,
+    "cached": 417,
+    "metrics": {
+     "prompt_tokens": 422,
+     "reused": 417,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "tool_result_text_blocks",
+   "messages": {
+    "status": 200,
+    "prompt": 706,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 706,
+     "reused": 0,
+     "prompt_read": 706,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 706,
+    "cached": 701,
+    "metrics": {
+     "prompt_tokens": 706,
+     "reused": 701,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "tool_result_is_error",
+   "messages": {
+    "status": 200,
+    "prompt": 706,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 706,
+     "reused": 0,
+     "prompt_read": 706,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 706,
+    "cached": 701,
+    "metrics": {
+     "prompt_tokens": 706,
+     "reused": 701,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "tool_result_then_text",
+   "messages": {
+    "status": 200,
+    "prompt": 714,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 714,
+     "reused": 0,
+     "prompt_read": 714,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 714,
+    "cached": 709,
+    "metrics": {
+     "prompt_tokens": 714,
+     "reused": 709,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "text_then_tool_result",
+   "messages": {
+    "status": 200,
+    "prompt": 713,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 713,
+     "reused": 0,
+     "prompt_read": 713,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 713,
+    "cached": 708,
+    "metrics": {
+     "prompt_tokens": 713,
+     "reused": 708,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {
+    "text_first": {
+     "status": 200,
+     "prompt": 713,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 713,
+      "reused": 0,
+      "prompt_read": 713,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": false
+    }
+   }
+  },
+  {
+   "name": "tool_use_unsorted_input",
+   "messages": {
+    "status": 200,
+    "prompt": 725,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 725,
+     "reused": 0,
+     "prompt_read": 725,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 725,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 725,
+     "reused": 0,
+     "prompt_read": 725,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": false,
+   "mapping_notes": [],
+   "alts": {
+    "insertion_order_args": {
+     "status": 200,
+     "prompt": 725,
+     "cached": 720,
+     "metrics": {
+      "prompt_tokens": 725,
+      "reused": 720,
+      "prompt_read": 5,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": true
+    }
+   }
+  },
+  {
+   "name": "tool_no_description",
+   "messages": {
+    "status": 200,
+    "prompt": 635,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 635,
+     "reused": 0,
+     "prompt_read": 635,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 631,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 631,
+     "reused": 0,
+     "prompt_read": 631,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": false,
+   "mapping_notes": [],
+   "alts": {
+    "description_empty": {
+     "status": 200,
+     "prompt": 635,
+     "cached": 630,
+     "metrics": {
+      "prompt_tokens": 635,
+      "reused": 630,
+      "prompt_read": 5,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": true
+    }
+   }
+  },
+  {
+   "name": "mid_system_with_top",
+   "messages": {
+    "status": 200,
+    "prompt": 430,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 430,
+     "reused": 0,
+     "prompt_read": 430,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 430,
+    "cached": 425,
+    "metrics": {
+     "prompt_tokens": 430,
+     "reused": 425,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {
+    "late_system_as_user": {
+     "status": 200,
+     "prompt": 430,
+     "cached": 425,
+     "metrics": {
+      "prompt_tokens": 430,
+      "reused": 425,
+      "prompt_read": 5,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": true
+    }
+   }
+  },
+  {
+   "name": "first_message_system",
+   "messages": {
+    "status": 200,
+    "prompt": 396,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 396,
+     "reused": 0,
+     "prompt_read": 396,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 396,
+    "cached": 391,
+    "metrics": {
+     "prompt_tokens": 396,
+     "reused": 391,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "cache_control",
+   "messages": {
+    "status": 200,
+    "prompt": 688,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 688,
+     "reused": 0,
+     "prompt_read": 688,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 688,
+    "cached": 683,
+    "metrics": {
+     "prompt_tokens": 688,
+     "reused": 683,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "thinking_signed",
+   "messages": {
+    "status": 200,
+    "prompt": 421,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 421,
+     "reused": 0,
+     "prompt_read": 421,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 421,
+    "cached": 416,
+    "metrics": {
+     "prompt_tokens": 421,
+     "reused": 416,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "redacted_thinking",
+   "messages": {
+    "status": 200,
+    "prompt": 415,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 415,
+     "reused": 0,
+     "prompt_read": 415,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 415,
+    "cached": 410,
+    "metrics": {
+     "prompt_tokens": 415,
+     "reused": 410,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [
+    "messages[1]: assistant redacted_thinking block dropped"
+   ],
+   "alts": {}
+  },
+  {
+   "name": "document_block",
+   "messages": {
+    "status": 200,
+    "prompt": 396,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 396,
+     "reused": 0,
+     "prompt_read": 396,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 396,
+    "cached": 391,
+    "metrics": {
+     "prompt_tokens": 396,
+     "reused": 391,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [
+    "messages[0]: user document block dropped"
+   ],
+   "alts": {}
+  },
+  {
+   "name": "billing_header_system",
+   "messages": {
+    "status": 200,
+    "prompt": 432,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 432,
+     "reused": 0,
+     "prompt_read": 432,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 435,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 435,
+     "reused": 0,
+     "prompt_read": 435,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": false,
+   "mapping_notes": [],
+   "alts": {
+    "pinned_stamp": {
+     "status": 200,
+     "prompt": 432,
+     "cached": 427,
+     "metrics": {
+      "prompt_tokens": 432,
+      "reused": 427,
+      "prompt_read": 5,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": true
+    }
+   }
+  },
+  {
+   "name": "budget_4096",
+   "messages": {
+    "status": 200,
+    "prompt": 362,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 362,
+     "reused": 0,
+     "prompt_read": 362,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 400,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 400,
+     "reused": 0,
+     "prompt_read": 400,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": false,
+   "mapping_notes": [
+    "thinking {'type': 'enabled', 'budget_tokens': 4096} not mapped"
+   ],
+   "alts": {
+    "as_effort_medium": {
+     "status": 200,
+     "prompt": 362,
+     "cached": 357,
+     "metrics": {
+      "prompt_tokens": 362,
+      "reused": 357,
+      "prompt_read": 5,
+      "finish": "length"
+     },
+     "error": null,
+     "hit": true
+    }
+   }
+  },
+  {
+   "name": "effort_max",
+   "messages": {
+    "status": 200,
+    "prompt": 397,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 397,
+     "reused": 0,
+     "prompt_read": 397,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 397,
+    "cached": 392,
+    "metrics": {
+     "prompt_tokens": 397,
+     "reused": 392,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  },
+  {
+   "name": "tool_choice_none",
+   "messages": {
+    "status": 200,
+    "prompt": 397,
+    "cached": 0,
+    "metrics": {
+     "prompt_tokens": 397,
+     "reused": 0,
+     "prompt_read": 397,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "chat_neutral": {
+    "status": 200,
+    "prompt": 397,
+    "cached": 392,
+    "metrics": {
+     "prompt_tokens": 397,
+     "reused": 392,
+     "prompt_read": 5,
+     "finish": "length"
+    },
+    "error": null
+   },
+   "neutral_hit": true,
+   "mapping_notes": [],
+   "alts": {}
+  }
+ ],
+ "extension": {
+  "scenarios": [
+   {
+    "name": "messages_to_chat_off",
+    "prime": "messages",
+    "extend": "chat",
+    "think": false,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1585,
+     "completion": 25,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1585,
+      "reused": 0,
+      "prompt_read": 1585,
+      "finish": "stop"
+     },
+     "stop_reason": "end_turn",
+     "finish_reason": null
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1630,
+     "completion": 3,
+     "cached": 1611,
+     "timings": {
+      "cache_n": 1611,
+      "prompt_n": 19,
+      "prompt_ms": 246.5,
+      "prompt_per_token_ms": 12.974,
+      "prompt_per_second": 77.1,
+      "predicted_n": 3,
+      "predicted_ms": 113.2,
+      "predicted_per_token_ms": 37.733,
+      "predicted_per_second": 26.5,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+     },
+     "metrics": {
+      "prompt_tokens": 1630,
+      "reused": 1611,
+      "prompt_read": 19,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1610,
+    "delta_cached_minus_prime_total": 1,
+    "assistant_blocks": [
+     "text"
+    ]
+   },
+   {
+    "name": "messages_to_chat_low",
+    "prime": "messages",
+    "extend": "chat",
+    "think": true,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1609,
+     "completion": 253,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1609,
+      "reused": 0,
+      "prompt_read": 1609,
+      "finish": "stop"
+     },
+     "stop_reason": "end_turn",
+     "finish_reason": null
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1880,
+     "completion": 8,
+     "cached": 1863,
+     "timings": {
+      "cache_n": 1863,
+      "prompt_n": 17,
+      "prompt_ms": 309.8,
+      "prompt_per_token_ms": 18.224,
+      "prompt_per_second": 54.9,
+      "predicted_n": 8,
+      "predicted_ms": 175.7,
+      "predicted_per_token_ms": 21.962,
+      "predicted_per_second": 45.5,
+      "draft_n": 5,
+      "draft_n_accepted": 5
+     },
+     "metrics": {
+      "prompt_tokens": 1880,
+      "reused": 1863,
+      "prompt_read": 17,
+      "finish": "length"
+     }
+    },
+    "prime_prompt_plus_completion": 1862,
+    "delta_cached_minus_prime_total": 1,
+    "assistant_blocks": [
+     "thinking",
+     "text"
+    ]
+   },
+   {
+    "name": "chat_to_messages_off",
+    "prime": "chat",
+    "extend": "messages",
+    "think": false,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1585,
+     "completion": 36,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1585,
+      "reused": 0,
+      "prompt_read": 1585,
+      "finish": "stop"
+     },
+     "stop_reason": null,
+     "finish_reason": "stop"
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1641,
+     "completion": 3,
+     "cached": 1622,
+     "timings": null,
+     "metrics": {
+      "prompt_tokens": 1641,
+      "reused": 1622,
+      "prompt_read": 19,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1621,
+    "delta_cached_minus_prime_total": 1,
+    "assistant_blocks": [
+     "text"
+    ]
+   },
+   {
+    "name": "chat_to_messages_low",
+    "prime": "chat",
+    "extend": "messages",
+    "think": true,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1609,
+     "completion": 154,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1609,
+      "reused": 0,
+      "prompt_read": 1609,
+      "finish": "stop"
+     },
+     "stop_reason": null,
+     "finish_reason": "stop"
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1781,
+     "completion": 8,
+     "cached": 1764,
+     "timings": null,
+     "metrics": {
+      "prompt_tokens": 1781,
+      "reused": 1764,
+      "prompt_read": 17,
+      "finish": "length"
+     }
+    },
+    "prime_prompt_plus_completion": 1763,
+    "delta_cached_minus_prime_total": 1,
+    "assistant_blocks": [
+     "thinking",
+     "text"
+    ]
+   },
+   {
+    "name": "messages_to_messages_off",
+    "prime": "messages",
+    "extend": "messages",
+    "think": false,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1585,
+     "completion": 27,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1585,
+      "reused": 0,
+      "prompt_read": 1585,
+      "finish": "stop"
+     },
+     "stop_reason": "end_turn",
+     "finish_reason": null
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1632,
+     "completion": 3,
+     "cached": 1612,
+     "timings": null,
+     "metrics": {
+      "prompt_tokens": 1632,
+      "reused": 1612,
+      "prompt_read": 20,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1612,
+    "delta_cached_minus_prime_total": 0,
+    "assistant_blocks": [
+     "text"
+    ]
+   },
+   {
+    "name": "chat_to_chat_off",
+    "prime": "chat",
+    "extend": "chat",
+    "think": false,
+    "prime_result": {
+     "status": 200,
+     "prompt": 1585,
+     "completion": 32,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1585,
+      "reused": 0,
+      "prompt_read": 1585,
+      "finish": "stop"
+     },
+     "stop_reason": null,
+     "finish_reason": "stop"
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1637,
+     "completion": 3,
+     "cached": 1617,
+     "timings": {
+      "cache_n": 1617,
+      "prompt_n": 20,
+      "prompt_ms": 282.1,
+      "prompt_per_token_ms": 14.105,
+      "prompt_per_second": 70.9,
+      "predicted_n": 3,
+      "predicted_ms": 112.5,
+      "predicted_per_token_ms": 37.5,
+      "predicted_per_second": 26.7,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+     },
+     "metrics": {
+      "prompt_tokens": 1637,
+      "reused": 1617,
+      "prompt_read": 20,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1617,
+    "delta_cached_minus_prime_total": 0,
+    "assistant_blocks": [
+     "text"
+    ]
+   }
+  ],
+  "tool_loop": [
+   {
+    "name": "tool_messages_to_chat_sorted",
+    "sort_args": true,
+    "tool_inputs": [
+     {
+      "path": "a.txt",
+      "content": "hi"
+     }
+    ],
+    "resent_arguments": [
+     "{\"content\":\"hi\",\"path\":\"a.txt\"}"
+    ],
+    "prime_result": {
+     "status": 200,
+     "prompt": 1876,
+     "completion": 39,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1876,
+      "reused": 0,
+      "prompt_read": 1876,
+      "finish": "stop"
+     },
+     "stop_reason": "tool_use"
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1933,
+     "completion": 8,
+     "cached": 1869,
+     "timings": {
+      "cache_n": 1869,
+      "prompt_n": 64,
+      "prompt_ms": 973.8,
+      "prompt_per_token_ms": 15.216,
+      "prompt_per_second": 65.7,
+      "predicted_n": 8,
+      "predicted_ms": 181.1,
+      "predicted_per_token_ms": 22.637,
+      "predicted_per_second": 44.2,
+      "draft_n": 6,
+      "draft_n_accepted": 5
+     },
+     "metrics": {
+      "prompt_tokens": 1933,
+      "reused": 1869,
+      "prompt_read": 64,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1915,
+    "delta_cached_minus_prime_total": -46
+   },
+   {
+    "name": "tool_messages_to_chat_insertion",
+    "sort_args": false,
+    "tool_inputs": [
+     {
+      "path": "a.txt",
+      "content": "hi"
+     }
+    ],
+    "resent_arguments": [
+     "{\"path\": \"a.txt\", \"content\": \"hi\"}"
+    ],
+    "prime_result": {
+     "status": 200,
+     "prompt": 1877,
+     "completion": 39,
+     "cached": 0,
+     "metrics": {
+      "prompt_tokens": 1877,
+      "reused": 0,
+      "prompt_read": 1877,
+      "finish": "stop"
+     },
+     "stop_reason": "tool_use"
+    },
+    "extend_result": {
+     "status": 200,
+     "prompt": 1934,
+     "completion": 8,
+     "cached": 1915,
+     "timings": {
+      "cache_n": 1915,
+      "prompt_n": 19,
+      "prompt_ms": 221.7,
+      "prompt_per_token_ms": 11.668,
+      "prompt_per_second": 85.7,
+      "predicted_n": 8,
+      "predicted_ms": 183.2,
+      "predicted_per_token_ms": 22.9,
+      "predicted_per_second": 43.7,
+      "draft_n": 6,
+      "draft_n_accepted": 5
+     },
+     "metrics": {
+      "prompt_tokens": 1934,
+      "reused": 1915,
+      "prompt_read": 19,
+      "finish": "stop"
+     }
+    },
+    "prime_prompt_plus_completion": 1916,
+    "delta_cached_minus_prime_total": -1
+   }
+  ],
+  "billing_header": [
+   {
+    "dialect": "messages",
+    "calls": [
+     {
+      "cch": "b145e",
+      "status": 200,
+      "prompt": 766,
+      "cached": 0,
+      "metrics": {
+       "prompt_tokens": 766,
+       "reused": 0,
+       "prompt_read": 766,
+       "finish": "length"
+      }
+     },
+     {
+      "cch": "0a1b2",
+      "status": 200,
+      "prompt": 766,
+      "cached": 759,
+      "metrics": {
+       "prompt_tokens": 766,
+       "reused": 759,
+       "prompt_read": 7,
+       "finish": "length"
+      }
+     }
+    ]
+   },
+   {
+    "dialect": "chat",
+    "calls": [
+     {
+      "cch": "b145e",
+      "status": 200,
+      "prompt": 769,
+      "cached": 0,
+      "metrics": {
+       "prompt_tokens": 769,
+       "reused": 0,
+       "prompt_read": 769,
+       "finish": "length"
+      }
+     },
+     {
+      "cch": "0a1b2",
+      "status": 200,
+      "prompt": 770,
+      "cached": 0,
+      "metrics": {
+       "prompt_tokens": 770,
+       "reused": 0,
+       "prompt_read": 770,
+       "finish": "length"
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "finished": "2026-11-05T13:49:55Z"
+}

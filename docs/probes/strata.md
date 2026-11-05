@@ -447,3 +447,216 @@ The probe runs P3's call 1 with the task "do exactly what the file asks", then c
   - The server sends a keep-alive comment at least every about 10 s, both while queued and during prefill.
   - Upstream queueing is invisible to clients, so Palimnesis's own single-dispatch FIFO should be the only queue, with `/status` used as a guard because other clients share the server.
   - A server death mid-stream closes the socket with no terminal event. Treat EOF without `[DONE]` or `message_stop` as an upstream failure.
+
+## 13. Anthropic Messages on 0.1.54 (Phase 4B, M1–M5)
+
+Probed 2026-11-05 between 13:35 and 13:52 UTC against `http://127.0.0.1:8080` on pythia (D76): `build_info` `Strata 0.1.54`, one slot, `n_ctx` 32768. Every request ran alone, gated on `/status` showing neither busy nor queued (D39), and every body is synthetic. Strata was not restarted or reconfigured. Scripts: `p21_messages_stream.py` to `p25_messages_beta_headers.py`; run them on pythia with `uv run python eval/probes/<script>.py`. Fixtures are in `eval/probes/fixtures/strata_messages/`. The 0.1.54 frontend source on pythia (`serve/frontend.py`, `serve/server.py`) was read to design the cases; a fact below is **[verified]** only when a capture shows it, and **[source]** marks what only the source says.
+
+### 13.1 Stream shapes (M1, `p21_messages_stream.py`) [verified]
+
+13 streamed cases and 2 non-streamed twins, one run each. Fixtures: `p21_messages_stream.json` and `p21_<case>_0.sse`.
+
+- **Framing.** Every frame is `event: <name>\ndata: <json>\n\n`, and the event name always equals `data.type` (0 mismatches). Headers are the same as §1: `text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`, `Connection: close`.
+- **Event order:** `message_start`, keep-alive comments, then per block `content_block_start`, its deltas and `content_block_stop`, then `message_delta` and `message_stop`. Blocks are never interleaved; indices count up from 0. Every stream, including all three length stops, ended with `message_stop`.
+- **`message_start` is sent on acceptance, before prefill.** It arrived at 0.009–0.022 s in every case, including the 19,932-token prefill whose first block came at 29 s.
+- **Usage.**
+  - `message_start` `usage` is `{input_tokens: <whole prompt>, output_tokens: 0}`, with no cache fields.
+  - `message_delta` `usage` is `{input_tokens: 1, cache_creation_input_tokens, cache_read_input_tokens, output_tokens}`. The three input fields sum to the whole prompt in every run (for example `tool_off`: 1 + 344 + 0 = 345; `length_thinking`: 1 + 4 + 55 = 60). **The `input_tokens: 1` of §5 still holds on 0.1.54.** The frontend keeps one token there because 0 made Claude Code count the prompt twice [source, #1013].
+  - `/v1/messages` responses carry no `timings` object (p24 extension calls).
+- **Blocks.**
+  - `thinking`: `content_block_start` carries `{"type":"thinking","thinking":"","signature":""}`, deltas are `thinking_delta`, and there is no `signature_delta`.
+  - `text`: `{"type":"text","text":""}`, then `text_delta`.
+  - `tool_use`: `{"type":"tool_use","id":"call_<24 hex>","name":...,"input":{}}`, then `input_json_delta`. **The id is `call_` plus 24 hex digits, not Anthropic's `toolu_` form.** Message ids are `msg_` plus 24 hex digits.
+  - Seen: thinking then text, thinking then tool_use, two parallel tool_use blocks, and text then two tool_use blocks (`parallel_off`).
+- **`input_json_delta` is token-sized, as on Chat (§12.1):** `{`, `"city":`, `"`, `Paris`, `"`, `}` (6 pieces; Oslo took 7: `Os`, `lo`). One emoji argument arrived as the JSON escape text `👋` inside `partial_json` (`forced_tool_any`); the joined JSON still parses.
+- **Stop reasons.** `end_turn`, `tool_use`, `stop_sequence` (with `stop_sequence: "7,"` in `message_delta`), and **`max_tokens` on a length stop**:
+  - in text (`length_text`, cap 12);
+  - in thinking (`length_thinking`, cap 24): the thinking block is closed with `content_block_stop`, and no text block follows;
+  - inside tool arguments (`length_tool_args`, cap 40): the `tool_use` block is closed with `content_block_stop` after 20–21 pieces whose concatenation does not parse (`{"path":"poem.txt","content":"The River's Long Memory\n\nA river is a sentence written`). Nothing marks the cut.
+  - **Non-streaming drops that cut-off call**: `content: []`, `stop_reason: "max_tokens"` (`length_tool_args_nonstream`).
+- **Forced `tool_choice`.** `{"type":"tool","name":...}` and `{"type":"any"}` each produced a `tool_use` block even for "Say hello.", with `stop_reason: "tool_use"`.
+  - For the named form, `content_block_start` and the first `{` delta came at 0.014 s, before the keep-alives and the prefill: the server writes the call's opening itself [source: `forced_call`].
+  - `{"type":"none"}` gave a text answer to a weather question with tools present.
+- **Keep-alives are SSE comments, `: keep-alive\n\n`. No `ping` event was sent in any of the 13 streams.**
+  - Short prompts: 1 or 2 comments between `message_start` and the first block, none between deltas.
+  - The 19,932-token cold prefill (`long_prefill`): 6 comments, at 10.1, 10.5, 20.5, 21.1, 28.9 and 29.3 s. That is the 10 s cadence plus one per prefill chunk, as in §6.
+  - For the forced named call, the 2 comments came after the first `input_json_delta`, inside the open block.
+- **EOF on engine death: not probed [unverified].** Observing it needs stopping the engine, and restarting Strata needs the user's approval.
+  - When the engine dies mid-stream, the 0.1.54 source writes `event: error` with `{"type":"error","error":{"type":"api_error","message":"...; the next request restarts it"}}` [source].
+  - For an expired queue wait it writes `rate_limit_error` with `code: queue_wait_timeout` [source].
+  - On 0.1.48 a dying server process closed the stream with no event (§0, §6).
+
+### 13.2 Rendering parity (M2, `p22_messages_render_parity.py`; `p24_cross_dialect_cache.py` part A) [verified]
+
+Each case was measured four ways:
+- **ct:** `count_tokens` on the Messages body;
+- **mr:** the prompt of `/v1/messages` with `max_tokens: 1`, the sum of the three input fields;
+- **local:** the repo counter's count of the neutral Chat body;
+- **cr:** `usage.prompt_tokens` of that Chat body on `/v1/chat/completions`.
+
+The neutral mapping is `neutral()` in `p22`, written from core position 3 of the Phase 4B plan; the script docstring lists its choices. Fixture: `p22_messages_render_parity.json` (57 cases, with bodies, counts and errors).
+
+Counts cannot see order, so part A of `p24` also tests token identity:
+1. A fresh nonce and about 300 tokens of filler open the first user message.
+2. The Messages body is sent, then its neutral Chat body.
+3. The Chat call reuses the first prompt up to its generation start (prompt − 5 here) only if both routes produced the same tokens. Otherwise reuse is 0.
+
+Fixture: `p24_cross_dialect_cache.json` (`identity`, 20 cases).
+
+**Cases where the neutral Chat body is token-identical to the Messages route** (ct = mr = local = cr, and a cache hit):
+
+| Case | ct | Identity (cached / prompt) |
+| --- | --- | --- |
+| `base` (system string + user) | 59 | 390 / 395 |
+| multi-block `system`, joined with `""` | 63 (= the joined string; `\n` would be 64) | 395 / 400 |
+| several text blocks in one user message, joined with `""` | 62 (= the joined string; `\n` 64) | 394 / 399 |
+| several text blocks in one assistant message, joined with `""` | 84 (`\n` 86) | 417 / 422 |
+| `tool_result` with a text-block array, joined with `""` | 367 (= the string form; `\n` 368) | 701 / 706 |
+| `tool_result` with `is_error: true` | 367 (= without it) | 701 / 706 |
+| `tool_result` then text in one user message | 375 | 709 / 714 |
+| text then `tool_result` in one user message | 375 | 708 / 713; the text-first Chat order gets 0 |
+| `cache_control` on system, tools, text, `tool_use` and `tool_result` | 351 (= without it) | 683 / 688 |
+| `thinking` with a signature, with `""`, or with none | 84 each | 416 / 421 |
+| `redacted_thinking` | 77 (= no thinking block) | 410 / 415 |
+| `document` block | 59 (= without it) | 391 / 396 |
+| `role: system` as the first message, no top-level `system` | 59 (= top-level `system`) | 391 / 396 |
+| mid-conversation `role: system` (string or blocks) | 91 (= the same text as a `user` message) | 425 / 430; the local counter errors (below) |
+| `output_config.effort: "max"` | 59 (= `high` = `xhigh` = default) | 392 / 397; the local counter errors (below) |
+| `tool_choice: {"type":"none"}` | mr 59 (tools not rendered); **ct 305** | 392 / 397 |
+
+- **The Messages route always puts a user message's `tool_result`s first, then its text, whatever the block order.** This matches core position 3.
+- **A mid-conversation `system` message is rendered, not refused.**
+  - Both routes turn a `system` message after the first position into a `user` message, in place: ct 91 equals the as-user control, and mr 91 = cr 91.
+  - Without a top-level `system` the count is 86, which matches the as-user mapping.
+  - The frontend comment names Claude Code's hook context as the reason [source: `_late_system_to_user`].
+- **`count_tokens` does not apply `tool_choice: none`.** It counts the tool schemas (305), while the request renders none (mr 59, cr 59). The `/v1/messages` handler drops the tools for `none`; `_count_tokens` does not [source].
+
+**Cases where the neutral body as written in `p22` diverges, and the change that restores identity:**
+
+| Case | Messages route | Neutral Chat | Fix that matched (identity) |
+| --- | --- | --- | --- |
+| `tool_use` input sent as canonical sorted JSON | 385 (insertion order) | 385, but **cache 0 / 725** | arguments in the input's own key order: 720 / 725 |
+| tool without `description` | 297: the route renders `"description": ""` | 293 (key absent) | `description: ""` when absent: 630 / 635 |
+| `system` starting with `x-anthropic-billing-header: ...cch=b145e;` | 94: `cch` and the 4th `cc_version` part pinned to `f`s | 97 (raw) | pinning the stamp the same way: 427 / 432 |
+| `thinking: {"type":"enabled","budget_tokens":N}` | 1024 → 47 (= `low`), 4096 → 21 (= `medium`), 16000 → 59 (= `xhigh`) | 59 (not mapped) | `reasoning_effort` from the budget (under 2048 low, under 8192 medium, else xhigh): 357 / 362 |
+
+- **Key order.** The Messages route renders `input` in the order the client sent it, and the Chat route parses `arguments` keeping the string's order. Sorted keys give the same count but different tokens when the input is not already sorted (`render_equals_neutral: false` locally).
+- **`budget_tokens`** also becomes a real reasoning budget: `reasoning_budget_tokens`, which closes thinking after N tokens [source; behaviour not probed].
+
+**The repo's local counter (c4) fails on two shapes the 0.1.54 Chat route accepts:**
+- a mid-conversation `system` message: `RenderError: System message must be at the beginning`. The counter does not apply Strata's late-system-to-user step.
+- `reasoning_effort: "max"`: `RenderError: Unexpected reasoning effort max`. Strata maps `max` and `maximum` to `xhigh` before the template.
+
+**Field classification on `/v1/messages` (0.1.54).** "Not rendered" means the prompt count equals the case without the field. Sampling fields still act on sampling.
+
+| Field | Class | Evidence (ct / mr against the reference) |
+| --- | --- | --- |
+| `system` (string or text blocks) | rendered, blocks joined `""` | 63 = 63 |
+| user / assistant text blocks | rendered, joined `""` | 62, 84 |
+| `tool_result` (string or text blocks) | rendered as `tool`, joined `""`, before the message's text | 367, 375 |
+| `tool_result.is_error` | not rendered | 367 = 367 |
+| `cache_control` (anywhere) | not rendered | 351 = 351 |
+| `thinking` block | rendered as reasoning | 84 against 77 |
+| `thinking.signature` (present, `""`, absent) | not rendered | 84 = 84 = 84 |
+| `redacted_thinking` block | dropped, no error | 77 = 77 |
+| `document` block (any unknown block type) | dropped, no error | 59 = 59 |
+| `role: system`, first position | rendered as system | 59 = 59 |
+| `role: system`, later | rendered as `user`, in place | 91 = 91 |
+| unknown role (`bot`) | 400 `Unexpected message role.` | ct, mr and cr all 400 |
+| `thinking.type: disabled` | rendered (closed think block, no effort line) | 23 against 59 |
+| `thinking.type: adaptive` | not rendered (default effort) | 59 = 59 |
+| `thinking.type: enabled`, no budget | not rendered (default effort) | 59 = 59 |
+| `thinking.budget_tokens` | rendered as an effort level | 47 / 21 / 59 |
+| `output_config.effort` `low` / `medium` | rendered | 47 / 21 |
+| `output_config.effort` `high` / `xhigh` / `max` | rendered as the default `xhigh` | 59 |
+| `output_config.effort` unknown (`bogus`) | 400 `unknown reasoning effort 'bogus': use none, low, medium or high` | ct, mr, cr 400 |
+| `disabled` plus `effort: low` | `disabled` wins | 23 = 23 |
+| `tool_choice` `auto`, `any`, `tool`, `disable_parallel_tool_use` | not rendered (the forced forms change the output, §13.1) | 305 = 305 |
+| `tool_choice: none` | tools not rendered on `/v1/messages`; **still counted by `count_tokens`** | mr 59, ct 305 |
+| `top_k`, `temperature`, `top_p` | not rendered; `top_k: "5"` (a string) also accepted | 59 = 59 |
+| `stop_sequences` (list) | not rendered | 59 = 59 |
+| `stop_sequences` (string) | 400 `stop_sequences must be a list of strings`; Chat's `stop: "END"` is valid | ct, mr 400 |
+| `metadata` | not rendered | 59 = 59 |
+| unknown top-level field | ignored | 59 = 59 |
+| `tools[].description` absent | rendered as `""` | 297 against 293 |
+| `tools[].cache_control` | not rendered | 351 = 351 |
+
+### 13.3 Errors (M3, `p23_messages_errors.py`) [verified unless marked]
+
+Fixture: `p23_messages_errors.json`. Every error is `application/json` with `Connection: close`. **The body is `{"error":{"type":"invalid_request_error","message":...}}`, not Anthropic's `{"type":"error","error":{...}}`**, unchanged from §8.
+
+| Case | Status | Message / note |
+| --- | --- | --- |
+| Malformed JSON (`/v1/messages` and `count_tokens`) | 400 | `Expecting value: line 1 column 29 (char 28)` |
+| Body not an object | 400 | `send a JSON object` |
+| `{}`; `messages: []`; one message without `content` | 400 | `No messages provided.` |
+| `messages: "hi"` | 400 | `messages must be a list of objects (a string was sent that is not JSON)` |
+| Unknown role, stream or not | 400 | `Unexpected message role.` A streaming request gets plain JSON, not SSE |
+| OpenAI-wrapped tools | 400 | `tools[0] has no name: each tool must be {"name": ..., "input_schema": {...}}` |
+| Prompt over context (35,480 tokens, ctx 32,768), stream or not | 400 in 0.02–0.03 s | `request exceeds the context window: prompt (35480 tokens) leaves no room to answer in the context (32768); requests are never truncated`; plain JSON for the stream too |
+| `count_tokens` on that body | 200 | `{"input_tokens": 35480}`: no context check |
+| Prompt 19,944 + `max_tokens` 16,000 > ctx, with or without `fit_max_tokens: false` | 200 | not refused; the answer was 2 tokens, so a clamp would not show |
+| `POST /v1/messages/batches`; `GET /v1/messages` | 404 | `{"error":{"message":"not found"}}` (no `type`) |
+| Engine down | — | **not probed [unverified]**; 0.1.48 gave 503 `server_error` (§8). For mid-stream errors see §13.1 |
+
+The 0.1.54 source also returns two codes not observed here [source]:
+- 429 `rate_limit_error` (`code: admission_full`, `Retry-After: 1`) when its admission limit is full;
+- 503 `server_draining`.
+
+### 13.4 Cross-dialect cache reuse (M4, `p24_cross_dialect_cache.py` part B) [verified]
+
+Each scenario primes a conversation of about 1,600 tokens (fresh nonce) through one route. It then sends the conversation, extended by the reply and one user turn, through the other route. Fixture: `p24_cross_dialect_cache.json` (`extension`).
+
+| Prime → extend | Thinking | Prime prompt + completion | Extend prompt | Cached | δ |
+| --- | --- | --- | --- | --- | --- |
+| Messages → Chat | off | 1585 + 25 | 1630 | 1611 | +1 |
+| Messages → Chat | low | 1609 + 253 | 1880 | 1863 | +1 |
+| Chat → Messages | off | 1585 + 36 | 1641 | 1622 | +1 |
+| Chat → Messages | low | 1609 + 154 | 1781 | 1764 | +1 |
+| Messages → Messages (control) | off | 1585 + 27 | 1632 | 1612 | 0 |
+| Chat → Chat (control) | off | 1585 + 32 | 1637 | 1617 | 0 |
+
+δ = cached − (prime prompt + completion).
+
+- **A conversation primed through one dialect and extended through the other reuses the whole generated turn**, as within one dialect (§12.3). δ is +1 against 0 for the controls.
+  - `/metrics` agrees: `reused` equals cached, with 17–19 tokens read.
+  - Thinking blocks resent as `reasoning_content`, and the reverse, keep the reuse.
+- **Tool loop, Messages → Chat.** The model's call was `{"path": "a.txt", "content": "hi"}`.
+  - Resent with sorted keys (`{"content":"hi","path":"a.txt"}`): cached 1,869, which is the prime prompt − 7. Only the generation-start checkpoint was reused. The 39-token generated turn was read again: δ −46, 64 tokens read.
+  - Resent in the model's key order: cached 1,915, δ −1.
+- **Claude Code's billing stamp.** Two requests differ only in `cch=`:
+  - on `/v1/messages`: 766 / 0, then 766 / 759. The stamp is pinned, so the second request reuses everything.
+  - on Chat: 769 / 0, then 770 / 0. The system prompt changed at its start, so nothing is reused.
+
+### 13.5 `?beta=true` and Anthropic headers (M5, `p25_messages_beta_headers.py`) [verified]
+
+Fixtures: `p25_messages_beta_headers.json` and `p25_beta_headers_stream.sse`.
+
+- **Every variant returned 200 with the same prompt (24 tokens)**, non-streaming, streaming and on `count_tokens`. The variants:
+  - the `?beta=true` query;
+  - `anthropic-version: 2023-06-01`;
+  - `anthropic-beta` with Claude Code's betas, or with an unknown beta name;
+  - `x-api-key` and `Authorization: Bearer` with dummy values (this server runs without an API key);
+  - the `/v1/v1/messages` and `/v1/v1/messages/count_tokens` aliases.
+- The query string is stripped before routing [source: `_post`]. `anthropic-version` and `anthropic-beta` appear only in the CORS allow-list, so the beta headers have no effect on the prompt [source].
+- Responses carry no Anthropic headers: no `request-id` and no rate-limit headers. They have only `Server`, `Content-Type`, `Content-Length` or the SSE headers, and `Connection: close`.
+
+### 13.6 What this changes for Phase 4B
+
+- **Core position 2 (one upstream dialect) is supported.**
+  - Messages and Chat give the same tokens and reuse each other's cache when the neutral mapping matches the Messages route.
+  - The `input_tokens: 1` note still holds.
+  - The Messages route does four things Chat does not. The adapter must reproduce them to keep parity with the direct-Messages arm and to keep Claude Code's prefix stable:
+    - pin the billing stamp;
+    - render `description: ""` for tools without a description;
+    - map `budget_tokens` to an effort level;
+    - map `max` to `xhigh`.
+- **Core position 3.**
+  - **"Canonical JSON" for `tool_use.input` must keep the input's key order, not sort the keys.** Sorting changes the rendered tokens and loses the generated-turn reuse after every tool call. The content hash can still use sorted keys; only the resent Chat arguments must keep the order.
+  - The rest of the mapping matches Strata: the block split (`tool_result`s first, then text), the `""` joins, and dropping `cache_control`, `is_error`, `signature`, `redacted_thinking` and unknown blocks.
+- **Keep-alives.** Strata's Messages stream sends comments, never `ping`. A proxy that emits `event: ping` (core position 6) is therefore not copying upstream behaviour. Whether Claude Code needs `ping` is still HC5.
+- **O-4B-12 (mid-conversation system messages).**
+  - Strata 0.1.54 neither refuses nor merges them: it renders them as `user` messages in place, on both routes.
+  - The repo counter (c4) refuses that shape, and refuses `effort: "max"`. It needs a late-system-to-user step and the effort aliases before such requests can be counted locally.
+- **`count_tokens` is not exact for `tool_choice: none`**: it includes the tool schemas.
+- **Cut-off tool calls.** A length stop inside tool arguments streams a closed `tool_use` block with unparseable JSON and `stop_reason: "max_tokens"`. The non-streaming route drops that block instead. The Messages emitter must choose which behaviour to copy.
