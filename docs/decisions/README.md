@@ -97,3 +97,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D79 | Phase 3 acceptance review fixes to the shipped configuration (R42) | [phase3-acceptance.md](phase3-acceptance.md) |
 | D80 | Source layout: subpackages by subsystem | [phase4b.md](phase4b.md) |
 | D81 | Phase 4B scope decisions (user, 2026-11-05) | [phase4b.md](phase4b.md) |
+| D82 | Phase 4B decisions settled by the S0 probes (user, 2026-11-05) | [phase4b.md](phase4b.md) |

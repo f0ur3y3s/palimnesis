@@ -70,3 +70,46 @@ Still open, pending probe evidence:
 - O-4B-9: Pi's `developer` and `store` defaults;
 - O-4B-12: mid-conversation system messages;
 - O-4B-13: Claude Code's fit at 32K.
+
+## D82 — Phase 4B decisions settled by the S0 probes (user, 2026-11-05)
+
+The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs/probes/claude_code.md`. They gave the evidence for the six decisions D81 left open. The user took each recommendation, except O-4B-13.
+
+1. **O-4B-2 Thinking signatures: `""`.**
+   - Palimnesis streams thinking blocks to Messages clients with an empty signature, as Strata does.
+   - Claude Code 2.1.318 replays `""` as thinking, also after a restart (HC4).
+   - Pi 1.5.0 demotes it to text unless `compat.allowEmptySignature: true` (HP3), so the Pi adapter config ships that setting.
+   - Rejected: an opaque proxy signature, a new mechanism and key that no advertised client needs.
+2. **O-4B-5 A failed partial left out of the resend is accepted.**
+   - Pi drops a failed partial from every later request, even with its retries off, on both protocols (HP4).
+   - D13.1 is extended: a partial whose attempt ended with the proxy's own in-stream error may be omitted from the resend. It stays archived, marked superseded. This is a protocol-level rule, not keyed to Pi.
+   - Rejected: keeping the 409, which leaves a Pi session unusable after one upstream failure.
+3. **O-4B-8 Side calls: nothing to build.** Claude Code made no title, quota, summary or memory calls under the candidate env, interactively or in `-p` (HC2). `--side-model` is not built.
+4. **O-4B-9 Pi's Chat defaults: adapter flags.**
+   - `supportsDeveloperRole: false` and `supportsStore: false` exist and work (HP3), so the Pi adapter sets them.
+   - Two forms have no switch, so the Chat subset accepts them:
+     - user content as an array of text parts;
+     - `content: null` on tool-call-only assistant turns.
+5. **O-4B-12 Mid-conversation system entries: rendered as Strata renders them.**
+   - Strata renders a later `role: system` message as a user message in place, on both routes (M2). Palimnesis maps it the same way and keeps the client's history as sent.
+   - The local counter must be fixed for that shape, and for `reasoning_effort: "max"`, which it now refuses (M2, c4).
+   - Rejected: a 400. Claude Code folds the entry into the previous user message and keeps the fold (HC3), which would change what the model sees.
+6. **O-4B-13 Claude Code runs at 64K.**
+   - Claude Code's fixed input is 18,812 tokens interactively (26 tools) and 16,024 in `-p` (HC3). At 32K the floor allows 18,176.
+   - Claude Code work therefore runs against Strata restarted at 64K on pythia; the user approved that restart for Claude Code work. Results are reported per context, as R26 was.
+   - Rejected for now: denying 17 tools to fit 32K (fixed input 3,784), which changes the harness from its shipped form.
+
+**Corrections the probes make to the plan** (`docs/plan/phases/phase4b.md`):
+- **Tool-call arguments keep their key order.** Sorting the keys changes the tokens and loses cache reuse (M2/M4), so "canonical JSON" in position 3 means the client's own serialization.
+- **The adapter copies four Messages-route behaviours:**
+  - the billing-header stamp handling;
+  - `description: ""` for a tool without one;
+  - `budget_tokens` mapped to an effort level;
+  - effort `max` mapped to `xhigh`.
+- **Keepalives, errors and the envelope.**
+  - Strata sends only comment keepalives and never Anthropic's error envelope (M1, M3). Palimnesis produces `ping` and the envelope for Messages clients.
+  - Claude Code accepts comments or `ping` as keepalives, including a `ping` before `message_start` (HC5). Pi's idle timer resets on either (HP4).
+- **Claude Code's own limits.**
+  - Claude Code checks its context against reported usage, so `CLAUDE_CODE_MAX_CONTEXT_TOKENS` must be 1,000,000 (HC6).
+  - Claude Code never calls `count_tokens` (HC1), so O-4B-10's relay is a correctness fallback only.
+- **Cache breakpoints.** Claude Code's moving `cache_control` turns a text-block list into a plain string on the next request. The adapter treats the two as equal content (HC3).
