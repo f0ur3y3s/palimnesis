@@ -119,9 +119,9 @@ Errors come back in the client's own error format, with `x-should-retry: false` 
 
 ## Project status
 
-Version 0.1.0, under active development. The plan is [`docs/v1_plan.md`](docs/v1_plan.md), amended by [`docs/amendments/`](docs/amendments/). Each phase's measured results are in [`docs/results.md`](docs/results.md), and its design decisions in [`docs/decisions.md`](docs/decisions.md). What the proxy guarantees is stated in [`docs/contracts.md`](docs/contracts.md).
+Version 0.1.0, under active development. The plan is [`docs/v1_plan.md`](docs/v1_plan.md), amended by [`docs/amendments/`](docs/amendments/). Each phase's measured results are in [`docs/results.md`](docs/results.md), and its design decisions in [`docs/decisions.md`](docs/decisions.md). What the proxy guarantees is stated in [`docs/contracts.md`](docs/contracts.md). Labels such as `a4-d77`, `ho3` or `r2` are explained in [`docs/glossary.md`](docs/glossary.md).
 
-**Known limits.** In Phase 3's held-out evaluation at a 32K context, Palimnesis answered 120 of 120 recall questions exactly. On long coding tasks it succeeded on 3 of 5, against 5 of 5 for OpenCode's own compaction (R25). The limits behind that, and every other known limit, are listed in [`docs/capabilities.md`](docs/capabilities.md#known-limits-of-phase-3).
+**Known limits.** In the held-out evaluation that accepted Phase 3 (R41, 32K context), the shipped configuration answered 115 of 120 recall questions exactly and succeeded on 5 of 5 long coding tasks, against 4 of 5 for OpenCode's own compaction. Phase 3's first configuration had succeeded on 3 of 5 (R25). That is one attempt per task, one model and one harness; every known limit is listed in [`docs/capabilities.md`](docs/capabilities.md#known-limits-of-phase-3).
 
 **Development tools** are in [`eval/`](eval/):
 - `eval/replay.py CAPTURE_DIR --target URL` replays captures against Strata or the proxy.
