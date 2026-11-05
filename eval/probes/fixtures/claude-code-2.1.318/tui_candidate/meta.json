@@ -1,0 +1,46 @@
+{
+  "run": "tui_candidate",
+  "env": "candidate",
+  "marks": [
+    {
+      "wall": 1793886673.1071339,
+      "label": "started"
+    },
+    {
+      "wall": 1793886673.1071339,
+      "label": "send 'Reply with the single word OK.'"
+    },
+    {
+      "wall": 1793886681.6080418,
+      "label": "send 'List the files. @@tool Bash {\"command\": \"echo probe-bash-ok\", \"description\": \"echo\"} @@tool Read {\"file_path\": \"C:/ccprobe/tui_candidate/work/hello.txt\"}'"
+    },
+    {
+      "wall": 1793886692.1086078,
+      "label": "idle start"
+    },
+    {
+      "wall": 1793886712.1090899,
+      "label": "idle end"
+    },
+    {
+      "wall": 1793886712.1090899,
+      "label": "send '/clear'"
+    },
+    {
+      "wall": 1793886717.6099713,
+      "label": "send 'After clear. Reply with the single word OK.'"
+    },
+    {
+      "wall": 1793886726.1109133,
+      "label": "send '/exit'"
+    },
+    {
+      "wall": 1793886732.611881,
+      "label": "exit sent"
+    }
+  ],
+  "sentinel_hits": [
+    "{\"wall\": 1793886666.2107022, \"request_line\": \"CONNECT downloads.claude.ai:443 HTTP/1.1\"}",
+    "{\"wall\": 1793886666.6329737, \"request_line\": \"CONNECT github.com:443 HTTP/1.1\"}"
+  ]
+}

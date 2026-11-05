@@ -1,0 +1,54 @@
+{"t": 0.0, "wall": 1793886589.597, "event": "listening", "scenario": "start_pings_660", "port": 15998, "description": "message_start, ping every 15 s for 660 s, then answer; then OK.", "opts": {"scenario": "start_pings_660", "host": "127.0.0.1", "port": 0, "raw_dir": null, "hello_status": 404, "count_tokens": 404, "models": 404, "sig": "none", "think": false, "reject_system_role": false, "system_role_wording": "messages.{i}: Unexpected role \"system\". The input message role must be one of \"user\" or \"assistant\"", "reject_empty_signature": false, "usage_input": "100", "list": false}}
+{"t": 0.531, "wall": 1793886590.132, "event": "connect", "conn": 1}
+{"t": 0.547, "wall": 1793886590.147, "event": "request", "seq": 1, "conn": 1, "kind": "messages", "main": true, "stream": true, "attempt": 1, "method": "POST", "path": "/s/probe-wd_default_start_pings_660/v1/messages", "query": "beta=true", "headers": [["Accept", "application/json"], ["Content-Type", "application/json"], ["User-Agent", "claude-cli/2.1.318 (external, sdk-cli)"], ["X-Claude-Code-Session-Id", "b1c6e7e0-9106-473e-b2f5-c31dfe4bfaa8"], ["X-Stainless-Arch", "x64"], ["X-Stainless-Lang", "js"], ["X-Stainless-OS", "Windows"], ["X-Stainless-Package-Version", "0.128.0"], ["X-Stainless-Retry-Count", "0"], ["X-Stainless-Runtime", "node"], ["X-Stainless-Runtime-Version", "v26.12.1"], ["X-Stainless-Timeout", "600"], ["anthropic-beta", "claude-code-20250219,interleaved-thinking-2025-05-14,effort-2025-11-24"], ["anthropic-dangerous-direct-browser-access", "true"], ["anthropic-version", "2023-06-01"], ["x-api-key", "<redacted len=34>"], ["x-app", "cli"], ["Connection", "keep-alive"], ["Host", "127.0.0.1:15998"], ["Accept-Encoding", "gzip, deflate, br, zstd"], ["Content-Length", "73088"]], "body_bytes": 73088, "body": {"model": "qwen3.8-27b", "messages": [{"role": "user", "content": [{"type": "text", "text": "<system-reminder>\nAttribution for git commits and pull requests you create from here on (this replaces Claude Code's own earlier attribution guidance, such as a previous copy of this reminder; the user's own instructions about these lines, such as a CLAUDE.md or memory rule, take precedence over this reminder, but do not add attribution lines this reminder leaves out):\n- End git commit messages with:\nCo-Authored-By: Claude Code <noreply@anthropic.com>\n- End pull request descriptions with:\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n</system-reminder>\n"}, {"type": "text", "text": "Reply with the single word OK.", "cache_control": {"type": "ephemeral"}}]}, {"role": "system", "content": {"_elided": true, "sha256_16": "e367decb38f30b20", "bytes": 8588}}], "system": {"_elided": true, "sha256_16": "827bca0e93b9961b", "bytes": 3646, "first_seq": null}, "tools": {"_elided": true, "sha256_16": "9c4f64b576867fb5", "bytes": 60388, "first_seq": null}, "metadata": {"user_id": "{\"device_id\": \"<redacted>\", \"account_uuid\": \"\", \"session_id\": \"b1c6e7e0-9106-473e-b2f5-c31dfe4bfaa8\"}"}, "max_tokens": 32000, "thinking": {"type": "adaptive"}, "output_config": {"effort": "high"}, "stream": true}, "scenario": "start_pings_660", "step": "stream end=eof headers={} header_delay=0.0 steps=[('start',), ('pings', 15.0, 660.0), ('content',), ('finish',)]"}
+{"t": 0.547, "wall": 1793886590.147, "event": "headers_sent", "seq": 1, "attempt": 1}
+{"t": 0.547, "wall": 1793886590.147, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["start"], "since_headers": 0.0}
+{"t": 15.547, "wall": 1793886605.148, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 15.0}
+{"t": 30.547, "wall": 1793886620.149, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 30.0}
+{"t": 45.562, "wall": 1793886635.163, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 45.0}
+{"t": 60.578, "wall": 1793886650.179, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 60.0}
+{"t": 75.578, "wall": 1793886665.179, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 75.0}
+{"t": 90.594, "wall": 1793886680.194, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 90.0}
+{"t": 105.594, "wall": 1793886695.196, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 105.0}
+{"t": 120.609, "wall": 1793886710.211, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 120.0}
+{"t": 135.609, "wall": 1793886725.212, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 135.0}
+{"t": 150.625, "wall": 1793886740.227, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 150.0}
+{"t": 165.625, "wall": 1793886755.228, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 165.0}
+{"t": 180.64, "wall": 1793886770.243, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 180.0}
+{"t": 195.656, "wall": 1793886785.257, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 195.0}
+{"t": 210.656, "wall": 1793886800.258, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 210.0}
+{"t": 225.672, "wall": 1793886815.274, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 225.0}
+{"t": 240.687, "wall": 1793886830.289, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 240.0}
+{"t": 255.703, "wall": 1793886845.305, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 255.0}
+{"t": 270.703, "wall": 1793886860.305, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 270.0}
+{"t": 285.719, "wall": 1793886875.32, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 285.0}
+{"t": 300.734, "wall": 1793886890.336, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 300.0}
+{"t": 315.734, "wall": 1793886905.338, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 315.0}
+{"t": 330.734, "wall": 1793886920.338, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 330.0}
+{"t": 345.75, "wall": 1793886935.353, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 345.0}
+{"t": 360.75, "wall": 1793886950.354, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 360.0}
+{"t": 375.765, "wall": 1793886965.369, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 375.0}
+{"t": 390.765, "wall": 1793886980.369, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 390.0}
+{"t": 405.781, "wall": 1793886995.384, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 405.0}
+{"t": 420.781, "wall": 1793887010.385, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 420.0}
+{"t": 435.797, "wall": 1793887025.4, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 435.0}
+{"t": 450.812, "wall": 1793887040.416, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 450.0}
+{"t": 465.828, "wall": 1793887055.421, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 465.0}
+{"t": 480.828, "wall": 1793887070.432, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 480.0}
+{"t": 495.828, "wall": 1793887085.433, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 495.0}
+{"t": 510.828, "wall": 1793887100.434, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 510.0}
+{"t": 525.844, "wall": 1793887115.448, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 525.0}
+{"t": 540.859, "wall": 1793887130.463, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 540.0}
+{"t": 555.859, "wall": 1793887145.465, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 555.0}
+{"t": 570.875, "wall": 1793887160.479, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 570.0}
+{"t": 585.875, "wall": 1793887175.48, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 585.0}
+{"t": 600.875, "wall": 1793887190.481, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 600.0}
+{"t": 615.875, "wall": 1793887205.481, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 615.0}
+{"t": 630.89, "wall": 1793887220.496, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 630.0}
+{"t": 645.89, "wall": 1793887235.497, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 645.0}
+{"t": 660.906, "wall": 1793887250.511, "event": "ping_sent", "seq": 1, "attempt": 1, "elapsed": 660.0}
+{"t": 660.906, "wall": 1793887250.511, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["pings", 15.0, 660.0], "since_headers": 660.359}
+{"t": 660.906, "wall": 1793887250.511, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["content"], "since_headers": 660.359}
+{"t": 660.906, "wall": 1793887250.511, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["finish"], "since_headers": 660.359}
+{"t": 660.906, "wall": 1793887250.511, "event": "stream_end", "seq": 1, "attempt": 1, "end": "eof"}
+{"t": 660.953, "wall": 1793887250.554, "event": "disconnect", "conn": 1}

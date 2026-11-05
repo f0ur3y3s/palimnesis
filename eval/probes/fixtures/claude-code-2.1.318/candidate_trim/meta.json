@@ -1,0 +1,59 @@
+{
+  "run": "candidate_trim",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [],
+  "env_overrides": {
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK": "1",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "32768",
+    "DISABLE_AUTO_COMPACT": "1",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "0",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0",
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"
+  },
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "List the files. @@tool Bash {\"command\": \"echo probe-bash-ok\", \"description\": \"echo\"} @@tool Read {\"file_path\": \"C:/ccprobe/candidate_trim/work/hello.txt\"}",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--allowedTools",
+        "Bash(echo:*)",
+        "Read",
+        "--disallowedTools",
+        "Agent",
+        "ListAgents",
+        "SendMessage",
+        "Workflow",
+        "Monitor",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "ScheduleWakeup",
+        "EnterWorktree",
+        "ExitWorktree",
+        "ReportFindings",
+        "NotebookEdit",
+        "TaskStop",
+        "WebFetch",
+        "WebSearch",
+        "Skill"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 1.11,
+      "session_id": "5ddef278-6259-4ef5-8c2e-af3031969396"
+    }
+  ],
+  "sentinel_hits": []
+}

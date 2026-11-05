@@ -1,0 +1,39 @@
+{
+  "run": "f_s409_noretry",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "s409_noretry",
+  "server_args": [],
+  "env_overrides": {
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK": "1",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "32768",
+    "DISABLE_AUTO_COMPACT": "1",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "0",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0",
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false",
+    "CLAUDE_CODE_MAX_RETRIES": "3"
+  },
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b"
+      ],
+      "exit": 1,
+      "killed": false,
+      "seconds": 0.55,
+      "session_id": "141e0b6d-77ad-4593-93e4-5627d898e774"
+    }
+  ],
+  "sentinel_hits": []
+}

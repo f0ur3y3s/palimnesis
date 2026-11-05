@@ -1,0 +1,35 @@
+{
+  "run": "default_ok_hello200_ct200_models",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [
+    "--hello-status",
+    "200",
+    "--count-tokens",
+    "200",
+    "--models",
+    "200"
+  ],
+  "env_overrides": {
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
+  },
+  "sentinel": false,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.48,
+      "session_id": "44c22dcc-8d66-49b8-92b9-592567011a37"
+    }
+  ],
+  "sentinel_hits": []
+}

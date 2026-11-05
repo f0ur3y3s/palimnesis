@@ -1,0 +1,30 @@
+{
+  "run": "default_stdin_idle",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [],
+  "env_overrides": {},
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--input-format",
+        "stream-json",
+        "--allowedTools",
+        "Bash(echo:*)",
+        "Read"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 200.05,
+      "session_id": "2a076871-d763-4556-9dfd-61d780c1ac99"
+    }
+  ],
+  "sentinel_hits": []
+}

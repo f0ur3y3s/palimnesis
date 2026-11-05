@@ -1,0 +1,29 @@
+{
+  "run": "default_tool",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [],
+  "env_overrides": {},
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "List the files. @@tool Bash {\"command\": \"echo probe-bash-ok\", \"description\": \"echo\"} @@tool Read {\"file_path\": \"C:/ccprobe/default_tool/work/hello.txt\"}",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--allowedTools",
+        "Bash(echo:*)",
+        "Read"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 1.16,
+      "session_id": "7a9ea5a3-5888-461a-b498-068ac5080c43"
+    }
+  ],
+  "sentinel_hits": []
+}

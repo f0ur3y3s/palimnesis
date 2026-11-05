@@ -1,0 +1,32 @@
+{"t": 0.0, "wall": 1793886126.339, "event": "listening", "scenario": "comments_330", "port": 22745, "description": "headers only, comments every 15 s for 330 s, then answer; then OK.", "opts": {"scenario": "comments_330", "host": "127.0.0.1", "port": 0, "raw_dir": null, "hello_status": 404, "count_tokens": 404, "models": 404, "sig": "none", "think": false, "reject_system_role": false, "system_role_wording": "messages.{i}: Unexpected role \"system\". The input message role must be one of \"user\" or \"assistant\"", "reject_empty_signature": false, "list": false}}
+{"t": 0.781, "wall": 1793886127.126, "event": "connect", "conn": 1}
+{"t": 0.781, "wall": 1793886127.127, "event": "request", "seq": 1, "conn": 1, "kind": "messages", "main": true, "stream": true, "attempt": 1, "method": "POST", "path": "/s/probe-wd_default_comments_330/v1/messages", "query": "beta=true", "headers": [["Accept", "application/json"], ["Content-Type", "application/json"], ["User-Agent", "claude-cli/2.1.318 (external, sdk-cli)"], ["X-Claude-Code-Session-Id", "6977ee45-d652-4999-9061-0c8c3672e88d"], ["X-Stainless-Arch", "x64"], ["X-Stainless-Lang", "js"], ["X-Stainless-OS", "Windows"], ["X-Stainless-Package-Version", "0.128.0"], ["X-Stainless-Retry-Count", "0"], ["X-Stainless-Runtime", "node"], ["X-Stainless-Runtime-Version", "v26.12.1"], ["X-Stainless-Timeout", "600"], ["anthropic-beta", "claude-code-20250219,interleaved-thinking-2025-05-14,effort-2025-11-24"], ["anthropic-dangerous-direct-browser-access", "true"], ["anthropic-version", "2023-06-01"], ["x-api-key", "<redacted len=34>"], ["x-app", "cli"], ["Connection", "keep-alive"], ["Host", "127.0.0.1:22745"], ["Accept-Encoding", "gzip, deflate, br, zstd"], ["Content-Length", "73085"]], "body_bytes": 73085, "body": {"model": "qwen3.8-27b", "messages": [{"role": "user", "content": [{"type": "text", "text": "<system-reminder>\nAttribution for git commits and pull requests you create from here on (this replaces Claude Code's own earlier attribution guidance, such as a previous copy of this reminder; the user's own instructions about these lines, such as a CLAUDE.md or memory rule, take precedence over this reminder, but do not add attribution lines this reminder leaves out):\n- End git commit messages with:\nCo-Authored-By: Claude Code <noreply@anthropic.com>\n- End pull request descriptions with:\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n</system-reminder>\n"}, {"type": "text", "text": "Reply with the single word OK.", "cache_control": {"type": "ephemeral"}}]}, {"role": "system", "content": {"_elided": true, "sha256_16": "957712feb51d79c2", "bytes": 8585}}], "system": {"_elided": true, "sha256_16": "827bca0e93b9961b", "bytes": 3646, "first_seq": null}, "tools": {"_elided": true, "sha256_16": "9c4f64b576867fb5", "bytes": 60388, "first_seq": null}, "metadata": {"user_id": "{\"device_id\": \"<redacted>\", \"account_uuid\": \"\", \"session_id\": \"6977ee45-d652-4999-9061-0c8c3672e88d\"}"}, "max_tokens": 32000, "thinking": {"type": "adaptive"}, "output_config": {"effort": "high"}, "stream": true}, "scenario": "comments_330", "step": "stream end=eof headers={} header_delay=0.0 steps=[('comments', 15.0, 330.0, ' keep-alive'), ('start',), ('content',), ('finish',)]"}
+{"t": 0.781, "wall": 1793886127.128, "event": "headers_sent", "seq": 1, "attempt": 1}
+{"t": 15.797, "wall": 1793886142.144, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 15.0}
+{"t": 30.812, "wall": 1793886157.159, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 30.0}
+{"t": 45.812, "wall": 1793886172.159, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 45.0}
+{"t": 60.812, "wall": 1793886187.16, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 60.0}
+{"t": 75.812, "wall": 1793886202.16, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 75.0}
+{"t": 90.828, "wall": 1793886217.175, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 90.0}
+{"t": 105.844, "wall": 1793886232.191, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 105.0}
+{"t": 120.844, "wall": 1793886247.192, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 120.0}
+{"t": 135.859, "wall": 1793886262.207, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 135.0}
+{"t": 150.875, "wall": 1793886277.223, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 150.0}
+{"t": 165.875, "wall": 1793886292.225, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 165.0}
+{"t": 180.89, "wall": 1793886307.238, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 180.0}
+{"t": 195.906, "wall": 1793886322.254, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 195.0}
+{"t": 210.922, "wall": 1793886337.269, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 210.0}
+{"t": 225.922, "wall": 1793886352.27, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 225.0}
+{"t": 240.922, "wall": 1793886367.271, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 240.0}
+{"t": 255.937, "wall": 1793886382.286, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 255.0}
+{"t": 270.953, "wall": 1793886397.302, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 270.0}
+{"t": 285.969, "wall": 1793886412.317, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 285.0}
+{"t": 300.969, "wall": 1793886427.319, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 300.0}
+{"t": 315.984, "wall": 1793886442.334, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 315.0}
+{"t": 331.0, "wall": 1793886457.35, "event": "comment_sent", "seq": 1, "attempt": 1, "elapsed": 330.0}
+{"t": 331.0, "wall": 1793886457.35, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["comments", 15.0, 330.0, " keep-alive"], "since_headers": 330.219}
+{"t": 331.0, "wall": 1793886457.35, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["start"], "since_headers": 330.219}
+{"t": 331.0, "wall": 1793886457.35, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["content"], "since_headers": 330.219}
+{"t": 331.0, "wall": 1793886457.35, "event": "step_sent", "seq": 1, "attempt": 1, "step": ["finish"], "since_headers": 330.219}
+{"t": 331.0, "wall": 1793886457.35, "event": "stream_end", "seq": 1, "attempt": 1, "end": "eof"}
+{"t": 331.062, "wall": 1793886457.403, "event": "disconnect", "conn": 1}

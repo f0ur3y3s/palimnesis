@@ -1,0 +1,57 @@
+{
+  "run": "blk1m_u30000",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [
+    "--usage-input",
+    "30000"
+  ],
+  "env_overrides": {
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK": "1",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1000000",
+    "DISABLE_AUTO_COMPACT": "1",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "0",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0",
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"
+  },
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.52,
+      "session_id": "760a60e0-3c4f-42a0-a1ed-dedffad8222c"
+    },
+    {
+      "cmd": [
+        "-p",
+        "Turn 2. Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--continue"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.46,
+      "session_id": "760a60e0-3c4f-42a0-a1ed-dedffad8222c"
+    }
+  ],
+  "sentinel_hits": []
+}

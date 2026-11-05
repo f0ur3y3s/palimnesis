@@ -1,0 +1,26 @@
+{
+  "run": "default_ok",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [],
+  "env_overrides": {},
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.52,
+      "session_id": "5f018b59-fb85-4b39-92f4-def20b0cd627"
+    }
+  ],
+  "sentinel_hits": []
+}

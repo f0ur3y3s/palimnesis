@@ -1,0 +1,58 @@
+{
+  "run": "import_history_sysrole_reject",
+  "claude_version": "2.1.318 (Claude Code)",
+  "scenario": "ok",
+  "server_args": [
+    "--reject-system-role"
+  ],
+  "env_overrides": {
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK": "1",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "32768",
+    "DISABLE_AUTO_COMPACT": "1",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "0",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0",
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"
+  },
+  "sentinel": true,
+  "invocations": [
+    {
+      "cmd": [
+        "-p",
+        "Imported continue. Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--resume",
+        "6694beb4-58bb-4981-8400-8016e423e814"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.53,
+      "session_id": "6694beb4-58bb-4981-8400-8016e423e814"
+    },
+    {
+      "cmd": [
+        "-p",
+        "Next. Reply with the single word OK.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "qwen3.8-27b",
+        "--continue"
+      ],
+      "exit": 0,
+      "killed": false,
+      "seconds": 0.48,
+      "session_id": "6694beb4-58bb-4981-8400-8016e423e814"
+    }
+  ],
+  "sentinel_hits": []
+}
