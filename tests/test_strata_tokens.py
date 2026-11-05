@@ -365,3 +365,31 @@ def test_text_is_not_nfc_normalized_before_counting(case):
     rec = NFC["cases"][case]
 
     assert tokens.count_messages(rec["messages"]) == rec["prompt_tokens"]
+
+
+# --- D86 (c5): shapes Strata 0.1.54 accepts that c4 refused (docs/probes/strata.md §13.2) ---
+
+def test_a_late_system_message_counts_as_the_same_text_as_a_user_message():
+    counter = tokens.default()
+    late = [{"role": "system", "content": "S"}, {"role": "user", "content": "q"},
+            {"role": "system", "content": "env: linux"}, {"role": "assistant", "content": "a"},
+            {"role": "user", "content": "q2"}]
+    as_user = [dict(m, role="user") if i == 2 else m for i, m in enumerate(late)]
+    no_top = late[1:]
+
+    assert counter.count_messages(late) == counter.count_messages(as_user)
+    assert counter.render(late) == counter.render(as_user)
+    assert counter.count_messages(no_top) == counter.count_messages(
+        [m if i == 0 or m["role"] != "system" else dict(m, role="user") for i, m in enumerate(no_top)])
+    layout = counter.layout(late)
+    assert [s.kind for s in layout.segments if s.kind != "unmapped"]  # still cut into turns
+    assert sum(s.end - s.start for s in layout.segments) == counter.count_messages(late)
+
+
+@pytest.mark.parametrize("word, same_as", [("max", "xhigh"), ("maximum", "xhigh"),
+                                           ("high", "xhigh"), ("off", "none"), ("minimal", "none")])
+def test_effort_words_render_as_strata_maps_them(word, same_as):
+    counter = tokens.default()
+    msgs = [{"role": "user", "content": "q"}]
+
+    assert counter.render(msgs, effort=word) == counter.render(msgs, effort=same_as)

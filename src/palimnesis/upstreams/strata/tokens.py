@@ -16,7 +16,13 @@ preprocessing of OpenAI-shaped input:
   renders nothing, reasoning included (R21-B, ``eval/probes/p12_strata_normalization.py``);
 - reasoning travels as ``reasoning_content``; ``preserve_thinking`` is never passed
   (Strata ignores it, so every earlier turn keeps its reasoning);
-- effort ``none`` means ``enable_thinking=False``;
+- effort ``none`` means ``enable_thinking=False``; the other effort words map as
+  Strata's ``EFFORT`` table maps them (0.1.54 frontend): ``high``, ``max`` and
+  ``maximum`` render as ``xhigh``, and ``off``, ``minimal``, ``disabled`` and ``false``
+  as ``none`` (D86);
+- a ``system`` message after the first position renders as a ``user`` message in
+  place, as both of Strata 0.1.54's routes render it (``_late_system_to_user``;
+  ``docs/probes/strata.md`` §13.2, D86);
 - an added-token string written inside a message (any field but ``role``; dict keys
   excepted) or a tool definition is text, not that token (the 0.1.49 frontend's
   ``mark_think_literals``: #537, #554, #2026 and the control tokens). Marking happens
@@ -61,7 +67,12 @@ from palimnesis.upstreams.profile import Layout, Segment, empty_assistant
 from palimnesis.upstreams.strata import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
-COUNTER_REVISION = "c4"  # c2: literal tags as text (D46); c3: no NFC (D47); c4: tool_choice "none" (D50)
+COUNTER_REVISION = "c5"  # c2: literal tags as text (D46); c3: no NFC (D47); c4: tool_choice "none" (D50);
+# c5: late system messages as user, effort words as Strata maps them (D86)
+# Strata 0.1.54's EFFORT table (Qwen family): client effort words -> template effort.
+STRATA_EFFORT = {"none": "none", "off": "none", "minimal": "none", "disabled": "none", "false": "none",
+                 "low": "low", "medium": "medium", "high": "xhigh", "xhigh": "xhigh", "max": "xhigh",
+                 "maximum": "xhigh"}
 DEFAULT_CACHE_SIZE = 65536
 IDS_CACHE_SIZE = 8192  # fragments whose token ids are memoized (cache accounting)
 
@@ -260,6 +271,13 @@ def _parsed_calls(message: Mapping[str, Any]) -> Mapping[str, Any]:
     return message
 
 
+def late_system_to_user(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    """Strata's ``_late_system_to_user``: a system message after the first position is a
+    user message, in place (the template takes a system message only at the start)."""
+    return [{**m, "role": "user"} if m.get("role") == "system" and i > 0 else m
+            for i, m in enumerate(messages)]
+
+
 def preprocess_messages(messages: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     drop = dropped_turns(messages)
     return [_parsed_calls(m) for i, m in enumerate(messages) if i not in drop]
@@ -362,6 +380,7 @@ class Tokens:
         add_generation_prompt: bool = True,
     ) -> tuple[str, bool]:
         """The render with tags written inside messages still marked, and whether any were."""
+        messages = late_system_to_user(messages)
         drop = dropped_turns(messages)
         marked, bare, changed = mark_literals([_parsed_calls(m) for m in messages],
                                               [bare_tool(t) for t in tools] if tools else None,
@@ -371,6 +390,8 @@ class Tokens:
             "tools": bare,
             "add_generation_prompt": add_generation_prompt,
         }
+        if isinstance(effort, str):
+            effort = STRATA_EFFORT.get(effort.strip().lower(), effort)
         if effort == "none":
             enable_thinking = False
         elif effort is not None:
@@ -467,8 +488,8 @@ class Tokens:
                 at += n
             if pieces and at < len(whole):
                 pieces[-1] += whole[at:]
-        units = _turn_units(messages, tools, text.startswith("<|im_start|>system"),
-                            add_generation_prompt)
+        units = _turn_units(late_system_to_user(messages), tools,
+                            text.startswith("<|im_start|>system"), add_generation_prompt)
         ids: list[int] = []
         segments: list[Segment] = []
         if sum(n for _, _, n in units) == len(fragments):

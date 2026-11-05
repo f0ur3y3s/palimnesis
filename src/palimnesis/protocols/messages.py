@@ -20,8 +20,10 @@ Chat body gives the same tokens and reuses the same cache (``docs/probes/strata.
   blocks the content, and its ``tool_use`` blocks ``tool_calls`` whose arguments are
   the input serialized in the client's own key order (sorting the keys changes the
   tokens, M2/M4). With no text, the content is null.
-- A ``system`` message after the first position renders as a ``user`` message in
-  place (O-4B-12); a first-position one stays a system message.
+- A ``system`` message stays a system message wherever it is. Strata's Chat route
+  renders one after the first position as a ``user`` message in place, as its Messages
+  route does (O-4B-12), and the pinned counter does the same (D86). Kept as ``system``,
+  it is fixed input and never a user instruction.
 - ``cache_control``, ``signature``, ``is_error``, ``metadata`` and
   ``eager_input_streaming`` have no upstream effect and are left out of the neutral
   form, so a moving cache breakpoint never changes a message's content hash, and a
@@ -232,10 +234,9 @@ def _neutral_messages(obj: dict[str, Any]) -> list[dict[str, Any]]:
                  "content must be a string or an array of content blocks")
         _require(content != [], f"{path}.content", "content must not be empty")
         if role == "system":
-            # Strata renders a system message after the first position as a user message,
-            # in place (M2, O-4B-12).
-            role = "system" if not out and i == 0 else "user"
-            out.append({"role": role, "content": _text_blocks(content, f"{path}.content")})
+            # Rendered as a user message in place when not first, upstream and by the
+            # counter alike (M2, O-4B-12, D86).
+            out.append({"role": "system", "content": _text_blocks(content, f"{path}.content")})
         elif isinstance(content, str):
             out.append({"role": role, "content": content})
         elif role == "assistant":

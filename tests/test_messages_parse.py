@@ -203,7 +203,9 @@ def test_tool_use_input_round_trips_exact_json():
     assert block.text == args and (block.tool_call_id, block.name) == ("c", "w")
 
 
-def test_late_system_renders_as_user_in_place_and_a_first_one_stays_system():
+def test_a_system_message_stays_system_wherever_it_is():
+    """D86: Strata renders a late one as user; the neutral form keeps the role, so the
+    core treats it as fixed context, never as a user instruction."""
     late = neutral(body([{"role": "user", "content": "q"},
                          {"role": "system", "content": [{"type": "text", "text": "env"}]},
                          {"role": "user", "content": "q2"}], system="top"))
@@ -211,10 +213,10 @@ def test_late_system_renders_as_user_in_place_and_a_first_one_stays_system():
     both = neutral(body([{"role": "system", "content": "s"}, {"role": "user", "content": "q"}],
                         system="top"))
 
-    assert [m["role"] for m in late["messages"]] == ["system", "user", "user", "user"]
-    assert late["messages"][2] == {"role": "user", "content": "env"}
+    assert [m["role"] for m in late["messages"]] == ["system", "user", "system", "user"]
+    assert late["messages"][2] == {"role": "system", "content": "env"}
     assert [m["role"] for m in first["messages"]] == ["system", "user"]
-    assert [m["role"] for m in both["messages"]] == ["system", "user", "user"]
+    assert [m["role"] for m in both["messages"]] == ["system", "system", "user"]
 
 
 def test_settings_map_to_the_chat_route():

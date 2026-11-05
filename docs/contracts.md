@@ -273,8 +273,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 | User text blocks | One `user` message, joined with `""`, after the message's tool results |
 | `tool_result` (string or text blocks, `is_error`) | A `tool` message per result, in order; text blocks joined with `""`; `is_error` not rendered |
 | Assistant `thinking` / `text` / `tool_use` | `reasoning_content` / `content` (null when no text) / `tool_calls`; arguments are the input as compact JSON in the client's key order |
-| `role: system` in the first position, no top-level `system` | `system` |
-| `role: system` anywhere else | `user`, in place (O-4B-12) |
+| `role: system`, anywhere | `system`, in place. Strata's Chat route renders one after the first position as `user`, as its Messages route does (O-4B-12), and the counter does the same (D86). It is fixed input and never a user instruction. |
 | `tools[]` (`name`, `description`, `input_schema`) | Function tools; a missing `description` is `""` |
 | `tool_choice` `auto` / `none` | `"auto"` / `"none"` |
 | `thinking.type: disabled` | `reasoning_effort: "none"` (wins over an effort) |

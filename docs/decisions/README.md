@@ -101,3 +101,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D83 | Client-protocol seam (S1); Strata stays at one slot | [phase4b.md](phase4b.md) |
 | D84 | Messages subset and neutral mapping (S2) | [phase4b.md](phase4b.md) |
 | D85 | Messages emitter (S3) | [phase4b.md](phase4b.md) |
+| D86 | Late system messages stay `system`; counter c5 | [phase4b.md](phase4b.md) |

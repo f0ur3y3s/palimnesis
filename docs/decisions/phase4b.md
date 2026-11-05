@@ -138,7 +138,7 @@ The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs
 4. **Accepted with no effect:** `thinking.display` (Pi sends `summarized`), `eager_input_streaming` (Pi), `metadata.user_id` (Claude Code), `cache_control` with type `ephemeral` and an optional `ttl`, and `signature`.
 5. **`is_error` is not in the neutral form.** Strata does not render it, so a resend that flips it is not a divergence. The raw body keeps it.
 6. **Rejected where Strata would drop silently:** `redacted_thinking`, `document`, images and unknown block types. Strata leaves them out of the prompt. Accepting them would make the archive hold content the model never saw.
-7. **Late `system` becomes `user`.** It is rendered as Strata renders it, but the core would then take it for a user instruction. S7's instruction rule must leave such a message out; until then, Messages archive mode is not offered (S4 lands after S7's rule or with it).
+7. **Late `system`: superseded by D86.** The first draft mapped it to `user`, which the core would then take for a user instruction.
 8. **Tool-call arguments are compact JSON in the client's key order.** Strata parses arguments into an object before rendering, so spacing does not reach the tokens; key order does (M2). The generated turn's archived arguments are the upstream's own string, so S4 must reconcile a resent `tool_use` input against it by JSON value in order, not by bytes.
 
 ## D85: The Messages emitter (Phase 4B S3)
@@ -150,3 +150,17 @@ The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs
 3. **One error event.** An upstream error chunk becomes `event: error` with the upstream's message verbatim (plan §2.3: Claude Code matches on wording). The relay's own error after it is suppressed, so a client never sees two.
 4. **Lone surrogates** in generated text are sent as `\u` escapes, so the client always gets strict UTF-8, as Chat clients get Strata's own escapes.
 5. **Comments pass through** and the proxy's keepalive is `event: ping`. HC5 and HP4 show Claude Code and Pi accept both, also before `message_start`.
+
+## D86: Late system messages stay `system`; counter c5
+
+Supersedes D84 item 7, and settles the counter fix D82 asked for.
+
+- **The neutral form keeps `role: system` wherever the client put it.** Strata 0.1.54 renders a system message after the first position as a `user` message in place, on its Chat route as on its Messages route (M2: mr 91 = cr 91). So the upstream sees exactly what the Messages route would show, with no mapping in the adapter.
+- **The core then treats it correctly with no new rule.**
+  - A system message is never a user instruction (`turns.is_instruction`), so Claude Code's environment entry at index 1 starts no turn and hosts no excerpt.
+  - It is fixed input, never masked (`view.builder`), like the leading system prompt. Claude Code's entry is about 2,000 tokens (HC3: +1,971 in `-p`), counted in F before acceptance.
+  - Chat clients that send a late system message get the same treatment.
+- **The pinned counter now copies two Strata steps the c4 counter refused** (`COUNTER_REVISION` c5):
+  - `late_system_to_user` before the template, in rendering, counting and turn layout;
+  - the `EFFORT` table: `high`, `max` and `maximum` render as `xhigh`; `off`, `minimal`, `disabled` and `false` as `none`.
+- **Evidence.** The M2 parity corpus counts exactly with late system messages kept as `system` (`test_parity_corpus_counts_equal_recorded_count_tokens`), and two counter tests pin the equivalences. Cache accounting records the counter revision per call, so calls counted by c4 and c5 compare as a counter change, not an unexplained one.
