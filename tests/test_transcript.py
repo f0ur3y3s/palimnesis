@@ -508,3 +508,32 @@ def test_a_length_stopped_turn_the_client_resent_may_not_be_deleted_later():
                      {"role": "user", "content": "more"})
 
     assert isinstance(reconcile(deleted, archive), Divergence)
+
+
+def test_a_turn_that_renders_nothing_may_be_left_out():
+    """Live finding (S14 Pi needles, D97): Pi drops an assistant reply whose text is empty
+    or whitespace from its resend. A reply with no text and no tool calls renders nothing
+    upstream (Strata drops it, #843, D41), so leaving it out changes nothing the model sees."""
+    reasoning_only = Archived.generated("occ-r", text="", reasoning="The user wants an ack.",
+                                        tool_calls=(), complete=True)
+    archive = _archive(SYS, U1, reasoning_only, U2, generated(text="answer"))
+    resend = client(SYS, U1, U2, {"role": "assistant", "content": "answer"},
+                    {"role": "user", "content": "more"})
+
+    result = reconcile(resend, archive)
+
+    assert isinstance(result, Extend) and result.matched == 4
+    assert result.superseded == ("occ-r",)
+
+
+def test_whitespace_only_text_resent_as_null_still_matches():
+    """Pi resends whitespace-only text as ``content: null`` (pi.md, HP3)."""
+    call = {"id": "c1", "name": "read", "arguments": "{}"}
+    spaced = Archived.generated("occ-w", text="\n\n", reasoning="", tool_calls=(call,),
+                                complete=True)
+    archive = _archive(SYS, U1, spaced)
+    resend = client(SYS, U1, {"role": "assistant", "content": None, "tool_calls": [
+        {"id": "c1", "type": "function", "function": {"name": "read", "arguments": "{}"}}]},
+        {"role": "tool", "tool_call_id": "c1", "content": "x"})
+
+    assert isinstance(reconcile(resend, archive), Extend)

@@ -280,3 +280,19 @@ Two read-only reviews covered `phase-3..HEAD`: the protocol reviewer against con
 - **Registered** as `heldout4` in `eval/needle.py` (held-out protections apply) and `eval/report.py`. The Pi needle driver refuses held-out sets. Phase 7 sets the protocol before any run, as D77 did for `ho3`.
 - **Harnesses:** OpenCode and Pi. Claude Code is backlogged (D92).
 
+## D97: Pi's empty replies; the first Pi needle run stopped (S14)
+
+The first live development needle run through Pi (Chat, `a4-d77`) stopped at dev-h1 Q4. There were two findings.
+
+1. **Pi drops an assistant reply with empty or whitespace text from its resend.** pi.md (HP3) records that Pi drops whitespace-only text and reasoning when it resends.
+   - dev-h1's P2 got a reasoning-only reply, so Pi's next request left the whole message out. The archive held it as a complete generated turn, and the proxy answered 409 `history_divergence`, ending the history.
+   - **Rule:** a generated reply with no text (or whitespace only) and no tool calls may be left out of a resend anywhere. It is superseded. Strata renders such a turn as nothing (#843, D41), so what the model sees does not change.
+   - A reply whose whitespace-only text comes back as `content: null` beside its tool calls still matches.
+   - OpenCode resends these turns and is unaffected. (`test_a_turn_that_renders_nothing_may_be_left_out`, `test_whitespace_only_text_resent_as_null_still_matches`)
+2. **Answers cut after a token or two: the model, not Palimnesis.** dev-h1 Q2 and Q3 answered `fix/ledger-rounding-` and `9` with `finish_reason: stop` after 14 tokens, while the reasoning held the whole value.
+   - Replaying the exact upstream body directly to Strata reproduced it: every effort level cut the answer, and so did user content flattened to strings.
+   - The same body with the earlier cut answer corrected in history answered `9282` both times.
+   - So once one answer in a conversation is cut, the model repeats the pattern in context.
+   - The needle results record it as a model behaviour on Pi's sessions. It is not a proxy defect, and arm 4 is the only needle arm, so no comparison depends on it.
+3. **The Pi coding-task driver** (`eval/tasks/run.py --harness pi`, `eval/tasks/pi_task.py`). Arm 4 is the shipped adapter through `serve` (`a4-d77`). Arm 1 is `--passthrough` with Pi's compaction on and `contextWindow` set to the true capacity. Real Pi ran dev-t1 on both arms and dev-t4 on Messages against the fake upstream; the hidden checks passed, and arm 1's compaction was recorded.
+

@@ -54,6 +54,17 @@ stub's own check result is recorded beside it.
 (client requests and responses, the OpenCode export, transcript files), records
 reachable from the workspace tree, and per call the upstream time (flagged over 600 s).
 Every turn also records the proxy's own statuses (front tap).
+
+**Pi** (``--harness pi [--protocol chat|messages]``, Phase 4B S14, ``pi_task.py``): Pi 1.5.0
+in place of OpenCode, development tasks only, arm 4 as ``a4-d77`` (the adapter's
+``contextWindow`` 1,000,000, ``compaction.enabled: false``) and arm 1 (``--passthrough``,
+``compaction.enabled: true``, ``contextWindow`` at ``--expect-n-ctx``). Each turn is one
+``pi --mode json`` run on the task's one Pi session; the restart turn also restarts the
+proxy. Records as above with ``harness: "pi"``; Pi's session file stands in for the export
+and Pi's compaction events are the compaction calls. ``--upstream fake`` checks the
+plumbing against ``tests/fake_upstream.py`` with a scripted model.
+
+    uv run python eval/tasks/run.py --harness pi --task dev-t1 --arm 4 --out RUN-pi ...
 """
 
 from __future__ import annotations
@@ -613,8 +624,268 @@ def run(a) -> int:
     return status
 
 
+def run_pi(a) -> int:
+    """``--harness pi``: one task under arm 4 or arm 1 through real Pi (``pi_task``)."""
+    import contextlib
+
+    import pi_task
+
+    task = load(a.task)
+    problems = pi_task.refusals(task.SET, a.arm, a.config, a.protocol, a.upstream)
+    if a.pi_keep_recent_tokens is not None and a.arm != 1:
+        problems.append("--pi-keep-recent-tokens applies to arm 1 (Pi's own compaction)")
+    info = fields = None
+    if not problems:
+        info = pi_task.resolve_arm(a.arm)
+        try:
+            fields = pi_task.arm_fields(info, a.expect_n_ctx, a.input_budget, a.pi_keep_recent_tokens)
+        except ValueError as e:
+            problems.append(str(e))
+    if problems:
+        for why in problems:
+            print(f"refused: {why}", file=sys.stderr)
+        return 2
+    with contextlib.ExitStack() as es:
+        fake = None
+        if a.upstream == "fake":
+            sys.path.insert(0, str(ROOT))
+            from tests.fake_upstream import FakeUpstream
+            from tests.servers import serve
+
+            fake = FakeUpstream(props_n_ctx=a.expect_n_ctx)
+            upstream = es.enter_context(serve(fake.app()))
+        else:
+            upstream = a.upstream.rstrip("/")
+        return _run_pi(a, task, info, fields, upstream, fake)
+
+
+def _run_pi(a, task, info, fields, upstream, fake) -> int:
+    import httpx
+    import pi_harness as pih
+    import pi_task
+
+    arm, label = info["arm"], info["label"]
+    name = f"{task.ID}-{label}"
+    props = gi.strata_props(upstream)
+    why = gi.check_n_ctx(props, a.expect_n_ctx)
+    if why:
+        print(f"refused: {why}", file=sys.stderr)
+        return 2
+    attempt = att.new_attempt(Path(a.out), kind="task", config=label, ids=[task.ID], reason=a.reason,
+                              ws_root=Path(a.ws_root) if a.ws_root else None,
+                              extra={"tag": a.tag, "harness": "pi", "protocol": a.protocol})
+    n_att = attempt["attempt"]
+    out, wsroot = Path(attempt["records"]) / name, Path(attempt["ws"])
+    out.mkdir()
+    ws = wsroot / "ws"
+    ws.mkdir()
+    materialize(task, ws)
+    subprocess.run(["git", "init", "-q"], cwd=ws, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=ws, check=True)
+    subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q",
+                    "-m", "task start"], cwd=ws, check=True)
+    troot = wsroot / "transcripts" if arm != 1 else None
+    settings = needle.proxy_settings(info["cfg"]) if arm != 1 else {}
+    stack = pi_task.Stack(out, upstream, settings, passthrough=arm == 1, gated=fake is None,
+                          transcripts=troot, input_budget=a.input_budget)
+    session = pi_task.session_name(task.ID, label, a.tag, n_att)
+    home = pih.PiHome(wsroot / "pi", ws, stack.origin, a.protocol, tools=pi_task.TOOLS,
+                      context_window=fields["pi_context_window"], compaction=fields["pi_compaction"])
+    sfile = pih.new_session_file(home.root / "sessions" / f"{session}.jsonl", session, str(ws))
+    sdir = None
+    if troot is not None:
+        from palimnesis.transcripts.projector import session_dir
+
+        sdir = session_dir(troot, session)
+    tools = needle.Tools(ws, troot, sdir, [], None)
+    client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
+    fake_model = pi_task.FakeTaskModel(fake) if fake is not None else None
+    res = {"task": task.ID, "set": task.SET, **fields, "harness": "pi", "protocol": a.protocol,
+           "attempt": n_att, "session": session, "runner": RUNNER_VERSION, "pi": pi_task.PI_VERSION,
+           "pi_cli": str(pih.PI_CLI), "pi_tools": pi_task.TOOLS, "pi_models": home.models,
+           "pi_settings": home.settings, "live": fake is None,
+           "provenance": gi.git_provenance(), "settings": stack.settings,
+           "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
+           "upstream": a.upstream, "expect_n_ctx": a.expect_n_ctx, "strata": [{"when": "before", **props}],
+           "started": time.time(), "turns": [], "aborted": None}
+    try:
+        for i, text in enumerate(task.TURNS):
+            if stack.tap.abort:
+                raise Abort(f"slot_busy: {stack.tap.abort}")
+            if i == task.RESTART_BEFORE:
+                stack.restart_proxy()
+            if fake_model is not None:
+                fake_model.script_turn(pi_task.fake_replies(task, i, sdir))
+            pre = stack.gate.wait_idle(client, f"task:{task.ID}:{i}")
+            before, fbefore = len(stack.tap.calls), len(stack.front.calls)
+            t0 = time.time()
+            turn = home.run(text, sfile, label=f"turn{i + 1}", timeout=TURN_TIMEOUT_S)
+            stack.settle()
+            calls, front = stack.tap.calls[before:], stack.front.calls[fbefore:]
+            summ = pih.turn_summary(turn["events"])
+            comps = pih.compaction_events(turn["events"])
+            entries = pih.read_session(sfile)
+            if (entries[0].get("id") if entries else None) != session:
+                raise Abort(f"second_session: turn {i + 1} left the session file without its header id")
+            if i == 0 and (not front or len(entries) < 2):
+                raise Abort(f"no_session: turn 1 reached the proxy {len(front)} times and left "
+                            f"{len(entries)} session entries (exit {turn['exit']}): {turn['stderr'][-300:]}")
+            hidden = needle.hidden_by_tool(calls)
+            lookups = sum(int(tools.is_lookup(t["name"] or "", t["input"] if isinstance(t["input"], dict) else {}))
+                          for t in summ["tools"]) + sum(hidden.values())
+            firsts = [c for c in calls if c.get("t_first_content")]
+            faithful = None
+            if front:
+                body = json.loads((out / "front" / f"{front[0]['n']:04d}.json").read_bytes())
+                faithful = pih.last_user_text(body) == text
+            errors = list(summ["errors"])
+            if turn.get("timeout_killed"):
+                errors.append(f"pi killed at {TURN_TIMEOUT_S}s")
+            if not summ["settled"]:
+                # Judged by the events, not the exit code (HP7: Windows exit 0xC0000409 after work).
+                errors.append(f"pi did not settle (exit {turn['exit']}): {turn['stderr'][-300:]}")
+            rec = {"turn": i + 1, "restart_before": i == task.RESTART_BEFORE, "exit": turn["exit"],
+                   "settled": summ["settled"], "stops": summ["stops"], "pi_retries": summ["retries"],
+                   "prompt_faithful": faithful, "compactions": comps,
+                   "timeout_killed": bool(turn.get("timeout_killed")), "elapsed_s": turn["elapsed_s"],
+                   "driver_wait_s": pre["waited_s"], "upstream_calls": len(calls),
+                   "upstream_n": [c["n"] for c in calls], "front_n": [c["n"] for c in front],
+                   **oc_stack.call_summary(calls, front),
+                   "finishes": [c.get("finish") for c in calls],
+                   "prompt_tokens": sum(c.get("prompt_tokens") or 0 for c in calls),
+                   "max_prompt_tokens": max((c.get("prompt_tokens") or 0 for c in calls), default=0),
+                   "completion_tokens": sum(c.get("completion_tokens") or 0 for c in calls),
+                   "cached_tokens": sum(c.get("cached_tokens") or 0 for c in calls),
+                   "prompt_ms": sum((c.get("timings") or {}).get("prompt_ms") or 0 for c in calls),
+                   "ttfvc_s": round(firsts[0]["t_first_content"] - t0, 3) if firsts else None,
+                   "tools": pi_task.tool_rows(summ["tools"]),
+                   "lookups": lookups, "hidden_calls": hidden, "errors": errors,
+                   "answer": (summ["final"] or "")[:400],
+                   "stderr": turn["stderr"][-400:] if not summ["settled"] else ""}
+            res["turns"].append(rec)
+            print(f"[{name} pi-{a.protocol} a{n_att}] turn {i + 1}: settled={summ['settled']} exit={turn['exit']} "
+                  f"calls={len(calls)} proxy={rec['proxy_statuses']} max_prompt={rec['max_prompt_tokens']} "
+                  f"tools={len(summ['tools'])} lookups={lookups} compactions={len(comps)} "
+                  f"{turn['elapsed_s']:.0f}s", flush=True)
+            (out / "result.json").write_text(json.dumps(res, indent=1), encoding="utf-8", newline="\n")
+        after = gi.strata_props(upstream)
+        res["strata"].append({"when": "after", **after})
+        why = gi.check_n_ctx(after, a.expect_n_ctx)
+        if why:
+            raise Abort(f"strata_check: {why}")
+    except (Abort, needle.SlotBusyTooLong) as e:
+        res["aborted"] = str(e) if isinstance(e, Abort) else f"slot_busy: {e}"
+    finally:
+        stack.stop()
+    res["finished"] = time.time()
+    res["pi_session"] = session
+    res["proxy_starts"] = stack.proxy.starts
+    res["gate_events"] = stack.gate.events
+    if fake_model is not None:
+        res["fake_notes_replies"] = fake_model.notes
+    calls = stack.tap.calls
+    res["upstream_calls"] = len(calls)
+    res["upstream_errors"] = len(oc_stack.failed(calls))
+    res["proxy_rejections"] = sum(t["proxy_rejections"] for t in res["turns"])
+    res["prompt_tokens"] = sum(c.get("prompt_tokens") or 0 for c in calls)
+    res["completion_tokens"] = sum(c.get("completion_tokens") or 0 for c in calls)
+    res["cached_tokens"] = sum(c.get("cached_tokens") or 0 for c in calls)
+    res["max_prompt_tokens"] = max((c.get("prompt_tokens") or 0 for c in calls), default=0)
+    res["slow_upstream_calls"] = [c["n"] for c in calls if (c.get("upstream_s") or 0) > oc_stack.SLOW_UPSTREAM_S]
+    res["lookups"] = sum(t["lookups"] for t in res["turns"])
+    res["hidden_calls"] = needle.hidden_by_tool(calls)
+    res["latency_s"] = round(sum(t["elapsed_s"] for t in res["turns"]), 1)
+    res["foreign_between"] = sum(c.get("foreign_between") or 0 for c in calls)
+    res["foreign_during"] = sum(max(0, c.get("foreign_during") or 0) for c in calls)
+    # Pi's own compactions (its events), one entry each; the summarizer requests beside them.
+    res["compaction_calls"] = [{"turn": t["turn"], **c} for t in res["turns"] for c in t["compactions"]]
+    res["compaction_upstream_calls"] = pi_task.upstream_compactions(out / "bodies", calls)
+    chat = pi_task.chat_calls(calls)
+    try:
+        res["drift"] = drift(out / "bodies", chat)
+    except Exception as e:  # recorded, not fatal
+        res["drift"] = {"calls": 0, "nonzero": [], "error": f"{type(e).__name__}: {e}"}
+    res["drift"]["skipped_not_chat"] = len(calls) - len(chat)
+    logs = "".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(out.glob("proxy-*.log")))
+    res["log_view_disabled"] = logs.count("bounded views disabled")
+    res["log_unbounded"] = logs.count("forwarding unbounded")
+    export_texts, exports = [], {}
+    try:
+        entries = pih.read_session(sfile)
+        (out / "pi-session.jsonl").write_bytes(sfile.read_bytes())
+        exp = pih.as_export(entries)
+        (out / "export.json").write_text(json.dumps(exp, ensure_ascii=False), encoding="utf-8", newline="\n")
+        export_texts = gi.strings_of(exp)
+        exports = {session: exp}
+        kinds: dict[str, int] = {}
+        for e in entries:
+            k = (e.get("message") or {}).get("role") if e.get("type") == "message" else e.get("type")
+            kinds[k] = kinds.get(k, 0) + 1
+        res["pi_entry_types"] = kinds
+    except Exception as e:  # recorded, not fatal
+        res["pi_export_error"] = f"{type(e).__name__}: {e}"
+    res["reachable_records"] = gi.reachable_records(wsroot, hidden=hidden_markers(task))
+    if arm != 1:
+        res["over_budget"] = gi.local_over_budget(out / "bodies", calls,
+                                                  gi.run_budget(a.expect_n_ctx, a.input_budget))
+        db = stack.proxy.db
+        excerpts = gi.excerpt_texts(db) if db.exists() else []
+        res["excerpts_stored"] = len(excerpts)
+        client_t = oc_stack.client_texts(out, stack.front.calls) + export_texts
+        res["excerpt_scan"] = {"client": gi.scan(excerpts, client_t),
+                               "transcripts": gi.scan(excerpts, gi.transcript_texts(troot))}
+        if db.exists():
+            res["internal_scan"] = gi.internal_scan(db, out, stack.front.calls, exports, sessions=[session])
+            res["internal"] = report.internal_metrics(db, sessions=[session])
+        code, explained, err = gi.run_explain(db)
+        (out / "explain.json").write_text(json.dumps(explained) if explained else "", encoding="utf-8")
+        res["explain_gate"] = gi.explain_gate(code, explained, {session: len(calls)} if calls else {})
+        res["explain_stderr"] = err
+        res["verify"] = needle.verify_sessions(db, [session], troot)[session]
+    if res["aborted"]:
+        res["check"] = None
+        status = 3
+    else:
+        check_dir = out / "check"
+        check_dir.mkdir()
+        res["check"] = run_check(task, ws, check_dir)
+        res["restart_gate"] = restart_gate(task, res["check"])
+        status = 0
+    stub_dir = Path(tempfile.mkdtemp(prefix="stub-check-", dir=out))
+    stub_ws = stub_dir / "repo"
+    materialize(task, stub_ws)
+    (stub_dir / "check").mkdir()
+    stub = run_check(task, stub_ws, stub_dir / "check")
+    res["stub_check"] = {k: stub[k] for k in ("success", "functional_passed", "functional_total",
+                                              "constraints", "constraints_held", "constraints_total")}
+    (out / "result.json").write_text(json.dumps(res, indent=1), encoding="utf-8", newline="\n")
+    att.finish_attempt(Path(a.out), n_att, "aborted" if res["aborted"] else "done", aborted=res["aborted"])
+    c = res["check"] or {}
+    eg = res.get("explain_gate") or {}
+    print(f"[{name} pi-{a.protocol} a{n_att}] aborted={res['aborted']} success={c.get('success')} "
+          f"({c.get('functional_passed')}/{c.get('functional_total')}) "
+          f"constraints={c.get('constraints_held')}/{c.get('constraints_total')} "
+          f"(stub {res['stub_check']['constraints_held']}/{res['stub_check']['constraints_total']}) "
+          f"restart_gate={res.get('restart_gate')} turns={len(res['turns'])} calls={res['upstream_calls']} "
+          f"proxy_rejections={res['proxy_rejections']} prompt={res['prompt_tokens']:,} "
+          f"max_prompt={res['max_prompt_tokens']} lookups={res['lookups']} latency={res['latency_s']}s "
+          f"compactions={len(res['compaction_calls'])} (summarizer calls {res['compaction_upstream_calls']}) "
+          f"drift={len(res['drift']['nonzero'])} explain={eg.get('ok')} "
+          f"verify={(res.get('verify') or {}).get('exit')} "
+          f"over_budget={len((res.get('over_budget') or {}).get('over', []))} "
+          f"leaks={res.get('excerpt_scan')} slow={len(res['slow_upstream_calls'])} "
+          f"reachable={len(res['reachable_records'])} views_disabled={res['log_view_disabled']} "
+          f"unbounded={res['log_unbounded']}", flush=True)
+    return status
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--harness", choices=["opencode", "pi"], default="opencode")
+    p.add_argument("--protocol", choices=["chat", "messages"], default="chat",
+                   help="Pi only: the adapter's provider (OpenCode runs Chat)")
+    p.add_argument("--pi-keep-recent-tokens", type=int,
+                   help="Pi arm 1 only: compaction.keepRecentTokens (default: Pi's own)")
     p.add_argument("--task", choices=TASKS)
     p.add_argument("--arm", type=int, choices=[1, 4, 5])
     p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith(("a4-", "a5-"))],
@@ -633,6 +904,10 @@ def main() -> int:
         return check_reference([a.task] if a.task else TASKS)
     if not (a.task and a.arm and a.out):
         p.error("--task, --arm and --out are required")
+    if a.harness == "pi":
+        return run_pi(a)
+    if a.protocol != "chat" or a.pi_keep_recent_tokens is not None or a.upstream == "fake":
+        p.error("--protocol messages, --pi-keep-recent-tokens and --upstream fake apply to --harness pi")
     return run(a)
 
 

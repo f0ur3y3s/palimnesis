@@ -1,6 +1,7 @@
 """Real Pi 1.5.0 as an evaluation client (Phase 4B S14; ``docs/probes/pi.md``).
 
-Used by the needle driver (``eval/needle.py run --driver pi``, ``eval/needle_pi.py``).
+Used by the needle driver (``eval/needle.py run --driver pi``, ``eval/needle_pi.py``) and
+the coding-task runner (``eval/tasks/run.py --harness pi``, ``eval/tasks/pi_task.py``).
 Every Pi process runs isolated, as in ``eval/probes/pi_live_smoke.py`` and HP1-HP7:
 
 - a throwaway agent directory (``PI_CODING_AGENT_DIR``), HOME/USERPROFILE, TEMP and XDG
@@ -386,8 +387,12 @@ class PiHome:
     pointed at ``base_origin`` (``http://127.0.0.1:<port>``), on ``protocol``."""
 
     def __init__(self, root: Path, workspace: Path, base_origin: str, protocol: str = "chat",
-                 max_tokens: int | None = None):
-        self.root, self.ws, self.protocol = root, workspace, protocol
+                 max_tokens: int | None = None, *, tools: str = TOOLS,
+                 context_window: int | None = None, compaction: dict | None = None):
+        """``tools`` is ``--tools``; ``context_window`` replaces every model's
+        ``contextWindow`` and ``compaction`` is merged over the adapter's ``compaction``
+        settings (the task runner's arm 1, HP5). By default all three are the adapter's."""
+        self.root, self.ws, self.protocol, self.tools = root, workspace, protocol, tools
         self.agent = root / "agent"
         for d in ("agent", "home", "tmp", "logs", "sessions", "xdg/config", "xdg/data",
                   "xdg/cache", "xdg/state"):
@@ -395,14 +400,18 @@ class PiHome:
         models = adapter_models()
         for p in models["providers"].values():
             p["baseUrl"] = p["baseUrl"].replace("http://127.0.0.1:9000", base_origin.rstrip("/"))
-            if max_tokens:
-                for m in p["models"]:
+            for m in p["models"]:
+                if max_tokens:
                     m["maxTokens"] = max_tokens
+                if context_window:
+                    m["contextWindow"] = context_window
         self.models = models
         (self.agent / "models.json").write_text(json.dumps(models, indent=2), encoding="utf-8", newline="\n")
         settings = json.loads((ADAPTER / "settings.json").read_text(encoding="utf-8"))
         settings.update({"defaultProvider": PROVIDER[protocol], "defaultProjectTrust": "never",
                          "enableInstallTelemetry": False, "quietStartup": True})
+        if compaction is not None:
+            settings["compaction"] = {**(settings.get("compaction") or {}), **compaction}
         self.settings = settings
         (self.agent / "settings.json").write_text(json.dumps(settings, indent=2), encoding="utf-8", newline="\n")
         self.extension = root / "palimnesis-session.ts"
@@ -423,7 +432,7 @@ class PiHome:
         checked against it (``last_user_text``), so a quoting change would show."""
         self.n += 1
         argv = ["node", str(PI_CLI), "-e", str(self.extension), "-nc", "--mode", "json",
-                "--tools", TOOLS, "--session", str(session_file), prompt]
+                "--tools", self.tools, "--session", str(session_file), prompt]
         if WINDOWS and len(subprocess.list2cmdline(argv)) > WINDOWS_CMDLINE_MAX:
             raise ValueError(f"prompt too long for a Windows command line ({len(prompt)} chars)")
         logs = self.root / "logs"
@@ -451,4 +460,62 @@ def read_session(path: Path) -> list[dict]:
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if line.strip():
             out.append(json.loads(line))
+    return out
+
+
+def new_session_file(path: Path, session_id: str, cwd: str, t0_ms: int | None = None) -> Path:
+    """An empty Pi session: the version-3 header alone, so ``--session <path>`` opens a
+    session whose id is ``session_id`` (Pi appends every turn to it, HP7)."""
+    t0 = int(time.time() * 1000) if t0_ms is None else t0_ms
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(session_jsonl(history_to_pi_session([], session_id=session_id, cwd=cwd,
+                                                         t0_ms=t0, model="unused")))
+    return path
+
+
+# ---------------------------------------------------------------- compaction (pure)
+
+# The system prompt of Pi 1.5.0's summarizer request, threshold, overflow or manual
+# (HP5: ``hp5_threshold_on``, ``hp5_manual_compact``): no tools, two messages.
+COMPACTION_SYSTEM = "You are a context summarization assistant"
+
+
+def _system_text(body: dict) -> str:
+    system = body.get("system")
+    if isinstance(system, str):
+        return system
+    if isinstance(system, list):
+        return "".join(b.get("text", "") for b in system if isinstance(b, dict))
+    for m in body.get("messages") or []:
+        if m.get("role") in ("system", "developer"):
+            c = m.get("content")
+            return c if isinstance(c, str) else "".join(
+                p.get("text", "") for p in c or [] if isinstance(p, dict))
+        break
+    return ""
+
+
+def is_compaction_request(body: dict) -> bool:
+    """A Pi summarizer request (either protocol): its system prompt is the summarizer's."""
+    return _system_text(body).lstrip().startswith(COMPACTION_SYSTEM)
+
+
+def compaction_events(events: list[dict]) -> list[dict]:
+    """Pi's own compactions in one run's events: one entry per ``compaction_start``, with
+    the reason, and from its ``compaction_end`` whether it was aborted and the token counts
+    Pi reported (HP5 shape)."""
+    out: list[dict] = []
+    for e in events:
+        kind = e.get("type")
+        if kind == "compaction_start":
+            out.append({"reason": e.get("reason"), "ended": False, "aborted": None,
+                        "tokens_before": None, "tokens_after": None})
+        elif kind == "compaction_end":
+            if not out or out[-1]["ended"]:
+                out.append({"reason": e.get("reason"), "ended": False})
+            res = e.get("result") or {}
+            out[-1].update({"ended": True, "aborted": bool(e.get("aborted")),
+                            "tokens_before": res.get("tokensBefore"),
+                            "tokens_after": res.get("estimatedTokensAfter"),
+                            "error": e.get("errorMessage")})
     return out

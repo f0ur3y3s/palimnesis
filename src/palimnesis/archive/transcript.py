@@ -44,7 +44,9 @@ both protocols and with its retries on or off (``docs/probes/pi.md`` HP4.3, O-4B
 D82), from the very next request on: a server-failed partial may be left out when it is
 the newest archived turn or was already superseded, never once a request resent it
 (D95).
-A turn the length stop cut short may be omitted too: Pi treats it like a failed one
+A reply with no text and no tool calls renders nothing upstream, so it may be omitted
+anywhere; Pi drops one whose text is empty or whitespace (D97). A turn the length stop
+cut short may be omitted too: Pi treats it like a failed one
 (``eval/probes/pi_proxy_faults.py``, D94). Any other complete turn the client received in
 full may not be omitted.
 """
@@ -228,7 +230,9 @@ def _matches_generated(message: Message, archived: Archived) -> str | None:
     """None if ``message`` is the client's copy of a complete ``archived`` turn."""
     if message.role != "assistant":
         return "a generated assistant turn was replaced by another role"
-    if (_block_text(message, "text") or "") != archived.text:
+    text = _block_text(message, "text") or ""
+    # Pi resends whitespace-only text as no text (pi.md HP3, D97).
+    if text != archived.text and not (not text and not archived.text.strip()):
         return "assistant text differs from what was generated"
     reasoning = _block_text(message, "reasoning")
     if reasoning is not None and reasoning != archived.reasoning:
@@ -300,6 +304,13 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived],
                         continue
                     return Divergence(i, reason)
                 partials.append((i, extent))
+        elif (past.source == "generated" and past.complete and message.role != "assistant"
+              and not past.text.strip() and not past.tool_calls):
+            # A reply with no text and no tool calls renders nothing upstream (#843, D41);
+            # Pi leaves it out of the resend (D97). Superseded: nothing the model saw changes.
+            superseded.append(past.occ_id)
+            j += 1
+            continue
         elif past.truncated and message.role != "assistant" and omittable(j, past):
             # A reply the length stop cut short, left out of the resend (D94): superseded.
             superseded.append(past.occ_id)
