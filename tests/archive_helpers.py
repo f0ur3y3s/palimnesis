@@ -94,7 +94,8 @@ def lifecycle_stack(tmp_path: Path) -> Iterator[LifecycleStack]:
     holder: list[LifecycleStack] = []
 
     async def hooked(scope, receive, send):
-        if scope["type"] == "http" and holder and holder[0].on_upstream_request:
+        if (scope["type"] == "http" and holder and holder[0].on_upstream_request
+                and scope["path"] not in ("/props", "/status")):
             holder[0].on_upstream_request()
         await inner(scope, receive, send)
 

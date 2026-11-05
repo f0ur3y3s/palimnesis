@@ -152,6 +152,14 @@ class MessagesEmitter:
     def keepalive(self) -> bytes:
         return _event("ping", {"type": "ping"})
 
+    def error_body(self, data: bytes) -> bytes:
+        """``event: error`` carrying an error body (already in Anthropic's envelope when it
+        comes from the proxy or ``upstream_error``); one error event, as ``error``."""
+        if self.errored or self.stopped:
+            return b""
+        self.errored = True
+        return self._start(None) + b"event: error\ndata: " + self.upstream_error(500, data) + b"\n\n"
+
     def upstream_error(self, status: int, data: bytes) -> bytes:
         """Anthropic's envelope around an upstream error, its message kept verbatim (plan
         §2.3: Claude Code matches on the wording). Strata never sends this envelope

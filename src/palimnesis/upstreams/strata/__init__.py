@@ -11,7 +11,7 @@ from palimnesis.upstreams.profile import TemplateRules, UpstreamProfile
 from palimnesis.upstreams.strata import pins, tokens
 from palimnesis.upstreams.strata.cache import StrataCacheModel
 from palimnesis.upstreams.strata.errors import StrataErrors
-from palimnesis.upstreams.strata.facts import CountTokensCrossCheck, UpstreamState
+from palimnesis.upstreams.strata.facts import CountTokensCrossCheck, StatusProbe, UpstreamState
 
 PROFILE_ID = "strata-0.1.48"
 
@@ -33,4 +33,5 @@ def profile(base_url: str) -> UpstreamProfile:
         cache_model=StrataCacheModel(),
         errors=StrataErrors(),
         rules=RULES,
+        slot_probe=StatusProbe(base_url),
     )

@@ -134,6 +134,6 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 
 ### Deferred
 
-- **Phase 4B:** proxy FIFO admission, `429` and proxy keepalives (O4); Anthropic Messages archive mode with its error envelope; Pi and Claude Code.
+- **Phase 4B:** Pi and Claude Code (proxy admission, the Messages archive route and its error envelope landed in S4–S6: D87–D89).
 - **Phase 3B, not built:** continuation accounting across internal calls, and RE2 regex search.
 - **Phase 8:** streaming replay, deletion and export, and power-loss durability.

@@ -47,6 +47,7 @@ import httpx
 from palimnesis.view import cacheacct
 
 from palimnesis import protocols
+from palimnesis.admission import Admission, QueueFull, StreamGate
 from palimnesis.protocols import chat
 
 from palimnesis.archive import ledger
@@ -88,6 +89,7 @@ LIMIT_RESULT = ("limit reached: no more archive lookups in this response. "
 # Per instruction turn, across responses and synthetic follow-ups (D67, R29).
 MAX_TURN_HIDDEN_CALLS = 16
 NOTES_REFRESH_S = 180.0  # D72: a refresh slower than this fails; the request goes on
+GUARD_POLL_S = 0.25  # how often dispatch re-reads the upstream's /status while it is busy
 TURN_LIMIT_RESULT = ("limit reached: no more archive lookups until the next user message. "
                      "Continue from what you have.")
 
@@ -110,8 +112,14 @@ def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, byte
 class ArchiveHandler:
     def __init__(self, store: Store, client: httpx.AsyncClient, upstream_base: httpx.URL,
                  forward_headers, views=None, deadline_s: float = 600.0,
-                 on_change=None, addendum_for=None, hidden_tools=None) -> None:
+                 on_change=None, addendum_for=None, hidden_tools=None, *,
+                 queue_capacity: int = 8, header_wait_s: float = 10.0,
+                 keepalive_s: float = 15.0, retry_after_s: int = 15) -> None:
         self.store = store
+        # Proxy admission (O4): one FIFO in front of the upstream's slots (contracts §8).
+        self.admission = Admission(queue_capacity, self._slots)
+        self.header_wait_s, self.keepalive_s = header_wait_s, keepalive_s
+        self.retry_after_s = retry_after_s
         # (version, schemas) of the hidden recall tools, or None (Phase 3B, D54).
         self.hidden_tools = hidden_tools
         # session id -> (addendum id, text) for the upstream system message, or None (D36).
@@ -166,6 +174,26 @@ class ArchiveHandler:
                 # unbounded, as when views are disabled (D14.9).
                 log.exception("bounded view preparation failed; forwarding unbounded")
                 prepared = None
+        try:
+            ticket = self.admission.reserve()
+        except QueueFull:
+            response = error_response(
+                api_path, 429, "queue_full",
+                "Palimnesis is serving other requests and its queue is full; nothing was "
+                "archived.", type_="rate_limit_error", retry=True)
+            response.headers["retry-after"] = str(self.retry_after_s)
+            await response(scope, receive, send)
+            return
+        try:
+            await self._accept_and_answer(scope, receive, send, ticket, req, prepared, protocol,
+                                          session=session, api_path=api_path, headers=headers,
+                                          body=body, association=association, expires=expires)
+        finally:
+            ticket.release()
+
+    async def _accept_and_answer(self, scope, receive, send, ticket, req, prepared, protocol, *,
+                                 session, api_path, headers, body, association,
+                                 expires) -> None:
         str_headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in headers}
         idem_key = next((v for k, v in str_headers.items() if k.lower() == "idempotency-key"), None)
         fingerprint = fingerprint_v1(protocol.endpoint, session, ledger.branch_id_for(session),
@@ -199,6 +227,13 @@ class ArchiveHandler:
         if plan.replay is None:
             self._changed(session)
         started = False
+        gate = None
+        if plan.replay is None and plan.stream:
+            # Headers within H and keepalives every K while queued, refreshing notes or
+            # recalling (contracts §5).
+            gate = StreamGate(send, gen.emitter, arrival=expires - self.deadline_s,
+                              header_wait=self.header_wait_s, keepalive=self.keepalive_s)
+            send = gate.send
 
         async def tracked(message) -> None:
             nonlocal started
@@ -209,19 +244,29 @@ class ArchiveHandler:
         try:
             crash_point("after_accept")
             if plan.replay is not None:
+                ticket.release()
                 await self._send_replay(send, plan.replay)
                 return
-            with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
-                if prepared is not None and not await self._bound(
-                        scope, receive, tracked, req, gen, prepared, api_path, headers,
-                        hidden=protocol.hidden_tools):
-                    return
-                if plan.hidden_loop and plan.stream and plan.view is not None:
-                    await self._hidden(scope, receive, tracked, gen, api_path, headers, req)
-                else:
-                    await self._run(scope, receive, tracked, gen, api_path, headers)
-            if window.cancelled_caught and not gen.delivered:
-                await self._expired(scope, receive, send, gen, api_path, started)
+            async with anyio.create_task_group() as watchers:
+                if gate is not None:
+                    watchers.start_soon(gate.watch)
+                # Queue time counts against D (contracts §5): the slot is awaited inside it.
+                with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
+                    await ticket.acquire()
+                    await self._guard()
+                    if prepared is None or await self._bound(
+                            scope, receive, tracked, req, gen, prepared, api_path, headers,
+                            hidden=protocol.hidden_tools):
+                        if plan.hidden_loop and plan.stream and plan.view is not None:
+                            await self._hidden(scope, receive, tracked, gen, api_path, headers,
+                                               req)
+                        else:
+                            await self._run(scope, receive, tracked, gen, api_path, headers)
+                ticket.release()  # the response is complete: the next request may dispatch
+                if window.cancelled_caught and not gen.delivered:
+                    await self._expired(scope, receive, send, gen, api_path,
+                                        started or (gate is not None and gate.started))
+                watchers.cancel_scope.cancel()
         except BaseException:
             # Cancellation (client disconnect) or an unexpected failure: record it
             # if storage allows, never claim success. ledger.interrupt runs after
@@ -237,6 +282,20 @@ class ArchiveHandler:
             self.live.discard(plan.request_id)
             if plan.replay is None:
                 self._changed(session)
+
+    def _slots(self) -> int:
+        """The upstream's slot count from its facts (``/props`` ``total_slots``), else 1."""
+        facts = self.views.profile.facts.facts if self.views is not None else None
+        return (facts.slots if facts is not None else None) or 1
+
+    async def _guard(self) -> None:
+        """Wait while the upstream's own status shows other clients' work (contracts §8).
+        With more than one slot the upstream is meant to be busy, so the guard is off."""
+        probe = self.views.profile.slot_probe if self.views is not None else None
+        if probe is None or self.admission.slots > 1:
+            return
+        while await probe.idle(self.client) is False:
+            await anyio.sleep(GUARD_POLL_S)
 
     async def _hidden_tools_for(self, session: str, req) -> list | None:
         """The hidden tool schemas this request would carry once fixed: the session's fixed

@@ -183,3 +183,14 @@ Supersedes D84 item 7, and settles the counter fix D82 asked for.
   - The type is the upstream's when Anthropic defines it (Strata's own `rate_limit_error` for `admission_full`, `invalid_request_error`), otherwise the status's. Strata's `unavailable_error` on a 503 becomes `api_error`.
   - A body that is not JSON becomes the message as text.
 - **In-stream failures and the deadline** were already routed through the emitter (D83, D85): one `event: error`, never `message_stop`. S5's tests pin them on the Messages route, with the deadline before and after the stream starts.
+
+## D89: Proxy admission (O4; Phase 4B S6)
+
+`palimnesis.admission` implements contracts §5 and §8 for archive mode. Settings: `queue_capacity` (Q, 8), `header_wait_s` (H, 10 s), `keepalive_s` (K, 15 s), `retry_after_s` (15 s).
+
+1. **Reserve before acceptance, wait after it.** A request reserves a queue place before `ledger.accept`, so a full queue answers 429 `queue_full` with nothing archived and `x-should-retry: true`. Duplicates and conflicts are still resolved in acceptance (plan §2.5). The slot is awaited inside the deadline window, so queue time counts against `D`, and a cancelled or expired waiter leaves the queue without dispatch.
+2. **Slots from the upstream's facts.** `UpstreamFacts.slots` carries Strata's `total_slots`, read on every decision; unknown means one. Pythia stays at one slot (D83).
+3. **One gate per streaming response.** `StreamGate` sends the 200 headers itself if nothing started within H, then the protocol's keepalive whenever K passes with nothing sent. The keepalive comes from the emitter (D83): a comment for Chat, `event: ping` for Messages, which Claude Code and Pi accept even before `message_start` (HC5, HP4). After an early start, a pipeline error response becomes the protocol's in-stream error event (`Emitter.error_body`), so the client never sees a second status line.
+4. **The `/status` guard, one slot only.** Before dispatch, `UpstreamProfile.slot_probe` (Strata: `GET /status`) is polled every 0.25 s while it shows `busy` or `queued`. With several slots the upstream is meant to be busy, so the guard is off. A route that is missing or slow (1 s) turns the probe off rather than holding dispatch.
+5. **Deferred:** the 60 s release ceiling that would mark the upstream unhealthy (contracts §8, still [defined]). The guard waits within each request's `D` instead. Command-line flags for Q, H and K are also deferred: the defaults fit all three harnesses' 300 s idle limits.
+6. **Test fake.** `tests/fake_upstream.py` answers `GET /status` statically (`status_busy`, `status_queued`), outside `requests`, like `/props`.

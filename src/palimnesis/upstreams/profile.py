@@ -43,6 +43,7 @@ class UpstreamFacts:
 
     n_ctx: int
     identity: tuple[str, ...]
+    slots: int | None = None  # concurrent requests the upstream serves (None: unknown, 1)
 
 
 @dataclass(frozen=True)
@@ -213,6 +214,14 @@ class CrossCheck(Protocol):
 
 
 @runtime_checkable
+class SlotProbe(Protocol):
+    async def idle(self, client: Any) -> bool | None:
+        """Whether the upstream runs and queues nothing right now (other clients share
+        it); None when it cannot tell, which never blocks dispatch."""
+        ...
+
+
+@runtime_checkable
 class CacheReuseModel(Protocol):
     def expected(self, previous: Layout | None, current: Layout) -> int:
         """Estimated prompt tokens the upstream reuses for ``current`` right after it
@@ -239,6 +248,7 @@ class UpstreamProfile:
     cache_model: CacheReuseModel = field(repr=False)
     errors: ErrorMap = field(repr=False)
     rules: TemplateRules
+    slot_probe: SlotProbe | None = field(default=None, repr=False)
 
 
 def resolve(name: str) -> str:

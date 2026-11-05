@@ -100,6 +100,31 @@ CANARY_CASES: tuple[tuple[str, dict[str, Any]], ...] = (
 )
 
 
+class StatusProbe:
+    """Strata's ``GET /status`` (``busy``, ``queued``) as the dispatch guard (contracts §8).
+    An upstream without the route, or one that does not answer within a second, is
+    reported as unknown and never holds dispatch back; after one such answer the probe
+    stays off until the next fact refresh would matter."""
+
+    def __init__(self, base_url: str, timeout: float = 1.0) -> None:
+        self.url = f"{base_url.rstrip('/')}/status"
+        self.timeout = timeout
+        self.available = True
+
+    async def idle(self, client: httpx.AsyncClient) -> bool | None:
+        if not self.available:
+            return None
+        try:
+            r = await client.get(self.url, timeout=self.timeout)
+            doc = r.json() if r.status_code == 200 else None
+        except (httpx.HTTPError, ValueError):
+            doc = None
+        if not isinstance(doc, dict) or "busy" not in doc:
+            self.available = False
+            return None
+        return not doc.get("busy") and not doc.get("queued")
+
+
 class FactsUnavailable(Exception):
     """``/props`` could not be read or parsed."""
 
@@ -320,7 +345,8 @@ class UpstreamState:
         if self.props is None:
             return None
         return UpstreamFacts(self.props.n_ctx,
-                             (self.props.build_info, self.props.chat_template_sha256))
+                             (self.props.build_info, self.props.chat_template_sha256),
+                             slots=self.props.total_slots)
 
     @property
     def pinned_ok(self) -> bool:

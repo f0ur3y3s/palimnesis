@@ -177,6 +177,10 @@ class Proxy:
                         on_change=self.projector.trigger if self.projector else None,
                         addendum_for=self._addendum_for(),
                         hidden_tools=self._hidden_tools(),
+                        queue_capacity=self.settings.queue_capacity,
+                        header_wait_s=self.settings.header_wait_s,
+                        keepalive_s=self.settings.keepalive_s,
+                        retry_after_s=self.settings.retry_after_s,
                     )
                     for session in interrupted if self.projector else ():
                         self.projector.trigger(session)

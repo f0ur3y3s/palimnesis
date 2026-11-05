@@ -243,7 +243,9 @@ async def test_strata_profile_bundles_counter_facts_crosscheck_cache_errors_rule
     # Facts reader plus startup canary, against the fake's recorded /props.
     async with httpx.AsyncClient() as client:
         await p.facts.refresh(client)
-    assert p.facts.facts == profile.UpstreamFacts(n_ctx=65536, identity=("Strata 0.1.48", TEMPLATE_SHA))
+    assert p.facts.facts == profile.UpstreamFacts(n_ctx=65536, identity=("Strata 0.1.48", TEMPLATE_SHA),
+                                                  slots=1)  # recorded total_slots (D89)
+    assert isinstance(p.slot_probe, profile.SlotProbe)
     assert p.facts.pinned_ok and not p.facts.stale
     assert len(fake.count_tokens_requests) >= 2
     assert p.facts.observe(502, b"") is True and p.facts.stale

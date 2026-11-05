@@ -4,7 +4,7 @@ Tests queue responses with ``respond_json``/``respond_sse`` and then inspect
 ``requests`` (what the upstream actually received) and ``closed_streams``
 (streams the upstream saw terminate early because the reader went away).
 
-``GET /props`` is static: it answers from the recorded Strata ``props.json`` with the
+``GET /props`` and ``GET /status`` are static: it answers from the recorded Strata ``props.json`` with the
 mutable ``props_*`` attributes applied, never consumes the response script and is
 counted in ``props_requests`` rather than ``requests``. When ``count_tokens_handler``
 is set (by default an exact local count, like Strata), ``POST /v1/messages/count_tokens``
@@ -96,6 +96,10 @@ class FakeUpstream:
     # proxy's startup canary passes; None makes the route scripted.
     count_tokens_handler: Callable[[dict], int] | None = field(default=lambda body: _local_count(body))
     count_tokens_requests: list[dict] = field(default_factory=list)
+    # Static GET /status (Strata's busy/queued view; not scripted, not in ``requests``).
+    status_busy: bool = False
+    status_queued: int = 0
+    status_requests: int = 0
 
     def respond_json(
         self,
@@ -223,6 +227,12 @@ class FakeUpstream:
             body = await request.body()
             if request.method == "GET" and request.url.path == "/props":
                 return await self._props()
+            if request.method == "GET" and request.url.path == "/status":
+                with self._lock:
+                    self.status_requests += 1
+                return Response(json.dumps({"busy": self.status_busy,
+                                            "queued": self.status_queued}).encode(),
+                                media_type="application/json")
             handler = self.count_tokens_handler
             if (
                 handler is not None

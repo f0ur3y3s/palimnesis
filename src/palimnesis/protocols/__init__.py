@@ -49,6 +49,10 @@ class Emitter(Protocol):
         """The client body for an upstream non-200 response after acceptance, or None to
         relay the upstream's own body and headers (contracts §3)."""
 
+    def error_body(self, data: bytes) -> bytes:
+        """An in-stream error event carrying an error response body of this protocol's
+        shape, for an error that arrives after admission already started the stream."""
+
 
 @dataclass(frozen=True)
 class ClientProtocol:
@@ -82,6 +86,16 @@ class ChatEmitter:
 
     def upstream_error(self, status: int, data: bytes) -> bytes | None:
         return None
+
+    def error_body(self, data: bytes) -> bytes:
+        try:
+            doc = json.loads(data)
+        except ValueError:
+            doc = None
+        if not (isinstance(doc, dict) and "error" in doc):
+            text = data.decode("utf-8", "replace").strip() or "upstream error"
+            doc = {"error": {"message": text, "type": "server_error", "code": "upstream_failed"}}
+        return b"data: " + json.dumps(doc, ensure_ascii=False).encode("utf-8") + b"\n\n"
 
 
 CHAT = ClientProtocol(

@@ -53,6 +53,13 @@ class Settings:
     # Request-wide deadline D in seconds from arrival (contracts §5): covers recall,
     # inference and delivery after acceptance.
     deadline_s: float = 600.0
+    # Proxy admission (O4, contracts §5, §8): requests waiting beyond the upstream's slots
+    # (Q), the response-header wait H and keepalive interval K for streaming requests, and
+    # the retry-after of a full queue's 429.
+    queue_capacity: int = 8
+    header_wait_s: float = 10.0
+    keepalive_s: float = 15.0
+    retry_after_s: int = 15
     # Transcript files root (Phase 3); None means "transcripts" beside the archive.
     transcripts: Path | None = None
     # False: no transcript files are published.

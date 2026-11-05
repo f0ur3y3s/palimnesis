@@ -104,9 +104,9 @@ All of the above are **[enforced]**.
 
 Per-harness facts (header wait, read-idle, total deadline, retry triggers, behavior after partial streams) live in `harnesses.md` and come from captured fixtures. **[verified for OpenCode 2.1.4: `docs/probes/opencode_faults.md`]**
 
-- **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued. **[defined, Ph4B]** (O4)
-- **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, an SSE comment is sent at least every `K` (default 15 s), where `K ≤ min(client read-idle) / 4`. Comments reset the client's idle timer (verified for OpenCode, direct and through the proxy). Keepalives are not progress and do not extend `D`. **[defined, Ph4B]** (O4: Strata itself sends a role chunk and 10 s keepalives, `docs/probes/strata.md` §10)
-- **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. At `D` after acceptance the upstream response is closed, releasing its slot, and the attempt is recorded as failed (`deadline_exceeded`). A client that stopped reading cannot hold the upstream past `D`. Queueing before acceptance is the upstream's (Strata queues FIFO; proxy admission is deferred to Phase 4B, O4). **[enforced after acceptance]**
+- **Response headers** for streaming requests go out within `H` (default 10 s) of arrival, even while queued or while the notes refresh runs (`palimnesis.admission.StreamGate`). An error after the proxy sent them early becomes the protocol's in-stream error event. **[enforced]** (O4)
+- **Keepalive.** From the moment headers are sent, while queued, prefilling or recalling, the client protocol's keepalive goes out whenever `K` (default 15 s) passes with nothing sent: an SSE comment on Chat, `event: ping` on Messages. `K ≤ min(client read-idle) / 4`: OpenCode, Claude Code (HC5) and Pi (HP4) reset their idle timers on either, and Claude Code and Pi kill a stream after 300 s of silence. Keepalives are not progress and do not extend `D`. **[enforced]** (O4; Strata itself sends comments every 10 s during its own queueing and prefill, `docs/probes/strata.md` §10)
+- **Deadline.** `D` (default 600 s) starts at arrival and covers queueing, inference, recall and delivery. A harness with no total deadline gets the configured `D` (a policy, not a derived value). For non-streaming clients, `D + response margin ≤` the client's read allowance. At `D` after acceptance the upstream response is closed, releasing its slot, and the attempt is recorded as failed (`deadline_exceeded`). A client that stopped reading cannot hold the upstream past `D`. Time in the proxy's queue counts against `D`; an entry that expires there is never dispatched. **[enforced]**
 - **Retry headers** (`x-stainless-retry-count` and the like) are bounded hints only (parsed 0–100, otherwise ignored). They are excluded from fingerprints and never treated as identity. **[enforced]**
 - **Rewritten streams** carry `x-should-retry: false` on every streaming 200. Palimnesis, not the harness, owns recovery of a stream it accepted. A failure after the stream starts ends with the endpoint's in-stream error event (`upstream_stream_failed`, or `archive_unavailable` when storage fails) before a clean close, never a bare close. This is the only server-side signal that stops OpenCode's continue-after-partial path. **[enforced]**
 
@@ -127,7 +127,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
 | Upstream non-200 after acceptance | relayed status; body relayed (Chat) or re-enveloped (Messages, §3) | `x-should-retry: false` | **[enforced]** |
 | Upstream unreachable in passthrough | 502 `upstream_unreachable` | `x-should-retry: true` | **[enforced]** |
-| Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) | [defined, Ph4B] (O4) |
+| Overload (queue full) | 429 `queue_full`, before acceptance (nothing archived) | `retry-after` (default 15 s), `x-should-retry: true` | **[enforced]** (O4) |
 | Deadline expired before first byte | 504 `deadline_exceeded` | `x-should-retry: false` | **[enforced]** |
 | Deadline expired after the stream started | in-stream `deadline_exceeded` event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
 | Failure after stream start | endpoint's in-stream error event (Chat `data: {"error":…}`; Messages one `event: error`, never `message_stop`), then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
@@ -167,15 +167,15 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 ## 8. Scheduling and slot release
 
-**[defined, Ph4B]** (O4) for proxy admission and dispatch: until then Strata's own FIFO queue serves requests in order (`docs/probes/strata.md` §10).
+**[enforced]** (O4, `palimnesis.admission`, D89) in archive mode; passthrough relays without admission.
 
-- **Single dispatch.** A bounded FIFO (capacity `Q`) feeds one upstream dispatch at a time.
-  - Duplicates and branch conflicts are resolved before a request enqueues.
+- **Dispatch.** A bounded FIFO (capacity `Q`, default 8) feeds the upstream's slots: `total_slots` from `/props`, one on pythia (D83). A request reserves its place before acceptance, so a full queue is a 429 with nothing archived, and waits for its slot after acceptance.
+  - Duplicates and branch conflicts are resolved in acceptance, before a request waits.
   - Cancelled or expired entries leave the queue without inference.
-  - The upstream's `/status` guards dispatch because other clients share it.
-- **Slot ownership.** An active request holds the slot across its internal continuations. It releases the slot on completion, failure, cancellation, or when it returns external tool calls.
+  - With one slot, the upstream's `/status` guards dispatch, because other clients share it: dispatch waits while it shows work running or queued. An upstream without the route never holds dispatch back.
+- **Slot ownership.** An active request holds the slot across all its upstream calls: the notes refresh, hidden continuations and the answer. It releases the slot on completion, failure, cancellation, or when it returns external tool calls.
 - **Background work.** Non-inference background work (transcript projection, stub warm-up) runs off the request path and never uses the upstream slot (D35, D25). Background inference, when a later phase adds it, starts only when no foreground request is active or queued. **[enforced for non-inference work]**
-- **Released** means the upstream no longer lists the request as active. The expected bound is under 1 s during decode and one prefill chunk at the measured prefill rate during prefill. Past the hard ceiling (default 60 s), the upstream is marked unhealthy and dispatch stops.
+- **Released** means the upstream no longer lists the request as active; the `/status` guard waits for it. The expected bound is under 1 s during decode and one prefill chunk at the measured prefill rate during prefill. **[defined]** Past a hard ceiling (default 60 s) the upstream would be marked unhealthy and dispatch stop; until that lands, the guard waits within each request's `D`.
 
 ## 9. Reasoning carryover
 
