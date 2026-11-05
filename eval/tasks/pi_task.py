@@ -24,7 +24,7 @@ the client leak scan, as in ``eval/needle_pi.py``. Compactions are counted from 
 saw are listed beside them.
 
 Held-out tasks are refused: no held-out set runs through Pi in 4B (O-4B-11; D96 keeps
-``ho4`` for Phase 7).
+``ho4`` for Phase 7). The ho2 tasks run: ho2 is development data since D69.
 
 **Fake upstream** (``--upstream fake``, Chat; a plumbing check, not a result): the stack
 runs against ``tests/fake_upstream.py`` with no slot gate. Turn 1 reads one file of the
@@ -56,7 +56,7 @@ ADAPTER_CONTEXT_WINDOW = 1_000_000
 def refusals(task_set: str, arm: int, config: str | None, protocol: str, upstream: str) -> list[str]:
     """Why a Pi task run must not start (empty when it may)."""
     out = []
-    if task_set != "development":
+    if task_set != "development" and task_set not in needle.RETIRED_SETS:
         out.append(f"Pi runs development tasks only in Phase 4B (O-4B-11, D96), not {task_set}")
     if arm not in (1, 4):
         out.append(f"Pi runs arm 4 ({ARM4_CONFIG}) and arm 1 (native compaction), not arm {arm}")

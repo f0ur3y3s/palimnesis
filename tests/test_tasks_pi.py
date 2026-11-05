@@ -39,9 +39,15 @@ def test_development_tasks_run_both_arms():
     assert pi_task.refusals("development", 1, None, "messages", "http://u") == []
 
 
-@pytest.mark.parametrize("task_set", ["heldout", "heldout2", "heldout3", "heldout4"])
+@pytest.mark.parametrize("task_set", ["heldout", "heldout3", "heldout4"])
 def test_every_held_out_set_is_refused(task_set):
     assert pi_task.refusals(task_set, 4, None, "chat", "http://u")
+
+
+def test_ho2_runs_as_development_data():
+    """The plan's coding row is dev-t1..t5 plus the ho2 tasks, development data per D69."""
+    assert pi_task.refusals("heldout2", 4, None, "chat", "http://u") == []
+    assert pi_task.refusals("heldout2", 1, None, "messages", "http://u") == []
 
 
 def test_other_arms_and_configurations_are_refused():
@@ -56,7 +62,7 @@ def test_fake_upstream_is_chat_only_on_the_passthrough_arm():
 
 
 def test_run_pi_refuses_before_touching_an_upstream(capsys):
-    a = Namespace(task="ho2-t1", arm=4, config=None, protocol="chat", upstream="http://127.0.0.1:1",
+    a = Namespace(task="ho3-t1", arm=4, config=None, protocol="chat", upstream="http://127.0.0.1:1",
                   pi_keep_recent_tokens=None, expect_n_ctx=32768, input_budget=None)
     assert task_run.run_pi(a) == 2
     assert "development tasks only" in capsys.readouterr().err
