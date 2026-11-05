@@ -37,7 +37,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | Harness | Version | Endpoint | Status | Setup |
 | --- | --- | --- | --- | --- |
 | OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37); hidden recall tools with `--hidden-tools` (Ph3B, streaming requests) | `harnesses.md` |
-| Pi | 1.5.0 | Chat Completions / Messages | adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; "supported" waits for the live smoke and transcript gate (S13, position 5) | `harnesses.md`, `docs/probes/pi.md` |
+| Pi | 1.5.0 | Chat Completions / Messages | **supported** (Ph4B): adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; live smoke on both protocols and the transcript gate passed through the proxy against Strata (R43, D93); transcript-file fallback | `harnesses.md`, `docs/probes/pi.md` |
 | Claude Code | 2.1.318 | Messages | **backlogged: closed source** (user, 2026-11-05; D92, `backlog.md`). Probes kept in `docs/probes/claude_code.md` | — |
 
 ## Chat Completions request features (first harness)
@@ -135,7 +135,7 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 
 ### Deferred
 
-- **Phase 4B:** Pi's live smoke and transcript gate (S13); proxy admission, the Messages archive route and its error envelope landed in S4–S6 (D87–D89).
+- **Phase 4B:** Pi's fault, restart and cancellation runs through the proxy, development needles and tasks (plan §6, S14).
 - **Backlog:** Claude Code (`backlog.md`, D92).
 - **Phase 3B, not built:** continuation accounting across internal calls, and RE2 regex search.
 - **Phase 8:** streaming replay, deletion and export, and power-loss durability.

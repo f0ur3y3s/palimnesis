@@ -521,3 +521,68 @@ def test_cause_capacity_budget_change(tmp_path):
     view_cause, budget_cause = last["cause"].split(",")
     assert view_cause in ("watermark_move", "collapse") and budget_cause == "capacity_budget_change"
     assert last["view_n"] == 2 and last["budget"]["input_budget"] == 7552
+
+
+# Phase 4B S13 live finding (D93): a session whose first masked view is also its first
+# collapse with working notes, where protect-turn keeps the whole current turn in view. The
+# move hides nothing visible, so no notes block renders: the main call is the refresh call
+# without its notes prompt. That is the refresh ending, an explained change.
+def test_a_call_that_is_its_own_refresh_without_the_prompt_is_state_refresh(tmp_path):
+    from .fake_upstream import _Scripted, _chat_count
+
+    notes = "Objective\nRead logs.\nCurrent step and next move\nnext"
+    tools = [{"type": "function", "function": {"name": "read", "parameters": {"type": "object"}}}]
+    state = {"call": True, "i": 0}
+
+    class Answers(list):
+        """One scripted answer for every request: the notes, a tool call or a text."""
+
+        def __init__(self):
+            super().__init__([None])
+
+        def pop(self, i=0):
+            def build(raw):
+                body = json.loads(raw)
+                prompt = _chat_count(body)
+                usage = {"prompt_tokens": prompt, "completion_tokens": 1,
+                         "total_tokens": prompt + 1, "prompt_tokens_details": {"cached_tokens": 0}}
+                if "[palimnesis notes request]" in str(body["messages"][-1].get("content")):
+                    delta, finish = {"content": notes}, "stop"
+                elif state["call"]:
+                    delta = {"tool_calls": [{"index": 0, "id": f"call_{state['i']}", "type": "function",
+                                             "function": {"name": "read", "arguments": "{}"}}]}
+                    finish = "tool_calls"
+                else:
+                    delta, finish = {"content": "220"}, "stop"
+                return [b"data: " + json.dumps({"choices": [{"index": 0, "delta": delta}]}).encode() + b"\n\n",
+                        b"data: " + json.dumps({"choices": [{"index": 0, "delta": {}, "finish_reason": finish}],
+                                                "usage": usage}).encode() + b"\n\n",
+                        b"data: [DONE]\n\n"]
+            return _Scripted(status=200, headers={"content-type": "text/event-stream"}, build=build,
+                             chunks=[])
+
+    def send(url, messages):
+        r = post(url, json.dumps({"model": "m", "stream": True, "max_completion_tokens": 4096,
+                                  "tools": tools, "messages": messages}).encode())
+        assert r.status_code == 200, r.content[:300]
+
+    messages = [{"role": "system", "content": "You are a coding agent."}]
+    with acct_stack(tmp_path, input_budget=8000, protect_turn=True, notes_tokens=2048, notes_format="n2",
+                    notes_header="h2", retrieval="r2") as (fake, url, settings):
+        fake._script = Answers()
+        for i in range(3):
+            state.update(call=True, i=i)
+            messages.append({"role": "user", "content": f"Read log{i}.txt"})
+            send(url, messages)
+            messages += [{"role": "assistant", "content": None, "tool_calls": [
+                {"id": f"call_{i}", "type": "function", "function": {"name": "read", "arguments": "{}"}}]},
+                         {"role": "tool", "tool_call_id": f"call_{i}", "content": _code(i, 220)}]
+            state.update(call=False)
+            send(url, messages)
+            messages.append({"role": "assistant", "content": "220"})
+
+    calls = events(settings)
+    first_main = next(c for k, c in enumerate(calls)
+                      if k and calls[k - 1]["call_id"] == c["call_id"] + "#notes")
+    assert first_main["cause"] == "state_refresh", first_main["cause"]
+    assert explain(settings.db_path).returncode == 0

@@ -225,3 +225,20 @@ The user decided on 2026-11-05: "Claude code is closed source so let's skip supp
 - **Kept, because Pi uses them:** the Messages route, emitter, errors and admission (D84–D89). The Messages mapping copies Strata's own Messages route, including the billing-stamp pinning, which is harmless for other clients.
 - **Kept as evidence:** the S0 probes and fixtures (`docs/probes/claude_code.md`), and the S8 test that replays Claude Code's recorded `/compact`. They test the Messages protocol with real bodies, not a supported harness.
 - **Harness-neutral core is unchanged.** Pi and OpenCode remain the peers of position 4; the AST check still forbids harness names in core.
+
+## D93: Reasoning and cache accounting on Messages; Pi live through the proxy (Phase 4B S11–S13)
+
+1. **S11 and S12 needed no code.** On a Messages tool loop with thinking, a breakpoint moving every turn and a proxy restart, the upstream render equals the render of what the model generated, as Chat with its reasoning. That holds whether the client resends the thinking or leaves it out, since archived reasoning is restored (contracts §9). The earlier prompt is a token prefix of the next one across the restart, and `--explain` finds nothing unexplained (`tests/test_messages_reasoning_cache.py`).
+2. **A new allowed cause, from the live run.** The first Pi gate session had one unexplained pair: a main call right after its own notes refresh.
+   - The session's first masked view was also its first collapse. Protect-turn kept the whole current turn in view, so the collapse hid nothing visible and no notes block rendered.
+   - The main call was therefore exactly the refresh call without its notes prompt. That change is the refresh ending, so it is recorded as `state_refresh`.
+   - Reproduced deterministically with plain Chat strings, so it is not Pi-specific (`test_a_call_that_is_its_own_refresh_without_the_prompt_is_state_refresh`). R41's ho3 runs never hit it: their first masked views came before their first collapses.
+   - Known cost, recorded and not changed here, because `a4-d77` is frozen: such a move still spends one refresh call while hiding nothing.
+3. **S13, Pi live** (R43, `eval/probes/pi_live_smoke.py`). Pi 1.5.0 on Windows used the shipped adapter, a local proxy, and Strata 0.1.54 on pythia through an SSH tunnel, with a throwaway agent directory and home.
+   - Smoke on Chat and on Messages: a tool loop, then a second turn in the same Pi session.
+   - The gate: four large files read with a budget of 8,000, the first then deleted. Pi answered the code from history, then confirmed it with its own `grep` on the session's transcript directory.
+   - Every archive: `--explain` 0 unexplained, `transcripts verify` passes, no failed attempts.
+   - Pi is listed as supported on both protocols, with the transcript-file fallback (position 5).
+4. **Driver lessons.**
+   - On Windows, terminating `uv run` leaves its child server running and holding the archive lock, so the driver starts the server with `python -m palimnesis`.
+   - Transcript projection is asynchronous, so the checks run while the proxy still serves, retrying `verify` until the projector has caught up.

@@ -251,6 +251,12 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
                         else "internal_continuation" if prev.request_id == cur.request_id
                         and "#" in cur.call_id else "append")
         return out
+    if prev.call_id == f"{cur.call_id}#notes" and lcp >= b.generation_start:
+        # D93: the call after its own refresh is that refresh without the notes prompt, when
+        # the move hid nothing visible (protect-turn kept the whole current turn), so no
+        # notes block renders: the refresh ending, nothing else.
+        out["cause"] = "state_refresh"
+        return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))
     ps = a.segments[s]
     cs = b.segments[s] if s < len(b.segments) else None

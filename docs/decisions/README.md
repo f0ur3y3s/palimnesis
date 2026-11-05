@@ -108,3 +108,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D90 | Harness strings as adapter data; tool-result rule deferred (S7) | [phase4b.md](phase4b.md) |
 | D91 | Pi through the proxy; failed partials may be omitted (S8, S9) | [phase4b.md](phase4b.md) |
 | D92 | Claude Code is backlogged (user, 2026-11-05) | [phase4b.md](phase4b.md) |
+| D93 | Reasoning and accounting on Messages; `state_refresh` for a refresh that hid nothing; Pi live (S11–S13) | [phase4b.md](phase4b.md) |

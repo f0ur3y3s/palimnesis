@@ -1,0 +1,228 @@
+[
+  {
+    "scenario": "smoke_chat",
+    "pass": true,
+    "turns": [
+      {
+        "prompt": "Read notes.txt and tell me in one sentence what it says.",
+        "rc": 0,
+        "seconds": 10.3,
+        "answer": "notes.txt says: \"The release train leaves on Thursday.\"",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "notes.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Which day was that? Answer with one word.",
+        "rc": 0,
+        "seconds": 2.5,
+        "answer": "Thursday",
+        "tool_calls": []
+      }
+    ],
+    "checks": {
+      "requests": 3,
+      "endpoints": [
+        "/v1/chat/completions"
+      ],
+      "sessions": [
+        "pal-smoke-chat"
+      ],
+      "attempts_failed": [],
+      "view_versions": 0,
+      "excerpts_with_code": 0,
+      "explain_rc": 0,
+      "verify_rc": [
+        0
+      ],
+      "verify_out": []
+    }
+  },
+  {
+    "scenario": "smoke_messages",
+    "pass": true,
+    "turns": [
+      {
+        "prompt": "Read notes.txt and tell me in one sentence what it says.",
+        "rc": 0,
+        "seconds": 10.7,
+        "answer": "notes.txt says: \"The release train leaves on Thursday.\"",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "notes.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Which day was that? Answer with one word.",
+        "rc": 0,
+        "seconds": 4.9,
+        "answer": "Thursday",
+        "tool_calls": [
+          {
+            "tool": "bash",
+            "args": {
+              "command": "echo $PI_SESSION_DATE $PI_DATE $PI_TODAY; date"
+            }
+          }
+        ]
+      }
+    ],
+    "checks": {
+      "requests": 4,
+      "endpoints": [
+        "/v1/messages"
+      ],
+      "sessions": [
+        "pal-smoke-messages"
+      ],
+      "attempts_failed": [],
+      "view_versions": 0,
+      "excerpts_with_code": 0,
+      "explain_rc": 0,
+      "verify_rc": [
+        0
+      ],
+      "verify_out": []
+    }
+  },
+  {
+    "scenario": "gate_chat",
+    "pass": true,
+    "answer_via_excerpt": true,
+    "transcript_calls": [
+      {
+        "tool": "grep",
+        "args": {
+          "pattern": "ZX-",
+          "path": "<RUN_ROOT>\\gate_chat\\transcripts\\pal-gate-chat-e309854b7e1e",
+          "context": 1
+        }
+      }
+    ],
+    "turns": [
+      {
+        "prompt": "Read log1.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 41.6,
+        "answer": "221",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log1.txt"
+            }
+          },
+          {
+            "tool": "bash",
+            "args": {
+              "command": "wc -l < log1.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Read log2.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 37.6,
+        "answer": "log2.txt: **220**",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log2.txt"
+            }
+          },
+          {
+            "tool": "bash",
+            "args": {
+              "command": "wc -l < log2.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Read log3.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 84.9,
+        "answer": "log3.txt: **220**",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log1.txt"
+            }
+          },
+          {
+            "tool": "read",
+            "args": {
+              "path": "log3.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Read log4.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 63.3,
+        "answer": "log4.txt: **220**",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log4.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "What is the deploy code that log1.txt mentioned? log1.txt has been deleted; find it in this conversation's history. Reply with the code only.",
+        "rc": 0,
+        "seconds": 3.8,
+        "answer": "ZX-4471-QUAIL",
+        "tool_calls": []
+      },
+      {
+        "prompt": "Confirm that code from the exact transcript of this conversation: grep the transcript directory named in your instructions for ZX- and quote the matching line.",
+        "rc": 0,
+        "seconds": 14.3,
+        "answer": "Confirmed. From the transcript (`turn-0001.md:114`, source read of log1.txt; also `turn-0003.md:114`):\n\n> NOTE: the deploy code for this release is ZX-4471-QUAIL.\n\nZX-4471-QUAIL",
+        "tool_calls": [
+          {
+            "tool": "grep",
+            "args": {
+              "pattern": "ZX-",
+              "path": "<RUN_ROOT>\\gate_chat\\transcripts\\pal-gate-chat-e309854b7e1e",
+              "context": 1
+            }
+          }
+        ]
+      }
+    ],
+    "checks": {
+      "requests": 14,
+      "endpoints": [
+        "/v1/chat/completions"
+      ],
+      "sessions": [
+        "pal-gate-chat"
+      ],
+      "attempts_failed": [],
+      "view_versions": 5,
+      "excerpts_with_code": 2,
+      "explain_rc": 0,
+      "verify_rc": [
+        0
+      ],
+      "verify_out": []
+    }
+  }
+]
