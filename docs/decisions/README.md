@@ -99,3 +99,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D81 | Phase 4B scope decisions (user, 2026-11-05) | [phase4b.md](phase4b.md) |
 | D82 | Phase 4B decisions settled by the S0 probes (user, 2026-11-05) | [phase4b.md](phase4b.md) |
 | D83 | Client-protocol seam (S1); Strata stays at one slot | [phase4b.md](phase4b.md) |
+| D84 | Messages subset and neutral mapping (S2) | [phase4b.md](phase4b.md) |

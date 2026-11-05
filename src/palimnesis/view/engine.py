@@ -161,7 +161,7 @@ class ViewEngine:
 
     def _prepare(self, req: chat.ChatRequest, extra_fixed: int = 0,
                  extra_tools: list | None = None) -> Prepared:
-        tools, args = self.counter.render_args(json.loads(req.raw))
+        tools, args = self.counter.render_args(json.loads(req.chat_body))
         # extra_tools: hidden tool schemas the request may carry (D54), counted as fixed.
         counted_tools = [*(tools or []), *extra_tools] if extra_tools else tools
         limit_field = ("max_completion_tokens" if "max_completion_tokens" in req.settings

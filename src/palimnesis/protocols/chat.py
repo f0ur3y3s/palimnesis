@@ -128,8 +128,11 @@ def _blocks(m: dict[str, Any]) -> tuple[Block, ...]:
 
 @dataclass(frozen=True)
 class ChatRequest:
-    """A parsed request. ``settings`` holds the fingerprinted top-level fields that
-    were present; ``stream``/``stream_options`` are transport-only (contracts §6)."""
+    """A parsed request in the neutral, Chat-shaped form. ``settings`` holds the
+    fingerprinted top-level fields that were present; ``stream``/``stream_options`` are
+    transport-only (contracts §6). ``raw`` is the client's body as sent, which the
+    archive stores; ``neutral`` is the Chat body another client protocol mapped it to
+    (``palimnesis.protocols.messages``), or None when the client spoke Chat."""
 
     messages: tuple[Message, ...]
     settings: dict[str, Any]
@@ -137,6 +140,12 @@ class ChatRequest:
     stream_options: dict[str, Any] | None
     top_level_order: tuple[str, ...]
     raw: bytes
+    neutral: bytes | None = None
+
+    @property
+    def chat_body(self) -> bytes:
+        """The request as a Chat Completions body: what the upstream receives unchanged."""
+        return self.raw if self.neutral is None else self.neutral
 
 
 # Fingerprinted generation settings forwarded as sent (decision D10 item 14).
@@ -376,7 +385,7 @@ def render_upstream(
     insertions: Mapping[int, Sequence[dict[str, Any]]] | None = None,
     replacements: Mapping[int, dict[str, Any]] | None = None,
 ) -> bytes:
-    """The upstream body: ``req.raw`` unchanged when nothing is spliced.
+    """The upstream body: ``req.chat_body`` unchanged when nothing is spliced.
 
     ``insertions[i]`` are message objects placed before client message ``i``
     (``i == len(req.messages)`` appends); ``replacements[i]`` substitutes client
@@ -386,7 +395,7 @@ def render_upstream(
     insertions = insertions or {}
     replacements = replacements or {}
     if not any(insertions.values()) and not replacements:
-        return req.raw
+        return req.chat_body
     n = len(req.messages)
     for i in insertions:
         if not 0 <= i <= n:

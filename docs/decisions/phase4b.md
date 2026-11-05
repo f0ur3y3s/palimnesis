@@ -127,3 +127,16 @@ The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs
 - Two slots fit at 32K per slot, but the expert cache shrinks from 5.17 to 4.05 GiB and decode drops from 50.9 to 34.3 tok/s for a single request.
 - Two concurrent requests finish at 59 and 62 s, against 27 and 54 s on one slot, because Strata still prefills one request at a time and decode stalls during the other's prefill.
 - Admission (S6) reads `total_slots` from `/props` and dispatches up to it, so a larger card needs no code change.
+
+## D84: The Messages subset and its neutral mapping (Phase 4B S2)
+
+`palimnesis.protocols.messages.parse` maps a Messages body to the neutral Chat form as Strata 0.1.54's Messages route renders it. The M2 corpus is the test: every case the subset accepts counts, locally on its neutral body, exactly the prompt the Messages route rendered (`test_parity_corpus_counts_equal_recorded_count_tokens`, 45 cases), and the other 12 are rejected. Contracts §16 has the table. Choices the plan left open:
+
+1. **`ChatRequest.neutral`.** The raw Anthropic body stays the archived `raw`. A new optional field carries the neutral Chat body, and `chat_body` returns whichever the upstream and the counter read. Chat requests leave it unset, so nothing changes for them.
+2. **Assistant turns with no text have `content: null`,** not `""`. The archive rebuilds such a turn with null content (`ledger.message_dict`), and an empty text block would change the content hash against the generated turn. Both render the same tokens (parity cases with thinking and tool calls).
+3. **`budget_tokens` maps to an effort level only.** Strata's Messages route also turns it into `reasoning_budget_tokens`, a hard cap on thinking. The Chat subset has no such field, so a Pi request (`budget_tokens: 7168`) thinks at `medium` with no cap through Palimnesis. That is a known difference from the direct Messages arm, recorded here rather than hidden; adding the field to the Chat subset is a later choice.
+4. **Accepted with no effect:** `thinking.display` (Pi sends `summarized`), `eager_input_streaming` (Pi), `metadata.user_id` (Claude Code), `cache_control` with type `ephemeral` and an optional `ttl`, and `signature`.
+5. **`is_error` is not in the neutral form.** Strata does not render it, so a resend that flips it is not a divergence. The raw body keeps it.
+6. **Rejected where Strata would drop silently:** `redacted_thinking`, `document`, images and unknown block types. Strata leaves them out of the prompt. Accepting them would make the archive hold content the model never saw.
+7. **Late `system` becomes `user`.** It is rendered as Strata renders it, but the core would then take it for a user instruction. S7's instruction rule must leave such a message out; until then, Messages archive mode is not offered (S4 lands after S7's rule or with it).
+8. **Tool-call arguments are compact JSON in the client's key order.** Strata parses arguments into an object before rendering, so spacing does not reach the tokens; key order does (M2). The generated turn's archived arguments are the upstream's own string, so S4 must reconcile a resent `tool_use` input against it by JSON value in order, not by bytes.

@@ -258,3 +258,29 @@ A visible response is one upstream call, or several when hidden recall tools ans
 - **Archive.** Each upstream call is its own generation; results are internal rows (`view='internal'`), never full-text indexed and never excerpted. The client's resend of the one visible message reconciles against the composite of those parts (D51); the upstream sees every part and result in order.
 - **Results** are exact by address and range, never another record's content (contracts §11 provenance), and never exceed their cap under the pinned counter.
 
+## 16. Client protocols (Phase 4B)
+
+**[enforced]** for the parse (`palimnesis.protocols.messages`, S2); the `/v1/messages` archive route is **[defined, Ph4B S4]**.
+
+- **One upstream dialect.** A client protocol parses the client's body into the neutral, Chat-shaped request; the upstream call is always Chat Completions (position 2, D83). The archive stores the client's raw body; `ChatRequest.chat_body` is the neutral Chat body.
+- **Allowlist.** Every Messages field is mapped, accepted with no upstream effect, or rejected before acceptance with `400 unsupported_feature`, as for Chat (§3).
+- **Mapping** (copies Strata 0.1.54's own Messages route, so the neutral body renders the same tokens: `docs/probes/strata.md` §13.2, D82, D84):
+
+| Messages | Neutral Chat |
+|---|---|
+| `system` (string or text blocks) | One leading `system` message, blocks joined with `""`; a leading Claude Code billing stamp has `cch=` and the 4th `cc_version` part pinned to `f`s |
+| User text blocks | One `user` message, joined with `""`, after the message's tool results |
+| `tool_result` (string or text blocks, `is_error`) | A `tool` message per result, in order; text blocks joined with `""`; `is_error` not rendered |
+| Assistant `thinking` / `text` / `tool_use` | `reasoning_content` / `content` (null when no text) / `tool_calls`; arguments are the input as compact JSON in the client's key order |
+| `role: system` in the first position, no top-level `system` | `system` |
+| `role: system` anywhere else | `user`, in place (O-4B-12) |
+| `tools[]` (`name`, `description`, `input_schema`) | Function tools; a missing `description` is `""` |
+| `tool_choice` `auto` / `none` | `"auto"` / `"none"` |
+| `thinking.type: disabled` | `reasoning_effort: "none"` (wins over an effort) |
+| `output_config.effort` | `reasoning_effort` (`max` → `xhigh`) |
+| `thinking.budget_tokens` (no effort given) | `reasoning_effort`: under 2,048 `low`, under 8,192 `medium`, else `xhigh` |
+| `max_tokens`, `model`, `temperature`, `top_p`, `stream` | The same; a streaming request also gets `stream_options.include_usage` |
+| `cache_control`, `signature`, `metadata.user_id`, `eager_input_streaming`, `thinking.display`, `thinking.type` `enabled`/`adaptive` | Accepted, not rendered |
+| `redacted_thinking`, `image`, `document`, server tools and their blocks, `top_k`, `stop_sequences`, other `tool_choice` forms, `context_management`, unknown fields | Rejected |
+
+- **Content identity.** A message's content hash covers only what renders, so a moved `cache_control` and a single text block sent as a string hash alike. The fingerprint (§6) covers the raw body minus `stream`.

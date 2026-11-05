@@ -437,7 +437,7 @@ class Accountant:
                 if fixed is None or _sha(fixed["text"]) != prev.formats["addendum"]:
                     return prev
                 items = with_addendum(items, fixed["text"])
-            tools, kw = self.profile.counter.render_args(json.loads(req.raw))
+            tools, kw = self.profile.counter.render_args(json.loads(req.chat_body))
             if prev.formats.get("hidden_tools"):
                 fixed_tools = ledger.fixed_hidden_tools(conn, prev.branch_id)
                 if fixed_tools is None or _sha(fixed_tools["tools"]) != prev.formats["hidden_tools"]:
