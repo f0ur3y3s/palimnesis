@@ -60,16 +60,21 @@ class ClientProtocol:
     endpoint: str  # the client path archived on the request row and fingerprinted
     transport_fields: frozenset[str]  # top-level fields the fingerprint ignores (§6)
     parse: Callable[[bytes], chat.ChatRequest]  # raises chat.Unsupported / chat.InvalidBody
-    emitter: Callable[[], Emitter]
+    emitter: Callable[..., Emitter]  # called with model=<the client's requested model>
     # Query strings accepted on the endpoint, or None for any (relayed to the upstream
     # only when the client spoke its dialect).
     queries: frozenset[str] | None = None
     # Whether the hidden recall tools may be offered (Phase 3B; Chat only, position 1).
     hidden_tools: bool = False
+    # Keys left out of the fingerprint at any depth (§6): content that renders nothing.
+    ignored_keys: frozenset[str] = frozenset()
 
 
 class ChatEmitter:
     """OpenAI Chat Completions clients get the upstream's own bytes."""
+
+    def __init__(self, model: str | None = None) -> None:
+        self.model = model
 
     def feed(self, data: bytes) -> bytes:
         return data
@@ -116,6 +121,7 @@ MESSAGES = ClientProtocol(
     emitter=MessagesEmitter,
     # Claude Code and Pi join ``?beta=true`` (HC1, HP1); Strata ignores it (M5).
     queries=frozenset({"", "beta=true"}),
+    ignored_keys=frozenset({"cache_control"}),
 )
 #: Relayed unarchived in archive mode (O-4B-10): a count changes nothing.
 COUNT_TOKENS_ENDPOINT = "/v1/messages/count_tokens"

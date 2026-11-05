@@ -325,12 +325,14 @@ RESIDUE_SLACK = 8  # template junction tokens around the span note
 
 
 def with_addendum(items, addendum: str | None) -> list:
-    """``items`` with the addendum appended to the first system message's text, in
-    the upstream copy only (D36). Without a system message one is prepended."""
+    """``items`` with the addendum appended to the leading system message's text, in
+    the upstream copy only (D36). Without a leading system message one is prepended: a
+    system message later in the conversation renders as a user turn (D86), so the
+    addendum never joins one (cache audit, D95)."""
     items = list(items)
     if not addendum:
         return items
-    for i, item in enumerate(items):
+    for i, item in enumerate(items[:1]):
         if item.message.get("role") != "system":
             continue
         message = dict(item.message)

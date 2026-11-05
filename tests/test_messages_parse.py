@@ -296,3 +296,28 @@ def test_parity_corpus_counts_equal_recorded_count_tokens():
     assert refused == REJECTED_CASES
     assert len(accepted) == len(cases) - len(REJECTED_CASES)
     assert mismatched == []
+
+
+def test_messages_fingerprint_excludes_transport_and_cache_control():
+    """§6 for Messages: ``stream`` is transport-only and a moved cache breakpoint changes
+    nothing the model sees, so neither changes the fingerprint; content does."""
+    from palimnesis import protocols
+    from palimnesis.archive.fingerprint import fingerprint_v1
+
+    def fp(doc):
+        p = protocols.MESSAGES
+        return fingerprint_v1(p.endpoint, "s", "s/main", doc, p.transport_fields, p.ignored_keys)
+
+    cc = {"type": "ephemeral"}
+    base = {"model": "m", "max_tokens": 64, "system": [{"type": "text", "text": "S"}],
+            "messages": [{"role": "user", "content": [{"type": "text", "text": "hi"}]}]}
+    moved = {**base, "stream": True, "system": [{"type": "text", "text": "S", "cache_control": cc}],
+             "messages": [{"role": "user", "content": [{"type": "text", "text": "hi",
+                                                        "cache_control": cc}]}]}
+    edited = {**base, "messages": [{"role": "user", "content": [{"type": "text", "text": "hey"}]}]}
+
+    assert fp(base) == fp(moved)
+    assert fp(base) != fp(edited)
+    chat = {"model": "m", "messages": [{"role": "user", "content": "hi"}], "cache_control": 1}
+    assert fingerprint_v1("/v1/chat/completions", "s", "s/main", chat) != fingerprint_v1(
+        "/v1/chat/completions", "s", "s/main", {k: v for k, v in chat.items() if k != "cache_control"})

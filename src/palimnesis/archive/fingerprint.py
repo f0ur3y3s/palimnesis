@@ -18,18 +18,35 @@ import json
 from typing import Mapping
 
 FINGERPRINT_VERSION = 1
+# v2 is v1 with ``ignored_keys`` dropped at any depth (Messages: ``cache_control``, D95);
+# Chat ignores none and stays v1, so its fingerprints are unchanged.
+FINGERPRINT_VERSION_IGNORING = 2
 TRANSPORT_ONLY_FIELDS = frozenset({"stream", "stream_options"})
 RETRY_HINT_HEADERS = ("x-stainless-retry-count",)
 MAX_RETRY_HINT = 100
 
 
+def _without(value, keys: frozenset[str]):
+    if isinstance(value, Mapping):
+        return {k: _without(v, keys) for k, v in value.items() if k not in keys}
+    if isinstance(value, list):
+        return [_without(v, keys) for v in value]
+    return value
+
+
 def fingerprint_v1(endpoint: str, session: str, branch: str, request: Mapping,
-                   transport_fields: frozenset[str] = TRANSPORT_ONLY_FIELDS) -> str:
-    """``transport_fields`` are the client protocol's (``ClientProtocol.transport_fields``);
-    the default is Chat's."""
+                   transport_fields: frozenset[str] = TRANSPORT_ONLY_FIELDS,
+                   ignored_keys: frozenset[str] = frozenset()) -> str:
+    """``transport_fields`` are the client protocol's top-level transport-only fields
+    (``ClientProtocol.transport_fields``; the default is Chat's). ``ignored_keys`` are keys
+    dropped at any depth (Messages: ``cache_control``, which moves every turn and renders
+    nothing). Chat ignores none, so its fingerprints are unchanged."""
     semantic = {k: v for k, v in request.items() if k not in transport_fields}
+    if ignored_keys:
+        semantic = _without(semantic, ignored_keys)
     canonical = json.dumps(
-        {"v": FINGERPRINT_VERSION, "endpoint": endpoint, "session": session,
+        {"v": FINGERPRINT_VERSION_IGNORING if ignored_keys else FINGERPRINT_VERSION,
+         "endpoint": endpoint, "session": session,
          "branch": branch, "request": semantic},
         sort_keys=True,
         separators=(",", ":"),

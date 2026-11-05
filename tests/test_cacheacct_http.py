@@ -388,6 +388,7 @@ def test_explain_reports_each_consecutive_pair(tmp_path):
                         "call_id": call["call_id"], "lcp_tokens": call["lcp_tokens"],
                         "cached_tokens": call["cached_tokens"],
                         "expected_reuse_est": call["expected_reuse_est"],
+                        "expected_reuse_label": "estimate",
                         "cause": "append", "reuse_class": call["reuse_class"]}
     classes = [c["reuse_class"] for c in calls[1:3]]
     assert out["summary"] == {"calls": 3, "pairs": 2, "unexplained": 0,

@@ -486,3 +486,25 @@ def test_a_length_stopped_turn_may_be_omitted_and_is_superseded():
 
     assert isinstance(result, Extend) and result.matched == 2
     assert result.superseded == ("occ-len",)
+
+
+def test_a_failed_partial_the_client_resent_may_not_be_deleted_later():
+    """D95 (protocol review): Pi leaves a failed partial out from the next request on. An
+    edit that deletes one a later request had resent is a divergence, as before O-4B-5."""
+    archive = _archive(SYS, U1, PARTIAL, U2, generated(text="answer"))
+    deleted = client(SYS, U1, U2, {"role": "assistant", "content": "answer"},
+                     {"role": "user", "content": "more"})
+
+    assert isinstance(reconcile(deleted, archive), Divergence)
+    # Left out from the first request after it, then again: accepted both times.
+    assert reconcile(deleted, archive, frozenset({PARTIAL.occ_id})).matched == 4
+
+
+def test_a_length_stopped_turn_the_client_resent_may_not_be_deleted_later():
+    cut = Archived.generated("occ-len", text="Truncated", reasoning="", tool_calls=(),
+                             complete=True, truncated=True)
+    archive = _archive(SYS, U1, cut, U2, generated(text="answer"))
+    deleted = client(SYS, U1, U2, {"role": "assistant", "content": "answer"},
+                     {"role": "user", "content": "more"})
+
+    assert isinstance(reconcile(deleted, archive), Divergence)

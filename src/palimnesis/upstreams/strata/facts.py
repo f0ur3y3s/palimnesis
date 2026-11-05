@@ -85,6 +85,22 @@ CANARY_CASES: tuple[tuple[str, dict[str, Any]], ...] = (
         {"messages": [{"role": "user", "content": "café 10 Å 각"}]},
     ),
     (
+        # A mid-conversation system message, rendered as user (counter c5, D86). Count
+        # recorded on 0.1.54 (p22 ``mid_system_with_top``: 91).
+        "mid_system_with_top",
+        {"system": "You are terse.",
+         "messages": [{"role": "user", "content": "Q1"}, {"role": "assistant", "content": "A1"},
+                      {"role": "system", "content": "Hook context: the user prefers metric units."},
+                      {"role": "user", "content": "Q2"}]},
+    ),
+    (
+        # An effort word Strata remaps: high renders as xhigh (counter c5, D86). Recorded on
+        # 0.1.54 (p22 ``effort_high``: 59).
+        "effort_high",
+        {"system": "You are terse.", "messages": [{"role": "user", "content": "Q1"}],
+         "output_config": {"effort": "high"}},
+    ),
+    (
         "tool_turn_think",
         {
             "messages": [

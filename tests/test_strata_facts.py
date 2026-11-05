@@ -23,6 +23,10 @@ PROBES = Path(__file__).resolve().parents[1] / "eval" / "probes" / "fixtures"
 SERVER_COUNTS = {k: v["body"]["input_tokens"]
                  for k, v in json.loads((PROBES / "count_tokens.json").read_text(encoding="utf-8")).items()
                  if v["status"] == 200}
+# The c5 canary cases were recorded on 0.1.54 by the M2 parity probe (D95).
+SERVER_COUNTS.update({c["name"]: c["ct"]["input_tokens"] for c in json.loads(
+    (PROBES / "strata_messages" / "p22_messages_render_parity.json").read_text(encoding="utf-8")
+)["cases"] if c["name"] in ("mid_system_with_top", "effort_high")})
 
 
 @pytest.fixture

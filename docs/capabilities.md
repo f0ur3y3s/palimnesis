@@ -28,7 +28,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | --- | --- | --- | --- |
 | `POST /v1/chat/completions` (stream) | relayed | **supported (Ph1)** | first-harness path; live-verified with OpenCode |
 | `POST /v1/chat/completions` (non-stream) | relayed | **supported (Ph1)** | no first-harness traffic; fake-upstream tests only |
-| `POST /v1/messages` (+ `count_tokens`) | relayed | archived (Ph4B S4, D87); `count_tokens` relayed unarchived; harness cells stay planned until their live smoke (position 5) | Strata's own errors lack Anthropic's envelope (archive mode adds it, D88); final `usage.input_tokens` is 1 |
+| `POST /v1/messages` (+ `count_tokens`) | relayed | archived (Ph4B S4, D87): the Messages subset of contracts §16, upstream always Chat; `count_tokens` relayed unarchived; supported for Pi (R43) | Strata's own errors lack Anthropic's envelope (archive mode adds it, D88); final `usage.input_tokens` is 1 |
 | `POST /v1/responses` and any other `POST` | relayed | rejected, `unsupported_feature` | upstream is stateless |
 | `GET`/`HEAD`/`OPTIONS` (`/v1/models`, `/props`, `/health`) | relayed | relayed | metadata |
 
@@ -58,6 +58,22 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | `chat_template_kwargs.preserve_thinking`, `reasoning_format` | rejected (Ph1) | ignored upstream; accepting them would misstate behavior |
 | Image / audio content parts | rejected (Ph1) | multimodal not listed |
 | `n > 1`, `logprobs`, `response_format` | rejected (Ph1) | |
+
+## Anthropic Messages request features (Pi; Phase 4B)
+
+The subset and its mapping are contracts §16; in short:
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `system` (string or text blocks), user/assistant text, `thinking`, `tool_use`, `tool_result` (string or text blocks, `is_error`) | supported | mapped to the neutral Chat form as Strata's Messages route renders it (D84, D86); M2 parity corpus exact |
+| `role: system` mid-conversation | supported | kept as `system`; rendered as `user` upstream, as Strata does; never an instruction (D86) |
+| `tools` (`name`, `description`, `input_schema`, `cache_control`, `eager_input_streaming`), `tool_choice` `auto`/`none` | supported | other `tool_choice` forms rejected |
+| `thinking` `enabled`/`disabled`/`adaptive`, `budget_tokens`, `display`; `output_config.effort` | supported | mapped to `reasoning_effort`; `budget_tokens` maps to a level only, not a hard cap (D84) |
+| `cache_control`, `signature`, `metadata.user_id` | accepted, not rendered | `cache_control` is outside the content hash and the fingerprint |
+| `?beta=true` | accepted | any other query string is rejected |
+| `redacted_thinking`, images, documents, server tools, `stop_sequences`, `top_k`, `context_management`, unknown fields | rejected | `400 unsupported_feature` in Anthropic's envelope |
+| Streaming output | supported | `message_start` … `message_stop`; thinking with an empty signature (O-4B-2); one `event: error` on failure; `event: ping` keepalives (D85, D89) |
+| Hidden recall tools | not offered | Chat only (Phase 4B position 1) |
 
 ## Lifecycle features (first harness)
 

@@ -142,6 +142,7 @@ def explain(db_path: Path, session: str | None = None) -> dict:
     pairs = [{"session": x["branch_id"].rsplit("/", 1)[0], "prev_call_id": x["prev_call_id"],
               "call_id": x["call_id"], "lcp_tokens": x["lcp_tokens"],
               "cached_tokens": x["cached_tokens"], "expected_reuse_est": x["expected_reuse_est"],
+              "expected_reuse_label": x.get("expected_reuse_label"),
               "cause": x["cause"], "reuse_class": x["reuse_class"]}
              for x in calls if x["prev_call_id"] is not None]
     classes: dict[str, int] = {}

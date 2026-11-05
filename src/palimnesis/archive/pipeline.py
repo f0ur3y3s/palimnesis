@@ -197,7 +197,8 @@ class ArchiveHandler:
         str_headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in headers}
         idem_key = next((v for k, v in str_headers.items() if k.lower() == "idempotency-key"), None)
         fingerprint = fingerprint_v1(protocol.endpoint, session, ledger.branch_id_for(session),
-                                     json.loads(body), protocol.transport_fields)
+                                     json.loads(body), protocol.transport_fields,
+                                     protocol.ignored_keys)
         try:
             # Shielded: once the accept transaction is submitted it commits even if
             # the client leaves, so its outcome must be observed and cleaned up here.
@@ -223,7 +224,7 @@ class ArchiveHandler:
             await response(scope, receive, send)
             return
 
-        gen = ledger.Generation(plan, emitter=protocol.emitter())
+        gen = ledger.Generation(plan, emitter=protocol.emitter(model=req.settings.get("model")))
         if plan.replay is None:
             self._changed(session)
         started = False
@@ -718,7 +719,6 @@ class ArchiveHandler:
                 if event.data is None or event.data == "[DONE]":
                     continue
                 parts += ledger.deltas(json.loads(event.data))
-            data = gen.emitter.feed(b"".join(e.raw for e in batch))
             forwarded_before = gen.forwarded
 
             def commit(c):
@@ -728,6 +728,9 @@ class ArchiveHandler:
                                           usage=state["usage"])
 
             await self.store.write(commit)
+            # Encoded only once committed: a stateful emitter must not have produced (and
+            # then lost) message_stop when the commit fails (protocol review, D95).
+            data = gen.emitter.feed(b"".join(e.raw for e in batch))
             batches["n"] += 1
             crash_point(f"after_batch_{batches['n']}")
             if data:
@@ -1033,9 +1036,9 @@ class ArchiveHandler:
             if not pending:
                 return
             parts = [p for _, ps in pending for p in ps]
-            data = gen.emitter.feed(b"".join(b for b, _ in pending))
             forwarded_before = gen.forwarded
             await self.store.write(lambda c: ledger.commit_batch(c, gen, parts, forwarded_before))
+            data = gen.emitter.feed(b"".join(b for b, _ in pending))
             if data:
                 await send({"type": "http.response.body", "body": data, "more_body": True})
                 gen.forwarded += len(data)

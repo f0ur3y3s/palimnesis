@@ -264,6 +264,14 @@ def load_archived(conn: sqlite3.Connection, branch_id: str,
     return _fold(history)
 
 
+def superseded_ids(conn: sqlite3.Connection, branch_id: str) -> frozenset[str]:
+    """Generated turns an earlier request of the branch left out (``partial_superseded``)."""
+    return frozenset(occ for (occ,) in conn.execute(
+        "SELECT json_extract(e.payload, '$.occ_id') FROM events e"
+        " JOIN requests r ON r.request_id = e.request_id"
+        " WHERE r.branch_id = ? AND e.kind = 'partial_superseded'", (branch_id,)))
+
+
 def _fold(history: list[Archived]) -> list[Archived]:
     """One composite per attempt that made several upstream calls or hidden tool calls
     (D51): its generated parts and the internal results between them become one visible
@@ -284,6 +292,7 @@ def _fold(history: list[Archived]) -> list[Archived]:
             text="".join(p.text for p in parts), reasoning="".join(p.reasoning for p in parts),
             tool_calls=tuple(c for p in parts for c in p.tool_calls), complete=last.complete,
             cancelled=last.cancelled, delivered=last.delivered, attempt_id=last.attempt_id,
+            truncated=last.truncated,  # D94 for composite turns (cache audit, D95)
             parts=tuple(a.occ_id for a in group),
             stream=tuple((kind, piece) for p in parts
                          for kind, piece in (("reasoning", p.reasoning), ("text", p.text)) if piece))
@@ -755,7 +764,7 @@ def accept(
             return plan
 
     archived = load_archived(conn, branch_id, cache)
-    outcome = reconcile(req.messages, archived)
+    outcome = reconcile(req.messages, archived, superseded_ids(conn, branch_id))
     if isinstance(outcome, Divergence):
         raise Rejection(
             409, "history_divergence",
@@ -824,7 +833,7 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
         raise Rejection(409, "ambiguous_retry",
                         "This keyed request produced partial output before failing.")
     archived = load_archived(conn, branch_id, cache)
-    outcome = reconcile(req.messages, archived)
+    outcome = reconcile(req.messages, archived, superseded_ids(conn, branch_id))
     if not isinstance(outcome, Prefix):
         raise Rejection(409, "idempotency_conflict",
                         "This Idempotency-Key's request no longer matches the session history.")
@@ -1225,7 +1234,7 @@ def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: i
                                     (request_id,)).fetchone()
     req = protocols.for_path(endpoint).parse(get_raw(conn, raw_id))
     archived = load_archived(conn, branch_id, max_seq=max_seq)
-    outcome = reconcile(req.messages, archived)
+    outcome = reconcile(req.messages, archived, superseded_ids(conn, branch_id))
     if isinstance(outcome, Divergence):
         raise ValueError(f"request {request_id} no longer reconciles: {outcome.reason}")
     _, items = _upstream_body(conn, req, archived, outcome, None, branch_id)

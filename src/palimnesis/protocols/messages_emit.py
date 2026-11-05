@@ -19,6 +19,8 @@ order and returning Messages SSE bytes (plan §2.2).
   the cached tokens, ``cache_read_input_tokens`` the cached tokens,
   ``cache_creation_input_tokens`` 0, ``output_tokens`` the completion; input plus
   cache read equals the bounded view's prompt.
+- ``message_start`` names the client's requested model (Anthropic's echo), else the
+  upstream's.
 - Comments pass through; ``keepalive`` is ``event: ping``. Without ``[DONE]`` there is
   never a ``message_stop``: the relay ends such a stream with ``error``, an
   ``event: error`` in Anthropic's envelope. An upstream error chunk becomes that event
@@ -144,7 +146,9 @@ class MessagesEmitter:
         return _json(out)
 
     def error(self, code: str, message: str) -> bytes:
-        if self.errored or self.stopped:
+        # Only one error event. The relay asks for one only when the response was not
+        # delivered, so a message_stop encoded but never sent does not suppress it.
+        if self.errored:
             return b""
         self.errored = True
         return self._start(None) + error_event(code, message)
@@ -155,7 +159,7 @@ class MessagesEmitter:
     def error_body(self, data: bytes) -> bytes:
         """``event: error`` carrying an error body (already in Anthropic's envelope when it
         comes from the proxy or ``upstream_error``); one error event, as ``error``."""
-        if self.errored or self.stopped:
+        if self.errored:
             return b""
         self.errored = True
         return self._start(None) + b"event: error\ndata: " + self.upstream_error(500, data) + b"\n\n"

@@ -249,3 +249,25 @@ The user decided on 2026-11-05: "Claude code is closed source so let's skip supp
 - **Rule.** A generated turn whose attempt completed with the length stop may be omitted from a resend. It stays archived and is superseded, like an omitted failed partial (O-4B-5, D91). `Archived.truncated` carries it, read from the `turn_complete` event's finish reason. Any other complete turn left out is still a divergence.
 - **OpenCode is unaffected.** It resends a length-stopped reply and adds its own follow-up (D67), so the reply still matches in place.
 - **Tests:** `test_a_length_stopped_turn_may_be_omitted_and_is_superseded` (pure) and `test_pi_turn_after_a_length_stop_is_accepted` (HTTP). The four live runs pass after the fix.
+
+## D95: Phase 4B reviews (S15): protocol review and cache audit, fixes and known limits
+
+Two read-only reviews covered `phase-3..HEAD`: the protocol reviewer against contracts §3–§8 and §16, and the cache auditor against §10. Each fix below has a red test first. The S14 Pi needle driver's fake run found one more.
+
+**Fixed**
+1. **No bare close after a failed terminal commit** (protocol review). The relay encoded a batch's client bytes before committing it. On Messages that encoding already produced `message_stop`, and a failed commit then suppressed the error event. Bytes are now encoded only after the commit. The emitter's one error event is no longer suppressed by an encoded but unsent `message_stop`; the relay asks for one only when the response was not delivered. (`test_a_failed_terminal_commit_ends_with_an_error_event_not_a_bare_close`)
+2. **Omitting a failed or length-stopped turn is narrowed to where Pi omits it** (protocol review). O-4B-5 and D94 had let any such turn be left out of any later request, so an edit deleting one a later request had resent was accepted. Now the turn may be left out only while it is the newest archived turn, or once an earlier request has already superseded it (`ledger.superseded_ids`). A client-cancelled or unseen partial may still be left out anywhere, as before. (`test_a_failed_partial_the_client_resent_may_not_be_deleted_later`, `..._length_stopped_...`)
+3. **`message_start` names the requested model** (protocol review). A comment before the first chunk, which Strata sends during any prefill over 10 s, gave `"model": null`.
+4. **Messages fingerprints are version 2** (protocol review): v1 with `cache_control` dropped at any depth. Chat fingerprints stay v1, unchanged.
+5. **The addendum joins only a leading system message** (cache audit). It could join a mid-conversation system message, which renders as a user turn. That moved the prefix with no recorded cause and put addendum text in a user turn.
+6. **A composite turn keeps its last part's length stop** (cache audit), so D94 holds for hidden-loop responses too.
+7. **D93 is tightened** (cache audit). The refresh's notes prompt must start exactly where the main call's generation prompt does, so a main call that also lost later turns is not hidden as `state_refresh`.
+8. **Two canary cases for counter c5** (cache audit): `mid_system_with_top` and `effort_high`, with counts recorded on 0.1.54 by the M2 probe. A Strata build that changes either mapping now fails the startup cross-check.
+9. **`--explain --json` keeps the estimate label** (cache audit).
+10. **A refresh that stubs an earlier result to fit B_in is `state_refresh`** (found by the Pi needle driver's fake dev-h1 run). The refresh renders before its move is recorded, so the stub had no cause. It predates 4B: `a4-d77` refreshes could meet it on OpenCode too.
+
+**Known limits, recorded rather than built**
+- **Supersede after hidden continuations** (cache audit 2). When a turn that ran hidden calls fails or hits the length stop and Pi leaves it out, the next call loses parts the previous call rendered, and `--explain` reports it as unexplained. Hidden tools are off by default, offered on Chat only, and failed their gates (R32). The case is reported loudly, never silently miscounted.
+- **Headers within H before acceptance** (protocol review 4). The stream gate starts after acceptance, so a request whose view preparation and acceptance take longer than H sends headers late. Pi's header timer is 300 s.
+- **A tool name split across stream pieces** would reach a Messages client only in part (protocol review 6). Strata sends names whole (§12.1).
+- **The canary's own Messages mapping** (`facts.anthropic_to_render_args`) is a second mapping beside `protocols.messages`. It differs in `""` against `null` for empty assistant text; both render the same tokens.

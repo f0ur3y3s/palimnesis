@@ -24,10 +24,12 @@ came from an excerpt block.
 
 Subcommands:
   run        --config NAME --out RUNDIR [--histories h1,h2] [--questions N] [--upstream URL|fake]
-             [--driver emulator|opencode] [--set development|heldout|heldout2]
-             [--reason TEXT] [--ws-root DIR] [--expect-n-ctx N]   (opencode driver)
-             [--input-budget N]   (emulator default 24320; opencode driver: none unless given, O2)
-  preflight  [--set heldout] [--histories h1,h2]: imports through real OpenCode, fake upstream
+             [--driver emulator|opencode|pi] [--set development|heldout|heldout2]
+             [--reason TEXT] [--ws-root DIR] [--expect-n-ctx N]   (opencode and pi drivers)
+             [--input-budget N]   (emulator default 24320; opencode/pi drivers: none unless given, O2)
+             [--protocol chat|messages]   (pi driver)
+  preflight  [--driver opencode|pi] [--set heldout] [--histories h1,h2]: imports through the
+             real harness, fake upstream
   proxy      (internal) the proxy child
 
 ``--driver opencode`` (``eval/needle_opencode.py``) runs each history through real
@@ -35,6 +37,11 @@ OpenCode 2.1.4 instead: ``opencode session import``, then one ``opencode run --s
 per step, against the default ``serve`` budget unless ``--input-budget`` emulates a smaller
 context for development runs (O2). Held-out
 histories (``--set heldout`` and the fresh ``heldout2``, O-B1) run only that way (D44.2).
+
+``--driver pi`` (``eval/needle_pi.py``, Phase 4B S14) runs each history through real Pi 1.5.0
+with the shipped adapter: the import becomes a Pi session file, then one
+``pi --mode json --session <file>`` per step; ``a4-d77`` only. ``--upstream fake`` runs the
+same stack against the scripted fake upstream (a plumbing check).
 
 Configurations (A1 arms on the emulated 32K budget, --input-budget 24320 at 64K capacity):
   a4-base  excerpts + transcripts, q1/x1/a3     a3-base  excerpts, no transcripts (a0)
@@ -1258,8 +1265,11 @@ def main() -> int:
     r.add_argument("--tag", default=time.strftime("%m%d%H%M"))
     r.add_argument("--max-tools", type=int, default=MAX_TOOLS)
     r.add_argument("--resume", action="store_true")
-    r.add_argument("--driver", choices=["emulator", "opencode"], default="emulator",
-                   help="emulator (development default) or real OpenCode 2.1.4 (held-out, D44.2)")
+    r.add_argument("--driver", choices=["emulator", "opencode", "pi"], default="emulator",
+                   help="emulator (development default), real OpenCode 2.1.4 (held-out, D44.2) "
+                        "or real Pi 1.5.0 (Phase 4B S14)")
+    r.add_argument("--protocol", choices=["chat", "messages"], default="chat",
+                   help="pi driver: the adapter provider (Chat or Anthropic Messages)")
     r.add_argument("--set", choices=sorted(SETS), default="development")
     r.add_argument("--reason", help="opencode driver: why this attempt reruns histories (D44.7)")
     r.add_argument("--ws-root", help="opencode driver: workspace tree (default: <out>-ws, beside --out)")
@@ -1268,9 +1278,11 @@ def main() -> int:
                         "(serve's default) unless given, development only (O2)")
     r.add_argument("--expect-n-ctx", type=int, default=32768,
                    help="opencode driver: refuse unless Strata /props reports this n_ctx")
-    f = sub.add_parser("preflight", help="every import through real OpenCode against the fake upstream")
+    f = sub.add_parser("preflight", help="every import through the real harness against the fake upstream")
     f.add_argument("--set", choices=sorted(SETS), default="heldout")
     f.add_argument("--histories")
+    f.add_argument("--driver", choices=["opencode", "pi"], default="opencode")
+    f.add_argument("--protocol", choices=["chat", "messages"], default="chat")
     c = sub.add_parser("proxy")
     c.add_argument("--port", type=int, required=True)
     c.add_argument("--db", required=True)
@@ -1289,9 +1301,17 @@ def main() -> int:
         except ValueError as e:
             p.error(str(e))
     if a.cmd == "preflight":
+        if a.driver == "pi":
+            import needle_pi
+
+            return needle_pi.preflight(a)
         import needle_opencode
 
         return needle_opencode.preflight(a)
+    if a.driver == "pi":
+        import needle_pi
+
+        return needle_pi.run(a)
     if a.driver == "opencode":
         if a.upstream == "fake":
             p.error("--driver opencode needs a live upstream")

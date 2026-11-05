@@ -187,6 +187,10 @@ def _view_cause(p: Turn | None, c: Turn | None, prev: Call, cur: Call) -> str | 
     if p.occs != c.occs:
         return None
     if p.form != c.form:
+        if c.form == "stub" and not moved and cur.call_id.endswith("#notes"):
+            # The refresh stubs results to fit B_in before its move is recorded (D72); a
+            # result the previous call showed in full is that fit (D95).
+            return "state_refresh"
         if c.form != "stub" or not moved:
             return None
         oversized = set(cur.oversized) - set(prev.oversized)
@@ -251,10 +255,16 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
                         else "internal_continuation" if prev.request_id == cur.request_id
                         and "#" in cur.call_id else "append")
         return out
-    if prev.call_id == f"{cur.call_id}#notes" and lcp >= b.generation_start:
+    cut = a.segment_at(b.generation_start)
+    if (prev.call_id == f"{cur.call_id}#notes" and lcp >= b.generation_start
+            and cut is not None and cut == len(a.segments) - 2
+            and a.segments[cut].start == b.generation_start):
         # D93: the call after its own refresh is that refresh without the notes prompt, when
         # the move hid nothing visible (protect-turn kept the whole current turn), so no
-        # notes block renders: the refresh ending, nothing else.
+        # notes block renders: the refresh ending, nothing else. The refresh's last turn
+        # before its generation prompt (the notes prompt) must start exactly where this
+        # call's generation prompt does, so a call that also lost later turns is not
+        # hidden by it (cache audit, D95).
         out["cause"] = "state_refresh"
         return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))

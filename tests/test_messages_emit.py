@@ -205,3 +205,19 @@ def test_a_lone_surrogate_is_sent_escaped_as_valid_utf8():
 
     out.decode("utf-8")  # strict: no WTF-8 bytes reach the client
     assert b'"a\ud800b"' in out
+
+
+def test_message_start_names_the_requested_model():
+    """Protocol review (D95): a comment before the first chunk must not leave the model null."""
+    out = events(MessagesEmitter(message_id="msg_test", model="qwen-x").feed(b": keep-alive\n\n"))
+    assert out[0][1]["message"]["model"] == "qwen-x"
+
+
+def test_an_error_still_follows_a_message_stop_that_was_never_sent():
+    """Protocol review (D95): the relay asks for an error only when the response was not
+    delivered; a message_stop encoded but lost must not suppress it."""
+    e = MessagesEmitter(message_id="msg_test")
+    e.feed(chunk({"content": "x"}) + chunk(finish="stop") + DONE)  # encoded, never sent
+
+    assert [n for n, _ in events(e.error("archive_unavailable", "lost"))] == ["error"]
+    assert e.error("again", "x") == b""

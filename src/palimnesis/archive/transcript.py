@@ -39,8 +39,11 @@ its final commit leaves the client holding only a prefix.
 
 A partial may be *omitted*: it stays archived but is superseded, and the resend
 aligns past it (D10.4). OpenCode drops a reply interrupted from the client side
-(results R9); Pi drops every failed partial, server-failed ones included, on both
-protocols and with its retries on or off (``docs/probes/pi.md`` HP4.3, O-4B-5, D82).
+(results R9), anywhere. Pi drops every failed partial, server-failed ones included, on
+both protocols and with its retries on or off (``docs/probes/pi.md`` HP4.3, O-4B-5,
+D82), from the very next request on: a server-failed partial may be left out when it is
+the newest archived turn or was already superseded, never once a request resent it
+(D95).
 A turn the length stop cut short may be omitted too: Pi treats it like a failed one
 (``eval/probes/pi_proxy_faults.py``, D94). Any other complete turn the client received in
 full may not be omitted.
@@ -245,8 +248,18 @@ def _mismatch(message: Message, archived: Archived) -> str | None:
     return None
 
 
-def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
+def reconcile(messages: tuple[Message, ...], archived: list[Archived],
+              already_superseded: frozenset[str] = frozenset()):
+    """``already_superseded`` holds occurrences an earlier request left out (D95)."""
     visible = [a for a in archived if a.view != "internal"]
+
+    def omittable(j: int, past: Archived) -> bool:
+        # A failed or length-stopped turn may be left out where Pi leaves it out: from the
+        # first request after it (it is the newest archived turn) and every one after
+        # (already superseded). Deleting one the client had resent is a divergence
+        # (protocol review, D95).
+        return j == len(visible) - 1 or past.occ_id in already_superseded
+
     context_changed: list[int] = []
     partials: list[tuple[int, int]] = []
     aligned: list[str] = []
@@ -271,7 +284,8 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
                 # An incomplete answer may be left out of the resend, whether the client
                 # cancelled it, saw nothing of it (only hidden calls, D51) or saw it fail
                 # (O-4B-5, D82): it is superseded, never merged.
-                if not past.complete:
+                unseen = not (past.text or past.reasoning or past.tool_calls)
+                if not past.complete and (past.cancelled or unseen or omittable(j, past)):
                     superseded.append(past.occ_id)
                     j += 1
                     continue
@@ -286,7 +300,7 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
                         continue
                     return Divergence(i, reason)
                 partials.append((i, extent))
-        elif past.truncated and message.role != "assistant":
+        elif past.truncated and message.role != "assistant" and omittable(j, past):
             # A reply the length stop cut short, left out of the resend (D94): superseded.
             superseded.append(past.occ_id)
             j += 1

@@ -347,3 +347,25 @@ def test_deadline_before_start_is_a_504_in_the_anthropic_envelope(tmp_path):
         r = mpost(url, mbody([{"role": "user", "content": "hi"}], stream=False))
 
     anthropic_error(r, 504, "deadline_exceeded")
+
+
+def test_a_failed_terminal_commit_ends_with_an_error_event_not_a_bare_close(tmp_path, monkeypatch):
+    """Protocol review (D95): the terminal batch's commit fails after the upstream finished;
+    the client still gets one ``event: error``, never content and then a bare close."""
+    from palimnesis.archive import ledger
+
+    real = ledger.finish_attempt
+
+    def failing(conn, gen, kind, **payload):
+        if kind == "turn_complete":
+            raise RuntimeError("disk full")
+        return real(conn, gen, kind, **payload)
+
+    monkeypatch.setattr(ledger, "finish_attempt", failing)
+    with stack(tmp_path) as (fake, url, s):
+        fake.respond_sse(answer("hello"))
+        r = mpost(url, mbody([{"role": "user", "content": "hi"}]))
+
+    names = [n for n, _ in frames(r)]
+    assert names[-1] == "error" and "message_stop" not in names
+    assert "archive_unavailable" in frames(r)[-1][1]["error"]["message"]
