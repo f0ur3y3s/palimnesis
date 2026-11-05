@@ -73,11 +73,11 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
 
 - **Passthrough** relays request and response bytes unchanged. It drops hop-by-hop headers, headers named in `Connection`, and `x-palimnesis-*` headers, and adds none of its own. It relays every method (including `HEAD` and `OPTIONS`), the raw query string, repeated response headers, and the upstream's `Date` and `Server`, and streams SSE chunks as they arrive. A client disconnect at any stage (body read, waiting for upstream headers, streaming) closes the upstream request. **[enforced]**
 - **Unreachable upstream** (connect or transport failure before response headers) returns `502`, code `upstream_unreachable`, in the endpoint's error shape. In passthrough nothing is archived, so it carries `x-should-retry: true`. **[enforced]**
-- **Archive mode** (`--db`, the default) rewrites `POST` only on an endpoint that has a client protocol (`palimnesis.protocols`, chosen by path, never by harness or `User-Agent`): today `/v1/chat/completions`. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. The upstream call is always Chat Completions, whatever the client protocol, and the client's query string reaches it only when the client spoke Chat. **[enforced]**
+- **Archive mode** (`--db`, the default) rewrites `POST` only on an endpoint that has a client protocol (`palimnesis.protocols`, chosen by path, never by harness or `User-Agent`): `/v1/chat/completions` and `/v1/messages` (§16). `POST /v1/messages/count_tokens` is relayed unarchived (O-4B-10). Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. The upstream call is always Chat Completions, whatever the client protocol, and the client's query string reaches it only when the client spoke Chat. On `/v1/messages` the only query accepted is `beta=true` (Claude Code and Pi join it); any other is `400 unsupported_feature` before acceptance. **[enforced]**
 - **Rewriting** accepts only requests inside `capabilities.md` (allowlist rules in D11). Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`, and nothing is archived. Fields are never dropped silently. **[enforced]**
 - **Reserved names.** Tool names starting `palimnesis_` belong to Palimnesis (Phase 3B). A client tool, or a tool call in the client's history, with such a name is rejected before acceptance with `400 unsupported_feature`. **[enforced]**
 - **Upstream EOF** without the endpoint's terminal event (`[DONE]`, `message_stop`) is an upstream failure, never a successful stop. On rewritten streams the finish chunk is held until `[DONE]`, so a stream cut short after it still ends in the error event. In passthrough the client sees the same abrupt close it would see directly. **[enforced]**
-- **Error shape.** Proxy-originated errors use the client endpoint's shape: OpenAI `{"error":{message,type,code,param}}`, Anthropic `{"type":"error","error":{type,message}}`. **[enforced]** Upstream non-200 responses after acceptance are relayed with their status and body; re-enveloping them is deferred with the Anthropic route (Ph4B). **[defined, Ph4B]**
+- **Error shape.** Proxy-originated errors use the client endpoint's shape: OpenAI `{"error":{message,type,code,param}}`, Anthropic `{"type":"error","error":{type,message}}`. **[enforced]** Upstream non-200 responses after acceptance keep their status. Chat clients get the upstream's body unchanged; Messages clients get it in Anthropic's envelope, `{"type":"error","error":{type, message}}`, with the upstream's message verbatim and its type kept when it is one of Anthropic's, else the status's (`400` → `invalid_request_error`, `429` → `rate_limit_error`, others `api_error`). **[enforced]**
 
 ## 4. Session identity
 
@@ -90,6 +90,7 @@ All of the above are **[enforced]**.
 
 - IDs are routing keys, not secrets. The proxy binds to loopback by default; URLs and bodies stay out of operational logs.
 - Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Palimnesis session]**
+- **One protocol per session.** A session's first request fixes its client protocol. A request on another protocol's endpoint gets `400 session_protocol_mismatch` before acceptance. **[enforced]**
 - **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
 - **Reconciliation** (D10.3–D10.5, `palimnesis.archive.transcript`). Each resend is compared position by position with the archived visible history:
   - Client messages match by content hash.
@@ -124,12 +125,12 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | Repeated key for a completed stream | 409 `streaming_replay_unsupported` | `x-should-retry: false` | **[enforced]** until Ph8 |
 | Archive cannot commit the input (D10.16) | 503 `archive_unavailable` | `retry-after: 2`, `x-should-retry: true` | **[enforced]** |
 | Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
-| Upstream non-200 after acceptance | relayed status and body | `x-should-retry: false` | **[enforced]** |
+| Upstream non-200 after acceptance | relayed status; body relayed (Chat) or re-enveloped (Messages, §3) | `x-should-retry: false` | **[enforced]** |
 | Upstream unreachable in passthrough | 502 `upstream_unreachable` | `x-should-retry: true` | **[enforced]** |
 | Overload (queue full) | 429 | `retry-after` (seconds until a slot is realistically free) | [defined, Ph4B] (O4) |
 | Deadline expired before first byte | 504 `deadline_exceeded` | `x-should-retry: false` | **[enforced]** |
 | Deadline expired after the stream started | in-stream `deadline_exceeded` event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
-| Failure after stream start | endpoint's in-stream error event, then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
+| Failure after stream start | endpoint's in-stream error event (Chat `data: {"error":…}`; Messages one `event: error`, never `message_stop`), then close | `x-should-retry: false` (sent with the 200) | **[enforced]** |
 
 ## 6. Idempotency and request fingerprints
 
@@ -261,7 +262,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 ## 16. Client protocols (Phase 4B)
 
-**[enforced]** for the parse (`palimnesis.protocols.messages`, S2); the `/v1/messages` archive route is **[defined, Ph4B S4]**.
+**[enforced]** (`palimnesis.protocols.messages`, `messages_emit`; route S4). Upstream non-200 responses are re-enveloped (§3).
 
 - **One upstream dialect.** A client protocol parses the client's body into the neutral, Chat-shaped request; the upstream call is always Chat Completions (position 2, D83). The archive stores the client's raw body; `ChatRequest.chat_body` is the neutral Chat body.
 - **Allowlist.** Every Messages field is mapped, accepted with no upstream effect, or rejected before acceptance with `400 unsupported_feature`, as for Chat (§3).
@@ -283,7 +284,8 @@ A visible response is one upstream call, or several when hidden recall tools ans
 | `cache_control`, `signature`, `metadata.user_id`, `eager_input_streaming`, `thinking.display`, `thinking.type` `enabled`/`adaptive` | Accepted, not rendered |
 | `redacted_thinking`, `image`, `document`, server tools and their blocks, `top_k`, `stop_sequences`, other `tool_choice` forms, `context_management`, unknown fields | Rejected |
 
-- **Emission** (`palimnesis.protocols.messages_emit`, S3) **[enforced]** for the emitter; the route is S4.
+- **No hidden recall tools** on Messages (Phase 4B position 1): `--hidden-tools` applies to Chat sessions only.
+- **Emission** (`palimnesis.protocols.messages_emit`, S3).
   - The upstream's Chat stream becomes `message_start`, then a content block per run of reasoning (`thinking`), text or one tool call (`tool_use`, opened once its name is known, arguments as `input_json_delta`), then `message_delta` and `message_stop` at `[DONE]`. A change of kind closes the open block.
   - Stop reasons: `stop` → `end_turn`, `tool_calls` → `tool_use`, `length` → `max_tokens`. A tool call cut off by the length stop is streamed as Strata streams it: a closed `tool_use` block whose JSON does not parse.
   - Thinking blocks carry `signature: ""` and no `signature_delta` (O-4B-2).

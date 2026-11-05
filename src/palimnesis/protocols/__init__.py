@@ -11,8 +11,9 @@ speaks, so the emitter's input is always Chat: SSE events or a JSON body. The
 client's query string reaches the upstream only when the client spoke that dialect.
 
 The core picks a protocol by request path only (``for_path``), never by harness or
-``User-Agent``. Chat is the only protocol registered here; it relays the upstream's
-bytes unchanged, as before the seam existed.
+``User-Agent``. Chat relays the upstream's bytes unchanged, as before the seam existed;
+Anthropic Messages (``messages``, ``messages_emit``) maps both ways. A session speaks
+one protocol, fixed by its first request (``ledger.accept``).
 """
 
 from __future__ import annotations
@@ -22,7 +23,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
-from palimnesis.protocols import chat
+from palimnesis.protocols import chat, messages
+from palimnesis.protocols.messages_emit import MessagesEmitter
 
 #: The upstream dialect's endpoint: every upstream call in archive mode goes here.
 UPSTREAM_ENDPOINT = "/v1/chat/completions"
@@ -43,6 +45,10 @@ class Emitter(Protocol):
     def keepalive(self) -> bytes:
         """Bytes that keep an idle stream alive without changing its content."""
 
+    def upstream_error(self, status: int, data: bytes) -> bytes | None:
+        """The client body for an upstream non-200 response after acceptance, or None to
+        relay the upstream's own body and headers (contracts §3)."""
+
 
 @dataclass(frozen=True)
 class ClientProtocol:
@@ -51,6 +57,11 @@ class ClientProtocol:
     transport_fields: frozenset[str]  # top-level fields the fingerprint ignores (§6)
     parse: Callable[[bytes], chat.ChatRequest]  # raises chat.Unsupported / chat.InvalidBody
     emitter: Callable[[], Emitter]
+    # Query strings accepted on the endpoint, or None for any (relayed to the upstream
+    # only when the client spoke its dialect).
+    queries: frozenset[str] | None = None
+    # Whether the hidden recall tools may be offered (Phase 3B; Chat only, position 1).
+    hidden_tools: bool = False
 
 
 class ChatEmitter:
@@ -69,6 +80,9 @@ class ChatEmitter:
     def keepalive(self) -> bytes:
         return b": keepalive\n\n"
 
+    def upstream_error(self, status: int, data: bytes) -> bytes | None:
+        return None
+
 
 CHAT = ClientProtocol(
     name="chat",
@@ -76,9 +90,23 @@ CHAT = ClientProtocol(
     transport_fields=frozenset({"stream", "stream_options"}),
     parse=chat.parse,
     emitter=ChatEmitter,
+    hidden_tools=True,
 )
 
-_BY_ENDPOINT = {p.endpoint: p for p in (CHAT,)}
+
+MESSAGES = ClientProtocol(
+    name="messages",
+    endpoint="/v1/messages",
+    transport_fields=frozenset({"stream"}),
+    parse=messages.parse,
+    emitter=MessagesEmitter,
+    # Claude Code and Pi join ``?beta=true`` (HC1, HP1); Strata ignores it (M5).
+    queries=frozenset({"", "beta=true"}),
+)
+#: Relayed unarchived in archive mode (O-4B-10): a count changes nothing.
+COUNT_TOKENS_ENDPOINT = "/v1/messages/count_tokens"
+
+_BY_ENDPOINT = {p.endpoint: p for p in (CHAT, MESSAGES)}
 
 
 def for_path(api_path: str) -> ClientProtocol | None:

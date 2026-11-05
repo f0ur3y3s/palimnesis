@@ -714,6 +714,12 @@ def accept(
     written) and is abandoned instead of blocking the session. On success the planned
     request is added to ``live`` inside this transaction."""
     branch_id = ensure_session(conn, session_id, association)
+    spoken = conn.execute("SELECT endpoint FROM requests WHERE branch_id = ? LIMIT 1",
+                          (branch_id,)).fetchone()
+    if spoken is not None and spoken[0] != endpoint:
+        raise Rejection(400, "session_protocol_mismatch",
+                        f"This session speaks {spoken[0]}; start a new session to use "
+                        f"{endpoint}.")
     active = conn.execute(
         "SELECT active_request_id FROM branch_heads WHERE branch_id = ?", (branch_id,)
     ).fetchone()[0]

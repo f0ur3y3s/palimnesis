@@ -65,10 +65,12 @@ def test_core_never_keys_off_harness_or_user_agent():
     assert offenders == []
 
 
-def test_the_chat_protocol_serves_the_chat_endpoint_and_nothing_else():
+def test_each_protocol_serves_its_own_endpoint_and_nothing_else():
     assert protocols.for_path("/v1/chat/completions") is protocols.CHAT
+    assert protocols.for_path("/v1/messages") is protocols.MESSAGES
     assert protocols.CHAT.endpoint == protocols.UPSTREAM_ENDPOINT
-    for path in ("/v1/messages", "/v1/completions", "/v1/chat/completions/", "/v1/responses"):
+    for path in ("/v1/messages/count_tokens", "/v1/messages/batches", "/v1/completions",
+                 "/v1/chat/completions/", "/v1/responses"):
         assert protocols.for_path(path) is None
 
 
@@ -102,10 +104,10 @@ def test_protocol(monkeypatch):
     return parsed
 
 
-def _post(stack, path: str, payload: bytes, query: str = ""):
+def _post(stack, path: str, payload: bytes, query: str = "", session: str = "seam-1"):
     import httpx
 
-    url = f"{stack.proxy_url}/s/seam-1{path}" + (f"?{query}" if query else "")
+    url = f"{stack.proxy_url}/s/{session}{path}" + (f"?{query}" if query else "")
     with httpx.stream("POST", url, content=payload, timeout=30) as r:
         r.read()
     return r
@@ -129,15 +131,15 @@ def test_archive_route_dispatches_by_path(tmp_path, test_protocol):
 
         # The Chat route is unchanged: upstream bytes relayed as they came, query kept.
         stack.upstream.respond_sse(answer("plain"))
-        r = _post(stack, "/v1/chat/completions",
-                  body([user("hi"), {"role": "assistant", "content": "hello"}, user("again")]),
-                  query="x=1")
+        r = _post(stack, "/v1/chat/completions", body([user("hi")]), query="x=1",
+                  session="seam-2")
         assert r.status_code == 200 and b"via-test" not in r.content
         assert (stack.upstream.requests[-1].path, stack.upstream.requests[-1].query) == (
             "/v1/chat/completions", "x=1")
 
 
-@pytest.mark.parametrize("path, anthropic", [("/v1/messages", True), ("/v1/completions", False)])
+@pytest.mark.parametrize("path, anthropic", [("/v1/messages/batches", True),
+                                             ("/v1/completions", False)])
 def test_a_path_with_no_protocol_is_refused_before_acceptance(tmp_path, path, anthropic):
     with lifecycle_stack(tmp_path) as stack:
         r = _post(stack, path, body([user("hi")]))

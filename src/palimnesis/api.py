@@ -326,7 +326,18 @@ class Proxy:
     async def _archive_route(
         self, scope, receive, send, session, path_session, api_path, headers, body
     ) -> None:
+        if api_path == protocols.COUNT_TOKENS_ENDPOINT:
+            await self._relay(scope, receive, send, session, api_path.encode("latin-1"),
+                              headers, body)
+            return
         protocol = protocols.for_path(api_path)
+        query = scope.get("query_string", b"").decode("latin-1")
+        if protocol is not None and protocol.queries is not None and query not in protocol.queries:
+            response = error_response(
+                api_path, 400, "unsupported_feature",
+                f"query string {query!r} is not supported on POST {api_path}.")
+            await response(scope, receive, send)
+            return
         if protocol is None:
             response = error_response(
                 api_path, 400, "unsupported_feature",

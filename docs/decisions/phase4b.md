@@ -164,3 +164,22 @@ Supersedes D84 item 7, and settles the counter fix D82 asked for.
   - `late_system_to_user` before the template, in rendering, counting and turn layout;
   - the `EFFORT` table: `high`, `max` and `maximum` render as `xhigh`; `off`, `minimal`, `disabled` and `false` as `none`.
 - **Evidence.** The M2 parity corpus counts exactly with late system messages kept as `system` (`test_parity_corpus_counts_equal_recorded_count_tokens`), and two counter tests pin the equivalences. Cache accounting records the counter revision per call, so calls counted by c4 and c5 compare as a counter change, not an unexplained one.
+
+## D87: The Messages archive route (Phase 4B S4)
+
+`POST /v1/messages` is archived like Chat (contracts §3, §16). The pieces:
+
+1. **`protocols.MESSAGES`** registers the S2 parser and the S3 emitter at `/v1/messages`. Its transport-only field is `stream`.
+2. **Query strings.** A protocol may list the query strings it accepts. Messages accepts none or `beta=true`, which Claude Code and Pi always join and Strata ignores (M5). Any other is refused before acceptance, so nothing reaches the archive that the proxy cannot interpret. Chat keeps relaying its query unchanged.
+3. **`count_tokens` is relayed unarchived** (O-4B-10). It is a correctness fallback: Claude Code never calls it (HC1). The count is Strata's for the client's own body, not for the bounded view.
+4. **One protocol per session.** `ledger.accept` refuses a request whose endpoint differs from the session's first with `400 session_protocol_mismatch`. A session mixing protocols would mix neutral messages whose hashes come from different mappings.
+5. **Hidden recall tools are Chat-only** (`ClientProtocol.hidden_tools`). A Messages session is never offered them and never fixes them, as position 1 says.
+6. **The resend of a generated `tool_use` needs no new rule.** Reconciliation already compares generated tool-call arguments as JSON values (D10), so Claude Code's re-serialized input matches Strata's spaced argument string. The S4 test resends exactly that.
+
+## D88: Errors on Messages (Phase 4B S5)
+
+- **Upstream non-200 after acceptance** keeps its status and `x-should-retry: false`. The emitter's `upstream_error` re-envelopes the body for Messages clients; Chat's returns None, so Chat clients keep the upstream's bytes and headers.
+  - The message is the upstream's verbatim. Claude Code's recovery matches on wording, such as the context-limit text (plan §2.3).
+  - The type is the upstream's when Anthropic defines it (Strata's own `rate_limit_error` for `admission_full`, `invalid_request_error`), otherwise the status's. Strata's `unavailable_error` on a 503 becomes `api_error`.
+  - A body that is not JSON becomes the message as text.
+- **In-stream failures and the deadline** were already routed through the emitter (D83, D85): one `event: error`, never `message_stop`. S5's tests pin them on the Messages route, with the deadline before and after the stream starts.

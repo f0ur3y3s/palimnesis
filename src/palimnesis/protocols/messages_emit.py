@@ -36,6 +36,13 @@ from palimnesis.protocols.chat import _LONE_SURROGATE, _escape_surrogate
 from palimnesis.protocols.sse import SSEParser
 
 STOP_REASONS = {"stop": "end_turn", "tool_calls": "tool_use", "length": "max_tokens"}
+# Anthropic's error types (an upstream type outside these is replaced by its status's).
+ERROR_TYPES = frozenset({"invalid_request_error", "authentication_error", "permission_error",
+                         "not_found_error", "request_too_large", "rate_limit_error",
+                         "api_error", "overloaded_error"})
+STATUS_TYPES = {400: "invalid_request_error", 401: "authentication_error",
+                403: "permission_error", 404: "not_found_error", 413: "request_too_large",
+                429: "rate_limit_error", 529: "overloaded_error"}
 
 
 def _json(value: Any) -> bytes:
@@ -144,6 +151,27 @@ class MessagesEmitter:
 
     def keepalive(self) -> bytes:
         return _event("ping", {"type": "ping"})
+
+    def upstream_error(self, status: int, data: bytes) -> bytes:
+        """Anthropic's envelope around an upstream error, its message kept verbatim (plan
+        §2.3: Claude Code matches on the wording). Strata never sends this envelope
+        itself (``docs/probes/strata.md`` §13.3)."""
+        message, kind = None, None
+        try:
+            doc = json.loads(data)
+        except ValueError:
+            doc = None
+        error = doc.get("error") if isinstance(doc, dict) else None
+        if isinstance(error, dict):
+            message = error.get("message")
+            kind = error.get("type")
+        elif isinstance(error, str):
+            message = error
+        if not isinstance(message, str):
+            message = data.decode("utf-8", "replace").strip() or f"upstream status {status}"
+        if kind not in ERROR_TYPES:
+            kind = STATUS_TYPES.get(status, "api_error")
+        return _json({"type": "error", "error": {"type": kind, "message": message}})
 
     # -- state machine -------------------------------------------------------------------
 

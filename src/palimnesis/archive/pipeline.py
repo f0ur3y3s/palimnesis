@@ -153,7 +153,8 @@ class ArchiveHandler:
                 if fixed is not None:
                     candidate = (fixed["addendum_id"], fixed["text"])
             extra = self.views.counter.count(candidate[1]) + 2 if candidate else 0
-            tools = await self._hidden_tools_for(session, req)
+            tools = (await self._hidden_tools_for(session, req)
+                     if protocol.hidden_tools else None)
             try:
                 prepared = await self.views.prepare(req, extra, tools or [])
             except BudgetError as e:
@@ -211,9 +212,9 @@ class ArchiveHandler:
                 await self._send_replay(send, plan.replay)
                 return
             with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
-                if prepared is not None and not await self._bound(scope, receive, tracked, req,
-                                                                  gen, prepared, api_path,
-                                                                  headers):
+                if prepared is not None and not await self._bound(
+                        scope, receive, tracked, req, gen, prepared, api_path, headers,
+                        hidden=protocol.hidden_tools):
                     return
                 if plan.hidden_loop and plan.stream and plan.view is not None:
                     await self._hidden(scope, receive, tracked, gen, api_path, headers, req)
@@ -256,14 +257,15 @@ class ArchiveHandler:
             log.warning("archive change hook failed: %s", type(e).__name__)
 
     async def _bound(self, scope, receive, send, req, gen, prepared, api_path,
-                     headers=()) -> bool:
+                     headers=(), hidden: bool = True) -> bool:
         """Replace the planned body with the bounded view; False if it cannot fit."""
         plan = gen.plan
         candidate = self.addendum_for(plan.session_id) if self.addendum_for else None
         if candidate is not None:
             fixed = await self.store.read(lambda c: ledger.fixed_addendum(c, plan.branch_id))
             plan.addendum = fixed["text"] if fixed else None
-        offered = (self.hidden_tools is not None and req.stream
+        # Hidden tools are a Chat affordance only (Phase 4B position 1).
+        offered = (hidden and self.hidden_tools is not None and req.stream
                    and req.settings.get("tool_choice") != "none")
         if offered:
             fixed_tools = await self.store.read(
@@ -271,7 +273,7 @@ class ArchiveHandler:
             if fixed_tools is not None:
                 plan.hidden_tools = fixed_tools["tools"]
                 prepared = replace(prepared, tools=[*(prepared.tools or []), *plan.hidden_tools])
-        elif self.hidden_tools is not None and req.stream:
+        elif hidden and self.hidden_tools is not None and req.stream:
             # Not offered here (tool_choice "none"), but a session that has them still
             # answers a copied palimnesis_* call itself: one is never relayed (§15).
             plan.hidden_loop = await self.store.read(
@@ -577,6 +579,11 @@ class ArchiveHandler:
         await self.store.write(lambda c: ledger.finish_attempt(
             c, gen, "attempt_failed", reason="upstream_status", status=upstream.status_code))
         headers = _with_no_retry(_response_headers(upstream))
+        enveloped = gen.emitter.upstream_error(upstream.status_code, body)
+        if enveloped is not None:  # the client protocol's own error shape (contracts §3)
+            headers = [(k, v) for k, v in headers if k.lower() != b"content-type"]
+            headers.append((b"content-type", b"application/json"))
+            body = enveloped
         await send({"type": "http.response.start", "status": upstream.status_code, "headers": headers})
         await send({"type": "http.response.body", "body": body, "more_body": False})
 

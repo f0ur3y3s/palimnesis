@@ -28,7 +28,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | --- | --- | --- | --- |
 | `POST /v1/chat/completions` (stream) | relayed | **supported (Ph1)** | first-harness path; live-verified with OpenCode |
 | `POST /v1/chat/completions` (non-stream) | relayed | **supported (Ph1)** | no first-harness traffic; fake-upstream tests only |
-| `POST /v1/messages` (+ `count_tokens`) | relayed | rejected, `unsupported_feature` (planned Ph4B) | upstream errors lack Anthropic's envelope; final `usage.input_tokens` is 1 |
+| `POST /v1/messages` (+ `count_tokens`) | relayed | archived (Ph4B S4, D87); `count_tokens` relayed unarchived; harness cells stay planned until their live smoke (position 5) | Strata's own errors lack Anthropic's envelope (archive mode adds it, D88); final `usage.input_tokens` is 1 |
 | `POST /v1/responses` and any other `POST` | relayed | rejected, `unsupported_feature` | upstream is stateless |
 | `GET`/`HEAD`/`OPTIONS` (`/v1/models`, `/props`, `/health`) | relayed | relayed | metadata |
 

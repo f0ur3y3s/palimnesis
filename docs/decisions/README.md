@@ -102,3 +102,5 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D84 | Messages subset and neutral mapping (S2) | [phase4b.md](phase4b.md) |
 | D85 | Messages emitter (S3) | [phase4b.md](phase4b.md) |
 | D86 | Late system messages stay `system`; counter c5 | [phase4b.md](phase4b.md) |
+| D87 | Messages archive route (S4) | [phase4b.md](phase4b.md) |
+| D88 | Errors on Messages (S5) | [phase4b.md](phase4b.md) |
