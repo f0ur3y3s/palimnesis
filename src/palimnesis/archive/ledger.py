@@ -140,6 +140,14 @@ def _attempt_events(conn: sqlite3.Connection, generation_id: str) -> set[str]:
     }
 
 
+def _finished_by_length(conn: sqlite3.Connection, generation_id: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM events e JOIN generations g ON e.attempt_id = g.attempt_id"
+        " WHERE g.generation_id = ? AND e.kind = 'turn_complete'"
+        " AND json_extract(e.payload, '$.finish_reason') = 'length'", (generation_id,)
+    ).fetchone() is not None
+
+
 # Attempt events after which a generated turn's flags can no longer change.
 _SETTLED_EVENTS = frozenset({"cancelled", "attempt_failed", "attempt_abandoned",
                              "delivery_completed", "delivery_failed"})
@@ -169,7 +177,9 @@ def _archived(conn: sqlite3.Connection, row) -> tuple[Archived, bool]:
     archived = Archived.generated(occ_id, text=text, reasoning=reasoning, tool_calls=tuple(calls),
                                   complete="turn_complete" in kinds, view=view,
                                   cancelled="cancelled" in kinds,
-                                  delivered="delivery_completed" in kinds, attempt_id=attempt_id)
+                                  delivered="delivery_completed" in kinds, attempt_id=attempt_id,
+                                  truncated="turn_complete" in kinds
+                                  and _finished_by_length(conn, generation_id))
     return archived, bool(kinds & _SETTLED_EVENTS)
 
 

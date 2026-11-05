@@ -41,7 +41,9 @@ A partial may be *omitted*: it stays archived but is superseded, and the resend
 aligns past it (D10.4). OpenCode drops a reply interrupted from the client side
 (results R9); Pi drops every failed partial, server-failed ones included, on both
 protocols and with its retries on or off (``docs/probes/pi.md`` HP4.3, O-4B-5, D82).
-A complete turn the client received in full may not be omitted.
+A turn the length stop cut short may be omitted too: Pi treats it like a failed one
+(``eval/probes/pi_proxy_faults.py``, D94). Any other complete turn the client received in
+full may not be omitted.
 """
 
 from __future__ import annotations
@@ -64,6 +66,7 @@ class Archived:
     tool_calls: tuple[dict, ...] = ()
     complete: bool = True
     cancelled: bool = False  # the client disconnected from this attempt
+    truncated: bool = False  # complete, but ended by the length stop (finish_reason "length")
     delivered: bool = True  # the full response was written to the client
     attempt_id: str | None = None  # the attempt that generated it (generated and internal rows)
     # A composite visible turn (D51): the occurrences of one attempt's upstream calls and
@@ -90,10 +93,12 @@ class Archived:
         cancelled: bool = False,
         delivered: bool = True,
         attempt_id: str | None = None,
+        truncated: bool = False,
     ) -> "Archived":
         return cls(occ_id, "assistant", "generated", view=view, text=text,
                    reasoning=reasoning, tool_calls=tool_calls, complete=complete,
-                   cancelled=cancelled, delivered=delivered, attempt_id=attempt_id)
+                   cancelled=cancelled, delivered=delivered, attempt_id=attempt_id,
+                   truncated=truncated)
 
 
 @dataclass(frozen=True)
@@ -281,6 +286,11 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived]):
                         continue
                     return Divergence(i, reason)
                 partials.append((i, extent))
+        elif past.truncated and message.role != "assistant":
+            # A reply the length stop cut short, left out of the resend (D94): superseded.
+            superseded.append(past.occ_id)
+            j += 1
+            continue
         else:
             reason = _mismatch(message, past)
             if reason is not None:

@@ -68,7 +68,7 @@ class Probe:
                  base: str | None = None, model: dict | None = None,
                  compat: dict | None = None, settings: dict | None = None,
                  extension: str | None = None, provider_headers: dict | None = None,
-                 upstream_base: str | None = None) -> None:
+                 upstream_base: str | None = None, via_proxy: bool = False) -> None:
         self.name = name
         self.dir = ROOT / name
         if self.dir.exists():
@@ -80,9 +80,15 @@ class Probe:
             d.mkdir(parents=True)
         (self.work / "notes.txt").write_text("hello from notes\n", encoding="utf-8")
         self.server = None
+        self.proxy = None
         if upstream_base is None:
             self.server = ServerThread(plan, name, self.dir / "server.jsonl").start()
             port = self.server.port
+            if via_proxy:
+                # Phase 4B S14 (hx_*): Pi -> palimnesis serve (archive mode) -> fault server.
+                # The fault server has no /props, so bounded views stay off; the archive,
+                # stream, error and admission paths are what these runs exercise.
+                port = self._start_proxy(port)
             if base is None:
                 base = "http://127.0.0.1:{port}/s/probe-sess/v1" if protocol == "chat" \
                     else "http://127.0.0.1:{port}/s/probe-sess"
@@ -237,7 +243,34 @@ class Probe:
         return [r for r in map(json.loads, path.read_text(encoding="utf-8").splitlines())
                 if r["event"] == "request"]
 
+    def _start_proxy(self, upstream_port: int) -> int:
+        import socket
+
+        with socket.socket() as sk:
+            sk.bind(("127.0.0.1", 0))
+            port = sk.getsockname()[1]
+        self.proxy_log = open(self.dir / "serve.log", "wb")
+        self.proxy = subprocess.Popen(
+            [sys.executable, "-m", "palimnesis", "serve", "--port", str(port),
+             "--upstream", f"http://127.0.0.1:{upstream_port}", "--db", str(self.dir / "archive.db"),
+             "--transcripts", str(self.dir / "transcripts")],
+            stdout=self.proxy_log, stderr=subprocess.STDOUT)
+        end = time.time() + 60
+        while time.time() < end:
+            with socket.socket() as sk:
+                if sk.connect_ex(("127.0.0.1", port)) == 0:
+                    return port
+            time.sleep(0.3)
+        raise RuntimeError("palimnesis serve did not start")
+
     def close(self) -> None:
+        if self.proxy:
+            self.proxy.terminate()
+            try:
+                self.proxy.wait(30)
+            except subprocess.TimeoutExpired:
+                self.proxy.kill()
+            self.proxy_log.close()
         if self.server:
             self.server.stop()
         (self.dir / "meta.json").write_text(
@@ -630,6 +663,36 @@ def hp4_provider_retry_429():
 def hp4_provider_retry_409_noretry():
     return _retry("hp4_provider_retry_409_noretry", SCENARIOS["s409_divergence_then_ok"][1],
                   settings={"retry": {"enabled": False, "provider": {"maxRetries": 2}}})
+
+
+# HX: the HP4 faults through Palimnesis (Phase 4B S14) ----------------------------
+# Pi with the adapter's compat flags and its own default timers -> palimnesis serve ->
+# the fault server. ``eval/probes/pi_proxy_faults.py`` summarizes the archives.
+
+HX_COMPAT = {"chat": {"supportsDeveloperRole": False, "supportsStore": False},
+             "messages": {"allowEmptySignature": True}}
+
+for _scn in ["partial_eof_then_ok", "partial_abort_then_ok", "partial_error_then_ok",
+             "partial_tool_error_then_ok", "s500_then_ok", "s429_then_ok",
+             "s503_noretry_then_ok", "role_only_eof_then_ok", "finish_no_done",
+             "partial_length", "header_delay8_then_ok", "comments_after_start_12s"]:
+    for _proto in ["chat", "messages"]:
+        for _off in ([False, True] if _scn.startswith("partial_") else [False]):
+            def _mk(scn=_scn, proto=_proto, off=_off):
+                nm = f"hx_{scn}_{proto}" + ("_retryoff" if off else "")
+
+                def f():
+                    pr = Probe(nm, SCENARIOS[scn][1], proto, via_proxy=True,
+                               compat=HX_COMPAT[proto], settings=RETRY_OFF if off else None)
+                    try:
+                        pr.rpc([], [prompt("First prompt."), prompt("Second prompt.")],
+                               label="turns", timeout=240)
+                    finally:
+                        pr.close()
+                    return pr
+                f.__name__ = nm
+                return f
+            probe(_mk())
 
 
 # HP5 compaction -------------------------------------------------------------------

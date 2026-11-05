@@ -1,0 +1,898 @@
+[
+  {
+    "run": "hx_comments_after_start_12s_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 0,
+    "pi_stops": [
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_comments_after_start_12s_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 0,
+    "pi_stops": [
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_finish_no_done_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      0
+    ],
+    "failed_per_request": [
+      1,
+      1
+    ],
+    "failure_reasons": [
+      "eof_without_done",
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "error"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing.",
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": "contracts \u00a73: a stream that ends without [DONE] is an upstream failure; Strata always sends [DONE] (docs/probes/strata.md \u00a713.1), so only the fault server produces this shape",
+    "pass": true
+  },
+  {
+    "run": "hx_finish_no_done_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      0
+    ],
+    "failed_per_request": [
+      1,
+      1
+    ],
+    "failure_reasons": [
+      "eof_without_done",
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "error"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}",
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": "contracts \u00a73: a stream that ends without [DONE] is an upstream failure; Strata always sends [DONE] (docs/probes/strata.md \u00a713.1), so only the fault server produces this shape",
+    "pass": true
+  },
+  {
+    "run": "hx_header_delay8_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 0,
+    "pi_stops": [
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_header_delay8_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 0,
+    "pi_stops": [
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_abort_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_reset"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_abort_then_ok_chat_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_reset"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_abort_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_reset"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_abort_then_ok_messages_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_reset"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_eof_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_eof_then_ok_chat_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_eof_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_eof_then_ok_messages_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_error_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "palimnesis: upstream stream failed"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_error_then_ok_chat_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "palimnesis: upstream stream failed"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_error_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis: upstream stream failed\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_error_then_ok_messages_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis: upstream stream failed\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_length_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 1,
+    "pi_stops": [
+      "length",
+      "length"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_length_chat_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 1,
+    "pi_stops": [
+      "length",
+      "length"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_length_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 1,
+    "pi_stops": [
+      "length",
+      "length"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_length_messages_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      0,
+      0
+    ],
+    "failure_reasons": [],
+    "superseded": 1,
+    "pi_stops": [
+      "length",
+      "length"
+    ],
+    "pi_errors": [],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_tool_error_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "palimnesis: upstream stream failed"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_tool_error_then_ok_chat_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "palimnesis: upstream stream failed"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_tool_error_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis: upstream stream failed\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_partial_tool_error_then_ok_messages_retryoff",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_error_event"
+    ],
+    "superseded": 1,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis: upstream stream failed\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_role_only_eof_then_ok_chat",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "The upstream stream ended before completing."
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_role_only_eof_then_ok_messages",
+    "upstream_requests": 2,
+    "archived_requests": 2,
+    "completed_per_request": [
+      0,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "eof_without_done"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop"
+    ],
+    "pi_errors": [
+      "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"palimnesis upstream_stream_failed: The upstream stream ended before completing.\"}}"
+    ],
+    "settled": 4,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s429_then_ok_chat",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "429: {\"message\":\"rate limited\",\"type\":\"fault_server\",\"code\":429}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s429_then_ok_messages",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "429 {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"rate limited\"}}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s500_then_ok_chat",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "500: {\"message\":\"fault server error\",\"type\":\"fault_server\",\"code\":500}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s500_then_ok_messages",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "500 {\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"fault server error\"}}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s503_noretry_then_ok_chat",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "503: {\"message\":\"service unavailable\",\"type\":\"fault_server\",\"code\":503}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "run": "hx_s503_noretry_then_ok_messages",
+    "upstream_requests": 3,
+    "archived_requests": 2,
+    "completed_per_request": [
+      1,
+      1
+    ],
+    "failed_per_request": [
+      1,
+      0
+    ],
+    "failure_reasons": [
+      "upstream_status"
+    ],
+    "superseded": 0,
+    "pi_stops": [
+      "error",
+      "stop",
+      "stop"
+    ],
+    "pi_errors": [
+      "503 {\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"service unavailable\"}}"
+    ],
+    "settled": 5,
+    "expected": null,
+    "pass": true
+  }
+]

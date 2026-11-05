@@ -242,3 +242,10 @@ The user decided on 2026-11-05: "Claude code is closed source so let's skip supp
 4. **Driver lessons.**
    - On Windows, terminating `uv run` leaves its child server running and holding the archive lock, so the driver starts the server with `python -m palimnesis`.
    - Transcript projection is asynchronous, so the checks run while the proxy still serves, retrying `verify` until the projector has caught up.
+
+## D94: A length-stopped turn may be left out of the resend (Phase 4B S14 finding)
+
+- **Finding.** The S14 fault runs through the proxy (`hx_partial_length_*`, R44) showed that Pi 1.5.0 leaves an assistant reply that ended with `finish_reason: length` out of every later request, exactly as it does a failed reply. A direct run of the same scenario confirms it on both protocols. The archive held that reply as a complete turn, so Pi's next request was refused with 409 `history_divergence`, and the session could not go on.
+- **Rule.** A generated turn whose attempt completed with the length stop may be omitted from a resend. It stays archived and is superseded, like an omitted failed partial (O-4B-5, D91). `Archived.truncated` carries it, read from the `turn_complete` event's finish reason. Any other complete turn left out is still a divergence.
+- **OpenCode is unaffected.** It resends a length-stopped reply and adds its own follow-up (D67), so the reply still matches in place.
+- **Tests:** `test_a_length_stopped_turn_may_be_omitted_and_is_superseded` (pure) and `test_pi_turn_after_a_length_stop_is_accepted` (HTTP). The four live runs pass after the fix.

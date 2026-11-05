@@ -57,3 +57,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R41 | D77 held-out run: `a4-d77` on ho3 (2026-11-04/05, pythia, held-out per D77) | [phase3-acceptance.md](phase3-acceptance.md) |
 | R42 | Phase 3 gate summary, second: accepted on the shipped configuration (2026-11-05) | [phase3-acceptance.md](phase3-acceptance.md) |
 | R43 | Pi 1.5.0 live through Palimnesis: smoke on both protocols and the transcript gate (2026-11-05) | [phase4b.md](phase4b.md) |
+| R44 | Pi's faults (34 runs), cancellation release and proxy restarts through Palimnesis (2026-11-05) | [phase4b.md](phase4b.md) |

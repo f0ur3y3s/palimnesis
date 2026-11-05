@@ -140,6 +140,7 @@ Evidence: `docs/probes/pi.md` (HP1–HP7). Adapter: `integrations/pi/`.
 - **Association.** The extension sets `X-Palimnesis-Session` to Pi's own session id on every request, through `/new`, `/fork`, `/clone`, `/resume` and restarts (HP2). `--session-id <id>` lets a driver choose it.
 - **Discontinuities, never merged (409 `history_divergence`):** `/tree` to an earlier entry, a branch summary, and a manual `/compact` (S8 replays the recorded `/compact`). Start a new Pi session (`/new`) to continue after one.
 - **Failed partials.** Pi leaves a failed partial out of every later request; Palimnesis keeps it archived and superseded (O-4B-5, D91). The proxy's in-stream error wording matches none of Pi's retry patterns, so Pi does not retry such a turn (HP4.3).
+- **Length stops.** Pi leaves a length-stopped reply out of later requests too; Palimnesis supersedes it (D94).
 - **Timeouts.** `httpIdleTimeoutMs` (300 s) is both header wait and read idle; comments and `event: ping` reset it (HP4.1), so admission's H and K keep queued requests alive (D89).
 - **Verified live through the proxy** (R43): a tool loop and a second turn on both protocols, and the transcript gate (Pi's `grep` on the session directory). `eval/probes/pi_live_smoke.py` reruns them.
 - **Tools for the addendum.** Enable `grep` (and `find`, `ls`) with `--tools read,grep,bash,ls,find` or `defaultTools`, so the a3 recipe's grep is a tool call rather than a shell command.

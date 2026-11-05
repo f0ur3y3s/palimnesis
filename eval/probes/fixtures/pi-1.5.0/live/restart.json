@@ -1,0 +1,99 @@
+[
+  {
+    "scenario": "restart_chat",
+    "pass": true,
+    "turns": [
+      {
+        "prompt": "Read log1.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 43.1,
+        "answer": "221",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log1.txt"
+            }
+          },
+          {
+            "tool": "bash",
+            "args": {
+              "command": "wc -l < log1.txt; wc -c < log1.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Read log2.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 40.6,
+        "answer": "220",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log2.txt"
+            }
+          },
+          {
+            "tool": "bash",
+            "args": {
+              "command": "wc -l < log2.txt; wc -c < log2.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "Read log3.txt in full and reply with its line count only.",
+        "rc": 0,
+        "seconds": 38.3,
+        "answer": "220",
+        "tool_calls": [
+          {
+            "tool": "read",
+            "args": {
+              "path": "log3.txt"
+            }
+          },
+          {
+            "tool": "bash",
+            "args": {
+              "command": "wc -l < log3.txt; wc -c < log3.txt"
+            }
+          }
+        ]
+      },
+      {
+        "prompt": "What is the deploy code that log1.txt mentioned? log1.txt has been deleted; find it in this conversation's history. Reply with the code only.",
+        "rc": 0,
+        "seconds": 13.4,
+        "answer": "ZX-4471-QUAIL",
+        "tool_calls": [
+          {
+            "tool": "bash",
+            "args": {
+              "command": "grep -ri \"deploy code\" \"<PATH>" | head -20"
+            }
+          }
+        ]
+      }
+    ],
+    "checks": {
+      "requests": 11,
+      "endpoints": [
+        "/v1/chat/completions"
+      ],
+      "sessions": [
+        "pal-restart-chat"
+      ],
+      "attempts_failed": [],
+      "view_versions": 3,
+      "excerpts_with_code": 1,
+      "explain_rc": 0,
+      "verify_rc": [
+        0
+      ],
+      "verify_out": []
+    }
+  }
+]

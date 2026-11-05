@@ -1,6 +1,6 @@
 # Phase 4B plan: harness expansion
 
-> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). S3 done (D85). Late system kept as `system`, counter c5 (D86). S4 done (D87). S5 done (D88). S6 done (D89). S7 done as far as evidence allows (D90). S8 and S9 done (D91). Claude Code backlogged (D92, `docs/backlog.md`): S10 and O-4B-13 are out of 4B. S11–S13 done (D93, R43): Pi is supported. Next: S14 (fault, restart and cancellation runs; needles and tasks), then S15.
+> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). S3 done (D85). Late system kept as `system`, counter c5 (D86). S4 done (D87). S5 done (D88). S6 done (D89). S7 done as far as evidence allows (D90). S8 and S9 done (D91). Claude Code backlogged (D92, `docs/backlog.md`): S10 and O-4B-13 are out of 4B. S11–S13 done (D93, R43): Pi is supported. S14 fault, cancellation and restart gates passed (R44, D94). Next: S14 needles and tasks (reported), then S15.
 
 Planner output, 2026-11-05, at `8df2a68` (after `phase-3`, R42). Module paths follow D80's layout.
 

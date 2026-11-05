@@ -1,0 +1,35 @@
+{
+  "results": [
+    {
+      "mode": "prefill",
+      "trial": 0,
+      "session": "cancel-prefill-0",
+      "release_s": 6.984,
+      "busy_after_close": true,
+      "content_pieces_before_close": 0,
+      "archive": "cancelled"
+    },
+    {
+      "mode": "prefill",
+      "trial": 1,
+      "session": "cancel-prefill-1",
+      "release_s": 6.954,
+      "busy_after_close": true,
+      "content_pieces_before_close": 0,
+      "archive": "cancelled"
+    },
+    {
+      "mode": "prefill",
+      "trial": 2,
+      "session": "cancel-prefill-2",
+      "release_s": 7.0,
+      "busy_after_close": true,
+      "content_pieces_before_close": 0,
+      "archive": "cancelled"
+    }
+  ],
+  "max_release_s": {
+    "prefill": 7.0
+  },
+  "all_cancelled": true
+}

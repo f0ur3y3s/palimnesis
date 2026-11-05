@@ -18,6 +18,9 @@ Scenarios:
   names. Pass: both answers hold the code, the confirming turn's tool calls name a path
   under the transcript root (D37's capability criterion), ``--explain`` finds nothing
   unexplained and ``transcripts verify`` passes.
+- ``restart`` (Chat, small input budget): the proxy restarts after each of three file
+  reads; the last turn asks for log1's code. Pass: the code, ``--explain`` 0 unexplained
+  (previous calls re-rendered after each restart, D14.8), ``transcripts verify``.
 
     uv run python eval/probes/pi_live_smoke.py --upstream http://127.0.0.1:18080 [smoke|gate ...]
 
@@ -72,11 +75,19 @@ class Run:
                 "--upstream", upstream, "--db", str(self.db), "--transcripts", str(self.transcripts)]
         if input_budget:
             argv += ["--input-budget", str(input_budget)]
-        self.log = open(self.dir / "serve.log", "wb")
+        self.argv = argv
+        self.log = open(self.dir / "serve.log", "ab")
         self.proxy = subprocess.Popen(argv, cwd=REPO, stdout=self.log, stderr=subprocess.STDOUT)
         self._wait_port()
         self._configure()
         self.turns: list[dict] = []
+
+    def restart(self) -> None:
+        """Stop the proxy and start a new process on the same port and archive."""
+        self.proxy.terminate()
+        self.proxy.wait(30)
+        self.proxy = subprocess.Popen(self.argv, cwd=REPO, stdout=self.log, stderr=subprocess.STDOUT)
+        self._wait_port()
 
     def _wait_port(self) -> None:
         end = time.time() + 120
@@ -250,6 +261,34 @@ def gate(root: Path, upstream: str, budget: int) -> dict:
             "transcript_calls": used, "turns": run.turns, "checks": checks}
 
 
+def restart(root: Path, upstream: str, budget: int) -> dict:
+    """Proxy restarts mid-task (plan §6): the session goes on, every later call's cache
+    change is explained by re-rendering the previous call (D14.8), transcripts verify."""
+    run = Run(root, "restart_chat", upstream, "chat", budget)
+    for i in range(1, 4):
+        body = filler(i)
+        if i == 1:
+            lines = body.split("\n")
+            lines.insert(97, f"NOTE: the deploy code for this release is {CODE}.")
+            body = "\n".join(lines)
+        (run.work / f"log{i}.txt").write_text(body + "\n", encoding="utf-8")
+    session = "pal-restart-chat"
+    try:
+        for i in range(1, 4):
+            run.pi(session, f"Read log{i}.txt in full and reply with its line count only.")
+            run.restart()
+        (run.work / "log1.txt").unlink()
+        last = run.pi(session, "What is the deploy code that log1.txt mentioned? log1.txt has "
+                               "been deleted; find it in this conversation's history. "
+                               "Reply with the code only.")
+    finally:
+        checks = run.close()
+    ok = (CODE in last["answer"] and all(t["rc"] == 0 for t in run.turns)
+          and checks["explain_rc"] == 0 and checks["verify_rc"] == [0]
+          and checks["sessions"] == [session])
+    return {"scenario": "restart_chat", "pass": ok, "turns": run.turns, "checks": checks}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("scenarios", nargs="*", default=["smoke", "gate"])
@@ -263,6 +302,8 @@ def main() -> int:
             results += [smoke(args.root, args.upstream, p) for p in ("chat", "messages")]
         elif s == "gate":
             results.append(gate(args.root, args.upstream, args.gate_budget))
+        elif s == "restart":
+            results.append(restart(args.root, args.upstream, args.gate_budget))
     print(json.dumps(results, indent=2, ensure_ascii=False))
     (args.root / "summary.json").write_text(json.dumps(results, indent=2, ensure_ascii=False),
                                             encoding="utf-8")

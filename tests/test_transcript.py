@@ -473,3 +473,16 @@ def test_retry_answer_that_prefixes_the_cancelled_text_binds_to_the_answer_not_t
     assert isinstance(result, Extend) and result.matched == 2
     assert result.aligned[1:] == ("occ-a",)
     assert result.superseded == ("occ-p",) and result.partials == ()
+
+
+def test_a_length_stopped_turn_may_be_omitted_and_is_superseded():
+    """Pi leaves a reply that hit the length limit out of later requests, as it does a
+    failed one (D94); the archive keeps it, superseded."""
+    truncated = Archived.generated("occ-len", text="Truncated", reasoning="", tool_calls=(),
+                                   complete=True, truncated=True)
+    archive = _archive(SYS, U1, truncated)
+
+    result = reconcile(client(SYS, U1, U2), archive)
+
+    assert isinstance(result, Extend) and result.matched == 2
+    assert result.superseded == ("occ-len",)

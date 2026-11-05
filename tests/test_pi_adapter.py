@@ -117,3 +117,26 @@ def test_pi_retry_after_partial_policy(tmp_path):
     occ = rows(s.db_path, "SELECT role, source FROM occurrences ORDER BY seq")
     assert occ[:3] == [("system", "client"), ("user", "client"), ("assistant", "generated")]
     assert ("user", "client") in occ[3:]
+
+
+def test_pi_turn_after_a_length_stop_is_accepted(tmp_path):
+    """Live finding (S14, ``hx_partial_length_*``): after ``finish_reason: length`` Pi's next
+    request leaves the truncated reply out (D94). The proxy supersedes it, as a failed one."""
+    from .archive_helpers import DONE
+
+    first = {"model": "m", "stream": True, "max_completion_tokens": 8192,
+             "messages": [{"role": "system", "content": "S"},
+                          {"role": "user", "content": [{"type": "text", "text": "First prompt."}]}]}
+    second = {**first, "messages": [*first["messages"],
+                                    {"role": "user", "content": [{"type": "text", "text": "Second prompt."}]}]}
+    with stack(tmp_path) as (fake, url, s):
+        fake.respond_sse([chunk({"role": "assistant", "content": ""}),
+                          chunk({"content": "Truncated"}), chunk({}, "length"), DONE])
+        r1 = post(url, "pi-len", "chat", first)
+        fake.respond_sse([chunk({"content": "ok"}), chunk({}, "stop"), DONE])
+        r2 = post(url, "pi-len", "chat", second)
+        superseded = rows(s.db_path, "SELECT count(*) FROM events WHERE kind = 'partial_superseded'")
+
+    assert r1.status_code == 200 and b'"length"' in r1.content
+    assert r2.status_code == 200, r2.content[:300]
+    assert superseded[0][0] == 1
