@@ -2133,3 +2133,30 @@ Commit `f2bd688`, clean tree on pythia, real OpenCode 2.1.4. Needles ran first (
 - **Next:**
   - Making `a4-d77`'s settings the shipped default is a separate decision.
   - The extra-text misses are the one recall failure left to look at, on development data.
+
+## R42 — Phase 3 gate summary, second: accepted on the shipped configuration (2026-11-05)
+
+**Outcome: Phase 3 is accepted.**
+- R27 left one A1 green light unmet, held-out recall and coding. R41 met it on the fresh set ho3 with `a4-d77`, which `serve` has shipped since D78.
+- The acceptance reviews of everything changed since S12 found no blocker, and their should-fix findings are fixed (D79).
+- The `phase-3` tag is applied to the commit that lands D79 and this entry.
+
+Code: the D79 commit. Full suite on pythia: 1694 passed, 1 skipped (a Windows-only transcript test, `test_transcripts.py`).
+
+| A1 green light | Evidence | Status |
+| --- | --- | --- |
+| Excerpt sets and renderings survive requests and restarts; inclusion follows the view policy; excerpts never visible to the harness; allocations fit the budget; retrieval covers spans evicted now; lossless payloads and rebuild; consistent generations across crashes; the first harness reads transcripts; oversized reads narrowed; tool-step reasoning correct; selection latency | As R27; their tests still pass. On R41's archives: 0 over-budget inputs, 0 leaks, `transcripts verify` 12/12 needle histories and all five tasks | Met |
+| Held-out recall and coding meet O1 | R41 (D77, ho3, 32K, pythia): needles 115/120 loose exact (95.8%, Wilson 90.6–98.2%) against ≥ 85%; coding `a4-d77` 5/5 against arm 1's 4/5 (gate: ≥ arm 1); restart task ho3-t3 passed with its key constraint | **Met** (R27: not met) |
+| Every cache change explained | R41: `--explain` 0 unexplained on all six `a4-d77` archives. The corrected `state_refresh` rule (D79.2) re-labels 14 refresh pairs; each was checked against the exact bodies and is an allowed cause | Met |
+| Reviews | Protocol, cache and paper-fidelity reviews of `9482265..455be60`: no blocker. Should-fix: notes slot missing from admission and the floor; `state_refresh` given without the extension check; wrong-shape refresh events recorded `cancelled`; a refresh that could not fit left no record; refresh failures did not mark the facts stale; papers.md out of date for D70, D71 and D72. All fixed test-first (D79) | Met |
+
+**What acceptance covers:**
+- Evidence: one attempt per task and arm and one needle attempt, on one host (pythia, D76), one model (the pinned Strata build) and one harness (OpenCode 2.1.4), at 32K.
+- `capabilities.md` "Known limits of Phase 3" lists what stays open: the per-collapse refresh cost, the fixed notes slot at small budgets, extra-text recall answers, lexical retrieval and transcript lookup overhead.
+
+**Carried forward from R27:**
+- Transcript paths (a stable in-progress name, turn 0 marked in `index.md`).
+- The evaluation-tooling items.
+- Deferred by design: Ph4B admission and harnesses, 3B continuation accounting and RE2 search.
+
+**Next:** Phase 4B (harness expansion: Anthropic Messages archive mode, Pi, Claude Code), and a decision on how working notes relate to Phase 4A's pinned state.
