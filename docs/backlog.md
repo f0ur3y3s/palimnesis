@@ -19,3 +19,14 @@ Work set aside on purpose, with the reason, what already exists and what picking
     - the transcript gate with `--add-dir` (HC8);
     - a live smoke.
   - **Re-probe first:** the S0 facts are for 2.1.318; the client changes with every release.
+
+## Early stops on Pi's sessions (R45)
+
+- **Status:** recorded, not pursued in Phase 4B. Needles are reported, not gated, there (D81.6).
+- **What is known:**
+  - The model cuts a short answer after a token or two (`finish_reason: stop`), and once one cut answer is in the history, later answers are cut the same way (D97.2, R45-A).
+  - On Pi's development needles, this cost 14 of 60.
+  - Pi's system prompt may raise the rate of the first cut (7/16 against 2/16 with OpenCode's; p ≈ 0.11).
+- **What picking it up would take:**
+  - an OpenCode run on the development set, to separate the harness from the set;
+  - then, if Pi's sessions stay worse, a harness-side temperature or system-prompt setting in `integrations/pi/`. The proxy sets no sampling parameters and does not rewrite history (R38-D, D75).
