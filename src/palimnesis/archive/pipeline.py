@@ -1,4 +1,4 @@
-"""Archive-mode handling of ``POST /v1/chat/completions``.
+"""Archive-mode handling of a client protocol's ``POST`` (``palimnesis.protocols``).
 
 Order of operations (contracts §3, §5, §11; D10):
 
@@ -10,7 +10,8 @@ Order of operations (contracts §3, §5, §11; D10):
    arrived by the time the read queue drains (capped at ``BATCH_MAX_BYTES``):
    paced decoding commits and forwards each event as it comes, bursts
    coalesce. Commit each batch's generated content, then forward that
-   batch's original bytes. A fixed age timer was rejected: on Windows its
+   batch's bytes, as the client protocol's emitter encodes them (Chat: the
+   original bytes). A fixed age timer was rejected: on Windows its
    15.6 ms tick granularity added ~34 ms per token while a FULL commit takes
    ~1 ms (results R7). The finish chunk is held until ``[DONE]``. Any
    failure after the 200 ends the body with an in-stream error event, and
@@ -45,6 +46,7 @@ import httpx
 
 from palimnesis.view import cacheacct
 
+from palimnesis import protocols
 from palimnesis.protocols import chat
 
 from palimnesis.archive import ledger
@@ -100,11 +102,6 @@ def crash_point(name: str) -> None:
         os._exit(CRASH_EXIT_CODE)
 
 
-def _error_event(code: str, message: str) -> bytes:
-    payload = {"error": {"message": message, "type": "server_error", "code": code}}
-    return b"data: " + json.dumps(payload).encode() + b"\n\n"
-
-
 def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, bytes]]:
     kept = [(k, v) for k, v in headers if k.lower() not in (b"x-should-retry", b"content-length")]
     return kept + [(b"x-should-retry", b"false")]
@@ -135,10 +132,11 @@ class ArchiveHandler:
                          if views is not None else None)
 
     async def __call__(self, scope, receive, send, *, session: str, api_path: str,
-                       headers: list[tuple[bytes, bytes]], body: bytes, association: str) -> None:
+                       headers: list[tuple[bytes, bytes]], body: bytes, association: str,
+                       protocol: protocols.ClientProtocol = protocols.CHAT) -> None:
         expires = anyio.current_time() + self.deadline_s
         try:
-            req = chat.parse(body)
+            req = protocol.parse(body)
         except chat.Unsupported as e:
             await error_response(api_path, 400, e.code, f"{e.field}: {e}")(scope, receive, send)
             return
@@ -169,8 +167,8 @@ class ArchiveHandler:
                 prepared = None
         str_headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in headers}
         idem_key = next((v for k, v in str_headers.items() if k.lower() == "idempotency-key"), None)
-        fingerprint = fingerprint_v1(ledger.ENDPOINT_CHAT, session, ledger.branch_id_for(session),
-                                     json.loads(body))
+        fingerprint = fingerprint_v1(protocol.endpoint, session, ledger.branch_id_for(session),
+                                     json.loads(body), protocol.transport_fields)
         try:
             # Shielded: once the accept transaction is submitted it commits even if
             # the client leaves, so its outcome must be observed and cleaned up here.
@@ -178,7 +176,8 @@ class ArchiveHandler:
                 plan = await self.store.write(lambda c: ledger.accept(
                     c, session_id=session, association=association, req=req,
                     fingerprint=fingerprint, retry_hint=parse_retry_hint(str_headers),
-                    idem_key=idem_key, live=self.live, cache=self.branches))
+                    idem_key=idem_key, live=self.live, cache=self.branches,
+                    endpoint=protocol.endpoint))
         except ledger.Rejection as e:
             await error_response(api_path, e.status, e.code, e.message, retry=e.retry)(
                 scope, receive, send)
@@ -195,7 +194,7 @@ class ArchiveHandler:
             await response(scope, receive, send)
             return
 
-        gen = ledger.Generation(plan)
+        gen = ledger.Generation(plan, emitter=protocol.emitter())
         if plan.replay is None:
             self._changed(session)
         started = False
@@ -509,8 +508,9 @@ class ArchiveHandler:
                                      type_="api_error")(scope, receive, send)
                 return
             await send({"type": "http.response.body", "more_body": True,
-                        "body": _error_event("deadline_exceeded",
-                                             "The request did not complete within its deadline.")})
+                        "body": gen.emitter.error(
+                            "deadline_exceeded",
+                            "The request did not complete within its deadline.")})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def _send_replay(self, send, replay: dict) -> None:
@@ -520,16 +520,7 @@ class ArchiveHandler:
 
     async def _run(self, scope, receive, send, gen: ledger.Generation, api_path, headers) -> None:
         plan = gen.plan
-        target = self.upstream_base.raw_path.rstrip(b"/") + api_path.encode("latin-1")
-        query = scope.get("query_string", b"")
-        if query:
-            target += b"?" + query
-        upstream_headers = [(k, v) for k, v in self.forward_headers(headers)
-                            if k.lower() != b"accept-encoding"]
-        # The relay parses what it archives, so ask for an uncompressed body.
-        upstream_headers.append((b"accept-encoding", b"identity"))
-        request = httpx.Request("POST", self.upstream_base.copy_with(raw_path=target),
-                                headers=upstream_headers, content=plan.upstream_body)
+        request = self._request(scope, api_path, headers, plan.upstream_body)
         call = (self.accounts.begin(plan, self.views.mode) if self.accounts is not None
                 else None)
         try:
@@ -611,6 +602,7 @@ class ArchiveHandler:
             return
 
         gen.usage_payload, gen.call_outcome = message, "ok"
+        body = gen.emitter.body(body)
 
         def commit(c):
             ledger.commit_batch(c, gen, parts, 0)
@@ -660,7 +652,7 @@ class ArchiveHandler:
                 if event.data is None or event.data == "[DONE]":
                     continue
                 parts += ledger.deltas(json.loads(event.data))
-            data = b"".join(e.raw for e in batch)
+            data = gen.emitter.feed(b"".join(e.raw for e in batch))
             forwarded_before = gen.forwarded
 
             def commit(c):
@@ -718,8 +710,8 @@ class ArchiveHandler:
                               "upstream_error_event": "upstream_error_event"}[outcome]
                     await self.store.write(lambda c: ledger.finish_attempt(
                         c, gen, "attempt_failed", reason=reason, forwarded=gen.forwarded))
-                    error = _error_event("upstream_stream_failed",
-                                         "The upstream stream ended before completing.")
+                    error = gen.emitter.error("upstream_stream_failed",
+                                              "The upstream stream ended before completing.")
                     await send({"type": "http.response.body", "body": error, "more_body": True})
                     gen.forwarded += len(error)
             except Exception as e:
@@ -731,8 +723,9 @@ class ArchiveHandler:
                 except Exception:
                     log.exception("could not record relay failure")
                 await send({"type": "http.response.body", "more_body": True,
-                            "body": _error_event("archive_unavailable",
-                                                 "Palimnesis could not archive the response.")})
+                            "body": gen.emitter.error(
+                                "archive_unavailable",
+                                "Palimnesis could not archive the response.")})
             finally:
                 tg.cancel_scope.cancel()
         await send({"type": "http.response.body", "body": b"", "more_body": False})
@@ -741,12 +734,16 @@ class ArchiveHandler:
     # --- hidden recall loop (Phase 3B, D52–D56) ----------------------------------------
 
     def _request(self, scope, api_path: str, headers, body: bytes) -> httpx.Request:
-        target = self.upstream_base.raw_path.rstrip(b"/") + api_path.encode("latin-1")
+        """An upstream call in the profile's dialect (Chat), whatever the client spoke. The
+        client's query string is relayed only when the client spoke that dialect."""
+        target = (self.upstream_base.raw_path.rstrip(b"/")
+                  + protocols.UPSTREAM_ENDPOINT.encode("latin-1"))
         query = scope.get("query_string", b"")
-        if query:
+        if query and api_path == protocols.UPSTREAM_ENDPOINT:
             target += b"?" + query
         upstream_headers = [(k, v) for k, v in self.forward_headers(headers)
                             if k.lower() != b"accept-encoding"]
+        # The relay parses what it archives, so ask for an uncompressed body.
         upstream_headers.append((b"accept-encoding", b"identity"))
         return httpx.Request("POST", self.upstream_base.copy_with(raw_path=target),
                              headers=upstream_headers, content=body)
@@ -776,8 +773,9 @@ class ArchiveHandler:
                     log.exception("could not record the hidden loop failure")
             if started:
                 await send({"type": "http.response.body", "more_body": True,
-                            "body": _error_event("archive_unavailable",
-                                                 "Palimnesis could not complete the response.")})
+                            "body": gen.emitter.error(
+                                "archive_unavailable",
+                                "Palimnesis could not complete the response.")})
                 await send({"type": "http.response.body", "body": b"", "more_body": False})
             else:
                 await error_response(api_path, 502, "upstream_failed",
@@ -951,7 +949,8 @@ class ArchiveHandler:
                 await self.accounts.finish(call_plan, call, gen.usage_payload, gen.call_outcome)
 
     async def _stream_failed(self, send, gen) -> None:
-        error = _error_event("upstream_stream_failed", "The upstream stream ended before completing.")
+        error = gen.emitter.error("upstream_stream_failed",
+                                  "The upstream stream ended before completing.")
         await send({"type": "http.response.body", "body": error, "more_body": True})
         gen.forwarded += len(error)
         await send({"type": "http.response.body", "body": b"", "more_body": False})
@@ -968,7 +967,7 @@ class ArchiveHandler:
             if not pending:
                 return
             parts = [p for _, ps in pending for p in ps]
-            data = b"".join(b for b, _ in pending)
+            data = gen.emitter.feed(b"".join(b for b, _ in pending))
             forwarded_before = gen.forwarded
             await self.store.write(lambda c: ledger.commit_batch(c, gen, parts, forwarded_before))
             if data:
@@ -1016,6 +1015,7 @@ class ArchiveHandler:
                                   usage=usage, calls=len(asm.call_usages))
 
         await self.store.write(commit)
+        data = gen.emitter.feed(data)
         await send({"type": "http.response.body", "body": data, "more_body": True})
         gen.forwarded += len(data)
         await send({"type": "http.response.body", "body": b"", "more_body": False})

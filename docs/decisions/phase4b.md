@@ -113,3 +113,17 @@ The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs
   - Claude Code checks its context against reported usage, so `CLAUDE_CODE_MAX_CONTEXT_TOKENS` must be 1,000,000 (HC6).
   - Claude Code never calls `count_tokens` (HC1), so O-4B-10's relay is a correctness fallback only.
 - **Cache breakpoints.** Claude Code's moving `cache_control` turns a text-block list into a plain string on the next request. The adapter treats the two as equal content (HC3).
+
+## D83: The client-protocol seam (Phase 4B S1) and one Strata slot
+
+**Seam.** `palimnesis.protocols.ClientProtocol` is the edge between a client's wire protocol and the core. Chat Completions now sits behind it with no behaviour change (the full suite passes unchanged, 1,702 tests).
+- A protocol has a name, its endpoint, its transport-only fields, a `parse` into the neutral Chat-shaped request, and an `emitter` factory.
+- `api` picks the protocol by path (`protocols.for_path`). `archive.pipeline` parses, fingerprints and accepts with it. `archive.ledger` stores the endpoint on the request row, and `replan` re-parses an archived body with the protocol that row names.
+- **Deviation from the plan's S1 row:** the error event and the keepalive are methods of the per-response `Emitter`, not fields of the protocol. A Messages error event or `ping` may depend on the stream's state (an open content block), so they live with the state machine that tracks it. The emitter also encodes a non-streaming body.
+- **The upstream target is fixed.** Every archive-mode upstream call goes to `UPSTREAM_ENDPOINT` (`/v1/chat/completions`, position 2). The client's query string is relayed only when the client spoke that dialect, so `?beta=true` from a Messages client never reaches Strata's Chat route. No protocol flag is needed for this; it follows from the path.
+- `test_core_never_keys_off_harness_or_user_agent` checks every core module's identifiers for `opencode`, `claude` and `pi` tokens and for code that reads `User-Agent`. `integrations/` is exempt.
+
+**Slots (O-4B-7, measured).** Strata on pythia stays at one slot (`docs/probes/strata.md` §14).
+- Two slots fit at 32K per slot, but the expert cache shrinks from 5.17 to 4.05 GiB and decode drops from 50.9 to 34.3 tok/s for a single request.
+- Two concurrent requests finish at 59 and 62 s, against 27 and 54 s on one slot, because Strata still prefills one request at a time and decode stalls during the other's prefill.
+- Admission (S6) reads `total_slots` from `/props` and dispatches up to it, so a larger card needs no code change.

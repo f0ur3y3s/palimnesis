@@ -26,6 +26,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from palimnesis import protocols
 from palimnesis.protocols import chat
 
 from palimnesis.recall import search
@@ -35,7 +36,7 @@ from palimnesis.archive.rawarchive import get_raw, put_raw
 from palimnesis.archive.transcript import Archived, Divergence, Extend, Prefix, reconcile
 from palimnesis.archive.turns import is_instruction
 
-ENDPOINT_CHAT = "/v1/chat/completions"
+ENDPOINT_CHAT = protocols.CHAT.endpoint  # the default for direct callers and tests
 TERMINAL_EVENTS = ("turn_complete", "attempt_failed", "attempt_abandoned", "cancelled")
 
 
@@ -101,6 +102,8 @@ class Generation:
     usage_payload: dict | None = None
     call_outcome: str = "incomplete"
     ordinal: int = 1  # this upstream call's place in the attempt (hidden continuations, D51)
+    # The client protocol's encoder for this response (protocols.Emitter), kept across calls.
+    emitter: Any = None
 
 
 # --- reading -----------------------------------------------------------------
@@ -702,12 +705,14 @@ def accept(
     idem_key: str | None = None,
     live: set[str] | None = None,
     cache: BranchCache | None = None,
+    endpoint: str = ENDPOINT_CHAT,
 ) -> Plan:
-    """Accept or reject a request. ``live`` is the set of request IDs this
-    process is currently relaying; the archive has one owning process, so an
-    active marker outside it is stale (its terminal event could not be
-    written) and is abandoned instead of blocking the session. On success the
-    planned request is added to ``live`` inside this transaction."""
+    """Accept or reject a request. ``endpoint`` is the client protocol's, archived on the
+    request row so a restart re-parses the raw body with the same protocol. ``live`` is
+    the set of request IDs this process is currently relaying; the archive has one owning
+    process, so an active marker outside it is stale (its terminal event could not be
+    written) and is abandoned instead of blocking the session. On success the planned
+    request is added to ``live`` inside this transaction."""
     branch_id = ensure_session(conn, session_id, association)
     active = conn.execute(
         "SELECT active_request_id FROM branch_heads WHERE branch_id = ?", (branch_id,)
@@ -745,7 +750,7 @@ def accept(
         plan = _retry(conn, session_id, branch_id, req, fingerprint, archived, outcome, cache)
     else:
         plan = _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
-                       archived, outcome, cache)
+                       endpoint, archived, outcome, cache)
     if live is not None:
         live.add(plan.request_id)
     return plan
@@ -846,7 +851,7 @@ def _unselected_host(conn, request_id: str, items) -> str | None:
     return row[0]
 
 
-def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
+def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key, endpoint,
             archived, outcome: Extend, cache=None) -> Plan:
     first_request = not archived
     new = req.messages[outcome.matched:]
@@ -870,7 +875,7 @@ def _extend(conn, session_id, branch_id, req, fingerprint, retry_hint, idem_key,
     ).fetchone()
     conn.execute(
         "INSERT INTO requests VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)",
-        (request_id, session_id, branch_id, ENDPOINT_CHAT, raw_id, fingerprint, int(req.stream),
+        (request_id, session_id, branch_id, endpoint, raw_id, fingerprint, int(req.stream),
          idem_key, tip[0] if tip else None, retry_hint,
          json.dumps({"schema_key": schema_key, "top_level_order": list(req.top_level_order)}),
          time.time()),
@@ -1001,7 +1006,8 @@ def next_generation(conn: sqlite3.Connection, gen: Generation) -> Generation:
     """The attempt's next upstream call after hidden tool results (D51). Its generated
     occurrence is created on its first output, after the results in seq order."""
     return Generation(gen.plan, forwarded=gen.forwarded, delivery_started=gen.delivery_started,
-                      progress_recorded=gen.progress_recorded, ordinal=gen.ordinal + 1)
+                      progress_recorded=gen.progress_recorded, ordinal=gen.ordinal + 1,
+                      emitter=gen.emitter)
 
 
 def commit_internal_result(conn: sqlite3.Connection, gen: Generation, call_id: str, tool: str,
@@ -1199,9 +1205,9 @@ def replan(conn: sqlite3.Connection, branch_id: str, request_id: str, max_seq: i
     """(request, upstream items) of an earlier request as planned when the branch's newest
     occurrence had ``max_seq``: the deterministic re-render after a restart (D14.8). With
     ``attempt_id``, a continuation call's own parts and results follow (D51)."""
-    (raw_id,) = conn.execute("SELECT raw_id FROM requests WHERE request_id = ?",
-                             (request_id,)).fetchone()
-    req = chat.parse(get_raw(conn, raw_id))
+    raw_id, endpoint = conn.execute("SELECT raw_id, endpoint FROM requests WHERE request_id = ?",
+                                    (request_id,)).fetchone()
+    req = protocols.for_path(endpoint).parse(get_raw(conn, raw_id))
     archived = load_archived(conn, branch_id, max_seq=max_seq)
     outcome = reconcile(req.messages, archived)
     if isinstance(outcome, Divergence):

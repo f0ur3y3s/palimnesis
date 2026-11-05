@@ -73,7 +73,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
 
 - **Passthrough** relays request and response bytes unchanged. It drops hop-by-hop headers, headers named in `Connection`, and `x-palimnesis-*` headers, and adds none of its own. It relays every method (including `HEAD` and `OPTIONS`), the raw query string, repeated response headers, and the upstream's `Date` and `Server`, and streams SSE chunks as they arrive. A client disconnect at any stage (body read, waiting for upstream headers, streaming) closes the upstream request. **[enforced]**
 - **Unreachable upstream** (connect or transport failure before response headers) returns `502`, code `upstream_unreachable`, in the endpoint's error shape. In passthrough nothing is archived, so it carries `x-should-retry: true`. **[enforced]**
-- **Archive mode** (`--db`, the default) rewrites `POST /v1/chat/completions` only. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. **[enforced]**
+- **Archive mode** (`--db`, the default) rewrites `POST` only on an endpoint that has a client protocol (`palimnesis.protocols`, chosen by path, never by harness or `User-Agent`): today `/v1/chat/completions`. Other `POST` endpoints get `400 unsupported_feature`; `GET`, `HEAD` and `OPTIONS` pass through. The upstream call is always Chat Completions, whatever the client protocol, and the client's query string reaches it only when the client spoke Chat. **[enforced]**
 - **Rewriting** accepts only requests inside `capabilities.md` (allowlist rules in D11). Anything else is rejected before acceptance with `400`, code `unsupported_feature` and `x-should-retry: false`, and nothing is archived. Fields are never dropped silently. **[enforced]**
 - **Reserved names.** Tool names starting `palimnesis_` belong to Palimnesis (Phase 3B). A client tool, or a tool call in the client's history, with such a name is rejected before acceptance with `400 unsupported_feature`. **[enforced]**
 - **Upstream EOF** without the endpoint's terminal event (`[DONE]`, `message_stop`) is an upstream failure, never a successful stop. On rewritten streams the finish chunk is held until `[DONE]`, so a stream cut short after it still ends in the error event. In passthrough the client sees the same abrupt close it would see directly. **[enforced]**
@@ -137,7 +137,8 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 - **Key.** An optional `Idempotency-Key` header, scoped to (session, branch) and bound atomically to a fingerprint before inference. None of the current harnesses send one.
 - **Fingerprint v1.** SHA-256 of canonical JSON over: endpoint, session, branch, `model`, generation settings, `tools`, `tool_choice`, the full visible message list (which stands for the visible parent, D10.17), and every other top-level field not listed as transport-only. The parent occurrence ID is stored on the request row.
-  - Transport-only fields: `stream`, `stream_options`, all HTTP headers, the key itself.
+  - Transport-only fields: the client protocol's (Chat: `stream`, `stream_options`), all HTTP headers, the key itself.
+  - The endpoint is the client protocol's, and it is stored on the request row, so a restart re-parses the archived body with the same protocol.
   - Canonical form: object keys sorted, arrays in order, strings exact (no Unicode normalization), numbers as parsed (`1` ≠ `1.0`).
 - **Delivery mode** (`stream`) is recorded with the binding. The same key with a different mode is a conflict.
 - **Same key, different fingerprint** is a conflict. It never returns another request's response.

@@ -23,8 +23,11 @@ RETRY_HINT_HEADERS = ("x-stainless-retry-count",)
 MAX_RETRY_HINT = 100
 
 
-def fingerprint_v1(endpoint: str, session: str, branch: str, request: Mapping) -> str:
-    semantic = {k: v for k, v in request.items() if k not in TRANSPORT_ONLY_FIELDS}
+def fingerprint_v1(endpoint: str, session: str, branch: str, request: Mapping,
+                   transport_fields: frozenset[str] = TRANSPORT_ONLY_FIELDS) -> str:
+    """``transport_fields`` are the client protocol's (``ClientProtocol.transport_fields``);
+    the default is Chat's."""
+    semantic = {k: v for k, v in request.items() if k not in transport_fields}
     canonical = json.dumps(
         {"v": FINGERPRINT_VERSION, "endpoint": endpoint, "session": session,
          "branch": branch, "request": semantic},

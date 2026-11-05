@@ -16,6 +16,7 @@ from pathlib import Path
 import anyio
 import httpx
 
+from palimnesis import protocols
 from palimnesis.archive import ledger
 
 from palimnesis.upstreams import profile
@@ -325,7 +326,8 @@ class Proxy:
     async def _archive_route(
         self, scope, receive, send, session, path_session, api_path, headers, body
     ) -> None:
-        if api_path != ledger.ENDPOINT_CHAT:
+        protocol = protocols.for_path(api_path)
+        if protocol is None:
             response = error_response(
                 api_path, 400, "unsupported_feature",
                 f"POST {api_path} is not supported in archive mode; run with "
@@ -336,6 +338,7 @@ class Proxy:
         await self.archive(
             scope, receive, send, session=session, api_path=api_path, headers=headers,
             body=body, association="path" if path_session is not None else "header",
+            protocol=protocol,
         )
 
     async def _relay(
