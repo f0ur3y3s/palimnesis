@@ -300,7 +300,7 @@ def test_task_definitions():
         assert t.ID == tid
         assert t.SET == ("development" if tid.startswith("dev-") else
                          "heldout" if tid.startswith("ho-") else t.SET)
-        assert t.SET in ("development", "heldout", "heldout2", "heldout3")
+        assert t.SET in ("development", "heldout", "heldout2", "heldout3", "heldout4")
         assert 0 < t.RESTART_BEFORE < len(t.TURNS)
         assert set(t.CONSTRAINTS) == {"C1", "C2", "C3"} and t.TRAP
         hidden = "\n".join(t.HIDDEN.values())

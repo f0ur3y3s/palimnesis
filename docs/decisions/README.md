@@ -111,3 +111,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D93 | Reasoning and accounting on Messages; `state_refresh` for a refresh that hid nothing; Pi live (S11–S13) | [phase4b.md](phase4b.md) |
 | D94 | A length-stopped turn may be left out of the resend (S14 finding) | [phase4b.md](phase4b.md) |
 | D95 | Phase 4B reviews: fixes and known limits (S15) | [phase4b.md](phase4b.md) |
+| D96 | Held-out set `ho4` written, unseen for Phase 7 | [phase4b.md](phase4b.md) |

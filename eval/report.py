@@ -38,7 +38,7 @@ from pathlib import Path
 
 ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43",
          "a5-A", "a5-B", "a5-C", "a5-D", "a5-d64"]
-SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10)}  # D44.3, O-B1: histories x questions
+SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10), "heldout4": (12, 10)}  # D44.3, O-B1: histories x questions
 INVALID_ID_ERRORS = ("unknown_address", "ambiguous_address", "unknown_block")
 INVALID_ID_MAX = 0.05  # O-B6
 NEEDLE_GATE = 0.85  # D44.4
@@ -142,7 +142,7 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
 def expected_needles(set_name: str, root: Path | None = None) -> dict[str, list[dict]]:
     """{history id: [{id, category, answer}] per question} of a committed needle set
     (``eval/needles/<dir>``; empty while the set is not written)."""
-    folder = {"heldout": "heldout", "heldout2": "heldout2", "heldout3": "heldout3",
+    folder = {"heldout": "heldout", "heldout2": "heldout2", "heldout3": "heldout3", "heldout4": "heldout4",
               "development": "dev"}[set_name]
     out = {}
     for f in sorted((root or Path(__file__).resolve().parent / "needles").joinpath(folder).glob("*.json")):
@@ -631,7 +631,7 @@ def main() -> None:
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
     p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
-    p.add_argument("--set", choices=["development", "heldout", "heldout2", "heldout3"],
+    p.add_argument("--set", choices=["development", "heldout", "heldout2", "heldout3", "heldout4"],
                    help="print the needle gate over the whole committed set (missing = miss)")
     p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
     p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")
