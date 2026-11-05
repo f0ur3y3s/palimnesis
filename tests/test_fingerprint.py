@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis.fingerprint import FINGERPRINT_VERSION, fingerprint_v1, parse_retry_hint
+from palimnesis.archive.fingerprint import FINGERPRINT_VERSION, fingerprint_v1, parse_retry_hint
 
 # min(): glob order is filesystem-dependent (sorted on NTFS, not on ext4); exchange
 # directory names start with the arrival timestamp, so the smallest is the first request.

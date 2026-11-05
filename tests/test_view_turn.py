@@ -1,6 +1,6 @@
 """The current turn's own work stays in view (R33-A, D70).
 
-Pure tests of ``palimnesis.view.build`` with the real pinned counter. With
+Pure tests of ``palimnesis.view.builder.build`` with the real pinned counter. With
 ``ViewPolicy(protect_turn=True)``, a move first masks and collapses what lies before the
 current turn (from the latest genuine instruction, ``turns.is_instruction``). Inside the
 turn it then stubs the largest tool results and reasoning in place, never the newest
@@ -15,9 +15,9 @@ import random
 
 import pytest
 
-from palimnesis.budget import BudgetPolicy, plan_budget
+from palimnesis.view.budget import BudgetPolicy, plan_budget
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewPolicy, ViewState, build
+from palimnesis.view.builder import ViewPolicy, ViewState, build
 
 from .test_view import TOOLS, Session, _code
 

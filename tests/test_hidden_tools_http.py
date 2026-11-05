@@ -11,7 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from palimnesis import recalltools
+from palimnesis.recall import tools as recalltools
 
 from .test_view_http import DONE, TOOLS, body, history, post, rows, upstream_tokens, view_stack
 
@@ -117,7 +117,7 @@ def test_serve_takes_the_hidden_tools_affordance_off_by_default():
 
 
 def test_the_stub_format_and_a_pathless_addendum_reach_the_upstream(tmp_path):
-    from palimnesis.affordances import REGISTRY
+    from palimnesis.view.affordances import REGISTRY
 
     with view_stack(tmp_path, input_budget=8000, hidden_tools="t1", stub="s0", addendum="a1",
                     transcripts_enabled=False) as (fake, url, settings):

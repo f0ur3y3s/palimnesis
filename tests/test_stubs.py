@@ -1,4 +1,4 @@
-"""palimnesis.stubs: versioned stub text and Unicode-safe exact chunking (plan slice 6).
+"""palimnesis.view.stubs: versioned stub text and Unicode-safe exact chunking (plan slice 6).
 
 Counters are deterministic fakes; the real tokenizer is injected by the view.
 """
@@ -11,7 +11,7 @@ import re
 
 import pytest
 
-from palimnesis import stubs
+from palimnesis.view import stubs
 
 
 def byte_tokens(text: str) -> int:

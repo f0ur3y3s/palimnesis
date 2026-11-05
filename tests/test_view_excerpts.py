@@ -6,9 +6,9 @@ import dataclasses
 
 import pytest
 
-from palimnesis.budget import plan_budget, BudgetPolicy
+from palimnesis.view.budget import plan_budget, BudgetPolicy
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
+from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build
 
 from .test_view import TOOLS, Session, _code
 

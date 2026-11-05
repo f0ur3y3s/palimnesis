@@ -64,7 +64,7 @@ def test_retrieval_r2_still_quotes_tool_results(tmp_path):
 
 
 def test_an_unknown_retrieval_version_is_refused():
-    from palimnesis.recall import FtsExcerpts
+    from palimnesis.recall.proactive import FtsExcerpts
 
     with pytest.raises(ValueError):
         FtsExcerpts(store=None, counter=None, retrieval="r9")

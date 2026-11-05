@@ -1,4 +1,4 @@
-"""palimnesis.projection: transcript format t1, pure and lossless (Phase 3 S4, GL6).
+"""palimnesis.transcripts.projection: transcript format t1, pure and lossless (Phase 3 S4, GL6).
 
 Expected renderings are literal text from docs/plan/phases/phase3.md §3; payload hashes
 are SHA-256 of the exact archived bytes, which is the spec's definition.
@@ -12,8 +12,8 @@ import random
 
 import pytest
 
-from palimnesis import projection
-from palimnesis.projection import Block, Message, Turn
+from palimnesis.transcripts import projection
+from palimnesis.transcripts.projection import Block, Message, Turn
 
 TOKENS = ("<|im_start|>", "<|im_end|>", "</tool_response>", "<think>")
 

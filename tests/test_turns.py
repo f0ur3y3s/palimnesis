@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from palimnesis.turns import turn_numbers
+from palimnesis.archive.turns import turn_numbers
 
 
 def test_each_genuine_user_message_starts_a_turn_and_others_belong_to_it():
@@ -36,7 +36,7 @@ LENGTH_FOLLOW_UP = ("Your last response hit the output token limit (stop reason:
 
 
 def test_the_length_follow_up_is_not_an_instruction():
-    from palimnesis.turns import is_instruction
+    from palimnesis.archive.turns import is_instruction
 
     assert is_instruction("user", LENGTH_FOLLOW_UP) is False
     # The recorded prefix is the marker; the rest of OpenCode's wording may vary.

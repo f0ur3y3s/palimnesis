@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 
-from palimnesis import profile
+from palimnesis.upstreams import profile
 
 from .fake_upstream import FakeUpstream
 from .test_cacheacct_http import acct_stack, body, events, history, post, turn
@@ -34,7 +34,7 @@ def test_no_drift_no_event(tmp_path):
 
 
 def test_drift_raises_margin_then_disables(tmp_path, caplog):
-    caplog.set_level(logging.WARNING, logger="palimnesis.viewengine")
+    caplog.set_level(logging.WARNING, logger="palimnesis.view.engine")
     messages = history(1)
     sent = []
     small = FakeUpstream()

@@ -49,7 +49,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from .chat import Message, content_sha256
+from palimnesis.protocols.chat import Message, content_sha256
 
 
 @dataclass(frozen=True)

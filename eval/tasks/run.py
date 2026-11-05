@@ -449,7 +449,7 @@ def run(a) -> int:
                                 output_limit=opencode_output_limit(arm)))
     sdir = None
     if troot is not None:
-        from palimnesis.projector import session_dir
+        from palimnesis.transcripts.projector import session_dir
 
         sdir = session_dir(troot, session)
     tools = needle.Tools(ws, troot, sdir, [], None)

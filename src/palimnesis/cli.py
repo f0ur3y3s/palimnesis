@@ -9,8 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .config import Settings
-from .sessions import SessionError, resolve_session
+from palimnesis.config import Settings
+from palimnesis.sessions import SessionError, resolve_session
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9000
@@ -122,13 +122,13 @@ def serve_settings(argv: list[str]) -> Settings:
 def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    from .api import create_app
-    from .server import uvicorn_config
+    from palimnesis.api import create_app
+    from palimnesis.server import uvicorn_config
 
     settings = _settings(args)
     if settings.db_path is not None:
-        from .projection import ProjectionError
-        from .projector import check_root
+        from palimnesis.transcripts.projection import ProjectionError
+        from palimnesis.transcripts.projector import check_root
 
         if settings.transcripts is not None and settings.transcripts_enabled:
             try:
@@ -157,7 +157,9 @@ def _read_only(db: Path):
 
 def _catalog(args: argparse.Namespace) -> int:
     """Print one catalog page of a session (inspection; never model-facing in Phase 2)."""
-    from . import catalog, ledger, profile
+    from palimnesis.view import catalog
+    from palimnesis.archive import ledger
+    from palimnesis.upstreams import profile
 
     counter = profile.load(profile.DEFAULT_PROFILE, "http://inspect.invalid").counter
     branch = ledger.branch_id_for(args.session)
@@ -183,7 +185,7 @@ def _catalog(args: argparse.Namespace) -> int:
 
 def _excerpts(args: argparse.Namespace) -> int:
     """List a session's excerpt blocks (inspection only)."""
-    from . import ledger
+    from palimnesis.archive import ledger
 
     conn = _read_only(args.db or default_db_path())
     try:
@@ -201,9 +203,9 @@ def _excerpts(args: argparse.Namespace) -> int:
 
 
 def _transcript_context(args: argparse.Namespace):
-    from . import profile
-    from .projection import ProjectionError
-    from .projector import check_root, default_root
+    from palimnesis.upstreams import profile
+    from palimnesis.transcripts.projection import ProjectionError
+    from palimnesis.transcripts.projector import check_root, default_root
 
     db = args.db or default_db_path()
     root = args.root or default_root(db)
@@ -217,7 +219,7 @@ def _transcript_context(args: argparse.Namespace):
 
 
 def _snapshot(conn, session: str, **kw):
-    from . import projector
+    from palimnesis.transcripts import projector
 
     conn.execute("BEGIN")
     try:
@@ -228,8 +230,8 @@ def _snapshot(conn, session: str, **kw):
 
 def _transcripts_rebuild(args: argparse.Namespace) -> int:
     """Re-project a session's transcript files from the archive (no inference)."""
-    from . import projector
-    from .projection import ProjectionError
+    from palimnesis.transcripts import projector
+    from palimnesis.transcripts.projection import ProjectionError
 
     try:
         db, root, upstream = _transcript_context(args)
@@ -261,7 +263,9 @@ def _transcripts_verify(args: argparse.Namespace) -> int:
     """Check a session's published transcript files against the archive."""
     import json as _json
 
-    from . import projection, projector
+    from palimnesis.transcripts import projection
+
+    from palimnesis.transcripts import projector
 
     try:
         db, root, upstream = _transcript_context(args)

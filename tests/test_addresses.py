@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.addresses import Ambiguous, Hit, Unknown, issue_alias, resolve
-from palimnesis.store import Store
+from palimnesis.archive.addresses import Ambiguous, Hit, Unknown, issue_alias, resolve
+from palimnesis.archive.store import Store
 
 
 @pytest.fixture

@@ -22,7 +22,7 @@ import pytest
 
 from palimnesis.api import create_app
 from palimnesis.config import Settings
-from palimnesis.ledger import branch_id_for, load_archived
+from palimnesis.archive.ledger import branch_id_for, load_archived
 
 from .archive_helpers import (
     CHAT,

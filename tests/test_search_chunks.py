@@ -8,10 +8,10 @@ import sqlite3
 
 import pytest
 
-from palimnesis import search
-from palimnesis.search import CHUNK_CHARS, CHUNK_LINES, chunk_spans
-from palimnesis.store import Store
-from palimnesis.stubs import is_safe_cut
+from palimnesis.recall import search
+from palimnesis.recall.search import CHUNK_CHARS, CHUNK_LINES, chunk_spans
+from palimnesis.archive.store import Store
+from palimnesis.view.stubs import is_safe_cut
 
 from .test_search_index import _accept, _request
 

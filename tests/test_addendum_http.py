@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from palimnesis.projector import session_dir
+from palimnesis.transcripts.projector import session_dir
 
 from .test_view_http import DONE, SID, body, history, post, rows, upstream_tokens, view_stack
 

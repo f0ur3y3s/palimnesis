@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis.rawarchive import RawArchiveError, get_raw, put_raw
-from palimnesis.store import Store
+from palimnesis.archive.rawarchive import RawArchiveError, get_raw, put_raw
+from palimnesis.archive.store import Store
 
 LIVE = sorted(
     (Path(__file__).resolve().parents[1] / "eval/fixtures/opencode-2.1.4/live/exchanges").glob(

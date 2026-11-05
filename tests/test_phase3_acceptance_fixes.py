@@ -110,8 +110,8 @@ def test_a_refresh_that_cannot_fit_is_recorded_without_a_call(tmp_path):
 # Protocol review 4: a rebuild with the new notes that raises sends the view the move
 # built, so the notes the plan holds stay that view's (none here), never the new version.
 def test_a_failed_rebuild_with_new_notes_keeps_the_plan_on_the_sent_view(tmp_path, monkeypatch):
-    from palimnesis.view import notes_block
-    from palimnesis.viewengine import ViewEngine
+    from palimnesis.view.builder import notes_block
+    from palimnesis.view.engine import ViewEngine
 
     from .test_notes_http import _messages
 
@@ -145,7 +145,7 @@ def test_a_failed_rebuild_with_new_notes_keeps_the_plan_on_the_sent_view(tmp_pat
 def test_the_startup_floor_counts_the_notes_slot():
     import pytest
 
-    from palimnesis.budget import BudgetError, BudgetPolicy, check_floor
+    from palimnesis.view.budget import BudgetError, BudgetPolicy, check_floor
 
     check_floor(13_000, fixed_min=5, client_limit=None, policy=BudgetPolicy())
     with pytest.raises(BudgetError) as e:

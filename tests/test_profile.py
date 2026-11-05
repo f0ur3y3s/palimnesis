@@ -1,6 +1,6 @@
 """The upstream-profile seam (D15 amended; Phase 2 delta slice A).
 
-Core modules see an upstream only through ``palimnesis.profile``: a counter, a facts
+Core modules see an upstream only through ``palimnesis.upstreams.profile``: a counter, a facts
 reader, a counting cross-check, a cache-reuse model, an error map and template rules.
 These tests pin that boundary: the core never imports the Strata profile, a toy profile
 drives a bounded view end to end, and the Strata profile bundles its parts.
@@ -16,7 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from palimnesis import profile
+from palimnesis.upstreams import profile
 from palimnesis.api import create_app
 from palimnesis.config import Settings
 
@@ -167,7 +167,8 @@ def _imported_modules(path: Path) -> list[str]:
 
 def test_core_modules_do_not_import_strata_profile():
     core = [p for p in SRC.rglob("*.py") if not p.relative_to(SRC).as_posix().startswith("upstreams/strata/")]
-    assert {p.name for p in core} >= {"profile.py", "viewengine.py", "archive.py", "api.py", "view.py"}
+    assert {p.relative_to(SRC).as_posix() for p in core} >= {
+        "upstreams/profile.py", "view/engine.py", "archive/pipeline.py", "api.py", "view/builder.py"}
     offenders = {p.relative_to(SRC).as_posix(): m for p in core for m in _imported_modules(p)
                  if m == STRATA or m.startswith(STRATA + ".")}
     assert offenders == {}

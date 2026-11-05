@@ -10,7 +10,7 @@ record. Adaptations (plan phase3b §2.5, D57–D59):
   block with the block's total length, its SHA-256 and the next offset, so pages
   reassemble exactly. Lone surrogates are shown as U+FFFD, one code point each, so
   offsets hold (D38.1); the hash covers the archived text.
-- **Never a near miss.** Addresses resolve through ``palimnesis.addresses`` in the
+- **Never a near miss.** Addresses resolve through ``palimnesis.archive.addresses`` in the
   session's scope only. Unknown and ambiguous ids return errors with suggestions,
   never another record's content.
 - **Search is bounded and literal.** Text mode quotes every term as an FTS5 phrase
@@ -22,7 +22,7 @@ record. Adaptations (plan phase3b §2.5, D57–D59):
   shows (``recall.candidates``, the excerpt candidate set); ``all`` searches the
   whole branch. System messages, always in view, and recall results, copies of
   archived text, are never searched.
-- **Catalog pages are ordinary tool results** (``palimnesis.catalog``), so model-facing
+- **Catalog pages are ordinary tool results** (``palimnesis.view.catalog``), so model-facing
   navigation costs no reserved slot and never invalidates the prefix (D20.3).
 - **Every result fits** the caller's ``max_tokens`` under the injected counter.
 """
@@ -38,9 +38,11 @@ from typing import Any, Callable, Iterable, Mapping
 
 import re2
 
-from . import addresses, catalog
-from .search import _block_text, search_chunks
-from .stubs import chunks, fit_prefix
+from palimnesis.archive import addresses
+
+from palimnesis.view import catalog
+from palimnesis.recall.search import _block_text, search_chunks
+from palimnesis.view.stubs import chunks, fit_prefix
 
 Count = Callable[[str], int]
 
@@ -135,7 +137,7 @@ _PARAMETERS = {
 def schemas(version: str) -> list[dict]:
     """The hidden tools as Chat Completions function tools, described by the registered
     affordance ``version`` (t1 or t2): one description line per tool."""
-    from .affordances import REGISTRY
+    from palimnesis.view.affordances import REGISTRY
 
     affordance = REGISTRY[version]
     if affordance.family != "tools":

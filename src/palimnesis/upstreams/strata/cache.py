@@ -21,7 +21,7 @@ wherever it is recorded (contracts §10).
 
 from __future__ import annotations
 
-from ...profile import Layout, common_prefix
+from palimnesis.upstreams.profile import Layout, common_prefix
 
 CHECKPOINT_INTERVAL = 16_384
 MAX_CHECKPOINTS = 6
@@ -29,7 +29,7 @@ SYSTEM_ROOT_MIN = 2_048
 
 
 class StrataCacheModel:
-    """``palimnesis.profile.CacheReuseModel`` for Strata 0.1.48."""
+    """``palimnesis.upstreams.profile.CacheReuseModel`` for Strata 0.1.48."""
 
     def checkpoints(self, layout: Layout) -> tuple[int, ...]:
         """Resume points the upstream holds after prefilling ``layout``."""

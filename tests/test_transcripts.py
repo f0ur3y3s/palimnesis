@@ -1,7 +1,7 @@
 """Transcript publication at the store seam (Phase 3 S5: GL6, GL7, location, permissions).
 
-Archives are written through ``palimnesis.ledger`` on a real store; files are published
-by ``palimnesis.projector`` and checked against the plan's protocol (docs/plan/phases/phase3.md
+Archives are written through ``palimnesis.archive.ledger`` on a real store; files are published
+by ``palimnesis.transcripts.projector`` and checked against the plan's protocol (docs/plan/phases/phase3.md
 §3): the index only ever names complete files, a crash or a refused replace leaves the
 previous generation readable, and every payload verifies against the archive.
 """
@@ -17,8 +17,12 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis import ledger, projection, projector
-from palimnesis.projection import ProjectionError
+from palimnesis.archive import ledger
+
+from palimnesis.transcripts import projection
+
+from palimnesis.transcripts import projector
+from palimnesis.transcripts.projection import ProjectionError
 
 from .projection_helpers import (TOKENS, Archive, call, reasoning, text, tool, tree, user,
                                  words)

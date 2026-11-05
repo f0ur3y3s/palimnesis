@@ -7,7 +7,7 @@ import random
 
 import pytest
 
-from palimnesis.excerpts import (
+from palimnesis.recall.excerpts import (
     RENDERER_VERSION,
     Excerpt,
     attach,

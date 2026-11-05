@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from palimnesis.projector import session_dir
+from palimnesis.transcripts.projector import session_dir
 
 from .test_recall_http import NEEDLE, _with_needle
 from .test_view_http import DONE, SID, body, post, rows, view_stack

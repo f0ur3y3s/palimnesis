@@ -12,7 +12,7 @@ import json
 import pytest
 
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewPolicy, notes_block, notes_prompt
+from palimnesis.view.builder import ViewPolicy, notes_block, notes_prompt
 
 from .archive_helpers import DONE, chunk
 from .test_notes_http import BUDGET, _body, _messages, _notes_rows, _sent

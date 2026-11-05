@@ -44,7 +44,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 from palimnesis.api import create_app  # noqa: E402
 from palimnesis.capture import load_exchanges  # noqa: E402
 from palimnesis.config import Settings  # noqa: E402
-from palimnesis.excerpts import Excerpt, SelectedExcerpt, Selection, render_block  # noqa: E402
+from palimnesis.recall.excerpts import Excerpt, SelectedExcerpt, Selection, render_block  # noqa: E402
 from palimnesis.upstreams.strata import tokens  # noqa: E402
 from tests.servers import serve  # noqa: E402
 

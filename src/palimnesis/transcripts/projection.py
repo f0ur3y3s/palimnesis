@@ -6,7 +6,7 @@ ordinary tools when proactive recall misses. Adaptations (docs/plan/phases/phase
 
 - **Derived and deterministic.** Files are a function of the immutable archive (no
   timestamps), so ``palimnesis transcripts rebuild`` reproduces them byte for byte
-  without inference. This module renders and parses; ``palimnesis.projector`` reads
+  without inference. This module renders and parses; ``palimnesis.transcripts.projector`` reads
   the archive and publishes.
 - **Lossless payloads with provenance.** Every archived block appears once, delimited
   by ``[[§ALIAS.N · seq S · role · tool NAME (call_id) · kind]]`` … ``[[/§ALIAS.N]]``,
@@ -42,9 +42,9 @@ import re
 from dataclasses import dataclass, field, replace
 from typing import Callable, Iterable, Mapping, Sequence
 
-from .catalog import _collapse
-from .excerpts import _header_field, escape_payload, unescape_payload
-from .stubs import fit_prefix
+from palimnesis.view.catalog import _collapse
+from palimnesis.recall.excerpts import _header_field, escape_payload, unescape_payload
+from palimnesis.view.stubs import fit_prefix
 
 FORMAT = "t1"
 LINK_BYTES = 64 * 1024

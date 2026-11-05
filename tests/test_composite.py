@@ -15,11 +15,13 @@ import sqlite3
 
 import pytest
 
-from palimnesis import ledger, search
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.ledger import Generation, Rejection
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+
+from palimnesis.recall import search
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.ledger import Generation, Rejection
+from palimnesis.archive.store import Store
 
 SID = "comp"
 SYSTEM = {"role": "system", "content": "You are a coding agent."}

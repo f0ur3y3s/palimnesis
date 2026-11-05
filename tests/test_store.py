@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from palimnesis.store import IMMUTABLE_TABLES, Store, StoreError
+from palimnesis.archive.store import IMMUTABLE_TABLES, Store, StoreError
 
 
 @pytest.fixture

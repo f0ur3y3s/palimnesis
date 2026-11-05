@@ -1012,7 +1012,7 @@ def run_config(a) -> int:
     budget = a.input_budget if getattr(a, "input_budget", None) is not None else INPUT_BUDGET
     proxy = ProxyProcess(out, f"http://127.0.0.1:{tap_port}", settings, input_budget=budget)
     proxy.start()
-    from palimnesis.projector import default_root, session_dir
+    from palimnesis.transcripts.projector import default_root, session_dir
 
     troot = default_root(proxy.db) if cfg["transcripts_enabled"] else None
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))

@@ -43,16 +43,26 @@ from dataclasses import replace
 import anyio
 import httpx
 
-from . import cacheacct, chat, ledger, recall, recalltools, search
-from .errors import error_response
-from .fingerprint import fingerprint_v1, parse_retry_hint
-from .budget import BudgetError
-from .assemble import ChatAssembler
-from .sse import ChatStream, SSEParser
-from .turns import is_instruction
-from .view import fit_notes, notes_block, notes_from_reasoning
-from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
-from .store import Store
+from palimnesis.view import cacheacct
+
+from palimnesis.protocols import chat
+
+from palimnesis.archive import ledger
+
+from palimnesis.recall import proactive as recall
+
+from palimnesis.recall import tools as recalltools
+
+from palimnesis.recall import search
+from palimnesis.errors import error_response
+from palimnesis.archive.fingerprint import fingerprint_v1, parse_retry_hint
+from palimnesis.view.budget import BudgetError
+from palimnesis.protocols.assemble import ChatAssembler
+from palimnesis.protocols.sse import ChatStream, SSEParser
+from palimnesis.archive.turns import is_instruction
+from palimnesis.view.builder import fit_notes, notes_block, notes_from_reasoning
+from palimnesis.view.engine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
+from palimnesis.archive.store import Store
 
 log = logging.getLogger(__name__)
 
@@ -111,9 +121,9 @@ class ArchiveHandler:
         self.addendum_for = addendum_for
         self.deadline_s = deadline_s
         # Called with the session id after accept and after each attempt ends, from the
-        # event loop; it must not block (palimnesis.projector.Projector.trigger).
+        # event loop; it must not block (palimnesis.transcripts.projector.Projector.trigger).
         self.on_change = on_change
-        self.views = views  # palimnesis.viewengine.ViewEngine, or None for no bounded views
+        self.views = views  # palimnesis.view.engine.ViewEngine, or None for no bounded views
         self.client = client
         self.upstream_base = upstream_base
         self.forward_headers = forward_headers  # filtered client headers for upstream
@@ -1041,6 +1051,6 @@ class ArchiveHandler:
 
 
 def _response_headers(upstream: httpx.Response) -> list[tuple[bytes, bytes]]:
-    from .api import _filter_headers
+    from palimnesis.api import _filter_headers
 
     return _filter_headers(upstream.headers.raw)

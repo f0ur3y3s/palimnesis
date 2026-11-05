@@ -24,10 +24,10 @@ import httpx
 import pytest
 
 from palimnesis.api import create_app
-from palimnesis.budget import BudgetError, BudgetPolicy, plan_budget
+from palimnesis.view.budget import BudgetError, BudgetPolicy, plan_budget
 from palimnesis.config import Settings
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
+from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build
 
 from .fake_upstream import FakeUpstream
 from .servers import serve

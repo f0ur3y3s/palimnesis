@@ -16,14 +16,16 @@ from pathlib import Path
 import anyio
 import httpx
 
-from . import ledger, profile
-from .archive import ArchiveHandler
-from .budget import BudgetError, check_floor
-from .capture import CaptureRecorder
-from .config import Settings
-from .errors import error_response
-from .sessions import SessionError, resolve_session
-from .store import Store
+from palimnesis.archive import ledger
+
+from palimnesis.upstreams import profile
+from palimnesis.archive.pipeline import ArchiveHandler
+from palimnesis.view.budget import BudgetError, check_floor
+from palimnesis.capture import CaptureRecorder
+from palimnesis.config import Settings
+from palimnesis.errors import error_response
+from palimnesis.sessions import SessionError, resolve_session
+from palimnesis.archive.store import Store
 
 log = logging.getLogger(__name__)
 
@@ -144,7 +146,7 @@ class Proxy:
         self.client: httpx.AsyncClient | None = None
         self.store: Store | None = None
         self.archive: ArchiveHandler | None = None
-        self.projector = None  # palimnesis.projector.Projector while transcripts are on
+        self.projector = None  # palimnesis.transcripts.projector.Projector while transcripts are on
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] == "lifespan":
@@ -191,7 +193,7 @@ class Proxy:
         """(version, schemas) of the hidden recall tools, or None (Phase 3B, D54)."""
         if self.settings.hidden_tools is None:
             return None
-        from .recalltools import schemas
+        from palimnesis.recall.tools import schemas
 
         return self.settings.hidden_tools, schemas(self.settings.hidden_tools)
 
@@ -199,7 +201,7 @@ class Proxy:
         """session id -> the addendum: a3/a4 name the session's transcript directory and
         apply while transcript files are published (D36, D37.2); the 3B recall addenda
         a1/a2 need no transcripts; a0 is none."""
-        from .affordances import addendum_text
+        from palimnesis.view.affordances import addendum_text
 
         which = self.settings.addendum
         if which == "a0":
@@ -209,7 +211,7 @@ class Proxy:
             return lambda session: (which, text)
         if self.projector is None:
             return None
-        from .projector import session_dir
+        from palimnesis.transcripts.projector import session_dir
 
         root, which = self.projector.root, self.settings.addendum
         addendum_text("{path}", which)  # an unknown id fails at startup, not per request
@@ -217,8 +219,8 @@ class Proxy:
 
     def _start_projector(self, upstream):
         """Transcript files (Phase 3): on by default, beside the archive (contracts §14)."""
-        from .projection import ProjectionError
-        from .projector import Projector, check_root, default_root
+        from palimnesis.transcripts.projection import ProjectionError
+        from palimnesis.transcripts.projector import Projector, check_root, default_root
 
         settings = self.settings
         if not settings.transcripts_enabled or str(settings.db_path) == ":memory:":
@@ -243,12 +245,12 @@ class Proxy:
 
     async def _view_engine(self):
         """Bounded views (Phase 2): the upstream profile, its facts read now."""
-        from .viewengine import ViewEngine
+        from palimnesis.view.engine import ViewEngine
 
         upstream = profile.load(self.settings.profile, self.settings.upstream_base_url)
         excerpts = self.settings.excerpt_source
         if excerpts is None and self.settings.recall == "fts":
-            from .recall import FtsExcerpts
+            from palimnesis.recall.proactive import FtsExcerpts
 
             excerpts = FtsExcerpts(self.store, upstream.counter,
                                    query_policy=self.settings.query_policy,

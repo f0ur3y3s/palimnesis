@@ -7,11 +7,11 @@ Strata's error shapes and ``cache`` holds the cache-reuse model.
 
 from __future__ import annotations
 
-from ...profile import TemplateRules, UpstreamProfile
-from . import pins, tokens
-from .cache import StrataCacheModel
-from .errors import StrataErrors
-from .facts import CountTokensCrossCheck, UpstreamState
+from palimnesis.upstreams.profile import TemplateRules, UpstreamProfile
+from palimnesis.upstreams.strata import pins, tokens
+from palimnesis.upstreams.strata.cache import StrataCacheModel
+from palimnesis.upstreams.strata.errors import StrataErrors
+from palimnesis.upstreams.strata.facts import CountTokensCrossCheck, UpstreamState
 
 PROFILE_ID = "strata-0.1.48"
 

@@ -6,10 +6,10 @@ import json
 
 import pytest
 
-from palimnesis import ledger
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.store import Store
 
 SESSION = "cache-1"
 BRANCH = ledger.branch_id_for(SESSION)

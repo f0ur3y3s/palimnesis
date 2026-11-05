@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from palimnesis import archive
+from palimnesis.archive import pipeline as archive
 
 from .test_hidden_loop_http import _messages, _post, _seen
 from .test_view_http import history, view_stack

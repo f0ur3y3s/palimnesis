@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.budget import (
+from palimnesis.view.budget import (
     BudgetError,
     BudgetPolicy,
     check_fixed,

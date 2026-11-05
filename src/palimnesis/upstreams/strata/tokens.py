@@ -57,8 +57,8 @@ import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 from tokenizers import Tokenizer
 
-from ...profile import Layout, Segment, empty_assistant
-from . import pins
+from palimnesis.upstreams.profile import Layout, Segment, empty_assistant
+from palimnesis.upstreams.strata import pins
 
 SPLIT_TOKENS = ("<|im_start|>",)
 COUNTER_REVISION = "c4"  # c2: literal tags as text (D46); c3: no NFC (D47); c4: tool_choice "none" (D50)

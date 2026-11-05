@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .profile import DEFAULT_PROFILE
+from palimnesis.upstreams.profile import DEFAULT_PROFILE
 
 
 @dataclass(frozen=True)
@@ -57,5 +57,5 @@ class Settings:
     transcripts: Path | None = None
     # False: no transcript files are published.
     transcripts_enabled: bool = True
-    # Upstream profile name (palimnesis.profile.REGISTRY).
+    # Upstream profile name (palimnesis.upstreams.profile.REGISTRY).
     profile: str = DEFAULT_PROFILE

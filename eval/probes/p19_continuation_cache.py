@@ -85,7 +85,7 @@ def main() -> None:
     ap.add_argument("--reps", type=int, default=3)
     args = ap.parse_args()
     props = check_build()
-    from palimnesis.profile import common_prefix
+    from palimnesis.upstreams.profile import common_prefix
     from palimnesis.upstreams.strata import tokens
     from palimnesis.upstreams.strata.cache import StrataCacheModel
     tok, model = tokens.default(), StrataCacheModel()

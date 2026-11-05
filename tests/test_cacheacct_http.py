@@ -335,7 +335,8 @@ def explain(db, *extra):
 
 
 def test_unexplained_change_fails(tmp_path, monkeypatch):
-    from palimnesis import chat, viewengine
+    from palimnesis.protocols import chat
+    from palimnesis.view import engine as viewengine
 
     original = viewengine.ViewEngine.body
 

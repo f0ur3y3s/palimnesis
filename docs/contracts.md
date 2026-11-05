@@ -8,7 +8,7 @@ Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve ·
 
 - `n_ctx`, `build_info` and the chat-template hash come from the upstream profile's facts reader (Strata: `GET /props`). They are read at startup and again after any transport error, 5xx, or context-window 400. **[enforced]**
 - **Pin mismatch.** A template, build or `count_tokens` canary that differs from the pinned profile disables bounded views. The proxy still archives and forwards, as in Phase 1 (D14.9). A build matches when it is the pin's own or one the pin lists as verified equivalent, with its evidence (D76). **[enforced]**
-- **Core is backend-neutral.** Backend specifics live behind `palimnesis.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
+- **Core is backend-neutral.** Backend specifics live behind `palimnesis.upstreams.profile` (D21). Core modules never import a backend, which an AST boundary test enforces. **[enforced]**
 - Counting renders the pinned template with the pinned tokenizer, as Strata 0.1.48 encodes: without the tokenizer's NFC normalizer (D47), with added-token strings inside messages counted as text (D46), and with no tool schemas when `tool_choice` is `"none"` (D50). It is cross-checked at startup by a `count_tokens` canary. Every call's `usage.prompt_tokens` is reconciled with the local count. Drift raises `M` (D22.4); persistent or large drift disables bounded views. **[enforced]**
 
 ## 2. Budgets
@@ -32,7 +32,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
   - **Retrieval r2** (D71, `serve --retrieval r2`; `serve`'s default since D78) never quotes reasoning blocks; r1 (`--retrieval r1`) may.
 
   **[enforced]**
-- **Bounded view** (`palimnesis.view`, D14).
+- **Bounded view** (`palimnesis.view.builder`, D14).
   - The view is the full history until it would exceed `H = F + 0.9·C`. Then it masks oldest-first to `T = F + 0.5·C`, at group boundaries only, and `I ≤ B_in` always holds.
   - Watermark and collapse boundaries are monotone and persisted in immutable `view_versions`, so a rebuild reproduces the same tokens.
   - The builder makes no upstream calls.
@@ -91,7 +91,7 @@ All of the above are **[enforced]**.
 - IDs are routing keys, not secrets. The proxy binds to loopback by default; URLs and bodies stay out of operational logs.
 - Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Palimnesis session]**
 - **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
-- **Reconciliation** (D10.3–D10.5, `palimnesis.transcript`). Each resend is compared position by position with the archived visible history:
+- **Reconciliation** (D10.3–D10.5, `palimnesis.archive.transcript`). Each resend is compared position by position with the archived visible history:
   - Client messages match by content hash.
   - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments. Booleans never equal numbers. Any arguments also match the client's `{}`, OpenCode's resend of a call it did not run: arguments that never parsed (D68), or a call interrupted while it ran (D73). An edit that blanks arguments to `{}` is therefore not detected; the archive keeps the generated arguments.
   - A changed system message before the first non-system message is a new context version, not a divergence.
@@ -133,7 +133,7 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 
 ## 6. Idempotency and request fingerprints
 
-**[enforced]** (`palimnesis.fingerprint`, `palimnesis.ledger`)
+**[enforced]** (`palimnesis.archive.fingerprint`, `palimnesis.archive.ledger`)
 
 - **Key.** An optional `Idempotency-Key` header, scoped to (session, branch) and bound atomically to a fingerprint before inference. None of the current harnesses send one.
 - **Fingerprint v1.** SHA-256 of canonical JSON over: endpoint, session, branch, `model`, generation settings, `tools`, `tool_choice`, the full visible message list (which stands for the visible parent, D10.17), and every other top-level field not listed as transport-only. The parent occurrence ID is stored on the request row.
@@ -186,7 +186,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 ## 10. Cache accounting
 
-**[enforced]** (`palimnesis.cacheacct`, D22)
+**[enforced]** (`palimnesis.view.cacheacct`, D22)
 
 - Every pair of consecutive upstream calls records the token longest common prefix (LCP), the cached tokens reported by the upstream, and the invalidation cause.
 - **Allowed causes:** append, watermark move, collapse, oversized output, excerpt included, excerpt omitted, system change (context version), tool change, effort or thinking change, capacity/budget change, view policy/format version change, model or template change. A call inside one visible response that extends the call before it is `internal_continuation` (§15). These are recorded as `append`, `internal_continuation`, `watermark_move`, `collapse`, `oversized_output`, `excerpt_included`, `excerpt_omitted`, `system_change`, `tool_change`, `effort_change`, `capacity_budget_change`, `view_format_change` and `model_template_change`, plus `first_call` and `view_disabled` (bounded views off; no LCP is recorded). With working notes (D72), the internal refresh call `<attempt>#notes` is `state_refresh` when it extends the call before it; one that changes earlier tokens (the addendum it is first to carry, or a result it stubbed to fit `B_in`) is analysed like any other call (R42), and a view whose first change is its notes block is `state_commit`. The transcript addendum (D36) is part of the presentation format: its appearance, change or removal is `view_format_change`. It is fixed per session and names a session directory whose path never changes, so it is byte-stable from one call to the next. A change between `tool_choice: "none"` and other values changes whether tool schemas render, so it is `tool_change` (D50). A call's identity includes the counter revision, so a pair whose earlier call was counted by another revision, and cannot be re-rendered to its recorded count, is `model_template_change` (D46). State commits, catalog navigation, summary activation and branches join the list when their phases exist. Anything else is `unexplained`, and `eval/replay.py --explain` fails on it.
@@ -249,7 +249,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 **[enforced]** when `--hidden-tools t1|t2` is set; off by default.
 
 - **Offered.** The tools `palimnesis_recall`, `palimnesis_catalog` and `palimnesis_grep` are appended after the client's tools from a session's first masked view, fixed per session like the addendum (D54), and counted as fixed input before acceptance. Never with `tool_choice: "none"`, and only on streaming requests (D55).
-- **Hidden.** A call whose name has the reserved prefix (§3) is never forwarded to the client. The proxy answers it from the archive (`palimnesis.recalltools`, D57–D59) and calls the upstream again with the call and its result appended. Text and reasoning stream as they arrive; external calls stream renumbered densely; the client sees one message with one id, one finish chunk and one `[DONE]` (D52).
+- **Hidden.** A call whose name has the reserved prefix (§3) is never forwarded to the client. The proxy answers it from the archive (`palimnesis.recall.tools`, D57–D59) and calls the upstream again with the call and its result appended. Text and reasoning stream as they arrive; external calls stream renumbered densely; the client sees one message with one id, one finish chunk and one `[DONE]` (D52).
 - **Mixed.** When a call carries hidden and external tool calls, the hidden ones are answered and archived, the external ones go to the client with `finish_reason: "tool_calls"`, and the next request renders all results after that call (D53).
 - **Limits per response.** At most 4 continuations and 8 hidden calls; results take at most a quarter of the input budget, 2,048 tokens per recall and 1,024 per search or catalog page. A call beyond a limit gets a short "limit reached" result; a further hidden call ends the response with the length stop (§7).
 - **Limit per instruction** (D67). At most 16 answered hidden calls from the latest user instruction, counted across responses. Synthetic prompts, including OpenCode's length follow-up, are not instructions. A call beyond it gets "limit reached: no more archive lookups until the next user message. Continue from what you have.", and is refused like a per-response limit.

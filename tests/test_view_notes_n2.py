@@ -1,6 +1,6 @@
 """Working notes, format n2 (D74, R34-C).
 
-Pure tests of ``palimnesis.view``. Under ``ViewPolicy(notes_format="n2")``:
+Pure tests of ``palimnesis.view.builder``. Under ``ViewPolicy(notes_format="n2")``:
 
 - the refresh prompt asks for the sections in the order Objective, Current step and next
   move, Requirements and constraints, Decisions, Done so far, Dead ends; for a length
@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.budget import BudgetPolicy, plan_budget
+from palimnesis.view.budget import BudgetPolicy, plan_budget
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import (NOTES_PROMPT, ViewPolicy, ViewState, build, fit_notes,
+from palimnesis.view.builder import (NOTES_PROMPT, ViewPolicy, ViewState, build, fit_notes,
                              notes_from_reasoning, notes_prompt)
 
 from .test_view import TOOLS

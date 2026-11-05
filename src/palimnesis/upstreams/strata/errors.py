@@ -26,7 +26,7 @@ def staleness_reason(status: int | None, body: bytes = b"") -> str | None:
 
 
 class StrataErrors:
-    """``palimnesis.profile.ErrorMap`` for Strata."""
+    """``palimnesis.upstreams.profile.ErrorMap`` for Strata."""
 
     def staleness_reason(self, status: int | None, body: bytes = b"") -> str | None:
         return staleness_reason(status, body)

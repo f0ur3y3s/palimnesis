@@ -236,7 +236,7 @@ def _expand(text: str, start: int, end: int, lines: int) -> tuple[int, int]:
 def _fit(text: str, hit: tuple[int, int], span: tuple[int, int], cap: int, count) -> tuple[int, int]:
     """The widest range around ``hit`` within ``span`` whose text fits ``cap``
     tokens, grown a line at a time alternately after and before the hit."""
-    from .stubs import fit_prefix
+    from palimnesis.view.stubs import fit_prefix
 
     hs, he = hit
     if count(text[hs:he]) > cap:  # the hit chunk alone is too big: keep its head
@@ -299,7 +299,7 @@ class FtsExcerpts:
         self.renderer = renderer
 
     async def select(self, plan, base_view, allocation: int):
-        from .excerpts import Selection
+        from palimnesis.recall.excerpts import Selection
 
         host = next((i for i in plan.items if i.occ_id == plan.host_occ_id), None)
         cutoff = (host.seq or 1) - 1 if host is not None else 0
@@ -339,7 +339,7 @@ class FtsExcerpts:
     def _overhead(self) -> int:
         """Tokens a one-item block costs beyond its payload: block header, item
         header with the longest provenance, footer."""
-        from .excerpts import Excerpt, render_block
+        from palimnesis.recall.excerpts import Excerpt, render_block
 
         empty = render_block([Excerpt("x", 0, 0, "assistant", None, "")],
                              added_tokens=self.counter.added_token_strings,
@@ -349,7 +349,7 @@ class FtsExcerpts:
     # -- retrieval (reader thread) ------------------------------------------------
 
     def _rank(self, conn, query: Query, found, included, cap: int):
-        from . import search
+        from palimnesis.recall import search
 
         rows = conn.execute(
             "SELECT b.rowid, b.block_id, b.idx, b.kind, b.encoding, o.occ_id, o.seq"
@@ -398,7 +398,7 @@ class FtsExcerpts:
         provenance included. An item that overshoots is shrunk once by the measured
         excess (it keeps at least ``MIN_ITEM_TOKENS``), else skipped; at most
         ``MAX_RENDERS`` renders."""
-        from .excerpts import render_block
+        from palimnesis.recall.excerpts import render_block
 
         count = self.counter.count
         chosen: list[_Candidate] = []
@@ -429,7 +429,7 @@ class FtsExcerpts:
         return chosen
 
     def _items(self, chosen: list[_Candidate], prov):
-        from .excerpts import SelectedExcerpt
+        from palimnesis.recall.excerpts import SelectedExcerpt
 
         out = []
         for c in sorted(chosen, key=lambda x: x.rank):
@@ -448,7 +448,7 @@ class _Provenance:
     """Alias, turn, role and tool name of each candidate's source, from the plan."""
 
     def __init__(self, items):
-        from .turns import turn_numbers
+        from palimnesis.archive.turns import turn_numbers
 
         self.by_occ = {i.occ_id: i for i in items if i.occ_id}
         self.numbers = turn_numbers(
@@ -466,7 +466,7 @@ class _Provenance:
         return item.alias, self.numbers.get(c.seq, 0), role, tool
 
     def excerpt(self, c: _Candidate):
-        from .excerpts import Excerpt
+        from palimnesis.recall.excerpts import Excerpt
 
         alias, turn, role, tool = self.of(c)
         return Excerpt(alias or "", c.block_idx, turn, role, tool, c.text[c.span[0]:c.span[1]])

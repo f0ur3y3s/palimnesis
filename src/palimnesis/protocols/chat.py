@@ -409,7 +409,7 @@ def render_messages(
 ) -> bytes:
     """A body with the client's top-level fields in their order, ``messages``
     replaced, and ``overrides`` replacing settings in place (absent ones are
-    appended at the end). Used for bounded views (palimnesis.view)."""
+    appended at the end). Used for bounded views (palimnesis.view.builder)."""
     overrides = dict(overrides or {})
     doc: dict[str, Any] = {}
     for key in req.top_level_order:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis.chat import (
+from palimnesis.protocols.chat import (
     Block,
     InvalidBody,
     Unsupported,

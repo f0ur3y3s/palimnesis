@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .stubs import HINT_S1, STUB_FORMAT
+from palimnesis.view.stubs import HINT_S1, STUB_FORMAT
 
 
 @dataclass(frozen=True)

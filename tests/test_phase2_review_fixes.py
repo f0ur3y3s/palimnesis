@@ -9,10 +9,10 @@ import sys
 
 import pytest
 
-from palimnesis.budget import BudgetPolicy, plan_budget
-from palimnesis.excerpts import Excerpt, render_block
+from palimnesis.view.budget import BudgetPolicy, plan_budget
+from palimnesis.recall.excerpts import Excerpt, render_block
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewPolicy, ViewState, build
+from palimnesis.view.builder import ViewPolicy, ViewState, build
 
 from .test_view import TOOLS, Session
 

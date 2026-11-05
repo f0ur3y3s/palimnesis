@@ -12,8 +12,8 @@ import pytest
 
 from palimnesis.api import create_app
 from palimnesis.config import Settings
-from palimnesis.excerpts import Selection, SelectedExcerpt
-from palimnesis.ledger import branch_id_for, load_archived
+from palimnesis.recall.excerpts import Selection, SelectedExcerpt
+from palimnesis.archive.ledger import branch_id_for, load_archived
 
 from .fake_upstream import FakeUpstream
 from .servers import serve
@@ -181,7 +181,7 @@ def test_the_default_source_records_empty_selections_and_changes_nothing(tmp_pat
 
 
 def test_excerpt_text_is_not_full_text_indexed(tmp_path):
-    from palimnesis.search import search_text
+    from palimnesis.recall.search import search_text
 
     with stack(tmp_path, SeededExcerpts()) as (fake, url, settings):
         fake.respond_sse([DONE])

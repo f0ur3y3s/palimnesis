@@ -3,7 +3,7 @@
 ``fetch_facts`` reads ``GET /props`` (1 s timeout) into ``Props``: ``n_ctx``,
 ``build_info`` and the SHA-256 of ``chat_template``. ``UpstreamState`` (the profile's
 ``FactsReader``) holds the last props for one upstream and exposes them as neutral
-``palimnesis.profile.UpstreamFacts`` (``identity = (build_info, chat_template_sha256)``):
+``palimnesis.upstreams.profile.UpstreamFacts`` (``identity = (build_info, chat_template_sha256)``):
 
 - ``observe(status, body)`` / ``mark_stale(reason)`` mark them stale after a transport
   error, a 5xx, or a context-window 400 (``errors.staleness_reason``); ``refresh``
@@ -38,9 +38,9 @@ from typing import Any
 
 import httpx
 
-from ...profile import UpstreamFacts, Usage
-from . import pins, tokens
-from .errors import staleness_reason
+from palimnesis.upstreams.profile import UpstreamFacts, Usage
+from palimnesis.upstreams.strata import pins, tokens
+from palimnesis.upstreams.strata.errors import staleness_reason
 
 PROPS_TIMEOUT_S = 1.0
 COUNT_TOKENS_TIMEOUT_S = 5.0
@@ -274,7 +274,7 @@ def parse_usage(payload: Mapping[str, Any]) -> Usage | None:
 
 
 class CountTokensCrossCheck:
-    """``palimnesis.profile.CrossCheck`` for Strata: ``count_tokens`` canary, usage parsing."""
+    """``palimnesis.upstreams.profile.CrossCheck`` for Strata: ``count_tokens`` canary, usage parsing."""
 
     def __init__(self, base_url: str, counter: tokens.Tokens | None = None) -> None:
         self.base_url = base_url

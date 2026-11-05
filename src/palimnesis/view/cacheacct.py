@@ -44,10 +44,10 @@ from typing import Any
 
 import anyio
 
-from . import ledger
-from .budget import Budget
-from .profile import Layout, UpstreamProfile, common_prefix
-from .view import ViewPolicy, build
+from palimnesis.archive import ledger
+from palimnesis.view.budget import Budget
+from palimnesis.upstreams.profile import Layout, UpstreamProfile, common_prefix
+from palimnesis.view.builder import ViewPolicy, build
 
 log = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ class Accountant:
         call = Call(call_id=call_id or plan.attempt_id, request_id=plan.request_id,
                     branch_id=plan.branch_id, view_mode=mode if view is not None else "disabled")
         if view is not None:
-            from .viewengine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
+            from palimnesis.view.engine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 
             call.input_tokens = view.tokens
             call.settings = dict(prepared.render_kwargs)
@@ -431,7 +431,7 @@ class Accountant:
             req, items = ledger.replan(conn, prev.branch_id, request_id, prev.archive_seq,
                                        attempt)
             if prev.formats.get("addendum"):
-                from .viewengine import with_addendum
+                from palimnesis.view.engine import with_addendum
 
                 fixed = ledger.fixed_addendum(conn, prev.branch_id)
                 if fixed is None or _sha(fixed["text"]) != prev.formats["addendum"]:

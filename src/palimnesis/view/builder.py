@@ -81,11 +81,11 @@ import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Mapping, Sequence
 
-from .budget import Budget, BudgetError, check_fixed
-from .excerpts import attach
-from .profile import empty_assistant
-from .stubs import fit_prefix, reasoning_stub, span_note, tool_result_stub
-from .turns import is_instruction
+from palimnesis.view.budget import Budget, BudgetError, check_fixed
+from palimnesis.recall.excerpts import attach
+from palimnesis.upstreams.profile import empty_assistant
+from palimnesis.view.stubs import fit_prefix, reasoning_stub, span_note, tool_result_stub
+from palimnesis.archive.turns import is_instruction
 
 POLICY_VERSION = "v2"  # v2: excerpt blocks (A1), collapse may absorb kept messages
 PIN_MESSAGE_TOKENS = 1_024  # D65: longer user messages are never pinned

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 
-from palimnesis.view import NOTES_PROMPT, notes_block
+from palimnesis.view.builder import NOTES_PROMPT, notes_block
 
 from .test_view_http import TOOLS, post, rows, upstream_tokens, view_stack
 
@@ -234,7 +234,7 @@ def test_a_refresh_that_stubs_to_fit_is_explained(tmp_path):
 
 
 def test_a_notes_storage_failure_never_fails_the_request(tmp_path, monkeypatch):
-    from palimnesis import ledger
+    from palimnesis.archive import ledger
 
     def broken(*a, **kw):
         raise RuntimeError("disk on fire")

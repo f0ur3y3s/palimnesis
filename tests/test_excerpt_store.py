@@ -6,9 +6,9 @@ import sqlite3
 
 import pytest
 
-from palimnesis import ledger
-from palimnesis.excerpts import Selection, SelectedExcerpt
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+from palimnesis.recall.excerpts import Selection, SelectedExcerpt
+from palimnesis.archive.store import Store
 
 
 @pytest.fixture

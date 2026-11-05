@@ -4,10 +4,10 @@ image or tool calls, which Strata drops (#843, D41). The view, the cache estimat
 
 from __future__ import annotations
 
-from palimnesis import profile
-from palimnesis.budget import BudgetPolicy, plan_budget
-from palimnesis.cacheacct import Call, describe, explain
-from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
+from palimnesis.upstreams import profile
+from palimnesis.view.budget import BudgetPolicy, plan_budget
+from palimnesis.view.cacheacct import Call, describe, explain
+from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build
 
 STRATA = profile.load(profile.DEFAULT_PROFILE, "http://127.0.0.1:1")
 COUNTER = STRATA.counter
@@ -119,7 +119,7 @@ def test_a_collapse_starting_at_a_dropped_turn_is_explained():
 def test_a_counter_revision_explains_a_call_that_no_longer_re_renders():
     # A previous call recorded under another counter revision cannot be re-rendered to
     # its recorded count after a restart; the pair is a model/template change (D46).
-    from palimnesis.cacheacct import Call
+    from palimnesis.view.cacheacct import Call
 
     def call(n, identity, layout):
         c = Call(call_id=f"c{n}", request_id=f"r{n}", branch_id="b", view_mode="on", view_n=n,

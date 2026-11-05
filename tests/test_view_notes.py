@@ -1,6 +1,6 @@
 """Working notes in the view (D72, R33-D).
 
-Pure tests of ``palimnesis.view.build``. With ``ViewPolicy(notes_tokens=S)``, S tokens are
+Pure tests of ``palimnesis.view.builder.build``. With ``ViewPolicy(notes_tokens=S)``, S tokens are
 reserved out of the maskable capacity, as excerpts' Q is. A view whose state names a
 notes version (``ViewState.notes``, its number and text in ``notes``) renders that text as one user-role block right after
 the last collapsed run, and lists it in the manifest as ``(notes:<id>, "notes")``. A
@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.budget import BudgetPolicy, plan_budget
+from palimnesis.view.budget import BudgetPolicy, plan_budget
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import NOTES_PROMPT, ViewPolicy, ViewState, build, notes_block
+from palimnesis.view.builder import NOTES_PROMPT, ViewPolicy, ViewState, build, notes_block
 
 from .test_view import TOOLS, Session, _code
 
@@ -154,7 +154,7 @@ def _pinned_session():
 
 def test_the_block_never_moves_past_a_kept_message_between_moves(counter):
     """Cache audit 1: a later collapse past a pinned instruction must not move the block."""
-    from palimnesis.cacheacct import describe
+    from palimnesis.view.cacheacct import describe
 
     policy = ViewPolicy(notes_tokens=2048, pin_tokens=4096)
     s = _pinned_session().user("Go on.")

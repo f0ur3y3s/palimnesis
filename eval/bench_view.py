@@ -3,7 +3,7 @@
 Usage:
     python eval/bench_view.py [--ingress 300000] [--seed 11] [--json] [--out FILE]
 
-Pure: drives ``palimnesis.view.build`` with the Strata 0.1.48 profile counter (plan
+Pure: drives ``palimnesis.view.builder.build`` with the Strata 0.1.48 profile counter (plan
 Phase 2 GL7 and the builder-latency row; D14.6, D20). No sockets.
 
 Sessions are OpenCode-shaped: the system prompt and the real ~11 KB tools array of
@@ -70,13 +70,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
-from palimnesis.budget import BudgetPolicy, excerpt_allocation, plan_budget  # noqa: E402
+from palimnesis.view.budget import BudgetPolicy, excerpt_allocation, plan_budget  # noqa: E402
 from palimnesis.capture import load_exchanges  # noqa: E402
-from palimnesis.excerpts import Excerpt, render_block  # noqa: E402
-from palimnesis.profile import common_prefix  # noqa: E402
+from palimnesis.recall.excerpts import Excerpt, render_block  # noqa: E402
+from palimnesis.upstreams.profile import common_prefix  # noqa: E402
 from palimnesis.upstreams.strata import pins, tokens  # noqa: E402
 from palimnesis.upstreams.strata.cache import StrataCacheModel  # noqa: E402
-from palimnesis.view import ViewItem, ViewPolicy, ViewState, build, warm  # noqa: E402
+from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build, warm  # noqa: E402
 
 LIVE_DIR = ROOT / "eval/fixtures/opencode-2.1.4/live/exchanges"
 BUDGETS = {"32K": 32_768, "64K": 65_536}

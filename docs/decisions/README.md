@@ -9,6 +9,7 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | [phase3.md](phase3.md) | Phase 3 (D26–D50) |
 | [phase3b.md](phase3b.md) | Phase 3B (D51–D68) |
 | [phase3-acceptance.md](phase3-acceptance.md) | Working notes and Phase 3 acceptance (D69–D79) |
+| [phase4b.md](phase4b.md) | Phase 4B (D80–) |
 
 ## Index
 
@@ -94,3 +95,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D77 | Held-out protocol for the working-notes arm on ho3, fixed before any run | [phase3-acceptance.md](phase3-acceptance.md) |
 | D78 | `serve` ships `a4-d77` | [phase3-acceptance.md](phase3-acceptance.md) |
 | D79 | Phase 3 acceptance review fixes to the shipped configuration (R42) | [phase3-acceptance.md](phase3-acceptance.md) |
+| D80 | Source layout: subpackages by subsystem | [phase4b.md](phase4b.md) |

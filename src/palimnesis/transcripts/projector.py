@@ -1,6 +1,6 @@
 """Publishing transcript files: archive reader, crash-safe publisher, background Projector.
 
-Protocol plumbing around ``palimnesis.projection`` (which names the mechanism and its
+Protocol plumbing around ``palimnesis.transcripts.projection`` (which names the mechanism and its
 source). Contracts §14 (proposed); docs/plan/phases/phase3.md §3.
 
 **Location.** One directory per session under a root (default ``<db dir>/transcripts``),
@@ -57,9 +57,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 
-from . import ledger, projection
-from .projection import Block, Message, Payload, ProjectionError, Summary, Turn
-from .turns import turn_numbers
+from palimnesis.archive import ledger
+
+from palimnesis.transcripts import projection
+from palimnesis.transcripts.projection import Block, Message, Payload, ProjectionError, Summary, Turn
+from palimnesis.archive.turns import turn_numbers
 
 log = logging.getLogger(__name__)
 
@@ -80,7 +82,7 @@ PUBLISHED_PATH = re.compile(
 
 
 def _crash_point(name: str) -> None:
-    from .archive import crash_point
+    from palimnesis.archive.pipeline import crash_point
 
     crash_point(name)
 

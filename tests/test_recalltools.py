@@ -1,4 +1,4 @@
-"""palimnesis.recalltools: the hidden recall tools' results (Phase 3B S4; plan §2.5).
+"""palimnesis.recall.tools: the hidden recall tools' results (Phase 3B S4; plan §2.5).
 
 The tools run against a real archive built through ``ledger.accept``. Expected text
 comes from the literal messages archived, never from the module's own helpers."""
@@ -11,10 +11,12 @@ import sqlite3
 
 import pytest
 
-from palimnesis import ledger, recalltools as rt
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+
+from palimnesis.recall import tools as rt
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.store import Store
 
 
 def char_tokens(text: str) -> int:
@@ -360,6 +362,6 @@ def test_recall_still_returns_a_reasoning_block_by_address(rdb):
 
 def test_grep_cursors_carry_version_2_since_reasoning_left_the_search():
     """Protocol review: D66 changed the hit list, so cursors issued before it are refused."""
-    from palimnesis import recalltools
+    from palimnesis.recall import tools as recalltools
 
     assert recalltools.GREP_CURSOR == "grep2"

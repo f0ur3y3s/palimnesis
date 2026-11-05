@@ -12,7 +12,11 @@ import time
 
 import httpx
 
-from palimnesis import cli, projection, projector
+from palimnesis import cli
+
+from palimnesis.transcripts import projection
+
+from palimnesis.transcripts import projector
 from palimnesis.api import create_app
 from palimnesis.config import Settings
 
@@ -135,7 +139,7 @@ def test_projection_logs_no_content(tmp_path, monkeypatch, caplog):
         s.upstream.respond_sse(answer(f"reply {needle}"))
         assert s.post(session, body([user(f"find {needle}")])).status_code == 200
         assert eventually(lambda: any("transcripts" in r.getMessage() for r in caplog.records
-                                      if r.name == "palimnesis.projector"))
+                                      if r.name == "palimnesis.transcripts.projector"))
 
         def broken(*args, **kw):
             raise ValueError(f"cannot render {needle} for {session}")
@@ -149,7 +153,7 @@ def test_projection_logs_no_content(tmp_path, monkeypatch, caplog):
     messages = [r.getMessage() for r in caplog.records if r.name.startswith("palimnesis")]
     assert messages and not any(needle in m or session in m for m in messages)
     assert any(projector.dir_hash(session) in m for m in messages)
-    assert not any(r.exc_info for r in caplog.records if r.name == "palimnesis.projector")
+    assert not any(r.exc_info for r in caplog.records if r.name == "palimnesis.transcripts.projector")
 
 
 def test_transcripts_off_and_custom_root_settings(tmp_path):

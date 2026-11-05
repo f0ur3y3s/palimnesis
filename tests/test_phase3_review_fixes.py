@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from palimnesis.recall import build_query
+from palimnesis.recall.proactive import build_query
 from palimnesis.upstreams.strata import tokens
 
 from .test_view_http import DONE, TOOLS, body, history, post, rows, view_stack

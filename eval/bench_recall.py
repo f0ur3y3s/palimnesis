@@ -28,10 +28,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from palimnesis import ledger  # noqa: E402
-from palimnesis.chat import parse  # noqa: E402
-from palimnesis.fingerprint import fingerprint_v1  # noqa: E402
-from palimnesis.recall import FtsExcerpts  # noqa: E402
-from palimnesis.store import Store  # noqa: E402
+from palimnesis.protocols.chat import parse  # noqa: E402
+from palimnesis.archive.fingerprint import fingerprint_v1  # noqa: E402
+from palimnesis.recall.proactive import FtsExcerpts  # noqa: E402
+from palimnesis.archive.store import Store  # noqa: E402
 from palimnesis.upstreams.strata import tokens  # noqa: E402
 
 WORDS = ("def class return self value result request handler render module config import "

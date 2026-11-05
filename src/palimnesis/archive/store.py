@@ -320,12 +320,12 @@ CREATE TABLE notes_versions (
 
 MIGRATIONS: list[str | tuple[str, str]] = [
     _SCHEMA_V1 + _immutability_triggers(),
-    # v2: derived full-text index (palimnesis.search), filled from existing blocks.
+    # v2: derived full-text index (palimnesis.recall.search), filled from existing blocks.
     "CREATE VIRTUAL TABLE fts_blocks USING fts5(text, content='', contentless_delete=1);\n"
     "INSERT INTO fts_blocks (rowid, text) SELECT b.rowid, (SELECT group_concat("
     "CAST(s.bytes AS TEXT), '' ORDER BY s.seq) FROM segments s WHERE s.block_id = b.block_id)"
     " FROM blocks b;",
-    # v3: persisted view decisions (palimnesis.view); immutable like the archive.
+    # v3: persisted view decisions (palimnesis.view.builder); immutable like the archive.
     _VIEW_VERSIONS,
     _EXCERPTS + _immutability_triggers(_EXCERPT_KEYS),
     # v5: derived chunk-level full-text index for proactive recall (D27), backfilled.
@@ -333,7 +333,7 @@ MIGRATIONS: list[str | tuple[str, str]] = [
      "CREATE TABLE chunk_map (rowid INTEGER PRIMARY KEY, block_rowid INTEGER NOT NULL,"
      " start INTEGER NOT NULL, \"end\" INTEGER NOT NULL) STRICT;\n"
      "CREATE INDEX chunk_map_block ON chunk_map (block_rowid);",
-     "palimnesis.search:backfill_chunks"),
+     "palimnesis.recall.search:backfill_chunks"),
     _NOTES + _immutability_triggers(_NOTES_KEYS),
 ]
 

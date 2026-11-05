@@ -26,12 +26,14 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import chat, search
-from .addresses import issue_alias
-from .chat import ChatRequest, Message
-from .rawarchive import get_raw, put_raw
-from .transcript import Archived, Divergence, Extend, Prefix, reconcile
-from .turns import is_instruction
+from palimnesis.protocols import chat
+
+from palimnesis.recall import search
+from palimnesis.archive.addresses import issue_alias
+from palimnesis.protocols.chat import ChatRequest, Message
+from palimnesis.archive.rawarchive import get_raw, put_raw
+from palimnesis.archive.transcript import Archived, Divergence, Extend, Prefix, reconcile
+from palimnesis.archive.turns import is_instruction
 
 ENDPOINT_CHAT = "/v1/chat/completions"
 TERMINAL_EVENTS = ("turn_complete", "attempt_failed", "attempt_abandoned", "cancelled")
@@ -60,7 +62,7 @@ class Plan:
     upstream_body: bytes
     stream: bool
     replay: dict | None = None  # a committed non-streaming response to deliver as is
-    # Upstream messages in order, each with its archived occurrence (palimnesis.view).
+    # Upstream messages in order, each with its archived occurrence (palimnesis.view.builder).
     items: list = field(default_factory=list)
     view_state: Any = None  # the branch's persisted ViewState when planned
     # The notes version view_state names, {notes_id: (n, text)} (D72).
@@ -442,7 +444,7 @@ def _upstream_body(conn, req: ChatRequest, archived: list[Archived], outcome,
     and text again (D10.3, D10.9), plus one ``ViewItem`` per upstream message.
     Positions come from the reconciliation alignment, so superseded partials
     and context versions cannot shift them."""
-    from .view import ViewItem
+    from palimnesis.view.builder import ViewItem
 
     position = {occ_id: i for i, occ_id in enumerate(outcome.aligned)}
     by_id = {a.occ_id: a for a in archived}
@@ -604,7 +606,7 @@ def _expand_composite(conn, past: Archived, extent: int | None) -> list[tuple[di
 
 def latest_view(conn: sqlite3.Connection, branch_id: str):
     """(view_id, n, ViewState) of the branch's newest view version, or (None, 0, default)."""
-    from .view import ViewState
+    from palimnesis.view.builder import ViewState
 
     row = conn.execute(
         "SELECT view_id, n, watermark_seq, collapse_seq, oversized FROM view_versions"
@@ -623,7 +625,7 @@ def latest_view(conn: sqlite3.Connection, branch_id: str):
 
 def view_at(conn: sqlite3.Connection, branch_id: str, n: int):
     """(view_id, ViewState) of view version ``n`` of the branch; (None, default) for 0."""
-    from .view import ViewState
+    from palimnesis.view.builder import ViewState
 
     row = conn.execute(
         "SELECT view_id, watermark_seq, collapse_seq, oversized FROM view_versions"
@@ -1006,7 +1008,7 @@ def commit_internal_result(conn: sqlite3.Connection, gen: Generation, call_id: s
                            text: str, meta: dict) -> str:
     """Archive one hidden tool result (``view='internal'``) after the part that called it.
     Results are copies of archived text, so they are never full-text indexed (D60)."""
-    from .stubs import encoding_of
+    from palimnesis.view.stubs import encoding_of
 
     _ensure_occurrence(conn, gen)
     plan = gen.plan
@@ -1181,7 +1183,7 @@ def context_versions(conn: sqlite3.Connection, request_id: str, occ_ids) -> set[
 def attempt_items(conn: sqlite3.Connection, attempt_id: str, max_seq: int | None = None) -> list:
     """``ViewItem``s of an attempt's own upstream parts and hidden results in seq order, up
     to ``max_seq``: what a continuation call adds after the request's history (D51)."""
-    from .view import ViewItem
+    from palimnesis.view.builder import ViewItem
 
     rows = conn.execute(
         "SELECT o.occ_id, o.seq, (SELECT alias FROM aliases WHERE target_id = o.occ_id)"
@@ -1284,7 +1286,7 @@ _ITEM_COLUMNS = ('rank, score, source_occ_id, source_alias, source_block, start,
 
 
 def _block(conn, row) -> ExcerptBlock:
-    from .excerpts import SelectedExcerpt
+    from palimnesis.recall.excerpts import SelectedExcerpt
 
     items = tuple(
         SelectedExcerpt(*r, text="")

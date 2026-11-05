@@ -11,8 +11,8 @@ import random
 import pytest
 
 from palimnesis.upstreams.strata import tokens
-from palimnesis.budget import BudgetError, BudgetPolicy, plan_budget
-from palimnesis.view import ViewItem, ViewPolicy, ViewState, build
+from palimnesis.view.budget import BudgetError, BudgetPolicy, plan_budget
+from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build
 
 TOOLS = [{"type": "function", "function": {"name": "read", "description": "read a file",
                                            "parameters": {"type": "object", "properties": {
@@ -274,7 +274,7 @@ def test_warming_stubs_never_changes_a_view(counter):
     # Phase 2 latency (D25): the engine warms stubs off the request path; a view
     # built after warming must be identical to one built cold.
     from palimnesis.upstreams.strata import pins
-    from palimnesis.view import warm
+    from palimnesis.view.builder import warm
 
     s = Session().system().user("refactor everything")
     for i in range(12):

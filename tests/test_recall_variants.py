@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 
-from palimnesis.affordances import REGISTRY, addendum_text
-from palimnesis.excerpts import Excerpt, render_block
-from palimnesis.recall import build_query
+from palimnesis.view.affordances import REGISTRY, addendum_text
+from palimnesis.recall.excerpts import Excerpt, render_block
+from palimnesis.recall.proactive import build_query
 
 from .test_recall_http import NEEDLE, _with_needle
 from .test_view_http import DONE, body, post, rows, view_stack

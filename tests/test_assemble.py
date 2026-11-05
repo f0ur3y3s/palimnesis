@@ -1,4 +1,4 @@
-"""palimnesis.assemble: one visible stream from one or more upstream calls (Phase 3B S1;
+"""palimnesis.protocols.assemble: one visible stream from one or more upstream calls (Phase 3B S1;
 plan §2.2, D52, S0 delta 1).
 
 Inputs are real Strata 0.1.48 streams recorded on Zeus (``eval/probes/fixtures/p17_*``,
@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from palimnesis.assemble import ChatAssembler
-from palimnesis.sse import ChatStream, SSEParser
+from palimnesis.protocols.assemble import ChatAssembler
+from palimnesis.protocols.sse import ChatStream, SSEParser
 
 FIXTURES = Path(__file__).resolve().parents[1] / "eval" / "probes" / "fixtures"
 
@@ -179,7 +179,7 @@ def test_a_length_stop_inside_an_external_call_stays_a_length_stop():
 
 
 def test_rewritten_chunks_survive_a_lone_surrogate():
-    from palimnesis.sse import Event
+    from palimnesis.protocols.sse import Event
 
     asm = ChatAssembler(lambda name: False)
     asm.begin()

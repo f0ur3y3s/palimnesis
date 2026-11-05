@@ -74,7 +74,7 @@ def check_n_ctx(props: dict, expect: int) -> str | None:
 
 
 def input_budget_for(n_ctx: int) -> int:
-    from palimnesis.budget import BudgetPolicy, plan_budget
+    from palimnesis.view.budget import BudgetPolicy, plan_budget
 
     return plan_budget(n_ctx, client_limit=None, policy=BudgetPolicy()).input_budget
 

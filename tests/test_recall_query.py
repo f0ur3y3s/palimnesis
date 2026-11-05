@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-from palimnesis.recall import QUERY_VERSION, build_query
+from palimnesis.recall.proactive import QUERY_VERSION, build_query
 
 
 def test_code_punctuation_becomes_phrases_of_tokenizer_subtokens():

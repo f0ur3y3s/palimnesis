@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis import profile
+from palimnesis.upstreams import profile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -129,7 +129,7 @@ def test_layout_maps_every_turn_and_counts_exactly_on_live_bodies(live):
 
 
 def test_checkpoint_limited_classification(probe, live):
-    from palimnesis.cacheacct import classify
+    from palimnesis.view.cacheacct import classify
 
     model, r = probe
     # grow_turn_2 (cache_multiturn_edit.json): the whole of turn 1 is a common prefix, but
@@ -160,7 +160,7 @@ def test_checkpoint_limited_classification(probe, live):
 
 
 def test_restart_eviction_classified(live):
-    from palimnesis.cacheacct import classify
+    from palimnesis.view.cacheacct import classify
 
     p, exchanges = live
     (prev, _), (cur, usage) = exchanges[0], exchanges[1]

@@ -2,7 +2,7 @@
 
 Each body is stored against the previous raw body of the same session and
 branch (the raw-storage parent, distinct from the logical conversation
-parent) using ``palimnesis.rawdelta``, with snapshots per its policy. Retrieval
+parent) using ``palimnesis.archive.rawdelta``, with snapshots per its policy. Retrieval
 walks the chain back to its snapshot and decodes forward, verifying every
 step's length and SHA-256: a damaged or missing ancestor raises rather than
 yielding different bytes. Both functions run inside the caller's transaction.
@@ -14,8 +14,8 @@ import hashlib
 import sqlite3
 import time
 
-from . import rawdelta
-from .rawdelta import Delta, DeltaError
+from palimnesis.archive import rawdelta
+from palimnesis.archive.rawdelta import Delta, DeltaError
 
 # v2 adopted per D10.7 / D12: 68.6% smaller on the live replay, 56-58% on
 # 200-turn replays (results R6), because OpenCode's tools follow messages.

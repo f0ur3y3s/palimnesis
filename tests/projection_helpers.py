@@ -1,4 +1,4 @@
-"""Build archives at the store seam (palimnesis.ledger on a real Store) for projection tests."""
+"""Build archives at the store seam (palimnesis.archive.ledger on a real Store) for projection tests."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import asyncio
 import json
 from pathlib import Path
 
-from palimnesis import ledger
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.store import Store
 
 TOKENS = ("<|im_start|>", "<|im_end|>")
 

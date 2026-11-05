@@ -96,7 +96,7 @@ def import_fidelity(client_body: dict, history: list[dict], question: str) -> di
 
 def archive_first_request(db: Path, session: str) -> dict:
     """The session's first archived client body and its occurrences by source (read-only)."""
-    from palimnesis.rawarchive import get_raw
+    from palimnesis.archive.rawarchive import get_raw
 
     conn = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
     try:
@@ -291,7 +291,7 @@ def run(a) -> int:
     troot = ws_dir / "transcripts" if cfg["transcripts_enabled"] else None
     settings = needle.proxy_settings(cfg)
     stack = oc_stack.Stack(rec_dir, upstream, settings, transcripts=troot, input_budget=a.input_budget)
-    from palimnesis.projector import session_dir
+    from palimnesis.transcripts.projector import session_dir
 
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     meta = {"config": a.config, **cfg, "settings": stack.settings,

@@ -48,10 +48,14 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
-from palimnesis import archive, ledger, rawarchive
+from palimnesis.archive import pipeline as archive
+
+from palimnesis.archive import ledger
+
+from palimnesis.archive import rawarchive
 from palimnesis.api import create_app
 from palimnesis.config import Settings
-from palimnesis.store import Store
+from palimnesis.archive.store import Store
 from tests.fake_upstream import FakeUpstream
 from tests.servers import serve
 

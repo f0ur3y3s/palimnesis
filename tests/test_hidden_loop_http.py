@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis import archive
-from palimnesis.sse import ChatStream, SSEParser
+from palimnesis.archive import pipeline as archive
+from palimnesis.protocols.sse import ChatStream, SSEParser
 
 from .test_view_http import body, history, post, rows, upstream_tokens, view_stack
 
@@ -235,7 +235,7 @@ def test_reasoning_carries_through_a_continuation_the_next_turn_and_a_restart(tm
 
 def test_transcripts_show_hidden_results_flagged_and_verify(tmp_path):
     from palimnesis import cli
-    from palimnesis.projector import session_dir
+    from palimnesis.transcripts.projector import session_dir
 
     from .test_view_http import SID
 
@@ -258,7 +258,7 @@ def test_transcripts_show_hidden_results_flagged_and_verify(tmp_path):
 
 def test_a_failure_inside_the_loop_ends_with_an_error_event_not_a_bare_close(tmp_path,
                                                                              monkeypatch):
-    from palimnesis import recalltools
+    from palimnesis.recall import tools as recalltools
 
     def broken(*a, **k):
         raise RuntimeError("tool defect")
@@ -295,7 +295,7 @@ def test_results_follow_the_order_of_the_calls(tmp_path):
 def test_every_part_is_full_text_indexed(tmp_path):
     import sqlite3
 
-    from palimnesis import search
+    from palimnesis.recall import search
 
     with view_stack(tmp_path, input_budget=8000, hidden_tools="t2") as (fake, url, settings):
         fake.respond_turn("Zanzibarian checking. ", calls=[GREP])
@@ -333,7 +333,7 @@ def test_running_out_of_result_room_counts_as_a_refusal(tmp_path, monkeypatch):
 
 
 def test_tool_searches_see_the_cancellation_flag(tmp_path, monkeypatch):
-    from palimnesis import recalltools
+    from palimnesis.recall import tools as recalltools
 
     seen = []
     real = recalltools.run

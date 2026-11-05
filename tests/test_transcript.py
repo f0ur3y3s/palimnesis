@@ -12,8 +12,8 @@ import json
 
 import pytest
 
-from palimnesis.chat import parse
-from palimnesis.transcript import Archived, Divergence, Extend, Prefix, reconcile
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.transcript import Archived, Divergence, Extend, Prefix, reconcile
 
 
 def client(*messages) -> tuple:

@@ -1,6 +1,6 @@
 """Instructions stay in view (Phase 3B S10b, F1 / D65; plan phase3b "Delta: R29 fixes").
 
-Pure tests of ``palimnesis.view.build`` with the real pinned counter. A pinnable
+Pure tests of ``palimnesis.view.builder.build`` with the real pinned counter. A pinnable
 message is a user instruction (``turns.is_instruction``) whose own content is at most
 1,024 tokens; at each collapse move, pinnable messages behind the new boundary stay
 verbatim in place, newest first, while their total fits
@@ -15,10 +15,10 @@ import random
 
 import pytest
 
-from palimnesis import view as view_module
-from palimnesis.budget import BudgetError, BudgetPolicy, plan_budget
+from palimnesis.view import builder as view_module
+from palimnesis.view.budget import BudgetError, BudgetPolicy, plan_budget
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import ViewPolicy, ViewState, build
+from palimnesis.view.builder import ViewPolicy, ViewState, build
 
 from .test_view import TOOLS, Session, _code
 
@@ -336,7 +336,7 @@ def test_random_sessions_with_pins_never_exceed_the_budget(counter, seed):
 def test_a_move_that_only_absorbs_pins_is_recorded_as_a_collapse():
     """Cache audit: the last-resort collapse can drop pins without moving collapse_seq;
     the recorded cause must still be ``collapse`` (D65), not ``view_state``."""
-    from palimnesis.viewengine import ViewEngine
+    from palimnesis.view.engine import ViewEngine
 
     old = ViewState(watermark_seq=40, collapse_seq=30, kept=frozenset({"occ_a", "occ_b"}))
     new = dataclasses.replace(old, kept=frozenset({"occ_a"}))

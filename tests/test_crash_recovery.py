@@ -20,7 +20,7 @@ import httpx
 import pytest
 
 from palimnesis.capture import load_exchanges
-from palimnesis.ledger import branch_id_for, load_archived
+from palimnesis.archive.ledger import branch_id_for, load_archived
 
 from .fake_upstream import FakeUpstream
 from .servers import serve

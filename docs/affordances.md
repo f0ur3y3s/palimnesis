@@ -1,12 +1,12 @@
 # Affordances
 
-Versioned model-facing text: stub formats, the system addendum and recall tool descriptions (v1_plan "Model-facing recall affordances", D14.5). The texts live in `src/palimnesis/affordances.py` (`REGISTRY`, `ACTIVE`), and every id there has an entry here (`tests/test_affordances.py`).
+Versioned model-facing text: stub formats, the system addendum and recall tool descriptions (v1_plan "Model-facing recall affordances", D14.5). The texts live in `src/palimnesis/view/affordances.py` (`REGISTRY`, `ACTIVE`), and every id there has an entry here (`tests/test_affordances.py`).
 
 Rules:
 - A version's text is frozen once it renders anywhere. A wording change is a new id.
 - Switching versions is a one-time, recorded prefix invalidation (contracts §10, "view policy/format version change").
 - Addresses are `§ALIAS.N` (block N of an occurrence) or `§ALIAS` (the whole occurrence). The database stores aliases without `§`.
-- Placeholders in braces are filled by `palimnesis.stubs`. Previews are exact substrings of the archived text, cut on safe Unicode boundaries.
+- Placeholders in braces are filled by `palimnesis.view.stubs`. Previews are exact substrings of the archived text, cut on safe Unicode boundaries.
 
 **Active in Phase 2:** stub `s1`, addendum `a0`, no tool descriptions (recall tools arrive in Phase 3).
 
@@ -14,7 +14,7 @@ Rules:
 
 ### `s1`
 
-Phase 2's format, rendered by `palimnesis.stubs`. Caps: 192/96 tokens for tool results, 64/32 for reasoning.
+Phase 2's format, rendered by `palimnesis.view.stubs`. Caps: 192/96 tokens for tool results, 64/32 for reasoning.
 
 ```
 [palimnesis s1 §{alias}.{block} {kind} · {tokens} tok · {lines} lines · sha {sha6}]
@@ -125,7 +125,7 @@ Escaping is reversible:
 - A payload line starting with `[[` or `\` gets one leading `\`.
 - Every profile special token (`<|im_start|>`, `</tool_response>`, …) has `\` inserted after its first character, so archived text can never become a role marker.
 
-See `palimnesis.excerpts`.
+See `palimnesis.recall.excerpts`.
 
 ## Phase 3 development selections
 

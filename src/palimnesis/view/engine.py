@@ -18,7 +18,7 @@ Per request:
    equals the full history and no limit is rewritten, otherwise a render of
    the view with the generation reserve applied (D14.11).
 
-Counting and facts come from the ``palimnesis.profile.UpstreamProfile``;
+Counting and facts come from the ``palimnesis.upstreams.profile.UpstreamProfile``;
 nothing here depends on a particular backend. CPU-heavy steps (rendering,
 counting) run in worker threads.
 
@@ -40,8 +40,8 @@ from typing import Any
 
 import anyio
 
-from . import chat
-from .budget import (
+from palimnesis.protocols import chat
+from palimnesis.view.budget import (
     Budget,
     BudgetError,
     BudgetPolicy,
@@ -49,10 +49,10 @@ from .budget import (
     excerpt_allocation,
     plan_budget,
 )
-from .excerpts import RENDERER_VERSION, NoExcerpts, render_block
-from .profile import UpstreamProfile, unsupported_rules
-from .stubs import STUB_FORMAT, span_note
-from .view import NOTES_FORMATS, NOTES_HEADERS, POLICY_VERSION, View, ViewPolicy, build, warm
+from palimnesis.recall.excerpts import RENDERER_VERSION, NoExcerpts, render_block
+from palimnesis.upstreams.profile import UpstreamProfile, unsupported_rules
+from palimnesis.view.stubs import STUB_FORMAT, span_note
+from palimnesis.view.builder import NOTES_FORMATS, NOTES_HEADERS, POLICY_VERSION, View, ViewPolicy, build, warm
 
 
 log = logging.getLogger(__name__)
@@ -252,7 +252,7 @@ class ViewEngine:
             included=[charges[b] for b in base.included_excerpts if b in charges],
             policy=self.policy)
         selection = await self.excerpts.select(plan, base, allocation)
-        from .turns import turn_numbers
+        from palimnesis.archive.turns import turn_numbers
 
         host = next((i for i in plan.items if i.occ_id == plan.host_occ_id), None)
         numbers = turn_numbers(
@@ -341,7 +341,7 @@ def with_addendum(items, addendum: str | None) -> list:
             message["content"] = f"{content}\n\n{addendum}" if content else addendum
         items[i] = replace(item, message=message)
         return items
-    from .view import ViewItem
+    from palimnesis.view.builder import ViewItem
 
     return [ViewItem({"role": "system", "content": addendum}, None, None, None), *items]
 EXCERPT_FORMAT = RENDERER_VERSION

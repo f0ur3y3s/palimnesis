@@ -10,8 +10,8 @@ import pytest
 from palimnesis.config import Settings
 from palimnesis.upstreams import strata
 from palimnesis.upstreams.strata import tokens
-from palimnesis.view import NOTES_HEADERS, notes_block
-from palimnesis.viewengine import ViewEngine
+from palimnesis.view.builder import NOTES_HEADERS, notes_block
+from palimnesis.view.engine import ViewEngine
 
 from .test_notes_http import BUDGET, _body, _messages, _notes_rows, _sent
 from .test_notes_n2_http import _notes

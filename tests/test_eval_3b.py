@@ -1,7 +1,7 @@
 """Phase 3B evaluation tooling (S9; plan §2.9, D56, O-B2, O-B3, O-B6): the arm-5 matrix
 configurations and the held-out alias, OpenCode's output limit per arm, the internal-call
 metrics read from an archive, the internal-leak scan, and the fresh held-out set's
-registration. Pure functions and a small archive built through ``palimnesis.ledger``;
+registration. Pure functions and a small archive built through ``palimnesis.archive.ledger``;
 nothing here runs OpenCode, a proxy or a model."""
 
 from __future__ import annotations
@@ -13,11 +13,11 @@ from pathlib import Path
 
 import pytest
 
-from palimnesis import ledger
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.ledger import Generation
-from palimnesis.store import Store
+from palimnesis.archive import ledger
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.ledger import Generation
+from palimnesis.archive.store import Store
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "eval"), str(ROOT / "eval" / "tasks")]

@@ -156,7 +156,7 @@ def test_view_off_rejects_over_budget_history_instead_of_masking(tmp_path):
 
 @pytest.mark.parametrize("stage", ["prepare", "build"])
 def test_an_unexpected_view_failure_falls_back_to_the_unbounded_body(tmp_path, monkeypatch, stage):
-    from palimnesis import viewengine
+    from palimnesis.view import engine as viewengine
 
     def boom(*args, **kwargs):
         raise RuntimeError("view bug")

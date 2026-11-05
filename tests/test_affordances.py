@@ -5,7 +5,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from palimnesis import affordances, stubs
+from palimnesis.view import affordances
+
+from palimnesis.view import stubs
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
 
@@ -44,7 +46,7 @@ def test_a1_is_the_plans_starting_addendum():
 
 
 def test_ab_matrix_is_the_plans_matrix():
-    plan = _section((DOCS / "plans" / "phase2.md").read_text(encoding="utf-8"),
+    plan = _section((DOCS / "plan" / "phases" / "phase2.md").read_text(encoding="utf-8"),
                     "### Phase 3 A/B matrix")
     doc = (DOCS / "affordances.md").read_text(encoding="utf-8")
     table = [line for line in plan.splitlines() if line.startswith("|")]
@@ -62,7 +64,7 @@ def test_hidden_tool_variants_are_phase_3b_after_amendment_a1():
 
 
 def test_the_excerpt_renderer_in_use_is_registered():
-    from palimnesis.excerpts import RENDERER_VERSION
+    from palimnesis.recall.excerpts import RENDERER_VERSION
 
     x2 = affordances.REGISTRY[RENDERER_VERSION]
     assert (x2.family, x2.phase) == ("excerpt", "3")

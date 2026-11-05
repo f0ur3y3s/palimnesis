@@ -1,4 +1,4 @@
-"""palimnesis.catalog: bounded keyset pages over every occurrence of a branch (slice 8, GL4)."""
+"""palimnesis.view.catalog: bounded keyset pages over every occurrence of a branch (slice 8, GL4)."""
 
 from __future__ import annotations
 
@@ -9,10 +9,14 @@ import sqlite3
 
 import pytest
 
-from palimnesis import addresses, catalog, ledger
-from palimnesis.chat import parse
-from palimnesis.fingerprint import fingerprint_v1
-from palimnesis.store import Store
+from palimnesis.archive import addresses
+
+from palimnesis.view import catalog
+
+from palimnesis.archive import ledger
+from palimnesis.protocols.chat import parse
+from palimnesis.archive.fingerprint import fingerprint_v1
+from palimnesis.archive.store import Store
 
 P, C = catalog.PAGE_SIZE, catalog.ENTRY_TOKENS
 
