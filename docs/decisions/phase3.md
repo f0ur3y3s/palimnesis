@@ -109,7 +109,7 @@ The root is `<db dir>/transcripts` by default, overridden with `--transcripts DI
 
 ## D36 — The transcript-search addendum (a3)
 
-- **Where it goes.** The proxy appends `a3`, which names the session's transcript directory, to the upstream copy of the first system message. When there is no system message, it prepends one. The archive and the client never see it, and it counts in F.
+- **Where it goes.** The proxy appends `a3`, which names the session's transcript directory, to the upstream copy of the first system message. When there is no system message, it prepends one. (Since D95.5, only a *leading* system message takes it; a later one renders as a user turn.) The archive and the client never see it, and it counts in F.
 - **When it is fixed.** At the session's first view that hides anything (a watermark, collapse or oversized stub), stored as an immutable `addendum_fixed` event, and reused unchanged from then on, even if the transcript root moves. Cache-accounting rebuilds after a restart apply the stored text.
 - **Before acceptance.** The budget check counts the addendum's tokens, so it cannot turn into a budget error after acceptance.
 - **Deviation from the plan.** The plan fixed the addendum at the first bounded request; it is fixed at the first masked one instead.
