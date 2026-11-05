@@ -14,7 +14,7 @@ Palimnesis helps local models served by Strata or llama.cpp operate within a sma
 
 This provides **bounded working context with lossless external history**. It does not guarantee unlimited model attention, correct retrieval, or correct interpretation of every archived fact.
 
-Eunoe motivates this approach through proactive retrieval, pinned excerpts and readable transcripts. Its reported results are encouraging, but its approximately 110K-token prompt size does not establish equivalent performance at 32–64K. Record the mechanism, evidence limits and Palimnesis's adaptations in `decisions.md` and `papers.md`. [Eunoe](https://github.com/chroxify/eunoe)
+Eunoe motivates this approach through proactive retrieval, pinned excerpts and readable transcripts. Its reported results are encouraging, but its approximately 110K-token prompt size does not establish equivalent performance at 32–64K. Record the mechanism, evidence limits and Palimnesis's adaptations in `decisions/` and `papers.md`. [Eunoe](https://github.com/chroxify/eunoe)
 
 Existing archival, durability, session identity, streaming, cancellation, admission and complete-budget contracts remain in force unless explicitly amended below.
 

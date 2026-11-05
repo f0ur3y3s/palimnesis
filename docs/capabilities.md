@@ -12,7 +12,7 @@ What Palimnesis claims, per endpoint and harness. Anything absent is unsupported
 
 | Item | Value | Source |
 | --- | --- | --- |
-| Server | Strata 0.1.48 (`/props` `build_info`) | `docs/probes/strata.md` §1 |
+| Server | Strata 0.1.48 (`/props` `build_info`); 0.1.54 accepted as an equivalent build (D76: same template, same counts on all 210 cases) | `docs/probes/strata.md` §1; `PIN.json` `equivalent_builds` |
 | Model | `qwen3.8-flash-next-iq3_xxs` (hybrid recurrent, MTP) | §1 |
 | Chat template | sha256 `12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce` | `eval/probes/fixtures/strata_chat_template.jinja` |
 | Tokenizer | `Qwen/Qwen3.8-Flash-Next` `tokenizer.json`, loaded without its NFC normalizer, with added-token strings inside messages counted as text (D46, D47); 210 recorded counting cases exact against the server, plus `tool_choice` (p16) | §4, §11 |
@@ -70,9 +70,16 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | Continue-after-partial resend | supported (Ph1) | rewritten streams end failures with an in-stream error event plus `x-should-retry: false`; when OpenCode still resends a flattened partial plus "Continue…", it is reconciled against the archived partial (D10.3) |
 | Streaming idempotent replay | planned (Ph8) | 409 recovery response until then |
 
-## Known limits of the Phase 1 archive
+## Known limits
 
-These are the limits of the first usable release. They are rejected or documented, never silent.
+Phase 3 is accepted on the configuration `serve` ships since D78, `a4-d77` (R41, R42).
+- **ho3 at 32K:** it passed 5 of 5 coding tasks against 4 of 5 for OpenCode's own compaction, passed the restart task, and answered 115 of 120 needles.
+- **Phase 3's first configuration, `a4-d43`,** failed its coding gate at 32K: 3 of 5 against 5 of 5, and the restart task failed (R25). It is still available as `--no-protect-turn --retrieval r1 --notes 0 --notes-format n1 --notes-header h1`.
+- **The evidence:** one attempt per task and arm, one model (the pinned Strata build), one harness (OpenCode 2.1.4), 32K only, on pythia (D76). Results there are not compared with Zeus runs.
+
+Every limit below is rejected or documented, never silent. Resolved limits of earlier phases are recorded in `docs/results/`.
+
+### Sessions and the archive
 
 - **One serialized branch per session.**
   - Edits, undo, revert, fork and rewind get `409 history_divergence`; start a new session.
@@ -82,43 +89,41 @@ These are the limits of the first usable release. They are rejected or documente
   - OpenCode's own resend of a flattened partial is accepted (D10.3).
   - A reply interrupted from the client side may be dropped by the next request (D13.1).
 - **Idempotent replay** covers completed non-streaming results only. Repeated streaming keys get `409 streaming_replay_unsupported` (Ph8).
-- **No bounded view yet** (Ph2). The upstream receives the client's full history, and `n_ctx` limits are the harness's and upstream's own.
-- **Archive growth is unbounded.** There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.
+- **Archive growth is unbounded.**
+  - There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.
+  - To delete, remove `palimnesis.db*` and `transcripts` with the proxy stopped.
 - **Durability.** Process crashes are tested; power-loss durability is not claimed (Ph8).
 - **Per-request cost grows with history.** Accept reloads the whole branch (R8: TTFB p50 rises from 8 to 16 ms over 50 turns).
 
-## Known limits of Phase 2
+### Bounded view and its cost
 
-- **No excerpt retrieval yet.** Excerpt blocks are budgeted, stored, rendered and included, but the Phase 2 source selects nothing, so every recorded selection is empty. Proactive retrieval arrives in Phase 3 (A1).
-- **Masked detail is not recallable by the model.** Beyond stub previews it stays out of reach until Phase 3's excerpts and transcript files. The archive keeps everything exactly.
-- **No transcript-file fallback yet** (Phase 3, harness capability gate).
 - **Masking only on overflow.** Bounded views mask only when the history would cross the high watermark; below it the client's body is forwarded byte-identical. `--view off` keeps budgets and rejects over-budget history instead of masking.
-- **Watermark moves cost a deep re-read.** Strata keeps 6 checkpoints, so a move typically re-reads the post-move target (about T tokens). Measured: a move every 7–11K ingress tokens at a 24K budget and every 15–24K at 48K (R12). Live at a 12K budget, each move re-read 4.6–5.0K tokens in about 14.5 s, against a 762 ms median for append turns (R14); at 48K that scales to about 60 s (estimate). At small budgets with large outputs, moves can come almost every turn (D24.2).
-
-## Known limits of Phase 3
-
-Phase 3 is accepted on the configuration `serve` ships since D78, `a4-d77` (R41, R42). On the fresh held-out set ho3 at 32K it passed 5 of 5 coding tasks against 4 of 5 for OpenCode's own compaction, passed the restart task, and answered 115 of 120 needles. Phase 3's first configuration, `a4-d43`, failed its coding gate at 32K: 3 of 5 against 5 of 5, and the restart task failed (R25). `a4-d43` is still available as `--no-protect-turn --retrieval r1 --notes 0 --notes-format n1 --notes-header h1`. The evidence is one attempt per task and arm, one model (the pinned Strata build), one harness (OpenCode 2.1.4) and 32K only, on pythia (D76). Results there are not compared with Zeus runs.
-
-- **No recall by address in Phase 3.** The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools. Phase 3B adds hidden recall tools behind `--hidden-tools` (see "Known limits of Phase 3B").
-- **Transcript lookups cost calls** (R25-E). In R25's failed restart task, about half of 68 lookups were overhead:
-  - the in-progress turn's file name carries a revision that changes as the archive grows (`turn-NNNN.pREV.md`, D34), so a path the model just saw can be gone on its next call;
-  - the model re-read `turn-0000.md`, OpenCode's system prompt, which is always in view;
-  - directory listings to recover from both.
-- **Excerpts are chosen once per instruction** (§13). Tool-result steps never select, so in a long agentic turn, content that leaves the view mid-turn is reachable only through the transcript files.
-- **Retrieval is lexical.** q1 ranks with BM25 over FTS5 chunks; r2, the default, leaves the model's reasoning out of the candidates (D71). There are no embeddings; an instruction that shares too few words with the evidence gets no excerpt.
-- **Watermark moves still cost a deep re-read** (Phase 2 limits), and the addendum adds one re-read of the head per session when it is fixed (D36).
+- **Watermark moves cost a deep re-read.**
+  - Strata keeps 6 checkpoints, so a move typically re-reads the post-move target, about T tokens.
+  - Frequency: a move every 7–11K ingress tokens at a 24K budget, and every 15–24K at 48K (R12).
+  - Live at a 12K budget, each move re-read 4.6–5.0K tokens in about 14.5 s, against a 762 ms median for append turns (R14). At 48K that scales to about 60 s (estimate).
+  - At small budgets with large outputs, moves can come almost every turn (D24.2).
+  - The addendum adds one re-read of the head per session when it is fixed (D36).
 - **Working notes cost one upstream call per collapse** (D72). The client's request waits for it: 15–18% of task wall time on ho2 (R40-B). A failed refresh keeps the notes the view had, and is recorded.
-- **The notes slot is a fixed 2,048 tokens** (D78.5). It was measured only at a 24,320-token input budget. Below about 8,000 input tokens it takes too much of the view; use `--notes 0` there.
-- **Sessions started before D78 keep their stored excerpts.** An excerpt block is chosen once and reused (§11), so a block selected under r1 can still quote reasoning after an upgrade; new selections use r2.
+- **The notes slot is a fixed 2,048 tokens** (D78.5).
+  - It was measured only at a 24,320-token input budget.
+  - Admission and the startup floor reserve it (D79), so below about 8,000 input tokens it takes too much of the view; use `--notes 0` there.
 - **A second collapse inside one request sends no refresh.** A rebuild with the new notes or an excerpt block can, rarely, advance the collapse again; that move keeps the notes just written without another refresh call (R42).
-- **Recall answers can carry extra text** (R41-A). In 5 of 120 held-out needle answers, the model first went back to the coding task and then gave the right value with commentary.
 - **Some internal size estimates run a few tokens low.** Previews, the recent window and excerpt charges are sized on text with tags live (D46.4). The assembled request is counted exactly, so the budget holds.
-- **Transcript files rely on filesystem permissions.** OpenCode's shell tool bypasses its `external_directory` rule (`harnesses.md`). There is no delete command; remove `palimnesis.db*` and `transcripts` with the proxy stopped (Ph8).
-- **Deferred:** proxy FIFO admission, `429` and proxy keepalives (Ph4B, O4); continuation accounting across internal calls and RE2 regex search (3B); Anthropic error re-envelope and other harnesses (Ph4B).
 
-## Known limits of Phase 3B
+### Recall
 
-Hidden recall tools (`--hidden-tools t1|t2`, contracts §15) are off by default and not yet evaluated on the fresh held-out set.
+- **No recall by address by default.** The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools. Hidden recall tools exist behind `--hidden-tools` (below).
+- **Transcript lookups cost calls.** Each search or read is a harness tool call and a model round trip. D63 removed the two overheads R25-E found: in-progress turn files now keep a stable name, and turn 0 is marked as the system prompt already in view.
+- **Excerpts are chosen once per instruction** (§13). Tool-result steps never select, so in a long agentic turn, content that leaves the view mid-turn is reachable only through the transcript files.
+- **Retrieval is lexical.** q1 ranks with BM25 over FTS5 chunks, and r2, the default, leaves the model's reasoning out of the candidates (D71). There are no embeddings, so an instruction that shares too few words with the evidence gets no excerpt.
+- **Sessions started before D78 keep their stored excerpts.** An excerpt block is chosen once and reused (§11), so a block selected under r1 can still quote reasoning after an upgrade; new selections use r2.
+- **Recall answers can carry extra text** (R41-A). In 5 of 120 held-out needle answers, the model first went back to the coding task and then gave the right value with commentary.
+- **Transcript files rely on filesystem permissions.** OpenCode's shell tool bypasses its `external_directory` rule (`harnesses.md`).
+
+### Hidden recall tools (Phase 3B, off by default)
+
+`--hidden-tools t1|t2` (contracts §15) failed both Phase 3B held-out gates (R32): 97 of 120 needles against the 85% bar, and 2 of 5 coding tasks against native compaction's 4. They stay off by default and there is no `phase-3b` tag (D64).
 
 - **Streaming requests only** (D55). A non-streaming request gets no hidden tools.
 - **One visible message per response, but its text order can change upstream.** Text the model writes after a tool call, hidden or external, is re-rendered before the call in later requests (one content field per message), so from that point the prompt differs from what the model generated.
@@ -127,3 +132,8 @@ Hidden recall tools (`--hidden-tools t1|t2`, contracts §15) are off by default 
 - **Continuation reuse estimates are low** by the generated turn (41–70 tokens in probe P3). They are labelled estimates; no gate reads them.
 - **A `length` stop** (allowance or §15 limits) makes OpenCode send its own follow-up turn at once (`docs/probes/opencode_hidden_stream.md`).
 
+### Deferred
+
+- **Phase 4B:** proxy FIFO admission, `429` and proxy keepalives (O4); Anthropic Messages archive mode with its error envelope; Pi and Claude Code.
+- **Phase 3B, not built:** continuation accounting across internal calls, and RE2 regex search.
+- **Phase 8:** streaming replay, deletion and export, and power-loss durability.

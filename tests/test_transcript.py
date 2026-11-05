@@ -1,6 +1,6 @@
 """Reconciling a client resend against the archived visible history (pure seam).
 
-Outcomes (docs/plans/phase1.md; D10.3-D10.6):
+Outcomes (docs/plan/phases/phase1.md; D10.3-D10.6):
 - Extend(k, ...): client messages [0, k) match the archive; the rest are new.
 - Prefix(k): the client resent only the first k archived messages (a retry).
 - Divergence(index, reason): history was edited, truncated or forged.

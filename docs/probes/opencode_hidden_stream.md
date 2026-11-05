@@ -4,7 +4,7 @@ Oct 26, 2026 · Phase 3B slice S0 · fake upstream only
 
 ## What this is
 
-Phase 3B's assembler (`docs/plans/phase3b.md` §2.2–§2.4) can show OpenCode stream shapes it has never received from Strata directly:
+Phase 3B's assembler (`docs/plan/phases/phase3b.md` §2.2–§2.4) can show OpenCode stream shapes it has never received from Strata directly:
 - one visible response built from several upstream generations, where reasoning resumes after text;
 - a `finish_reason: "length"` stop when a hidden-tool cap or the allowance runs out;
 - an in-stream error raised during a continuation.

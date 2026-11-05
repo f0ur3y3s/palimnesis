@@ -2,7 +2,7 @@
 
 Oct 25, 2026, 02:58–03:10 UTC.
 
-**Question.** Can OpenCode 2.1.4, as configured for Palimnesis (`integrations/opencode/opencode.json`, `plugins/palimnesis.ts`), have the model search and read files in a directory outside its working directory and outside any git repo, without unexpected permission prompts or denial? A1 "Harness capability gate", `docs/plans/phase3.md` §4.
+**Question.** Can OpenCode 2.1.4, as configured for Palimnesis (`integrations/opencode/opencode.json`, `plugins/palimnesis.ts`), have the model search and read files in a directory outside its working directory and outside any git repo, without unexpected permission prompts or denial? A1 "Harness capability gate", `docs/plan/phases/phase3.md` §4.
 
 **Setup:**
 

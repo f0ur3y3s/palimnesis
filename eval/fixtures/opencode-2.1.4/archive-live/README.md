@@ -1,6 +1,6 @@
 # OpenCode 2.1.4 live through Mnemon archive mode (Phase 1)
 
-Captured 2026-10-24, 22:43–22:45 UTC, at `98be1e0` (clean tree; `src/` identical to `845ae90`). OpenCode 2.1.4 ran through `mnemon` in archive mode to live Strata 0.1.48 (`qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536), cold cache at request 1. This is the Phase 0 live run (`../live/`, `docs/probes/opencode_live.md`) repeated with archiving on, a proxy restart between turns, and a client-side interrupt. Results entry: `docs/results.md` R9.
+Captured 2026-10-24, 22:43–22:45 UTC, at `98be1e0` (clean tree; `src/` identical to `845ae90`). OpenCode 2.1.4 ran through `mnemon` in archive mode to live Strata 0.1.48 (`qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536), cold cache at request 1. This is the Phase 0 live run (`../live/`, `docs/probes/opencode_live.md`) repeated with archiving on, a proxy restart between turns, and a client-side interrupt. Results entry: `docs/results/` R9.
 
 This folder holds only a sanitized summary. There are no request or response bodies, no headers and no credentials. The full DB, taps and captures stayed in the session scratchpad.
 
@@ -55,7 +55,7 @@ OpenCode config: `../live/config/` with `baseURL` on port 9031. The plugin was u
 
 # R10: the fix for client interrupts (D13.1) checked live
 
-**When and where.** 2026-10-24, 22:59–23:02 UTC, at `a41809a` (clean tree). The archive DB, the OpenCode home and the scratch root were all fresh, with the same Strata as R9. Results entry: `docs/results.md` R10.
+**When and where.** 2026-10-24, 22:59–23:02 UTC, at `a41809a` (clean tree). The archive DB, the OpenCode home and the scratch root were all fresh, with the same Strata as R9. Results entry: `docs/results/` R10.
 
 **Files.** The summary is `summary-r10.json`; the R9 `summary.json` is unchanged.
 

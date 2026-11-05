@@ -1,7 +1,7 @@
 """Publishing transcript files: archive reader, crash-safe publisher, background Projector.
 
 Protocol plumbing around ``palimnesis.projection`` (which names the mechanism and its
-source). Contracts §14 (proposed); docs/plans/phase3.md §3.
+source). Contracts §14 (proposed); docs/plan/phases/phase3.md §3.
 
 **Location.** One directory per session under a root (default ``<db dir>/transcripts``),
 named ``safe(id[:40]).lower() + "-" + sha256(id)[:12]``: session ids may differ only in

@@ -1,4 +1,4 @@
-"""Chunk-level full-text index for proactive recall (docs/plans/phase3.md §2, D27)."""
+"""Chunk-level full-text index for proactive recall (docs/plan/phases/phase3.md §2, D27)."""
 
 from __future__ import annotations
 

@@ -138,9 +138,9 @@ Amendment A1 makes proactive excerpts plus transcript files the Phase 3 mechanis
 
 ## Phase 3B A/B matrix (hidden recall tools)
 
-Deferred by amendment A1. This matrix is run only if optional Phase 3B is built.
+Deferred by amendment A1, then built and run as optional Phase 3B (R28–R30). The frozen arm failed both held-out gates (R32), so hidden recall tools stay off by default (D64).
 
-Copied from `docs/plans/phase2.md`. Defined in Phase 2 and run in Phase 3.
+Copied from `docs/plan/phases/phase2.md`. Defined in Phase 2 and run in Phase 3.
 
 Arms:
 

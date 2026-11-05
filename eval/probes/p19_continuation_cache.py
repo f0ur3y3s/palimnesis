@@ -1,6 +1,6 @@
 """Probe 19 (Phase 3B, S0 P3): prompt-cache reuse for a hidden continuation on Strata.
 
-A hidden continuation (docs/plans/phase3b.md §2.7) is call 2 = call 1's messages + the assistant
+A hidden continuation (docs/plan/phases/phase3b.md §2.7) is call 2 = call 1's messages + the assistant
 tool call exactly as generated (reasoning included) + a tool result. Question: does Strata reuse
 the tokens it generated in call 1, beyond the generation-start checkpoint that
 ``palimnesis.upstreams.strata.cache.StrataCacheModel`` assumes?

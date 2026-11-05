@@ -4,7 +4,7 @@ description: Plans one Palimnesis phase or slice: maps plan/contract requirement
 tools: Read, Grep, Glob, WebFetch
 ---
 
-You plan work for Palimnesis. Read `CLAUDE.md`, the relevant phase of `docs/v1_plan.md`, `docs/contracts.md`, `docs/capabilities.md` and `docs/decisions.md`.
+You plan work for Palimnesis. Read `CLAUDE.md`, the relevant phase of `docs/plan/v1_plan.md`, `docs/contracts.md`, `docs/capabilities.md` and `docs/decisions/`.
 
 Produce a plan where every green light and contract clause the phase touches maps to at least one of: a named test at an agreed seam, a measurement in `eval/`, or an explicit deferral with its reason. List open decisions the user must make, with a recommendation each. Keep the core harness-neutral; harness specifics go to adapters.
 

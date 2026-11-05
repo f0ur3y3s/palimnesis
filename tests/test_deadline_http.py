@@ -1,4 +1,4 @@
-"""Request-wide deadline D after acceptance (contracts §5; docs/plans/phase3.md S8)."""
+"""Request-wide deadline D after acceptance (contracts §5; docs/plan/phases/phase3.md S8)."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 Oct 24, 2026 · @Daniel · Revised after design review and implementation notes
 
-> **Amended.** Read with `docs/amendments/A1-proactive-recall.md` (from Phase 2 on), which makes proactive recall plus transcript files the primary recall mechanism and defers hidden recall tools to optional Phase 3B. Decisions D15 (amended) and D17–D19 apply.
+> **Amended.** Read with `docs/plan/amendments/A1-proactive-recall.md` (from Phase 2 on), which makes proactive recall plus transcript files the primary recall mechanism and defers hidden recall tools to optional Phase 3B. Decisions D15 (amended) and D17–D19 apply.
 
 ## Overview
 
@@ -35,7 +35,7 @@ Maintain a harness-visible transcript and an internal model transcript. Hidden r
 
 Python 3.12; FastAPI/uvicorn; pooled async httpx; SQLite in WAL mode with synchronous=FULL by default; google-re2 for regex matching; pytest/pytest-asyncio; pinned dependencies. Count with the actual model tokenizer and chat template, preferably using an upstream counting interface where available. FTS5 provides full-text search, not general regex. Optional CPU embeddings and sqlite-vec arrive after core evaluation.
 
-Suggested modules: api, sessions, store, transcript, view, recall, state, summaries, semantic. Documentation: PLAN.md, contracts.md, capabilities.md, decisions.md, papers.md, harnesses.md, results.md. Tests include a deterministic fake upstream and versioned harness fixtures. Create eval/needle.py, eval/replay.py, eval/tasks/ and eval/report.py early enough for each phase's checks.
+Suggested modules: api, sessions, store, transcript, view, recall, state, summaries, semantic. Documentation: PLAN.md, contracts.md, capabilities.md, decisions/, papers.md, harnesses.md, results/. Tests include a deterministic fake upstream and versioned harness fixtures. Create eval/needle.py, eval/replay.py, eval/tasks/ and eval/report.py early enough for each phase's checks.
 
 ## Required implementation contracts
 

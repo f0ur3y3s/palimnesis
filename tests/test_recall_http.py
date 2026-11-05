@@ -1,4 +1,4 @@
-"""Proactive recall through the proxy (A1 Phase 3; docs/plans/phase3.md §2)."""
+"""Proactive recall through the proxy (A1 Phase 3; docs/plan/phases/phase3.md §2)."""
 
 from __future__ import annotations
 

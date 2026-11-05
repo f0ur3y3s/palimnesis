@@ -2,7 +2,7 @@
 
 Implements ARC's observation stubs (docs/papers.md): a masked item becomes an
 id plus metadata plus head/tail previews, and older stubs collapse to bare
-ids. Adaptations, all from docs/plans/phase2.md and D14:
+ids. Adaptations, all from docs/plan/phases/phase2.md and D14:
 
 - sizes are tokens under an injected ``count`` (the pinned tokenizer in
   production), not characters;

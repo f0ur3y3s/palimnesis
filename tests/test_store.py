@@ -1,6 +1,6 @@
 """Archive store: durability settings, immutability and connection policy.
 
-Tests run against real SQLite files (seam S in docs/plans/phase1.md).
+Tests run against real SQLite files (seam S in docs/plan/phases/phase1.md).
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # Contracts
 
-The specification for proxy behavior. Rules are stated over values read at runtime; measured numbers live in `docs/results.md` and probe reports, defaults in `src/palimnesis/config.py`. Each clause is **[enforced]** (tested now), **[defined]** (specified; phase noted) or **[pending]** (awaiting named evidence).
+The specification for proxy behavior. Rules are stated over values read at runtime; measured numbers live in `docs/results/` and probe reports, defaults in `src/palimnesis/config.py`. Each clause is **[enforced]** (tested now), **[defined]** (specified; phase noted) or **[pending]** (awaiting named evidence).
 
 Symbols: `n_ctx` upstream context capacity · `R` per-call generation reserve · `M` safety margin · `F` non-evictable input (system, tool schemas, current user input, generation preamble) · `A` request-wide generation allowance · `D` request-wide deadline.
 

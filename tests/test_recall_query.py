@@ -1,4 +1,4 @@
-"""Query policy q1 for proactive recall (docs/plans/phase3.md §2, D28)."""
+"""Query policy q1 for proactive recall (docs/plan/phases/phase3.md §2, D28)."""
 
 from __future__ import annotations
 

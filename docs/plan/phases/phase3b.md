@@ -1,5 +1,7 @@
 # Phase 3B plan: hidden recall tools
 
+> **Status:** built and run; both held-out gates failed (R32), so hidden recall tools stay off by default and there is no `phase-3b` tag (D64).
+
 Planner output, 2026-10-26, at `9482265` (S12). A1's "Optional Phase 3B" section governs, and v1_plan Phase 3 sets the scope. The user chose 3B after R25 (coding gate failed at 32K) and R25-E (about half of 68 transcript lookups were overhead). User decisions on the open items are recorded in the Delta section.
 
 ## Core positions
@@ -216,7 +218,7 @@ Facts from H1 go to `harnesses.md`, not into core.
 | S9 | Eval: arm 5 config, internal metrics in `report.py`, dev-t4/t5, ho2 generation | S5 |
 | S10 | Development matrix and freeze | S6–S9 |
 | S11 | Fresh held-out at 32K (gate), 64K report | S10 |
-| S12 | Contracts, three reviews, `results.md`, tag `phase-3b` | all |
+| S12 | Contracts, three reviews, `results/`, tag `phase-3b` | all |
 
 ## Requirement → test / measurement / deferral
 

@@ -1,7 +1,7 @@
 """Transcript publication at the store seam (Phase 3 S5: GL6, GL7, location, permissions).
 
 Archives are written through ``palimnesis.ledger`` on a real store; files are published
-by ``palimnesis.projector`` and checked against the plan's protocol (docs/plans/phase3.md
+by ``palimnesis.projector`` and checked against the plan's protocol (docs/plan/phases/phase3.md
 §3): the index only ever names complete files, a crash or a refused replace leaves the
 previous generation readable, and every payload verifies against the archive.
 """

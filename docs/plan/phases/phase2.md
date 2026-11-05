@@ -1,6 +1,8 @@
 # Phase 2 plan: bounded view, catalog and cache instrumentation
 
-Planner output, 2026-10-24, after `phase-1`. Decisions are recorded at the end and in `docs/decisions.md` once resolved.
+> **Status:** done; tagged `phase-2` (gate R17).
+
+Planner output, 2026-10-24, after `phase-1`. Decisions are recorded at the end and in `docs/decisions/` once resolved.
 
 ## Core positions
 
@@ -226,7 +228,7 @@ Arms:
 
 ## Decisions
 
-Resolved as D14 in `docs/decisions.md`.
+Resolved as D14 in `docs/decisions/`.
 
 ## Delta (after A1 and amended D15, 2026-10-24)
 

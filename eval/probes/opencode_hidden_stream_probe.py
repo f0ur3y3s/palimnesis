@@ -1,6 +1,6 @@
 """H1 (Phase 3B, S0): what OpenCode 2.1.4 does with the streams a hidden-recall assembler emits.
 
-Palimnesis's assembler (docs/plans/phase3b.md §2.2) can show the client ONE visible response made
+Palimnesis's assembler (docs/plan/phases/phase3b.md §2.2) can show the client ONE visible response made
 of several upstream generations: reasoning, text, then reasoning again, then text, under one
 chunk id. It can also end a response with ``finish_reason: "length"`` (caps, §2.4) or with an
 in-stream error event mid-continuation. This probe drives real OpenCode 2.1.4 against the

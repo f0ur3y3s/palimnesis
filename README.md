@@ -22,7 +22,7 @@ Palimnesis does it differently:
 ## Requirements
 
 - Python 3.12 and [uv](https://docs.astral.sh/uv/).
-- A **Strata 0.1.48** server, reachable over HTTP. Palimnesis counts tokens exactly as that build does, using a pinned template and tokenizer that ship with it. At startup it checks the server's build, template and a `count_tokens` canary against the pin. On a mismatch it still archives and forwards, but turns bounded views off.
+- A **Strata 0.1.48** server, or 0.1.54, which D76 verified as an equivalent build, reachable over HTTP. Palimnesis counts tokens exactly as that build does, using a pinned template and tokenizer that ship with it. At startup it checks the server's build, template and a `count_tokens` canary against the pin. On a mismatch it still archives and forwards, but turns bounded views off.
 - One harness that speaks OpenAI Chat Completions. **OpenCode 2.1.4** is the supported harness today; see [`docs/harnesses.md`](docs/harnesses.md). Pi and Claude Code are planned.
 
 ## Install
@@ -119,7 +119,7 @@ Errors come back in the client's own error format, with `x-should-retry: false` 
 
 ## Project status
 
-Version 0.1.0, under active development. The plan is [`docs/v1_plan.md`](docs/v1_plan.md), amended by [`docs/amendments/`](docs/amendments/). Each phase's measured results are in [`docs/results.md`](docs/results.md), and its design decisions in [`docs/decisions.md`](docs/decisions.md). What the proxy guarantees is stated in [`docs/contracts.md`](docs/contracts.md). Labels such as `a4-d77`, `ho3` or `r2` are explained in [`docs/glossary.md`](docs/glossary.md).
+Version 0.1.0, under active development. The plan is [`docs/plan/v1_plan.md`](docs/plan/v1_plan.md), amended by [`docs/plan/amendments/`](docs/plan/amendments/). Each phase's measured results are in [`docs/results/`](docs/results/), and its design decisions in [`docs/decisions/`](docs/decisions/). What the proxy guarantees is stated in [`docs/contracts.md`](docs/contracts.md). Labels such as `a4-d77`, `ho3` or `r2` are explained in [`docs/glossary.md`](docs/glossary.md).
 
 **Known limits.** In the held-out evaluation that accepted Phase 3 (R41, 32K context), the shipped configuration answered 115 of 120 recall questions exactly and succeeded on 5 of 5 long coding tasks, against 4 of 5 for OpenCode's own compaction. Phase 3's first configuration had succeeded on 3 of 5 (R25). That is one attempt per task, one model and one harness; every known limit is listed in [`docs/capabilities.md`](docs/capabilities.md#known-limits-of-phase-3).
 

@@ -1,6 +1,6 @@
 # Phase 2 live runs: forced-budget OpenCode and excerpt replay
 
-Captured 2026-10-25, 01:58–02:10 UTC, from a `git archive` export of `1929c5c` (its `src/` differs from `ae71004` only in docstrings) plus the then-uncommitted eval files. Strata 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536, one slot, shared. Results entries: `docs/results.md` R14 and R15.
+Captured 2026-10-25, 01:58–02:10 UTC, from a `git archive` export of `1929c5c` (its `src/` differs from `ae71004` only in docstrings) plus the then-uncommitted eval files. Strata 0.1.48, `qwen3.8-flash-next-iq3_xxs`, `n_ctx` 65536, one slot, shared. Results entries: `docs/results/` R14 and R15.
 
 This folder holds sanitized summaries only: counts, ids, usage and accounting fields. There are no request or response bodies, headers or credentials; the archives, taps and captures stayed in the session scratchpad.
 

@@ -2,7 +2,7 @@
 
 Mechanism from Eunoe (docs/papers.md): readable per-session transcript files, an
 ``index.md`` plus one ``turn-NNNN.md`` per turn, which the agent searches with its
-ordinary tools when proactive recall misses. Adaptations (docs/plans/phase3.md §3):
+ordinary tools when proactive recall misses. Adaptations (docs/plan/phases/phase3.md §3):
 
 - **Derived and deterministic.** Files are a function of the immutable archive (no
   timestamps), so ``palimnesis transcripts rebuild`` reproduces them byte for byte

@@ -1,6 +1,6 @@
 """Probe 17 (Phase 3B, S0 P1): OpenAI Chat tool-call stream shapes on Strata.
 
-Questions (docs/plans/phase3b.md §2.8):
+Questions (docs/plan/phases/phase3b.md §2.8):
   a. Does the first delta of each tool call carry ``id``, ``type`` and ``function.name``, with
      the arguments arriving after it?
   b. Parallel calls: which indices, and do their deltas ever interleave?

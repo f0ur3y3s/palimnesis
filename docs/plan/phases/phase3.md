@@ -1,5 +1,7 @@
 # Phase 3 plan: proactive recall, transcript files, harness capability gate
 
+> **Status:** done; the first gate failed on coding (R27); accepted on the D78 configuration and tagged `phase-3` (R42).
+
 Planner output, 2026-10-24, at `phase-2` (8428f48). Amendment A1 governs; hidden recall tools are optional Phase 3B. User decisions on the open items are recorded in the Delta section.
 
 ## Core positions
@@ -228,7 +230,7 @@ The coding tasks follow R14's shape, with executable checks, early constraints, 
 | S9 | Goldens: transcript-search loop with an excerpt host, then restart | S3, S6 |
 | S10 | Evaluation drivers, development runs, freeze | S3, S7 |
 | S11 | Held-out runs at 32K and 64K | S10 |
-| S12 | Contracts and docs; protocol, cache and paper-fidelity reviews; `results.md`; tag | all |
+| S12 | Contracts and docs; protocol, cache and paper-fidelity reviews; `results/`; tag | all |
 
 ## Requirement → test / measurement / deferral
 

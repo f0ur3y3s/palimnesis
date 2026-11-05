@@ -1,6 +1,6 @@
 # Glossary
 
-The labels used across `docs/results.md`, `docs/decisions.md` and `eval/`.
+The labels used across `docs/results/`, `docs/decisions/` and `eval/`.
 
 ## Configurations
 
@@ -48,7 +48,7 @@ Version 1 of each setting is the original; 2 is the later choice.
 
 ## Other labels
 
-- **D** numbers are entries in `docs/decisions.md`; **R** numbers are entries in `docs/results.md`. **A** numbers are plan amendments (`docs/amendments/`).
+- **D** numbers are entries in `docs/decisions/`; **R** numbers are entries in `docs/results/`. **A** numbers are plan amendments (`docs/plan/amendments/`).
 - **Sets:**
   - `dev` is development data;
   - `ho`, `ho2` and `ho3` are the first, second and third held-out sets;

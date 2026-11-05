@@ -1,5 +1,7 @@
 # Phase 1 plan: Durable archive and transcript reconciliation
 
+> **Status:** done; tagged `phase-1` (gate R11).
+
 Planner output from 2026-10-24, after `phase-0`. The R4 carry-overs (lifespan guard, capture tests, live cancel through the proxy) were closed in `f3b4373` and R5. Decisions are recorded at the end as the user resolves them.
 
 ## Constraints found while planning
@@ -173,4 +175,4 @@ Fixtures:
 
 ## Decisions
 
-Resolved as D10 in `docs/decisions.md`.
+Resolved as D10 in `docs/decisions/`.

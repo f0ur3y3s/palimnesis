@@ -1,7 +1,7 @@
 # ho2: the fresh Phase 3B held-out set
 
 The Phase 3 held-out set (`eval/needles/heldout/`, `eval/tasks/ho_t*.py`) was seen before
-Phase 3B was designed, so the 3B gate is judged on this set alone (docs/plans/phase3b.md,
+Phase 3B was designed, so the 3B gate is judged on this set alone (docs/plan/phases/phase3b.md,
 O-B1). It was generated and committed before any Phase 3B run.
 
 ## Contents

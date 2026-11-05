@@ -4,7 +4,7 @@ Oct 24, 2026 · Phase 0 static research
 
 ## What this is, and what it is not
 
-This is a read-only investigation of the three installed harnesses. It supports the Phase 0 first-harness choice and the Phase 4B harness-expansion notes in `docs/v1_plan.md`. The three harnesses are evaluated on equal footing. The user's existing Pi provider entry for Strata is recorded as an environment fact only. It is not counted as an advantage, because each harness needs similar provider configuration.
+This is a read-only investigation of the three installed harnesses. It supports the Phase 0 first-harness choice and the Phase 4B harness-expansion notes in `docs/plan/v1_plan.md`. The three harnesses are evaluated on equal footing. The user's existing Pi provider entry for Strata is recorded as an environment fact only. It is not counted as an advantage, because each harness needs similar provider configuration.
 
 Every finding comes from reading installed code, bundled strings, tagged upstream source or public docs. None of the harnesses was run against a server. The plan requires captured fixtures rather than assumed defaults ("Client timeouts and automatic retries"), so treat each timeout, retry and request-shape claim here as a hypothesis to confirm with a fake-upstream capture.
 

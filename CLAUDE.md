@@ -1,6 +1,6 @@
 # Palimnesis
 
-Local proxy between agent harnesses and a Strata server: archives accepted conversation content, presents a bounded view upstream, and gives exact addressable recall of what the view removed. `docs/v1_plan.md` is the plan, amended by `docs/amendments/` (A1: proactive recall and transcript files); read the section for the phase you're working in, plus any amendment that touches it.
+Local proxy between agent harnesses and a Strata server: archives accepted conversation content, presents a bounded view upstream, and gives exact addressable recall of what the view removed. `docs/plan/v1_plan.md` is the plan, amended by `docs/plan/amendments/` (A1: proactive recall and transcript files); read the section for the phase you're working in, plus any amendment that touches it. `docs/README.md` maps the docs; `docs/glossary.md` explains labels such as `a4-d77` or `ho3`.
 
 ## Commands
 
@@ -19,7 +19,7 @@ Run tests and live work on pythia (`ssh pythia`; repo `~/repos/palimnesis`, `uv`
 - **Contracts are the spec.** `docs/contracts.md` states proxy behavior; papers motivate mechanisms but never override a contract or protocol correctness. A behavior change touching a contract lands as a red fake-upstream test first, then the code, then the contract text.
 - **Harness-neutral core.** Pi, OpenCode and Claude Code are peers. Harness-specific behavior lives in adapters and `docs/harnesses.md`; core modules key off protocol (OpenAI Chat Completions, Anthropic Messages), never off a harness name.
 - **Evidence over defaults.** SDK timeouts/retries, Strata template/cancellation/cache behavior and harness URL joining are recorded from captured fixtures or probes (`eval/probes/`, `docs/probes/`), never from assumed SDK defaults. Mark unverified facts as unverified.
-- **Decisions.** A material choice (format, default, rejected alternative, deviation from the plan) gets an entry in `docs/decisions.md` with its reason.
+- **Decisions.** A material choice (format, default, rejected alternative, deviation from the plan) gets an entry at the end of the newest file in `docs/decisions/`, with its reason and a row in that folder's index.
 - **Citations.** A module implementing a research mechanism names its paper and any justified adaptation in the module docstring (`docs/papers.md` holds the list). Protocol plumbing needs none.
 - **Tests** sit at the agreed seams: HTTP end-to-end through `tests/fake_upstream.py`, plus pure functions with their own contracts (e.g. `palimnesis.sessions`). Expected values come from the spec or literal fixtures.
 - **Privacy.** Operational logs never contain request/response bodies or credentials; body capture exists only behind `--capture-dir`.
@@ -27,4 +27,4 @@ Run tests and live work on pythia (`ssh pythia`; repo `~/repos/palimnesis`, `uv`
 
 ## Phase workflow
 
-plan → failing tests → implement → independent review → applicable checks → `docs/results.md` → commit and tag `phase-N`. Roles live in `.claude/agents/`: `planner`, `test-writer`, `protocol-reviewer`, `cache-auditor`, `paper-fidelity-reviewer`, `eval-runner`. Reviewers report; they never edit.
+plan → failing tests → implement → independent review → applicable checks → `docs/results/` → commit and tag `phase-N`. Roles live in `.claude/agents/`: `planner`, `test-writer`, `protocol-reviewer`, `cache-auditor`, `paper-fidelity-reviewer`, `eval-runner`. Reviewers report; they never edit.
