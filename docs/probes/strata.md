@@ -660,3 +660,138 @@ Fixtures: `p25_messages_beta_headers.json` and `p25_beta_headers_stream.sse`.
   - The repo counter (c4) refuses that shape, and refuses `effort: "max"`. It needs a late-system-to-user step and the effort aliases before such requests can be counted locally.
 - **`count_tokens` is not exact for `tool_choice: none`**: it includes the tool schemas.
 - **Cut-off tool calls.** A length stop inside tool arguments streams a closed `tool_use` block with unparseable JSON and `stop_reason: "max_tokens"`. The non-streaming route drops that block instead. The Messages emitter must choose which behaviour to copy.
+
+## 14. One slot against two (O-4B-7)
+
+Probed 2026-11-05 between 13:58 and 14:20 UTC on pythia (D76) against `http://127.0.0.1:8080`, for D81.7. The user approved the restarts. No other client used the server.
+
+**Run conditions.**
+- Server: `build_info` `Strata 0.1.54` (terminal commit `36f6663`), model `qwen3.8-flash-next-iq3_xxs` (IQ3_XXS), `n_ctx` 32768, `--kv int8`, `--expert-cache auto`, `--mmap-experts`, MTP drafting (`--spec 4`). The launch config `iq3_xxs-32k.json` was not changed.
+- Hardware: RTX 3060 12 GB (driver 595.99.02), Ryzen 5 3600 (6 cores), 45 GB RAM, SATA-class SSD, Ubuntu 26.04.1 (kernel 7.0.0-42).
+- Code: the script was not committed. Local `HEAD` was `789fe57`; pythia's checkout was `3a2187b`, with the probe files copied in untracked.
+- Cache warmness:
+  - The 1-slot server had been up about 33 h.
+  - The 2-slot server was measured right after its restart. The OS page cache still held the experts, and the GPU expert cache is pre-filled from the profile at start.
+  - Each run began with one 16K warm-up request, which is reported but not counted.
+- Every body is synthetic, sent with temperature 0, `seed` 1 and `reasoning_effort: "none"`. Each prompt starts with a fresh nonce, so the first request of a conversation reuses nothing.
+
+**Restart sequence.**
+1. The original server, started with `--parallel 1`, was stopped with SIGTERM. It stopped in 6 s (`[strata] stopped`), and the GPU went back to 1 MiB.
+2. A marker line `=== p26 … restart with --parallel 2` was appended to `~/logs/strata-32k.out`.
+3. The same command was started with `--parallel 2`, logging with `>>`.
+4. After the run, that server was stopped the same way, a second marker (`slot test done`) was appended, and the original command was started again, also with `>>`.
+
+The restarts used `>>` rather than the original `>` so the log keeps both runs. All other arguments were identical.
+
+**Script and evidence.** The script is `p26_slots.py`. All fixtures are in `eval/probes/fixtures/strata_slots/`:
+
+| File | Contents |
+| --- | --- |
+| `p26_1slot.json` | 1-slot sections W, a–e |
+| `p26_2slot.json` | 2-slot sections W, a–e |
+| `p26_2slot_f.json` | 2-slot section f |
+| `p26_1slot_f.json` | 1-slot section f, run on the restored server |
+| `p26_restore.json` | the restore check |
+| `p26_1slot_engine_log.txt` | engine-log excerpt from the 1-slot run |
+| `p26_2slot_engine_log.txt` | engine-log excerpt from the 2-slot run |
+
+Run the script on pythia with `uv run python eval/probes/p26_slots.py --label 1slot|2slot [--sections f]` or `--restore-check`.
+
+The sections:
+
+| Section | Workload |
+| --- | --- |
+| a | one request alone: about 16K prompt tokens, 256 generated; 3 reps |
+| b | after each `a`, the same conversation extended by the reply exactly as generated plus one user turn (64 out) |
+| c | two `a`-shaped requests, B sent 0.2 s after A; 2 reps |
+| d | two about-8K conversations X and Y, alternating one at a time: X1 Y1 X2 Y2 X3 Y3 (32 out) |
+| e | two about-30K prompts sent together (64 out) |
+| f | X and Y extended together (the pair 0.2 s apart), 3 rounds |
+
+TTFT is measured at the client, from send to the first non-empty delta. Prefill and decode speeds are Strata's `timings` (`prompt_per_second`, `predicted_per_second`). `/slots`, `/status` and nvidia-smi were sampled during c, e and f.
+
+### 14.1 Startup and fit [verified]
+
+| | 1 slot | 2 slots | Evidence |
+| --- | --- | --- | --- |
+| Starts | yes | yes; no "asked N, the engine runs M" line, only the usual no-API-key warning | `server_log_since_marker` in `p26_2slot.json` |
+| `/props` `total_slots` | 1 | 2 | `env.props` |
+| `n_ctx` per slot (`/props`, `/slots`) | 32768 | 32768 on slot 0 and slot 1 | `env.slots` |
+| Engine `batch_slots` / `slot_cache` | — | 2 / 1 | `env.engine` |
+| Slot sessions | — | 2 × 0.56 GiB = 1.12 GiB, "VRAM … that the expert cache would otherwise hold" | `p26_2slot_engine_log.txt` |
+| Expert cache (`auto`) | 3162 experts, 5.17 GiB (5,289 MiB) | 2470 experts, 4.05 GiB (4,142 MiB): −22% | engine log; `env.engine.expert_cache_mib` |
+| VRAM free with everything loaded | 720 MiB | 718 MiB | `env.engine.vram_free_mib` |
+| GPU memory, idle after start | 11,323 MiB | 11,193 MiB | `env.nvidia_smi_idle` |
+| GPU memory, peak under load | 11,323 MiB | 11,371 MiB (c), 11,375 MiB (e) | `c[].sampler`, `e.sampler` |
+| Conversation cache (RAM) | 8,192 MiB, 4 conversations | the same | `env.engine` |
+
+**Two slots fit at 32K per request.** In e, both 29,928- and 29,953-token prompts returned 200 and finished. Afterwards `/slots` showed 29,991 and 29,956 tokens held in slots 0 and 1. The context is not split across slots. Evidence: `p26_2slot.json` `e`.
+
+### 14.2 Measurements [verified]
+
+Values are means, with [min–max] and n. The 1-slot column is `p26_1slot.json` and the 2-slot column is `p26_2slot.json`.
+
+| Measure | 1 slot | 2 slots |
+| --- | --- | --- |
+| W warm-up, 16,058 / 16,056 tokens: TTFT; prefill; decode | 21.4 s; 753 tok/s; 34.6 tok/s | 26.0 s; 619 tok/s; 30.9 tok/s (first after restart) |
+| a, prefill alone (15,938–16,052 tokens) | 747 tok/s [745–749], n=3 | 704 tok/s [688–723], n=3 |
+| a, decode alone (256 tokens) | 50.9 tok/s [47.4–54.5], n=3 | 34.3 tok/s [26.8–40.8], n=3 |
+| a, decode expert-cache hit rate (`/metrics`) | 0.86–0.93 | 0.69–0.76 |
+| a, TTFT | 21.5 s [21.4–21.5] | 22.8 s [22.3–23.3] |
+| a, whole request | 26.5 s [26.1–26.9] | 30.4 s [28.5–32.3] |
+| b, cached / prompt | prompt₁ − 7 (15,967 of 16,258 …); 291 read | prompt₁ + 256 (16,231 of 16,259 …); 28–29 read |
+| b, prefill time; TTFT | 2.05 s [1.89–2.24]; 2.1 s, n=3 | 0.87 s [0.85–0.90]; 0.9 s, n=3 |
+| c, A: TTFT / done | 21.9, 21.5 s / 27.1, 27.8 s | 23.4, 22.3 s / 59.9, 58.7 s |
+| c, A decode | 49.3, 40.5 tok/s | **7.1, 7.1 tok/s, 0 drafts** |
+| c, B: TTFT / done | 48.4, 49.0 s / 53.5, 53.9 s | 51.1, 49.9 s / 63.1, 61.3 s |
+| c, B prefill; decode | 745, 747 tok/s; 51.9, 54.3 tok/s | 583, 583 tok/s; 22.9, 24.1 tok/s |
+| c, pair makespan (n=2) | 53.5, 53.9 s | 63.1, 61.3 s (+18%, +14%) |
+| c, max processing / max queued | 1 / 1 | 2 / 0 |
+| e, A done; B TTFT; B done (about 30K each) | 43.2 s; 84.4 s; 85.9 s | 57.1 s (A decode 4.4 tok/s); 88.5 s; 92.4 s |
+
+**Two slots slow single requests.** The cut from 3162 to 2470 resident experts lowers the decode hit rate from about 0.9 to about 0.7. Lone decode falls by about a third, and prefill by about 6%.
+
+**Two slots do not overlap prefill.** The engine log for c (`p26_2slot_engine_log.txt`) shows the sequence:
+1. A's prompt is read on the solo path, then copied into a slot: `slot 0 takes 16033 tokens (copied in 349.9 ms)`.
+2. B's prompt is then read: `the prompt was read in 2 parts, the slots decoding 5360 ms between them`.
+3. B is copied into slot 1.
+
+So B's TTFT is about the same as when queued at one slot (49–51 s against 48–49 s).
+
+**Batched decode runs without MTP drafts** ("no per-slot draft K/V without `--batch-mtp`"). A request decoding in a slot while the other's prompt is read therefore runs at 4–7 tok/s. **The pair finishes later at two slots than at one**: A 2.1–2.2× later, B 14–18% later.
+
+**The (b) difference.**
+- At one slot, the conversation from a was parked at 16,231 tokens, one more than prompt₁ plus the reply. The next turn resumed at the generation-start checkpoint and read the 256-token reply again (3/3 reps).
+- At two slots, the lone request's live state was reused whole (3/3).
+- The cause is **[unverified]**. It is not purely the slot count: in d, one slot reused 32-token replies whole, and two slots fell back to a checkpoint for Y (below).
+
+### 14.3 Cache reuse per slot (sections d and f) [verified]
+
+"Short" is the number of tokens below a whole-prefix hit (prompt plus completion of the previous turn) that the request failed to reuse. Fixtures: `d` in `p26_1slot.json` and `p26_2slot.json`; `p26_1slot_f.json` and `p26_2slot_f.json`.
+
+| Case | 1 slot: short (prefill) | 2 slots: short (prefill) |
+| --- | --- | --- |
+| d, alternating one at a time: X2, Y2, X3, Y3 | 0, 1, 1, 0 (0.43–0.55 s) | 1, 39, 1, 39 (X 0.71–0.78 s; Y 1.46–1.62 s: `restored … (checkpoint)`, 62 read) |
+| f, rounds 2–3 together: X, Y | 1, 0, 0, −1 (pair makespan 3.0, 2.9 s) | 1, 1, 1, 1 (pair makespan 3.6, 3.3 s) |
+| f, round 1, cold, about 8K each: pair makespan | 29.0 s (X 16.2 s; X prefill 531 tok/s, the first long request after the restore) | 24.7 s (X decode 2.4 tok/s while Y's prompt was read) |
+
+- **Neither slot count lets two conversations evict each other.**
+- **A lone request does not use a batch slot.** It runs on the engine's solo path. During d, `/slots` kept showing the 15,966 and 16,151 tokens left from c. So alternating one at a time goes through the RAM conversation cache (4 conversations), the same at one slot and at two (`conversation cache: restored 8008 tokens (live)`).
+- **With overlapping requests, each slot keeps its own conversation.** Examples: `slot 0 gave back 7902 tokens of this conversation (all it holds)`, then `prompt 7926 tokens = 7902 reused`; X returned to slot 0 and Y to slot 1 in every round. At one slot, the conversation cache gives the same reuse (short ≤ 1).
+- **A slot's conversation can be lost when the slot is reused.** The engine logged `slot 0 not parked before its overwrite (its 16287 tokens have no per-slot draft K/V without --batch-mtp)`. More than four live conversations were not tested **[unverified]**.
+
+### 14.4 Restore [verified]
+
+The original `--parallel 1` command was restarted at 14:18:37Z. `p26_restore.json` shows:
+- `total_slots` 1, `n_ctx` 32768, `build_info` `Strata 0.1.54`;
+- an expert cache of 3162 experts, 5.17 GiB;
+- GPU memory of 11,233 MiB;
+- a short request answering `READY` (200, `finish: stop`).
+
+Section f at one slot then ran on that server.
+
+### 14.5 What this changes for Phase 4B (O-4B-7)
+
+- **Keep one slot on pythia.** Two slots fit at 32K, but they take 22% of the expert cache, which slows every lone request (decode −33%, prefill −6%). Prefill stays serial, so two slots give no concurrency gain where Palimnesis spends its time. Batched decode without MTP made both requests of a pair finish later than queueing did. The one thing two slots add is a live state for each overlapping conversation, and at one slot the conversation cache already gives the same reuse.
+- **Admission** dispatches up to `/props` `total_slots` (1 here) and queues the rest, as D81.7 planned. Read the count at start; do not hard-code it.
+- Prompt-cache reuse across alternating sessions comes from Strata's conversation cache (4 conversations, 8 GiB RAM), not from slots. How Palimnesis behaves with more than four live sessions is untested.

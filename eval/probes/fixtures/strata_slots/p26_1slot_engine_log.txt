@@ -1,0 +1,46 @@
+# excerpt of /home/f0ur3y3s/.local/state/strata/launch/iq3_xxs-32k.engine.log from line 12560 of the --parallel 1 instance started 2026-11-04 04:21Z, up to its stop at 14:05Z (covers the p26 1slot run, 13:58-14:05Z; the first two lines precede it): per-request and conversation-cache lines
+strata serve: conversation cache: parked 25 tokens in 76.8 ms; parked=4 bytes=1379339684 evictions=647 snapshot_bytes=236558748 reused_kv_bytes=0
+strata serve: prompt 16058 tokens = 0 reused + 16058 read in 21316 ms (753.3 tok/s), 256 generated in 7409 ms (34.6 tok/s), drafts accepted 121 of 223, 1 checkpoints
+strata serve: conversation cache: parked 16313 tokens in 151.4 ms; parked=4 bytes=1205918920 evictions=648 snapshot_bytes=485308104 reused_kv_bytes=0
+strata serve: prompt 15974 tokens = 0 reused + 15974 read in 21439 ms (745.1 tok/s), 256 generated in 5406 ms (47.4 tok/s), drafts accepted 131 of 205, 1 checkpoints
+strata serve: conversation cache: parked 16231 tokens in 432.8 ms; parked=4 bytes=1447765448 evictions=649 snapshot_bytes=484025264 reused_kv_bytes=0
+strata serve: prompt 16258 tokens = 15967 reused + 291 read in 2029 ms (143.4 tok/s), 64 generated in 2068 ms (30.9 tok/s), drafts accepted 27 of 44, 2 checkpoints
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 16321 tokens in 151.5 ms; parked=4 bytes=1567298516 evictions=649 snapshot_bytes=603558332 reused_kv_bytes=0
+strata serve: prompt 16052 tokens = 0 reused + 16052 read in 21423 ms (749.3 tok/s), 256 generated in 4695 ms (54.5 tok/s), drafts accepted 142 of 249, 1 checkpoints
+strata serve: conversation cache: parked 16309 tokens in 574.8 ms; parked=4 bytes=1810672192 evictions=650 snapshot_bytes=485247008 reused_kv_bytes=0
+strata serve: prompt 16336 tokens = 16045 reused + 291 read in 1890 ms (154.0 tok/s), 64 generated in 2383 ms (26.9 tok/s), drafts accepted 26 of 50, 2 checkpoints
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 16401 tokens in 134.2 ms; parked=4 bytes=1930205580 evictions=650 snapshot_bytes=604780396 reused_kv_bytes=0
+strata serve: prompt 15938 tokens = 0 reused + 15938 read in 21337 ms (747.0 tok/s), 256 generated in 5031 ms (50.9 tok/s), drafts accepted 138 of 268, 1 checkpoints
+strata serve: conversation cache: parked 16195 tokens in 775.8 ms; parked=4 bytes=2177122304 evictions=651 snapshot_bytes=483475472 reused_kv_bytes=0
+strata serve: prompt 16222 tokens = 15931 reused + 291 read in 2242 ms (129.8 tok/s), 64 generated in 2147 ms (29.8 tok/s), drafts accepted 31 of 47, 2 checkpoints
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 16286 tokens in 457.4 ms; parked=4 bytes=2296655232 evictions=651 snapshot_bytes=603008400 reused_kv_bytes=0
+strata serve: prompt 16029 tokens = 0 reused + 16029 read in 21898 ms (732.0 tok/s), 256 generated in 5194 ms (49.3 tok/s), drafts accepted 153 of 208, 1 checkpoints
+strata serve: conversation cache: parked 16284 tokens in 165.8 ms; parked=4 bytes=2296172696 evictions=652 snapshot_bytes=484825568 reused_kv_bytes=0
+strata serve: prompt 15991 tokens = 0 reused + 15991 read in 21459 ms (745.2 tok/s), 256 generated in 4933 ms (51.9 tok/s), drafts accepted 133 of 238, 1 checkpoints
+strata serve: conversation cache: parked 16246 tokens in 241.5 ms; parked=4 bytes=2176883980 evictions=653 snapshot_bytes=484269616 reused_kv_bytes=0
+strata serve: prompt 15711 tokens = 0 reused + 15711 read in 21441 ms (732.7 tok/s), 256 generated in 6327 ms (40.5 tok/s), drafts accepted 136 of 224, 1 checkpoints
+strata serve: conversation cache: parked 15966 tokens in 119.0 ms; parked=4 bytes=2052097040 evictions=654 snapshot_bytes=479993456 reused_kv_bytes=0
+strata serve: prompt 15990 tokens = 0 reused + 15990 read in 21402 ms (747.1 tok/s), 256 generated in 4715 ms (54.3 tok/s), drafts accepted 144 of 218, 1 checkpoints
+strata serve: conversation cache: parked 16247 tokens in 257.8 ms; parked=4 bytes=1933358256 evictions=655 snapshot_bytes=484269616 reused_kv_bytes=0
+strata serve: prompt 7975 tokens = 0 reused + 7975 read in 11025 ms (723.4 tok/s), 32 generated in 964 ms (33.2 tok/s), drafts accepted 17 of 30, 1 checkpoints
+strata serve: conversation cache: parked 8007 tokens in 78.1 ms; parked=4 bytes=1806961924 evictions=656 snapshot_bytes=358429236 reused_kv_bytes=0
+strata serve: prompt 7965 tokens = 0 reused + 7965 read in 10877 ms (732.3 tok/s), 32 generated in 1046 ms (30.6 tok/s), drafts accepted 14 of 33, 1 checkpoints
+strata serve: conversation cache: parked 7996 tokens in 70.0 ms; parked=4 bytes=1806784816 evictions=656 snapshot_bytes=358252128 reused_kv_bytes=0
+strata serve: conversation cache: restored 8007 tokens (live) in 26.3 ms; parked=4 bytes=1929055612
+strata serve: prompt 8030 tokens = 8007 reused + 23 read in 550 ms (41.8 tok/s), 32 generated in 883 ms (36.2 tok/s), drafts accepted 13 of 24, 2 checkpoints
+strata serve: conversation cache: parked 8061 tokens in 58.7 ms; parked=4 bytes=1941625968 evictions=656 snapshot_bytes=493093280 reused_kv_bytes=122173056
+strata serve: conversation cache: restored 7996 tokens (live) in 26.3 ms; parked=4 bytes=2063719696
+strata serve: prompt 8020 tokens = 7996 reused + 24 read in 462 ms (52.0 tok/s), 32 generated in 718 ms (44.6 tok/s), drafts accepted 18 of 22, 2 checkpoints
+strata serve: conversation cache: parked 8052 tokens in 53.9 ms; parked=4 bytes=1941427324 evictions=656 snapshot_bytes=492894636 reused_kv_bytes=122046720
+strata serve: conversation cache: restored 8061 tokens (live) in 26.8 ms; parked=4 bytes=2080266656
+strata serve: prompt 8085 tokens = 8061 reused + 24 read in 442 ms (54.3 tok/s), 32 generated in 929 ms (34.5 tok/s), drafts accepted 11 of 26, 3 checkpoints
+strata serve: conversation cache: parked 8117 tokens in 73.6 ms; parked=4 bytes=2059721920 evictions=656 snapshot_bytes=611189232 reused_kv_bytes=123027840
+strata serve: conversation cache: restored 8052 tokens (live) in 26.8 ms; parked=4 bytes=2198362688
+strata serve: prompt 8075 tokens = 8052 reused + 23 read in 429 ms (53.6 tok/s), 32 generated in 761 ms (42.0 tok/s), drafts accepted 17 of 33, 3 checkpoints
+strata serve: conversation cache: parked 8107 tokens in 323.3 ms; parked=4 bytes=2186442848 evictions=657 snapshot_bytes=610990544 reused_kv_bytes=122901504
+strata serve: prompt 29930 tokens = 0 reused + 29930 read in 41479 ms (721.6 tok/s), 64 generated in 1655 ms (38.7 tok/s), drafts accepted 35 of 69, 2 checkpoints
+strata serve: conversation cache: parked 29996 tokens in 237.4 ms; parked=4 bytes=2518814332 evictions=658 snapshot_bytes=812364940 reused_kv_bytes=0
+strata serve: prompt 29954 tokens = 0 reused + 29954 read in 41432 ms (723.0 tok/s), 64 generated in 1333 ms (48.0 tok/s), drafts accepted 38 of 59, 2 checkpoints

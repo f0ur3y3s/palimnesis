@@ -1,0 +1,150 @@
+# excerpt of /home/f0ur3y3s/.local/state/strata/launch/iq3_xxs-32k.engine.log lines 12689..12962 (the --parallel 2 instance, 2026-11-05 14:05-14:18Z): startup facts and per-request slot/cache lines
+[strata] 2026-11-05 14:05:15 engine started: /home/f0ur3y3s/.local/share/strata/components/engine/0.1.54-linux-x86_64-cuda-cuda13/strata --serve --pack /home/f0ur3y3s/packs/iq3_xxs --native /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf --ple-gguf /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf --expert-profile /home/f0ur3y
+strata generate: --batch: 2 slot sessions on CUDA0 (0.56 GiB each); 6.39 GiB free
+strata generate: --batch 2: the slot sessions take 1.12 GiB of VRAM on CUDA0 that the expert cache would otherwise hold
+strata generate: expert cache auto: 5.16 GiB free, 700 MiB reserved (+184 MiB for the draft head, +256 MiB for what is allocated after the cache) -> 1865 slots
+strata generate: expert cache 2470 slots, 4.05 GiB of VRAM; policy is
+strata serve: the prompt path borrows 2061 CUDA0 cache slots (3.37 GiB)
+strata verify: batch windows of up to 2 sequences (layers [0, 48))
+strata serve: conversation cache sized from the free RAM: 8192 MiB for up to 4 parked conversations, so an agent's next turn reuses its prompt (--conversation-cache-mib N sets it, 0 turns it off)
+strata serve: 718 MiB of VRAM free with everything loaded
+strata verify: capturing the 6-token window (678 MiB of VRAM free)
+strata verify: capturing the 1-token window (664 MiB of VRAM free)
+strata verify: capturing the 4-token window (650 MiB of VRAM free)
+strata verify: capturing the 3-token window (634 MiB of VRAM free)
+strata verify: capturing the 2-token window (618 MiB of VRAM free)
+strata serve: prompt 16056 tokens = 0 reused + 16056 read in 25948 ms (618.8 tok/s), 256 generated in 8284 ms (30.9 tok/s), drafts accepted 135 of 237, 1 checkpoints
+strata serve: decode expert cache hit rate: 64.0% (110046 hits / 171840 lookups)
+strata serve: conversation cache: parked 16311 tokens in 1166.1 ms; parked=1 bytes=485247032 evictions=0 snapshot_bytes=485247032 reused_kv_bytes=0
+strata serve: prompt 15975 tokens = 0 reused + 15975 read in 23215 ms (688.1 tok/s), 256 generated in 7267 ms (35.2 tok/s), drafts accepted 122 of 229, 1 checkpoints
+strata serve: decode expert cache hit rate: 75.5% (131922 hits / 174720 lookups)
+strata serve: prompt 16259 tokens = 16231 reused + 28 read in 846 ms (33.1 tok/s), 64 generated in 2449 ms (26.1 tok/s), drafts accepted 28 of 36, 2 checkpoints
+strata serve: decode expert cache hit rate: 44.6% (15405 hits / 34560 lookups)
+strata serve: conversation cache: parked 16322 tokens in 297.7 ms; parked=2 bytes=1088805376 evictions=0 snapshot_bytes=603558344 reused_kv_bytes=0
+strata verify: capturing the 5-token window (602 MiB of VRAM free)
+strata serve: prompt 16051 tokens = 0 reused + 16051 read in 22209 ms (722.7 tok/s), 256 generated in 6271 ms (40.8 tok/s), drafts accepted 155 of 209, 1 checkpoints
+strata serve: decode expert cache hit rate: 72.8% (108314 hits / 148800 lookups)
+strata serve: prompt 16335 tokens = 16306 reused + 29 read in 854 ms (33.9 tok/s), 64 generated in 2687 ms (23.8 tok/s), drafts accepted 26 of 50, 2 checkpoints
+strata serve: decode expert cache hit rate: 48.4% (20462 hits / 42240 lookups)
+strata serve: conversation cache: parked 16398 tokens in 744.8 ms; parked=3 bytes=1693524696 evictions=0 snapshot_bytes=604719320 reused_kv_bytes=0
+strata serve: prompt 15938 tokens = 0 reused + 15938 read in 22728 ms (701.3 tok/s), 256 generated in 9536 ms (26.8 tok/s), drafts accepted 118 of 275, 1 checkpoints
+strata serve: decode expert cache hit rate: 69.3% (137456 hits / 198240 lookups)
+strata serve: prompt 16222 tokens = 16193 reused + 29 read in 904 ms (32.1 tok/s), 64 generated in 2327 ms (27.5 tok/s), drafts accepted 32 of 48, 2 checkpoints
+strata serve: decode expert cache hit rate: 49.3% (18938 hits / 38400 lookups)
+strata serve: conversation cache: parked 16285 tokens in 759.1 ms; parked=4 bytes=2296533092 evictions=0 snapshot_bytes=603008396 reused_kv_bytes=0
+strata serve: prompt 16032 tokens = 0 reused + 16032 read in 23367 ms (686.1 tok/s), 1 generated in 42 ms (24.0 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 55.2% (265 hits / 480 lookups)
+strata batch: slot 0 takes 16033 tokens (copied in 349.9 ms)
+strata serve: prompt 16033 tokens = 16032 reused + 1 read in 0 ms (31655.6 tok/s), 1 generated in 31 ms (32.7 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 69.8% (335 hits / 480 lookups)
+strata serve: conversation cache: parked 16033 tokens in 158.7 ms; parked=4 bytes=2292319020 evictions=1 snapshot_bytes=481032960 reused_kv_bytes=0
+strata batch: the prompt was read in 2 parts, the slots decoding 5360 ms between them
+strata batch: slot 1 takes 15992 tokens (copied in 232.6 ms)
+strata serve: prompt 15992 tokens = 0 reused + 15992 read in 27430 ms (583.0 tok/s), 1 generated in 55 ms (18.2 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 55.8% (268 hits / 480 lookups)
+strata batch: 255 windows, avg 1.62 rows, 54.19 ms/window = run 50.16 (CUDA0 GPU-reach wait 16.67 + CPU experts 31.94) + commit 1.61 + emit 0.01 + adapt wait 2.40; per stage (ms/window): CUDA0 wait 16.67 + pool 31.94; per layer-window: CPU experts 6.81, VRAM hits 9.56, PCIe 0.00; routed entries per window: VRAM 459.0 (57.9%), PCIe 0.0 (0.0%), CPU 333.5 (42.1%); adaptive tier: 40 rounds, 3621 exper
+strata serve: conversation cache: parked 15992 tokens in 161.7 ms; parked=4 bytes=2169127840 evictions=2 snapshot_bytes=480367164 reused_kv_bytes=0
+strata batch: slot 1 gave back 16152 tokens of this conversation (all it holds) in 223.0 ms
+strata serve: prompt 16153 tokens = 16152 reused + 1 read in 418 ms (2.4 tok/s), 95 generated in 2704 ms (35.1 tok/s), drafts accepted 51 of 92, 1 checkpoints
+strata serve: decode expert cache hit rate: 73.6% (48017 hits / 65280 lookups)
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 16247 tokens in 159.4 ms; parked=4 bytes=2173030300 evictions=2 snapshot_bytes=484269624 reused_kv_bytes=0
+strata serve: prompt 15711 tokens = 0 reused + 15711 read in 22204 ms (707.6 tok/s), 1 generated in 51 ms (19.5 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 21.9% (105 hits / 480 lookups)
+strata serve: conversation cache: slot 0 not parked before its overwrite (its 16287 tokens have no per-slot draft K/V without --batch-mtp)
+strata batch: slot 0 takes 15712 tokens (copied in 217.5 ms)
+strata serve: prompt 15712 tokens = 15711 reused + 1 read in 0 ms (30292.0 tok/s), 1 generated in 39 ms (25.5 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 47.7% (229 hits / 480 lookups)
+strata serve: conversation cache: parked 15712 tokens in 144.5 ms; parked=4 bytes=2044401980 evictions=3 snapshot_bytes=476091000 reused_kv_bytes=0
+strata batch: the prompt was read in 2 parts, the slots decoding 5399 ms between them
+strata batch: slot 1 takes 15992 tokens (copied in 223.6 ms)
+strata serve: prompt 15992 tokens = 0 reused + 15992 read in 27450 ms (582.6 tok/s), 1 generated in 50 ms (20.0 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 22.3% (107 hits / 480 lookups)
+strata batch: 257 windows, avg 1.61 rows, 54.35 ms/window = run 50.27 (CUDA0 GPU-reach wait 16.50 + CPU experts 32.70) + commit 1.60 + emit 0.01 + adapt wait 2.46; per stage (ms/window): CUDA0 wait 16.50 + pool 32.70; per layer-window: CPU experts 7.24, VRAM hits 8.98, PCIe 0.00; routed entries per window: VRAM 431.1 (55.0%), PCIe 0.0 (0.0%), CPU 353.4 (45.0%); adaptive tier: 40 rounds, 3754 exper
+strata serve: conversation cache: parked 15992 tokens in 150.3 ms; parked=4 bytes=1921760748 evictions=4 snapshot_bytes=480367164 reused_kv_bytes=0
+strata batch: slot 1 gave back 16151 tokens of this conversation (all it holds) in 221.3 ms
+strata serve: prompt 16152 tokens = 16151 reused + 1 read in 407 ms (2.5 tok/s), 96 generated in 2040 ms (47.1 tok/s), drafts accepted 63 of 87, 1 checkpoints
+strata serve: decode expert cache hit rate: 79.3% (46061 hits / 58080 lookups)
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 16248 tokens in 157.9 ms; parked=4 bytes=1925669356 evictions=4 snapshot_bytes=484275772 reused_kv_bytes=0
+strata serve: prompt 7977 tokens = 0 reused + 7977 read in 11290 ms (706.6 tok/s), 32 generated in 1479 ms (21.6 tok/s), drafts accepted 14 of 41, 1 checkpoints
+strata serve: decode expert cache hit rate: 55.1% (15605 hits / 28320 lookups)
+strata serve: conversation cache: parked 8008 tokens in 55.9 ms; parked=4 bytes=1803071788 evictions=5 snapshot_bytes=358435392 reused_kv_bytes=0
+strata serve: prompt 7965 tokens = 0 reused + 7965 read in 11091 ms (718.1 tok/s), 32 generated in 1231 ms (26.0 tok/s), drafts accepted 18 of 37, 1 checkpoints
+strata serve: decode expert cache hit rate: 63.1% (16360 hits / 25920 lookups)
+strata serve: conversation cache: parked 7999 tokens in 178.8 ms; parked=4 bytes=1802943448 evictions=5 snapshot_bytes=358307052 reused_kv_bytes=0
+strata serve: conversation cache: restored 8008 tokens (live) in 26.2 ms; parked=4 bytes=1925220392
+strata serve: prompt 8032 tokens = 8008 reused + 24 read in 782 ms (30.7 tok/s), 22 generated in 480 ms (45.8 tok/s), drafts accepted 14 of 14, 2 checkpoints
+strata serve: decode expert cache hit rate: 67.7% (7150 hits / 10560 lookups)
+strata serve: conversation cache: parked 8053 tokens in 154.5 ms; parked=4 bytes=1937736572 evictions=5 snapshot_bytes=493100176 reused_kv_bytes=122229888
+strata serve: conversation cache: restored 7958 tokens (checkpoint) in 43.4 ms; parked=4 bytes=2059885224
+strata serve: prompt 8020 tokens = 7958 reused + 62 read in 1456 ms (42.6 tok/s), 32 generated in 1182 ms (27.1 tok/s), drafts accepted 17 of 36, 2 checkpoints
+strata serve: decode expert cache hit rate: 65.0% (16534 hits / 25440 lookups)
+strata serve: conversation cache: parked 8053 tokens in 151.6 ms; parked=4 bytes=1937592604 evictions=5 snapshot_bytes=492956208 reused_kv_bytes=121440384
+strata serve: conversation cache: restored 8053 tokens (live) in 59.5 ms; parked=4 bytes=2076438816
+strata serve: prompt 8076 tokens = 8053 reused + 23 read in 706 ms (32.6 tok/s), 32 generated in 894 ms (35.8 tok/s), drafts accepted 25 of 27, 3 checkpoints
+strata serve: decode expert cache hit rate: 58.9% (10749 hits / 18240 lookups)
+strata serve: conversation cache: parked 8111 tokens in 413.0 ms; parked=4 bytes=2055832496 evictions=5 snapshot_bytes=611196100 reused_kv_bytes=122905728
+strata serve: conversation cache: restored 8013 tokens (checkpoint) in 59.0 ms; parked=4 bytes=2194534836
+strata serve: prompt 8075 tokens = 8013 reused + 62 read in 1624 ms (38.2 tok/s), 32 generated in 1277 ms (25.1 tok/s), drafts accepted 16 of 42, 3 checkpoints
+strata serve: decode expert cache hit rate: 67.2% (19684 hits / 29280 lookups)
+strata serve: conversation cache: parked 8109 tokens in 66.2 ms; parked=4 bytes=2182614992 evictions=6 snapshot_bytes=611052120 reused_kv_bytes=122295168
+strata serve: prompt 29928 tokens = 0 reused + 29928 read in 42300 ms (707.5 tok/s), 1 generated in 49 ms (20.6 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 71.0% (341 hits / 480 lookups)
+strata serve: conversation cache: slot 0 not parked before its overwrite (its 15966 tokens have no per-slot draft K/V without --batch-mtp)
+strata batch: slot 0 takes 29929 tokens (copied in 273.7 ms)
+strata serve: prompt 29929 tokens = 29928 reused + 1 read in 0 ms (10336.6 tok/s), 1 generated in 35 ms (28.6 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 60.2% (289 hits / 480 lookups)
+strata serve: conversation cache: parked 29929 tokens in 210.4 ms; parked=4 bytes=2517905616 evictions=7 snapshot_bytes=811381624 reused_kv_bytes=0
+strata batch: 62 windows, avg 1.00 rows, 55.34 ms/window = run 54.40 (CUDA0 GPU-reach wait 14.12 + CPU experts 38.70) + commit 0.93 + emit 0.01 + adapt wait 0.00; per stage (ms/window): CUDA0 wait 14.12 + pool 38.70; per layer-window: CPU experts 8.72, VRAM hits 1.28, PCIe 0.00; routed entries per window: VRAM 61.5 (12.8%), PCIe 0.0 (0.0%), CPU 418.5 (87.2%); adaptive tier: 0 rounds, 0 experts swa
+strata batch: the prompt was read in 2 parts, the slots decoding 3390 ms between them
+strata batch: slot 1 takes 29953 tokens (copied in 585.2 ms)
+strata serve: prompt 29953 tokens = 0 reused + 29953 read in 45951 ms (651.8 tok/s), 1 generated in 28 ms (35.9 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 76.2% (366 hits / 480 lookups)
+strata batch: 3 windows, avg 1.00 rows, 47.25 ms/window = run 40.02 (CUDA0 GPU-reach wait 14.11 + CPU experts 24.49) + commit 1.18 + emit 0.02 + adapt wait 6.03; per stage (ms/window): CUDA0 wait 14.11 + pool 24.49; per layer-window: CPU experts 5.33, VRAM hits 4.67, PCIe 0.00; routed entries per window: VRAM 224.0 (46.7%), PCIe 0.0 (0.0%), CPU 256.0 (53.3%); adaptive tier: 1 rounds, 96 experts sw
+strata serve: conversation cache: parked 29953 tokens in 266.3 ms; parked=4 bytes=2845378000 evictions=8 snapshot_bytes=811748156 reused_kv_bytes=0
+strata batch: slot 1 gave back 29956 tokens of this conversation (all it holds) in 451.3 ms
+strata serve: prompt 29957 tokens = 29956 reused + 1 read in 718 ms (1.4 tok/s), 60 generated in 2253 ms (26.6 tok/s), drafts accepted 25 of 63, 1 checkpoints
+strata serve: decode expert cache hit rate: 67.1% (31549 hits / 47040 lookups)
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 30016 tokens in 192.7 ms; parked=4 bytes=2728171284 evictions=8 snapshot_bytes=694541440 reused_kv_bytes=0
+strata serve: prompt 7871 tokens = 0 reused + 7871 read in 11251 ms (699.6 tok/s), 1 generated in 41 ms (24.6 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 47.9% (230 hits / 480 lookups)
+strata serve: conversation cache: slot 0 not parked before its overwrite (a parked copy of its conversation holds checkpoints the slot does not; it stays)
+strata batch: slot 0 takes 7872 tokens (copied in 215.0 ms)
+strata serve: prompt 7872 tokens = 7871 reused + 1 read in 0 ms (40956.7 tok/s), 1 generated in 32 ms (31.7 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 66.9% (321 hits / 480 lookups)
+strata serve: conversation cache: parked 7872 tokens in 110.5 ms; parked=4 bytes=2473333704 evictions=9 snapshot_bytes=356358520 reused_kv_bytes=0
+strata batch: slot 1 takes 7852 tokens (copied in 185.4 ms)
+strata serve: prompt 7852 tokens = 0 reused + 7852 read in 11182 ms (702.2 tok/s), 1 generated in 56 ms (17.7 tok/s), drafts accepted 0 of 0, 1 checkpoints
+strata serve: decode expert cache hit rate: 47.3% (227 hits / 480 lookups)
+strata batch: 32 windows, avg 1.91 rows, 52.77 ms/window = run 46.78 (CUDA0 GPU-reach wait 18.63 + CPU experts 31.69) + commit 1.97 + emit 0.01 + adapt wait 4.00; per stage (ms/window): CUDA0 wait 18.63 + pool 31.69; per layer-window: CPU experts 6.79, VRAM hits 13.86, PCIe 0.00; routed entries per window: VRAM 665.1 (65.2%), PCIe 0.0 (0.0%), CPU 354.9 (34.8%); adaptive tier: 8 rounds, 768 experts
+strata serve: conversation cache: parked 7852 tokens in 63.1 ms; parked=4 bytes=2218334668 evictions=10 snapshot_bytes=356053084 reused_kv_bytes=0
+strata batch: slot 0 gave back 7902 tokens of this conversation (all it holds) in 78.2 ms
+strata serve: prompt 7926 tokens = 7902 reused + 24 read in 690 ms (34.8 tok/s), 1 generated in 37 ms (26.8 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 58.5% (281 hits / 480 lookups)
+strata batch: slot 0 takes 7927 tokens (copied in 186.9 ms)
+strata serve: prompt 7927 tokens = 7926 reused + 1 read in 0 ms (26453.6 tok/s), 1 generated in 34 ms (29.4 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 60.4% (290 hits / 480 lookups)
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 7927 tokens in 157.7 ms; parked=4 bytes=2337278620 evictions=10 snapshot_bytes=475302472 reused_kv_bytes=0
+strata batch: slot 1 gave back 7883 tokens of this conversation (all it holds) in 126.9 ms
+strata batch: slot 1 takes 7907 tokens (copied in 184.8 ms)
+strata serve: prompt 7907 tokens = 7883 reused + 24 read in 850 ms (28.2 tok/s), 1 generated in 35 ms (28.7 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 59.0% (283 hits / 480 lookups)
+strata batch: 30 windows, avg 1.93 rows, 53.52 ms/window = run 47.84 (CUDA0 GPU-reach wait 21.43 + CPU experts 42.88) + commit 1.95 + emit 0.01 + adapt wait 3.72; per stage (ms/window): CUDA0 wait 21.43 + pool 42.88; per layer-window: CPU experts 9.30, VRAM hits 16.07, PCIe 0.00; routed entries per window: VRAM 771.6 (58.8%), PCIe 0.0 (0.0%), CPU 540.4 (41.2%); adaptive tier: 7 rounds, 672 experts
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 7907 tokens in 121.7 ms; parked=4 bytes=2456222496 evictions=10 snapshot_bytes=474996960 reused_kv_bytes=0
+strata batch: slot 0 gave back 7957 tokens of this conversation (all it holds) in 127.3 ms
+strata serve: prompt 7981 tokens = 7957 reused + 24 read in 737 ms (32.6 tok/s), 1 generated in 53 ms (18.9 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 65.2% (313 hits / 480 lookups)
+strata batch: slot 0 takes 7982 tokens (copied in 183.5 ms)
+strata serve: prompt 7982 tokens = 7981 reused + 1 read in 0 ms (11399.1 tok/s), 1 generated in 35 ms (28.8 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 59.2% (284 hits / 480 lookups)
+strata serve: conversation cache: dropped 1 superseded copy of this conversation; parked=3
+strata serve: conversation cache: parked 7982 tokens in 156.4 ms; parked=4 bytes=2457077940 evictions=10 snapshot_bytes=476157916 reused_kv_bytes=0
+strata batch: slot 1 gave back 7935 tokens of this conversation (all it holds) in 124.8 ms
+strata batch: slot 1 takes 7958 tokens (copied in 183.6 ms)
+strata serve: prompt 7958 tokens = 7935 reused + 23 read in 767 ms (30.0 tok/s), 1 generated in 29 ms (34.9 tok/s), drafts accepted 0 of 0, 2 checkpoints
+strata serve: decode expert cache hit rate: 74.6% (358 hits / 480 lookups)
+strata batch: 30 windows, avg 1.43 rows, 44.71 ms/window = run 39.21 (CUDA0 GPU-reach wait 19.65 + CPU experts 32.91) + commit 1.53 + emit 0.08 + adapt wait 3.89; per stage (ms/window): CUDA0 wait 19.65 + pool 32.91; per layer-window: CPU experts 7.15, VRAM hits 14.23, PCIe 0.00; routed entries per window: VRAM 683.0 (64.7%), PCIe 0.0 (0.0%), CPU 373.0 (35.3%); adaptive tier: 8 rounds, 674 experts

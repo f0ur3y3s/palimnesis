@@ -1,0 +1,553 @@
+{
+  "label": "1slot",
+  "started": "2026-11-05T14:18:54Z",
+  "workload": {
+    "temperature": 0,
+    "seed": 1,
+    "reasoning_effort": "none",
+    "a_target_tokens": 16000,
+    "a_max_tokens": 256,
+    "b_max_tokens": 64,
+    "d_target_tokens": 8000,
+    "d_max_tokens": 32,
+    "e_target_tokens": 30000,
+    "e_max_tokens": 64,
+    "reps": 3,
+    "creps": 2,
+    "words": {
+      "16k": 7185,
+      "8k": 3579,
+      "30k": 13497
+    }
+  },
+  "env": {
+    "host": "pythia",
+    "base": "http://127.0.0.1:8080",
+    "props": {
+      "default_generation_settings": {
+        "n_ctx": 32768,
+        "params": {
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "top_k": 20,
+          "n_predict": -1
+        }
+      },
+      "total_slots": 1,
+      "model_alias": "qwen3.8-flash-next-iq3_xxs",
+      "chat_template_caps": {
+        "supports_tools": true,
+        "supports_tool_calls": true,
+        "supports_system_role": true,
+        "supports_parallel_tool_calls": true,
+        "supports_preserve_reasoning": true
+      },
+      "modalities": {
+        "vision": false
+      },
+      "models_autoload": true,
+      "is_sleeping": false,
+      "model_path": "/home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+      "build_info": "Strata 0.1.54"
+    },
+    "slots": [
+      {
+        "id": 0,
+        "n_ctx": 32768,
+        "is_processing": false,
+        "n_prompt_tokens": 19
+      }
+    ],
+    "engine": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_context": 32768,
+      "images": false,
+      "version": "0.1.54",
+      "logit_bias": 1,
+      "context": 32768,
+      "kv": "int8",
+      "kv_resident": 0,
+      "expert_slots": 3162,
+      "expert_cache_mib": 5289,
+      "expert_slots_primary": 3162,
+      "expert_cache_primary_mib": 5289,
+      "spec": 6,
+      "mtp_max": 4,
+      "lookup": 3,
+      "vram_free_mib": 720,
+      "cvec": 0,
+      "arena_mib": 0,
+      "pool_workers": 5,
+      "pcie_frac": "0.55",
+      "spec_min_p": "0.50",
+      "conversation_cache_mib": 8192,
+      "conversation_cache_slots": 4,
+      "conversation_cache_min_free_mib": 2560,
+      "conversation_cache_min_tokens": 0,
+      "tail_role_token": -1,
+      "vram_elastic": 0,
+      "prefill_cap": 8192,
+      "prefill_stages": 1,
+      "stream_all_min": 1024,
+      "prefill_pipe": 0,
+      "engine": "0.1.54",
+      "drafting": "mtp",
+      "drafting_note": ""
+    },
+    "conversation_cache": {
+      "enabled": true,
+      "budget_mib": 8192,
+      "slots": 4,
+      "parked": 0,
+      "bytes": 0,
+      "evictions": 0,
+      "parks": 0,
+      "restores": 0,
+      "last_event": null,
+      "last_tokens": null,
+      "last_at": null,
+      "requests": 1,
+      "requests_reused": 0,
+      "reused_tokens": 0,
+      "prompt_tokens": 19,
+      "last_reused": 0,
+      "last_prompt": 19
+    },
+    "hardware_static": {
+      "gpu_name": "NVIDIA GeForce RTX 3060",
+      "gpu_vram_total_mib": null,
+      "gpu_count": 1,
+      "gpu_note": null,
+      "cpu_name": "AMD Ryzen 5 3600 6-Core Processor",
+      "cores": 6,
+      "threads": 12,
+      "sockets": 1,
+      "numa_nodes": 1,
+      "psutil": true
+    },
+    "nvidia_smi_idle": {
+      "memory_used_mib": 11233,
+      "memory_total_mib": 12288,
+      "util_pct": 0,
+      "temp_c": 40,
+      "apps": [
+        [
+          "530995",
+          "11224"
+        ]
+      ]
+    },
+    "engine_log_startup": [
+      "[strata] 2026-11-05 14:18:39 engine started: /home/f0ur3y3s/.local/share/strata/components/engine/0.1.54-linux-x86_64-cuda-cuda13/strata --serve --pack /home/f0ur3y3s/packs/iq3_xxs --native /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf --ple-gguf /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf --expert-profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin --expert-cache auto --prefill auto --spec 4 --spec-min-p 0.5 --mtp /home/f0ur3y3s/mtp/rt --max-context 32768 --kv int8 --mmap-experts",
+      "strata: sm_86 (Ampere): 9 exact speed switches on by default (STRATA_SM86_PERF=0 turns them off; a switch you set is kept): ADAPT_NOWAIT ADAPT_LAG CPU_IQ_ALL_EXACT1 SIDE_MIXER ATTN_DAILY GR_UP75 GU_SWIGLU QSA_ROWS B6_MMVQ_ROWS",
+      "strata generate: memory guard: limit 46.0 GiB (source: meminfo), current 1.9 GiB, reclaimable cache credited 0.0 GiB; available 44.1 GiB (MemAvailable 44.1 GiB), floor 2560 MiB",
+      "strata generate: PCIe probe: 25.2 GB/s host->device (best of 25.2 25.2 25.2 25.2) -> pcie_frac 0.55 (default 0.55)",
+      "strata generate: this CPU has no AVX-512: the expert kernels run on AVX-2 (multi-token for the i-quant gate/up rows)",
+      "strata generate: native pack: /home/f0ur3y3s/packs/iq3_xxs experts (largest blob 2.33 MB), token embedding IQ3_S in mapped host memory (260 MiB, 0.3 s)",
+      "strata generate: 1466 MiB of weights loaded from /home/f0ur3y3s/packs/iq3_xxs in 0.8 s (302 canonical tensors skipped: served natively)",
+      "strata generate: 300 native projection matrices, 1781.11 MiB of weights, in 1.0 s",
+      "strata generate: PLE direct read probe: 111195 rows/s (fine)",
+      "strata generate: the SSD is kept awake while rows are read: one page of the table after 100 ms without a read, until 60 s after the last request (STRATA_SSD_KEEPALIVE=0 turns it off)",
+      "strata generate: profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin: 24576 ranked pairs, built for 24576 slots",
+      "strata generate: PLE on, table 320001536 rows of /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+      "strata mtp: draft layer loaded, 839 MiB of VRAM (experts 675, dense 111), files read in 0.61 s (1294 MiB/s)",
+      "strata generate: experimental native Q5_K head, 437043200 bytes, in 0.2 s",
+      "strata generate: GPU 0: NVIDIA GeForce RTX 3060, compute capability 8.6",
+      "strata generate: experts via mmap (--mmap-experts; the A/B arm of R2.1)",
+      "strata generate: file tier (Linux defaults, experts.bin: its pages are read from the mapping as they are): page-cached experts computed from the mapping (STRATA_COLD_OVERLAP=0), io prefetch with whole-blob preads on 8 I/O threads, the decode's read-ahead only while the page cache has room for it and it pays (STRATA_IO_PF_GATE=1); off: STRATA_COLD_OVERLAP=0, STRATA_IO_PREFETCH=0, STRATA_IO_PF_GATE=0",
+      "strata generate: GPU host-callback thread started before host-core pinning",
+      "strata generate: CPU pool tasks/phase: 18 (automatic), participating threads: 6",
+      "strata generate: CPU pool: 5 workers by default (6 physical cores, 12 logical processors; bounded by every physical core but the host's)",
+      "strata generate: 5 pool workers on logical processors 1,2,3,4,5, the host thread on 0 (draining too) (--host-core first)",
+      "strata generate: CPU workers on logical processors 1-5 (5 workers, one per physical core; host on 0)",
+      "strata aux cpus: threads that are neither pool workers nor the host go to CPUs 6 (off at start; a request's aux_cpus=1 turns it on)",
+      "strata generate: expert cache auto: 6.28 GiB free, 700 MiB reserved (+184 MiB for the draft head, +256 MiB for what is allocated after the cache) -> 2381 slots",
+      "strata generate: expert cache 3162 slots, 5.17 GiB of VRAM; policy is",
+      "strata generate: the GPU computes the experts in the cache; it rounds differently from the CPU,",
+      "                 so a reply can differ slightly from a run without the cache (same quality:",
+      "                 bench/results/2026-09-27-cache-parity).",
+      "                 PROFILE, ranked by routing frequency, no eviction.",
+      "strata generate: the profile fill asks for 256 pairs ahead (STRATA_FILL_AHEAD)",
+      "strata generate: pre-filled 3162 of 3162 slots from the profile in 1.0 s (5488 MB/s); slot 0 verified",
+      "strata generate: routing-aware prefetch on (the next layer's router, file tier)",
+      "strata generate: R4 hit path ON - resident experts are computed on the GPU",
+      "strata generate: 5 expert-pool workers + the host thread",
+      "strata generate: session is up (engine 0.1.54)",
+      "strata generate: token graph hit path: 3162 resident experts, decided on the device",
+      "prefill: the CPU share is ON by default for prompt chunks below 1024 tokens (the idle CPU takes some of the experts the GPU would stream; answers can differ slightly from 0.1.40.3, mean KL ~0.004). STRATA_PREFILL_CPU_SHARE=0 turns it off.",
+      "strata: prefill plan: chunk 8192 -> 1536, ring 96 -> 16: today's choice has a 38.5 GiB file set against a 42.3 GiB page cache (about 26.8 GB read from the drive per 32768-token prompt, 93 s); this one 35.9 GiB, about 0.0 GB read, 62 s. --prefill N keeps your own chunk",
+      "strata: prefill plan inputs: 40.0 GiB experts, 5.2 GiB in the GPU caches, 0.0 GiB RAM copy (0 lend slots kept), file tier 34.8 GiB; 42.3 GiB available for the page cache; PCIe 25.2 GB/s; drive 0.45 GB/s (dm-0 is a SATA-class SSD (assumed)); a 32768-token prompt",
+      "strata serve: prompt chunk auto: 8192 tokens, a 16-slot ring",
+      "strata serve: prompts longer than 8192 tokens read in equal chunks of at most 1536 (the host-aware plan); shorter ones in one chunk",
+      "strata serve: the prompt path borrows 1987 CUDA0 cache slots (3.23 GiB)",
+      "strata hc: CUDA0: the hyper-connection read runs as staged (the norm per token and stream, the down projection's activations staged ahead by cp.async); checked bit for bit against the plain read on this card (STRATA_HC_SPLIT=1 or 0 for the earlier ones)",
+      "strata verify: window up to 6 tokens, 69.5 MiB of device buffers",
+      "strata mtp: draft head over 106299 tokens (178.4 MiB)",
+      "strata serve: conversation cache sized from the free RAM: 8192 MiB for up to 4 parked conversations, so an agent's next turn reuses its prompt (--conversation-cache-mib N sets it, 0 turns it off)",
+      "strata serve: STRATA_ROUTE_TAIL_SKIP=7 is ON (default): a missed expert that every token of a verify window routes at rank 7 or lower is skipped (+10..20% decode on 12-16 GB cards that miss experts, answers differ slightly from 0.1.41); STRATA_ROUTE_TAIL_SKIP=0 turns it off",
+      "strata serve: adaptive overlap: off: not with STRATA_ADAPT_LAG / STRATA_ADAPT_NOWAIT",
+      "strata serve: the adaptive tier's evictions reach the device's table before the next window (STRATA_ADAPT_EVICT_SYNC=0: when its copies land)",
+      "strata serve: 720 MiB of VRAM free with everything loaded",
+      "strata verify: capturing the 6-token window (720 MiB of VRAM free)",
+      "strata verify: captured the 6-token window (upload no error, sync no error)",
+      "strata ab: GATE=STRATA_CPU_IQ_ALL_EXACT1 active=1",
+      "strata verify: capturing the 1-token window (706 MiB of VRAM free)",
+      "strata verify: captured the 1-token window (upload no error, sync no error)",
+      "strata verify: capturing the 4-token window (692 MiB of VRAM free)",
+      "strata verify: captured the 4-token window (upload no error, sync no error)"
+    ],
+    "engine_log_startup_keyed": [
+      "[strata] 2026-11-05 14:18:39 engine started: /home/f0ur3y3s/.local/share/strata/components/engine/0.1.54-linux-x86_64-cuda-cuda13/strata --serve --pack /home/f0ur3y3s/packs/iq3_xxs --native /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf --ple-gguf /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf --expert-profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin --expert-cache auto --prefill auto --spec 4 --spec-min-p 0.5 --mtp /home/f0ur3y3s/mtp/rt --max-context 32768 --kv int8 --mmap-experts",
+      "strata generate: memory guard: limit 46.0 GiB (source: meminfo), current 1.9 GiB, reclaimable cache credited 0.0 GiB; available 44.1 GiB (MemAvailable 44.1 GiB), floor 2560 MiB",
+      "strata generate: profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin: 24576 ranked pairs, built for 24576 slots",
+      "strata generate: expert cache auto: 6.28 GiB free, 700 MiB reserved (+184 MiB for the draft head, +256 MiB for what is allocated after the cache) -> 2381 slots",
+      "strata generate: expert cache 3162 slots, 5.17 GiB of VRAM; policy is",
+      "strata generate: pre-filled 3162 of 3162 slots from the profile in 1.0 s (5488 MB/s); slot 0 verified",
+      "prefill: the CPU share is ON by default for prompt chunks below 1024 tokens (the idle CPU takes some of the experts the GPU would stream; answers can differ slightly from 0.1.40.3, mean KL ~0.004). STRATA_PREFILL_CPU_SHARE=0 turns it off.",
+      "strata: prefill plan inputs: 40.0 GiB experts, 5.2 GiB in the GPU caches, 0.0 GiB RAM copy (0 lend slots kept), file tier 34.8 GiB; 42.3 GiB available for the page cache; PCIe 25.2 GB/s; drive 0.45 GB/s (dm-0 is a SATA-class SSD (assumed)); a 32768-token prompt",
+      "strata serve: prompt chunk auto: 8192 tokens, a 16-slot ring",
+      "strata serve: the prompt path borrows 1987 CUDA0 cache slots (3.23 GiB)",
+      "strata serve: conversation cache sized from the free RAM: 8192 MiB for up to 4 parked conversations, so an agent's next turn reuses its prompt (--conversation-cache-mib N sets it, 0 turns it off)",
+      "strata serve: 720 MiB of VRAM free with everything loaded",
+      "strata verify: capturing the 6-token window (720 MiB of VRAM free)",
+      "strata verify: capturing the 1-token window (706 MiB of VRAM free)",
+      "strata verify: capturing the 4-token window (692 MiB of VRAM free)"
+    ],
+    "server_log_since_marker": [
+      "=== p26 2026-11-05T14:18:37Z O-4B-7 slot test done: restore the original --parallel 1 command",
+      "loading the model (the first start takes a minute or two) ...",
+      "[strata] starting the engine: reading the model's weights ...",
+      "[strata] mapping the experts from the model files (about 47 GB, --mmap-experts): they are not loaded into RAM - the OS file cache reads them as the GPU's expert cache fills and as requests need them.",
+      "         YOUR PC CAN BE SLOW OR STOP RESPONDING FOR 1-3 MINUTES NOW - this is normal.",
+      "         Please wait and don't close this window; the server says when it is ready.",
+      "[strata] filling the GPU's expert cache (3162 experts, 5.17 GiB of VRAM) ...",
+      "[strata] almost ready ...",
+      "ready: http://127.0.0.1:8080/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 32768 tokens)",
+      "       open http://127.0.0.1:8080/ in a browser to chat; close this window to stop the model",
+      "       from other devices: http://192.168.1.173:8080/   (API: http://192.168.1.173:8080/v1)",
+      "       WARNING: no API key: anyone who can reach port 8080 can use the model. Add an API key to keep others out.",
+      "[strata] done: 2 tokens in 1 s (8.2 tok/s) (stop, cancel=False), expert cache 20.9% hit"
+    ],
+    "repo_on_host": {
+      "rev": "3a2187bb9244db4ccb34cd63000103492208539e",
+      "dirty": [
+        "?? eval/probes/fixtures/strata_messages/",
+        "?? eval/probes/fixtures/strata_slots/",
+        "?? eval/probes/p21_messages_stream.py",
+        "?? eval/probes/p22_messages_render_parity.py",
+        "?? eval/probes/p23_messages_errors.py",
+        "?? eval/probes/p24_cross_dialect_cache.py",
+        "?? eval/probes/p25_messages_beta_headers.py",
+        "?? eval/probes/p26_slots.py"
+      ]
+    }
+  },
+  "f": [
+    {
+      "round": 1,
+      "X": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7873,
+        "cached": 0,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.001,
+        "ttft_s": 14.879,
+        "done_s": 16.172,
+        "elapsed_s": 16.172,
+        "prompt_ms": 14826.5,
+        "prefill_tok_s": 531.0,
+        "decode_ms": 1327.9,
+        "decode_tok_s": 24.1,
+        "draft_n": 29,
+        "draft_accepted": 14
+      },
+      "Y": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7850,
+        "cached": 0,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.201,
+        "ttft_s": 27.836,
+        "done_s": 29.032,
+        "elapsed_s": 28.831,
+        "prompt_ms": 11834.5,
+        "prefill_tok_s": 663.3,
+        "decode_ms": 1023.2,
+        "decode_tok_s": 31.3,
+        "draft_n": 31,
+        "draft_accepted": 15
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 7850
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 2,
+        "restores": 0,
+        "evictions": 0,
+        "requests_reused": 0
+      },
+      "sampler": {
+        "gpu_mem_max_mib": 11307,
+        "max_slots_processing": 1,
+        "max_queued": 1
+      },
+      "metrics": [
+        {
+          "id": "959bfce8814c",
+          "time": 1793888336.8949413,
+          "duration_s": 16.2,
+          "finish": "length",
+          "prompt_tokens": 7873,
+          "reused": 0,
+          "prompt_read": 7873,
+          "output_tokens": 32,
+          "first_engine_token_s": 14.865,
+          "prompt_ms": 14826.5,
+          "decode_ms": 1327.9,
+          "decode_tok_s": 24.1,
+          "hit_rate": 0.408,
+          "file_mb": 14947.3,
+          "drafts_offered": 29,
+          "drafts_accepted": 14
+        },
+        {
+          "id": "74e29ecc5b4e",
+          "time": 1793888353.0518053,
+          "duration_s": 12.9,
+          "finish": "length",
+          "prompt_tokens": 7850,
+          "reused": 0,
+          "prompt_read": 7850,
+          "output_tokens": 32,
+          "first_engine_token_s": 27.821,
+          "prompt_ms": 11834.5,
+          "decode_ms": 1023.2,
+          "decode_tok_s": 31.3,
+          "hit_rate": 0.602,
+          "file_mb": 10009.6,
+          "drafts_offered": 31,
+          "drafts_accepted": 15
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "X": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7928,
+        "cached": 7904,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.001,
+        "ttft_s": 0.742,
+        "done_s": 1.652,
+        "elapsed_s": 1.651,
+        "prompt_ms": 700.6,
+        "prefill_tok_s": 34.3,
+        "decode_ms": 935.7,
+        "decode_tok_s": 34.2,
+        "draft_n": 25,
+        "draft_accepted": 16,
+        "expected_cached_if_kept": 7905
+      },
+      "Y": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7905,
+        "cached": 7882,
+        "completion_tokens": 29,
+        "finish": "stop",
+        "sent_s": 0.201,
+        "ttft_s": 2.102,
+        "done_s": 2.983,
+        "elapsed_s": 2.782,
+        "prompt_ms": 625.3,
+        "prefill_tok_s": 36.8,
+        "decode_ms": 704.1,
+        "decode_tok_s": 41.2,
+        "draft_n": 29,
+        "draft_accepted": 17,
+        "expected_cached_if_kept": 7882
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 7905
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 2,
+        "restores": 2,
+        "evictions": 0,
+        "requests_reused": 2
+      },
+      "sampler": {
+        "gpu_mem_max_mib": 11321,
+        "max_slots_processing": 1,
+        "max_queued": 1
+      },
+      "metrics": [
+        {
+          "id": "cfa2db11eebd",
+          "time": 1793888366.9801288,
+          "duration_s": 1.6,
+          "finish": "length",
+          "prompt_tokens": 7928,
+          "reused": 7904,
+          "prompt_read": 24,
+          "output_tokens": 32,
+          "first_engine_token_s": 0.731,
+          "prompt_ms": 700.6,
+          "decode_ms": 935.7,
+          "decode_tok_s": 34.2,
+          "hit_rate": 0.639,
+          "file_mb": 9675.9,
+          "drafts_offered": 25,
+          "drafts_accepted": 16
+        },
+        {
+          "id": "90bab38da393",
+          "time": 1793888368.6199248,
+          "duration_s": 1.3,
+          "finish": "stop",
+          "prompt_tokens": 7905,
+          "reused": 7882,
+          "prompt_read": 23,
+          "output_tokens": 29,
+          "first_engine_token_s": 2.09,
+          "prompt_ms": 625.3,
+          "decode_ms": 704.1,
+          "decode_tok_s": 41.2,
+          "hit_rate": 0.785,
+          "file_mb": 5916.8,
+          "drafts_offered": 29,
+          "drafts_accepted": 17
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "X": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7983,
+        "cached": 7960,
+        "completion_tokens": 29,
+        "finish": "stop",
+        "sent_s": 0.001,
+        "ttft_s": 0.671,
+        "done_s": 1.499,
+        "elapsed_s": 1.498,
+        "prompt_ms": 637.4,
+        "prefill_tok_s": 36.1,
+        "decode_ms": 849.5,
+        "decode_tok_s": 34.1,
+        "draft_n": 24,
+        "draft_accepted": 12,
+        "expected_cached_if_kept": 7960
+      },
+      "Y": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7956,
+        "cached": 7935,
+        "completion_tokens": 30,
+        "finish": "stop",
+        "sent_s": 0.201,
+        "ttft_s": 2.094,
+        "done_s": 2.925,
+        "elapsed_s": 2.724,
+        "prompt_ms": 771.1,
+        "prefill_tok_s": 27.2,
+        "decode_ms": 654.0,
+        "decode_tok_s": 45.9,
+        "draft_n": 26,
+        "draft_accepted": 18,
+        "expected_cached_if_kept": 7934
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 7956
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 2,
+        "restores": 2,
+        "evictions": 0,
+        "requests_reused": 2
+      },
+      "sampler": {
+        "gpu_mem_max_mib": 11321,
+        "max_slots_processing": 1,
+        "max_queued": 1
+      },
+      "metrics": [
+        {
+          "id": "9bcdee7e221e",
+          "time": 1793888371.0236542,
+          "duration_s": 1.5,
+          "finish": "stop",
+          "prompt_tokens": 7983,
+          "reused": 7960,
+          "prompt_read": 23,
+          "output_tokens": 29,
+          "first_engine_token_s": 0.665,
+          "prompt_ms": 637.4,
+          "decode_ms": 849.5,
+          "decode_tok_s": 34.1,
+          "hit_rate": 0.709,
+          "file_mb": 7842.1,
+          "drafts_offered": 24,
+          "drafts_accepted": 12
+        },
+        {
+          "id": "a658082d7a96",
+          "time": 1793888372.5139477,
+          "duration_s": 1.4,
+          "finish": "stop",
+          "prompt_tokens": 7956,
+          "reused": 7935,
+          "prompt_read": 21,
+          "output_tokens": 30,
+          "first_engine_token_s": 2.083,
+          "prompt_ms": 771.1,
+          "decode_ms": 654.0,
+          "decode_tok_s": 45.9,
+          "hit_rate": 0.825,
+          "file_mb": 5017.1,
+          "drafts_offered": 26,
+          "drafts_accepted": 18
+        }
+      ]
+    }
+  ],
+  "f_finished": "14:19:33Z",
+  "nvidia_smi_end": {
+    "memory_used_mib": 11321,
+    "memory_total_mib": 12288,
+    "util_pct": 90,
+    "temp_c": 58,
+    "apps": [
+      [
+        "530995",
+        "11312"
+      ]
+    ]
+  },
+  "finished": "2026-11-05T14:19:34Z"
+}

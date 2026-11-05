@@ -1,0 +1,6200 @@
+{
+  "label": "1slot",
+  "started": "2026-11-05T13:58:41Z",
+  "workload": {
+    "temperature": 0,
+    "seed": 1,
+    "reasoning_effort": "none",
+    "a_target_tokens": 16000,
+    "a_max_tokens": 256,
+    "b_max_tokens": 64,
+    "d_target_tokens": 8000,
+    "d_max_tokens": 32,
+    "e_target_tokens": 30000,
+    "e_max_tokens": 64,
+    "reps": 3,
+    "creps": 2,
+    "words": {
+      "16k": 7185,
+      "8k": 3579,
+      "30k": 13497
+    }
+  },
+  "env": {
+    "host": "pythia",
+    "base": "http://127.0.0.1:8080",
+    "props": {
+      "default_generation_settings": {
+        "n_ctx": 32768,
+        "params": {
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "top_k": 20,
+          "n_predict": -1
+        }
+      },
+      "total_slots": 1,
+      "model_alias": "qwen3.8-flash-next-iq3_xxs",
+      "chat_template_caps": {
+        "supports_tools": true,
+        "supports_tool_calls": true,
+        "supports_system_role": true,
+        "supports_parallel_tool_calls": true,
+        "supports_preserve_reasoning": true
+      },
+      "modalities": {
+        "vision": false
+      },
+      "models_autoload": true,
+      "is_sleeping": false,
+      "model_path": "/home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+      "build_info": "Strata 0.1.54"
+    },
+    "slots": [
+      {
+        "id": 0,
+        "n_ctx": 32768,
+        "is_processing": false,
+        "n_prompt_tokens": 15
+      }
+    ],
+    "engine": {
+      "model": "qwen3.8-flash-next-iq3_xxs",
+      "max_context": 32768,
+      "images": false,
+      "version": "0.1.54",
+      "logit_bias": 1,
+      "context": 32768,
+      "kv": "int8",
+      "kv_resident": 0,
+      "expert_slots": 3162,
+      "expert_cache_mib": 5289,
+      "expert_slots_primary": 3162,
+      "expert_cache_primary_mib": 5289,
+      "spec": 6,
+      "mtp_max": 4,
+      "lookup": 3,
+      "vram_free_mib": 720,
+      "cvec": 0,
+      "arena_mib": 0,
+      "pool_workers": 5,
+      "pcie_frac": "0.55",
+      "spec_min_p": "0.50",
+      "conversation_cache_mib": 8192,
+      "conversation_cache_slots": 4,
+      "conversation_cache_min_free_mib": 2560,
+      "conversation_cache_min_tokens": 0,
+      "tail_role_token": -1,
+      "vram_elastic": 0,
+      "prefill_cap": 8192,
+      "prefill_stages": 1,
+      "stream_all_min": 1024,
+      "prefill_pipe": 0,
+      "engine": "0.1.54",
+      "drafting": "mtp",
+      "drafting_note": ""
+    },
+    "conversation_cache": {
+      "enabled": true,
+      "budget_mib": 8192,
+      "slots": 4,
+      "parked": 4,
+      "bytes": 1380866584,
+      "evictions": 646,
+      "parks": 778,
+      "restores": 24,
+      "last_event": "parked",
+      "last_tokens": 373,
+      "last_at": 1793887099.452786,
+      "requests": 500,
+      "requests_reused": 406,
+      "reused_tokens": 19459657,
+      "prompt_tokens": 23900469,
+      "last_reused": 0,
+      "last_prompt": 15
+    },
+    "hardware_static": {
+      "gpu_name": "NVIDIA GeForce RTX 3060",
+      "gpu_vram_total_mib": null,
+      "gpu_count": 1,
+      "gpu_note": null,
+      "cpu_name": "AMD Ryzen 5 3600 6-Core Processor",
+      "cores": 6,
+      "threads": 12,
+      "sockets": 1,
+      "numa_nodes": 1,
+      "psutil": true
+    },
+    "nvidia_smi_idle": {
+      "memory_used_mib": 11323,
+      "memory_total_mib": 12288,
+      "util_pct": 0,
+      "temp_c": 32,
+      "apps": [
+        [
+          "31749",
+          "11314"
+        ]
+      ]
+    },
+    "engine_log_startup": [
+      "[strata] 2026-11-04 04:21:02 engine started: /home/f0ur3y3s/.local/share/strata/components/engine/0.1.54-linux-x86_64-cuda-cuda13/strata --serve --pack /home/f0ur3y3s/packs/iq3_xxs --native /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf --ple-gguf /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf --expert-profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin --expert-cache auto --prefill auto --spec 4 --spec-min-p 0.5 --mtp /home/f0ur3y3s/mtp/rt --max-context 32768 --kv int8 --mmap-experts",
+      "strata: sm_86 (Ampere): 9 exact speed switches on by default (STRATA_SM86_PERF=0 turns them off; a switch you set is kept): ADAPT_NOWAIT ADAPT_LAG CPU_IQ_ALL_EXACT1 SIDE_MIXER ATTN_DAILY GR_UP75 GU_SWIGLU QSA_ROWS B6_MMVQ_ROWS",
+      "strata generate: memory guard: limit 46.0 GiB (source: meminfo), current 2.4 GiB, reclaimable cache credited 0.0 GiB; available 43.6 GiB (MemAvailable 43.6 GiB), floor 2560 MiB",
+      "strata generate: PCIe probe: 25.3 GB/s host->device (best of 25.3 25.3 25.3 25.3) -> pcie_frac 0.55 (default 0.55)",
+      "strata generate: this CPU has no AVX-512: the expert kernels run on AVX-2 (multi-token for the i-quant gate/up rows)",
+      "strata generate: native pack: /home/f0ur3y3s/packs/iq3_xxs experts (largest blob 2.33 MB), token embedding IQ3_S in mapped host memory (260 MiB, 0.3 s)",
+      "strata generate: 1466 MiB of weights loaded from /home/f0ur3y3s/packs/iq3_xxs in 0.7 s (302 canonical tensors skipped: served natively)",
+      "strata generate: 300 native projection matrices, 1781.11 MiB of weights, in 0.9 s",
+      "strata generate: PLE direct read probe: 91024 rows/s (fine)",
+      "strata generate: the SSD is kept awake while rows are read: one page of the table after 100 ms without a read, until 60 s after the last request (STRATA_SSD_KEEPALIVE=0 turns it off)",
+      "strata generate: profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin: 24576 ranked pairs, built for 24576 slots",
+      "strata generate: PLE on, table 320001536 rows of /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf",
+      "strata mtp: draft layer loaded, 839 MiB of VRAM (experts 675, dense 111), files read in 0.58 s (1350 MiB/s)",
+      "strata generate: experimental native Q5_K head, 437043200 bytes, in 0.2 s",
+      "strata generate: GPU 0: NVIDIA GeForce RTX 3060, compute capability 8.6",
+      "strata generate: experts via mmap (--mmap-experts; the A/B arm of R2.1)",
+      "strata generate: file tier (Linux defaults, experts.bin: its pages are read from the mapping as they are): page-cached experts computed from the mapping (STRATA_COLD_OVERLAP=0), io prefetch with whole-blob preads on 8 I/O threads, the decode's read-ahead only while the page cache has room for it and it pays (STRATA_IO_PF_GATE=1); off: STRATA_COLD_OVERLAP=0, STRATA_IO_PREFETCH=0, STRATA_IO_PF_GATE=0",
+      "strata generate: GPU host-callback thread started before host-core pinning",
+      "strata generate: CPU pool tasks/phase: 18 (automatic), participating threads: 6",
+      "strata generate: CPU pool: 5 workers by default (6 physical cores, 12 logical processors; bounded by every physical core but the host's)",
+      "strata generate: 5 pool workers on logical processors 1,2,3,4,5, the host thread on 0 (draining too) (--host-core first)",
+      "strata generate: CPU workers on logical processors 1-5 (5 workers, one per physical core; host on 0)",
+      "strata aux cpus: threads that are neither pool workers nor the host go to CPUs 6 (off at start; a request's aux_cpus=1 turns it on)",
+      "strata generate: expert cache auto: 6.28 GiB free, 700 MiB reserved (+184 MiB for the draft head, +256 MiB for what is allocated after the cache) -> 2381 slots",
+      "strata generate: expert cache 3162 slots, 5.17 GiB of VRAM; policy is",
+      "strata generate: the GPU computes the experts in the cache; it rounds differently from the CPU,",
+      "                 so a reply can differ slightly from a run without the cache (same quality:",
+      "                 bench/results/2026-09-27-cache-parity).",
+      "                 PROFILE, ranked by routing frequency, no eviction.",
+      "strata generate: the profile fill asks for 256 pairs ahead (STRATA_FILL_AHEAD)",
+      "strata generate: pre-filled 3162 of 3162 slots from the profile in 2.4 s (2307 MB/s); slot 0 verified",
+      "strata generate: routing-aware prefetch on (the next layer's router, file tier)",
+      "strata generate: R4 hit path ON - resident experts are computed on the GPU",
+      "strata generate: 5 expert-pool workers + the host thread",
+      "strata generate: session is up (engine 0.1.54)",
+      "strata generate: token graph hit path: 3162 resident experts, decided on the device",
+      "prefill: the CPU share is ON by default for prompt chunks below 1024 tokens (the idle CPU takes some of the experts the GPU would stream; answers can differ slightly from 0.1.40.3, mean KL ~0.004). STRATA_PREFILL_CPU_SHARE=0 turns it off.",
+      "strata: prefill plan: chunk 8192, ring 96 kept: file set 38.5 GiB does not fit the page cache 41.6 GiB -> about 33.7 GB read from the drive per 32768-token prompt (4 chunks); no option does better (the set cannot fit: fewest passes win)",
+      "strata: prefill plan inputs: 40.0 GiB experts, 5.2 GiB in the GPU caches, 0.0 GiB RAM copy (0 lend slots kept), file tier 34.8 GiB; 41.6 GiB available for the page cache; PCIe 25.3 GB/s; drive 0.45 GB/s (dm-0 is a SATA-class SSD (assumed)); a 32768-token prompt",
+      "strata serve: prompt chunk auto: 8192 tokens, a 96-slot ring",
+      "strata serve: the prompt path borrows 2072 CUDA0 cache slots (3.37 GiB)",
+      "strata hc: CUDA0: the hyper-connection read runs as staged (the norm per token and stream, the down projection's activations staged ahead by cp.async); checked bit for bit against the plain read on this card (STRATA_HC_SPLIT=1 or 0 for the earlier ones)",
+      "strata verify: window up to 6 tokens, 69.5 MiB of device buffers",
+      "strata mtp: draft head over 106299 tokens (178.4 MiB)",
+      "strata serve: conversation cache sized from the free RAM: 8192 MiB for up to 4 parked conversations, so an agent's next turn reuses its prompt (--conversation-cache-mib N sets it, 0 turns it off)",
+      "strata serve: STRATA_ROUTE_TAIL_SKIP=7 is ON (default): a missed expert that every token of a verify window routes at rank 7 or lower is skipped (+10..20% decode on 12-16 GB cards that miss experts, answers differ slightly from 0.1.41); STRATA_ROUTE_TAIL_SKIP=0 turns it off",
+      "strata serve: adaptive overlap: off: not with STRATA_ADAPT_LAG / STRATA_ADAPT_NOWAIT",
+      "strata serve: the adaptive tier's evictions reach the device's table before the next window (STRATA_ADAPT_EVICT_SYNC=0: when its copies land)",
+      "strata serve: 720 MiB of VRAM free with everything loaded",
+      "strata ab: GATE=STRATA_CPU_IQ_ALL_EXACT1 active=1",
+      "strata verify: capturing the 4-token window (678 MiB of VRAM free)",
+      "strata verify: captured the 4-token window (upload no error, sync no error)",
+      "strata verify: capturing the 1-token window (664 MiB of VRAM free)",
+      "strata verify: captured the 1-token window (upload no error, sync no error)"
+    ],
+    "engine_log_startup_keyed": [
+      "[strata] 2026-11-04 04:21:02 engine started: /home/f0ur3y3s/.local/share/strata/components/engine/0.1.54-linux-x86_64-cuda-cuda13/strata --serve --pack /home/f0ur3y3s/packs/iq3_xxs --native /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf --ple-gguf /home/f0ur3y3s/models/IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf --expert-profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin --expert-cache auto --prefill auto --spec 4 --spec-min-p 0.5 --mtp /home/f0ur3y3s/mtp/rt --max-context 32768 --kv int8 --mmap-experts",
+      "strata generate: memory guard: limit 46.0 GiB (source: meminfo), current 2.4 GiB, reclaimable cache credited 0.0 GiB; available 43.6 GiB (MemAvailable 43.6 GiB), floor 2560 MiB",
+      "strata generate: profile /home/f0ur3y3s/.local/share/strata/terminal/0.1.54/data/expert-profile.bin: 24576 ranked pairs, built for 24576 slots",
+      "strata generate: expert cache auto: 6.28 GiB free, 700 MiB reserved (+184 MiB for the draft head, +256 MiB for what is allocated after the cache) -> 2381 slots",
+      "strata generate: expert cache 3162 slots, 5.17 GiB of VRAM; policy is",
+      "strata generate: pre-filled 3162 of 3162 slots from the profile in 2.4 s (2307 MB/s); slot 0 verified",
+      "prefill: the CPU share is ON by default for prompt chunks below 1024 tokens (the idle CPU takes some of the experts the GPU would stream; answers can differ slightly from 0.1.40.3, mean KL ~0.004). STRATA_PREFILL_CPU_SHARE=0 turns it off.",
+      "strata: prefill plan: chunk 8192, ring 96 kept: file set 38.5 GiB does not fit the page cache 41.6 GiB -> about 33.7 GB read from the drive per 32768-token prompt (4 chunks); no option does better (the set cannot fit: fewest passes win)",
+      "strata: prefill plan inputs: 40.0 GiB experts, 5.2 GiB in the GPU caches, 0.0 GiB RAM copy (0 lend slots kept), file tier 34.8 GiB; 41.6 GiB available for the page cache; PCIe 25.3 GB/s; drive 0.45 GB/s (dm-0 is a SATA-class SSD (assumed)); a 32768-token prompt",
+      "strata serve: prompt chunk auto: 8192 tokens, a 96-slot ring",
+      "strata serve: the prompt path borrows 2072 CUDA0 cache slots (3.37 GiB)",
+      "strata serve: conversation cache sized from the free RAM: 8192 MiB for up to 4 parked conversations, so an agent's next turn reuses its prompt (--conversation-cache-mib N sets it, 0 turns it off)",
+      "strata serve: 720 MiB of VRAM free with everything loaded",
+      "strata verify: capturing the 4-token window (678 MiB of VRAM free)",
+      "strata verify: capturing the 1-token window (664 MiB of VRAM free)"
+    ],
+    "server_log_since_marker": [
+      "loading the model (the first start takes a minute or two) ...",
+      "[strata] starting the engine: reading the model's weights ...",
+      "[strata] mapping the experts from the model files (about 47 GB, --mmap-experts): they are not loaded into RAM - the OS file cache reads them as the GPU's expert cache fills and as requests need them.",
+      "         YOUR PC CAN BE SLOW OR STOP RESPONDING FOR 1-3 MINUTES NOW - this is normal.",
+      "         Please wait and don't close this window; the server says when it is ready.",
+      "[strata] filling the GPU's expert cache (3162 experts, 5.17 GiB of VRAM) ...",
+      "[strata] almost ready ...",
+      "ready: http://127.0.0.1:8080/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 32768 tokens)",
+      "       open http://127.0.0.1:8080/ in a browser to chat; close this window to stop the model",
+      "       from other devices: http://192.168.1.173:8080/   (API: http://192.168.1.173:8080/v1)",
+      "       WARNING: no API key: anyone who can reach port 8080 can use the model. Add an API key to keep others out.",
+      "[strata] reading the prompt: 306 of 311 tokens, 9 s so far",
+      "[strata] done: 1 tokens in 9 s (no speed) (length, cancel=False), expert cache 41.3% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] done: 1 tokens in 0 s (no speed) (length, cancel=False), expert cache 41.3% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] done: 1 tokens in 0 s (no speed) (length, cancel=False), expert cache 41.3% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] done: 1 tokens in 0 s (no speed) (length, cancel=False), expert cache 41.3% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 339 of 344 tokens, 3 s so far",
+      "[strata] done: 1 tokens in 3 s (no speed) (length, cancel=False), expert cache 62.4% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] done: 1 tokens in 0 s (no speed) (length, cancel=False), expert cache 59.4% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 361 of 366 tokens, 3 s so far",
+      "[strata] done: 1 tokens in 3 s (no speed) (length, cancel=False), expert cache 64.0% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 358 of 363 tokens, 3 s so far",
+      "[strata] done: 1 tokens in 3 s (no speed) (length, cancel=False), expert cache 62.2% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 341 of 346 tokens, 3 s so far",
+      "[strata] done: 1 tokens in 3 s (no speed) (length, cancel=False), expert cache 81.3% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 353 of 358 tokens, 3 s so far",
+      "[strata] done: 1 tokens in 3 s (no speed) (length, cancel=False), expert cache 80.8% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer",
+      "[strata] reading the prompt: 61 of 66 tokens, 2 s so far",
+      "[strata] done: 1 tokens in 2 s (no speed) (length, cancel=False), expert cache 78.0% hit",
+      "[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer"
+    ],
+    "repo_on_host": {
+      "rev": "3a2187bb9244db4ccb34cd63000103492208539e",
+      "dirty": [
+        "?? eval/probes/fixtures/strata_messages/",
+        "?? eval/probes/p21_messages_stream.py",
+        "?? eval/probes/p22_messages_render_parity.py",
+        "?? eval/probes/p23_messages_errors.py",
+        "?? eval/probes/p24_cross_dialect_cache.py",
+        "?? eval/probes/p25_messages_beta_headers.py",
+        "?? eval/probes/p26_slots.py"
+      ]
+    }
+  },
+  "W": {
+    "status": 200,
+    "error": null,
+    "prompt_tokens": 16058,
+    "cached": 0,
+    "completion_tokens": 256,
+    "finish": "length",
+    "sent_s": 0.0,
+    "ttft_s": 21.361,
+    "done_s": 28.749,
+    "elapsed_s": 28.749,
+    "prompt_ms": 21315.9,
+    "prefill_tok_s": 753.3,
+    "decode_ms": 7409.2,
+    "decode_tok_s": 34.6,
+    "draft_n": 223,
+    "draft_accepted": 121
+  },
+  "W_finished": "13:59:12Z",
+  "a": [
+    {
+      "a": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 15974,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 21.501,
+        "done_s": 26.871,
+        "elapsed_s": 26.871,
+        "prompt_ms": 21438.8,
+        "prefill_tok_s": 745.1,
+        "decode_ms": 5405.8,
+        "decode_tok_s": 47.4,
+        "draft_n": 205,
+        "draft_accepted": 131
+      },
+      "b": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 16258,
+        "cached": 15967,
+        "completion_tokens": 64,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 2.11,
+        "done_s": 4.14,
+        "elapsed_s": 4.14,
+        "prompt_ms": 2028.9,
+        "prefill_tok_s": 143.4,
+        "decode_ms": 2068.3,
+        "decode_tok_s": 30.9,
+        "draft_n": 44,
+        "draft_accepted": 27,
+        "expected_cached": 16230
+      },
+      "metrics": [
+        {
+          "id": "5aaedd8ed845",
+          "time": 1793887153.5402381,
+          "duration_s": 26.9,
+          "finish": "length",
+          "prompt_tokens": 15974,
+          "reused": 0,
+          "prompt_read": 15974,
+          "output_tokens": 256,
+          "first_engine_token_s": 21.48,
+          "prompt_ms": 21438.8,
+          "decode_ms": 5405.8,
+          "decode_tok_s": 47.4,
+          "hit_rate": 0.857,
+          "file_mb": 35979.8,
+          "drafts_offered": 205,
+          "drafts_accepted": 131
+        },
+        {
+          "id": "c315a914ebaf",
+          "time": 1793887181.4489064,
+          "duration_s": 4.1,
+          "finish": "length",
+          "prompt_tokens": 16258,
+          "reused": 15967,
+          "prompt_read": 291,
+          "output_tokens": 64,
+          "first_engine_token_s": 2.073,
+          "prompt_ms": 2028.9,
+          "decode_ms": 2068.3,
+          "decode_tok_s": 30.9,
+          "hit_rate": 0.566,
+          "file_mb": 21363.6,
+          "drafts_offered": 44,
+          "drafts_accepted": 27
+        }
+      ]
+    },
+    {
+      "a": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 16052,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 21.474,
+        "done_s": 26.143,
+        "elapsed_s": 26.143,
+        "prompt_ms": 21422.7,
+        "prefill_tok_s": 749.3,
+        "decode_ms": 4695.5,
+        "decode_tok_s": 54.5,
+        "draft_n": 249,
+        "draft_accepted": 142
+      },
+      "b": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 16336,
+        "cached": 16045,
+        "completion_tokens": 64,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 1.98,
+        "done_s": 4.324,
+        "elapsed_s": 4.324,
+        "prompt_ms": 1890.2,
+        "prefill_tok_s": 154.0,
+        "decode_ms": 2382.5,
+        "decode_tok_s": 26.9,
+        "draft_n": 50,
+        "draft_accepted": 26,
+        "expected_cached": 16308
+      },
+      "metrics": [
+        {
+          "id": "749d8d5c3f96",
+          "time": 1793887186.6116087,
+          "duration_s": 26.1,
+          "finish": "length",
+          "prompt_tokens": 16052,
+          "reused": 0,
+          "prompt_read": 16052,
+          "output_tokens": 256,
+          "first_engine_token_s": 21.454,
+          "prompt_ms": 21422.7,
+          "decode_ms": 4695.5,
+          "decode_tok_s": 54.5,
+          "hit_rate": 0.93,
+          "file_mb": 21571.6,
+          "drafts_offered": 249,
+          "drafts_accepted": 142
+        },
+        {
+          "id": "60bd350f70e5",
+          "time": 1793887213.803172,
+          "duration_s": 4.3,
+          "finish": "length",
+          "prompt_tokens": 16336,
+          "reused": 16045,
+          "prompt_read": 291,
+          "output_tokens": 64,
+          "first_engine_token_s": 1.933,
+          "prompt_ms": 1890.2,
+          "decode_ms": 2382.5,
+          "decode_tok_s": 26.9,
+          "hit_rate": 0.525,
+          "file_mb": 26433.5,
+          "drafts_offered": 50,
+          "drafts_accepted": 26
+        }
+      ]
+    },
+    {
+      "a": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 15938,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 21.39,
+        "done_s": 26.394,
+        "elapsed_s": 26.394,
+        "prompt_ms": 21336.6,
+        "prefill_tok_s": 747.0,
+        "decode_ms": 5031.1,
+        "decode_tok_s": 50.9,
+        "draft_n": 268,
+        "draft_accepted": 138
+      },
+      "b": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 16222,
+        "cached": 15931,
+        "completion_tokens": 64,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 2.3,
+        "done_s": 4.414,
+        "elapsed_s": 4.414,
+        "prompt_ms": 2242.2,
+        "prefill_tok_s": 129.8,
+        "decode_ms": 2147.4,
+        "decode_tok_s": 29.8,
+        "draft_n": 47,
+        "draft_accepted": 31,
+        "expected_cached": 16194
+      },
+      "metrics": [
+        {
+          "id": "2f8c5a7c34d7",
+          "time": 1793887219.1443422,
+          "duration_s": 26.4,
+          "finish": "length",
+          "prompt_tokens": 15938,
+          "reused": 0,
+          "prompt_read": 15938,
+          "output_tokens": 256,
+          "first_engine_token_s": 21.37,
+          "prompt_ms": 21336.6,
+          "decode_ms": 5031.1,
+          "decode_tok_s": 50.9,
+          "hit_rate": 0.924,
+          "file_mb": 25128.1,
+          "drafts_offered": 268,
+          "drafts_accepted": 138
+        },
+        {
+          "id": "123539c6b9f6",
+          "time": 1793887246.5601425,
+          "duration_s": 4.4,
+          "finish": "length",
+          "prompt_tokens": 16222,
+          "reused": 15931,
+          "prompt_read": 291,
+          "output_tokens": 64,
+          "first_engine_token_s": 2.281,
+          "prompt_ms": 2242.2,
+          "decode_ms": 2147.4,
+          "decode_tok_s": 29.8,
+          "hit_rate": 0.487,
+          "file_mb": 24437.8,
+          "drafts_offered": 47,
+          "drafts_accepted": 31
+        }
+      ]
+    }
+  ],
+  "a_finished": "14:00:50Z",
+  "b_note": "b results are inside section a (each rep's 'b')",
+  "c": [
+    {
+      "A": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 16029,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.001,
+        "ttft_s": 21.942,
+        "done_s": 27.116,
+        "elapsed_s": 27.115,
+        "prompt_ms": 21897.9,
+        "prefill_tok_s": 732.0,
+        "decode_ms": 5193.5,
+        "decode_tok_s": 49.3,
+        "draft_n": 208,
+        "draft_accepted": 153
+      },
+      "B": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 15991,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.202,
+        "ttft_s": 48.415,
+        "done_s": 53.51,
+        "elapsed_s": 53.308,
+        "prompt_ms": 21459.3,
+        "prefill_tok_s": 745.2,
+        "decode_ms": 4932.6,
+        "decode_tok_s": 51.9,
+        "draft_n": 238,
+        "draft_accepted": 133
+      },
+      "makespan_s": 53.51,
+      "sampler": {
+        "gpu_mem_max_mib": 11323,
+        "gpu_mem_min_mib": 11323,
+        "max_slots_processing": 1,
+        "max_queued": 1,
+        "gpu_series": [
+          [
+            0.1,
+            11323,
+            0
+          ],
+          [
+            1.1,
+            11323,
+            52
+          ],
+          [
+            2.2,
+            11323,
+            85
+          ],
+          [
+            3.2,
+            11323,
+            100
+          ],
+          [
+            4.3,
+            11323,
+            94
+          ],
+          [
+            5.3,
+            11323,
+            99
+          ],
+          [
+            6.4,
+            11323,
+            75
+          ],
+          [
+            7.5,
+            11323,
+            78
+          ],
+          [
+            8.5,
+            11323,
+            45
+          ],
+          [
+            9.6,
+            11323,
+            86
+          ],
+          [
+            10.6,
+            11323,
+            55
+          ],
+          [
+            11.7,
+            11323,
+            68
+          ],
+          [
+            12.7,
+            11323,
+            59
+          ],
+          [
+            13.8,
+            11323,
+            74
+          ],
+          [
+            14.8,
+            11323,
+            57
+          ],
+          [
+            15.9,
+            11323,
+            66
+          ],
+          [
+            17.0,
+            11323,
+            94
+          ],
+          [
+            18.0,
+            11323,
+            41
+          ],
+          [
+            19.1,
+            11323,
+            89
+          ],
+          [
+            20.1,
+            11323,
+            59
+          ],
+          [
+            21.2,
+            11323,
+            86
+          ],
+          [
+            22.2,
+            11323,
+            99
+          ],
+          [
+            23.3,
+            11323,
+            96
+          ],
+          [
+            24.4,
+            11323,
+            100
+          ],
+          [
+            25.4,
+            11323,
+            100
+          ],
+          [
+            26.5,
+            11323,
+            100
+          ],
+          [
+            27.5,
+            11323,
+            57
+          ],
+          [
+            28.6,
+            11323,
+            70
+          ],
+          [
+            29.6,
+            11323,
+            77
+          ],
+          [
+            30.7,
+            11323,
+            93
+          ],
+          [
+            31.7,
+            11323,
+            86
+          ],
+          [
+            32.8,
+            11323,
+            68
+          ],
+          [
+            33.8,
+            11323,
+            98
+          ],
+          [
+            34.9,
+            11323,
+            61
+          ],
+          [
+            36.0,
+            11323,
+            53
+          ],
+          [
+            37.0,
+            11323,
+            68
+          ],
+          [
+            38.1,
+            11323,
+            55
+          ],
+          [
+            39.1,
+            11323,
+            87
+          ],
+          [
+            40.2,
+            11323,
+            81
+          ],
+          [
+            41.2,
+            11323,
+            75
+          ],
+          [
+            42.3,
+            11323,
+            57
+          ],
+          [
+            43.3,
+            11323,
+            93
+          ],
+          [
+            44.4,
+            11323,
+            80
+          ],
+          [
+            45.4,
+            11323,
+            81
+          ],
+          [
+            46.5,
+            11323,
+            54
+          ],
+          [
+            47.6,
+            11323,
+            92
+          ],
+          [
+            48.6,
+            11323,
+            43
+          ],
+          [
+            49.7,
+            11323,
+            91
+          ],
+          [
+            50.7,
+            11323,
+            91
+          ],
+          [
+            51.8,
+            11323,
+            100
+          ],
+          [
+            52.8,
+            11323,
+            98
+          ]
+        ],
+        "slots_series": [
+          [
+            0.0,
+            0,
+            [
+              [
+                0,
+                false,
+                16222
+              ]
+            ]
+          ],
+          [
+            0.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            1.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            1.6,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            2.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            2.6,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            3.2,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            3.7,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            4.2,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            4.7,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            5.2,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            5.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            6.3,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            6.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            7.3,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            7.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            8.4,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            8.9,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            9.4,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            9.9,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            10.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            11.0,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            11.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            12.0,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            12.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            13.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            13.6,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            14.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            14.6,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            15.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            15.7,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            16.2,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            16.7,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            17.2,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            17.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            18.3,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            18.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            19.3,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            19.8,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            20.4,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            20.9,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            21.4,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            21.9,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            22.4,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            23.0,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            23.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            24.0,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            24.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            25.0,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            25.5,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            26.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            26.6,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            27.1,
+            1,
+            [
+              [
+                0,
+                true,
+                16029
+              ]
+            ]
+          ],
+          [
+            27.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            28.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            28.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            29.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            29.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            30.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            30.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            31.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            31.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            32.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            32.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            33.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            33.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            34.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            34.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            35.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            36.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            36.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            37.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            37.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            38.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            38.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            39.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            39.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            40.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            40.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            41.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            41.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            42.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            42.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            43.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            43.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            44.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            44.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            45.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            45.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            46.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            47.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            47.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            48.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            48.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            49.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            49.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            50.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            50.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            51.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            51.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            52.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            52.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ],
+          [
+            53.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15991
+              ]
+            ]
+          ]
+        ]
+      },
+      "metrics": [
+        {
+          "id": "4fa586b739a4",
+          "time": 1793887252.0224721,
+          "duration_s": 27.1,
+          "finish": "length",
+          "prompt_tokens": 16029,
+          "reused": 0,
+          "prompt_read": 16029,
+          "output_tokens": 256,
+          "first_engine_token_s": 21.927,
+          "prompt_ms": 21897.9,
+          "decode_ms": 5193.5,
+          "decode_tok_s": 49.3,
+          "hit_rate": 0.806,
+          "file_mb": 43805.4,
+          "drafts_offered": 208,
+          "drafts_accepted": 153
+        },
+        {
+          "id": "29a76597bfdc",
+          "time": 1793887279.1191366,
+          "duration_s": 26.4,
+          "finish": "length",
+          "prompt_tokens": 15991,
+          "reused": 0,
+          "prompt_read": 15991,
+          "output_tokens": 256,
+          "first_engine_token_s": 48.389,
+          "prompt_ms": 21459.3,
+          "decode_ms": 4932.6,
+          "decode_tok_s": 51.9,
+          "hit_rate": 0.921,
+          "file_mb": 24806.9,
+          "drafts_offered": 238,
+          "drafts_accepted": 133
+        }
+      ]
+    },
+    {
+      "A": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 15711,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.001,
+        "ttft_s": 21.499,
+        "done_s": 27.793,
+        "elapsed_s": 27.792,
+        "prompt_ms": 21441.5,
+        "prefill_tok_s": 732.7,
+        "decode_ms": 6326.7,
+        "decode_tok_s": 40.5,
+        "draft_n": 224,
+        "draft_accepted": 136
+      },
+      "B": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 15990,
+        "cached": 0,
+        "completion_tokens": 256,
+        "finish": "length",
+        "sent_s": 0.201,
+        "ttft_s": 49.035,
+        "done_s": 53.913,
+        "elapsed_s": 53.712,
+        "prompt_ms": 21402.4,
+        "prefill_tok_s": 747.1,
+        "decode_ms": 4714.7,
+        "decode_tok_s": 54.3,
+        "draft_n": 218,
+        "draft_accepted": 144
+      },
+      "makespan_s": 53.913,
+      "sampler": {
+        "gpu_mem_max_mib": 11323,
+        "gpu_mem_min_mib": 11323,
+        "max_slots_processing": 1,
+        "max_queued": 1,
+        "gpu_series": [
+          [
+            0.0,
+            11323,
+            0
+          ],
+          [
+            1.1,
+            11323,
+            78
+          ],
+          [
+            2.2,
+            11323,
+            100
+          ],
+          [
+            3.2,
+            11323,
+            93
+          ],
+          [
+            4.3,
+            11323,
+            96
+          ],
+          [
+            5.3,
+            11323,
+            88
+          ],
+          [
+            6.4,
+            11323,
+            55
+          ],
+          [
+            7.4,
+            11323,
+            88
+          ],
+          [
+            8.5,
+            11323,
+            59
+          ],
+          [
+            9.6,
+            11323,
+            83
+          ],
+          [
+            10.6,
+            11323,
+            81
+          ],
+          [
+            11.7,
+            11323,
+            51
+          ],
+          [
+            12.7,
+            11323,
+            72
+          ],
+          [
+            13.8,
+            11323,
+            70
+          ],
+          [
+            14.8,
+            11323,
+            87
+          ],
+          [
+            15.9,
+            11323,
+            77
+          ],
+          [
+            16.9,
+            11323,
+            75
+          ],
+          [
+            18.0,
+            11323,
+            66
+          ],
+          [
+            19.0,
+            11323,
+            54
+          ],
+          [
+            20.1,
+            11323,
+            90
+          ],
+          [
+            21.2,
+            11323,
+            41
+          ],
+          [
+            22.2,
+            11323,
+            100
+          ],
+          [
+            23.3,
+            11323,
+            100
+          ],
+          [
+            24.3,
+            11323,
+            100
+          ],
+          [
+            25.4,
+            11323,
+            100
+          ],
+          [
+            26.5,
+            11323,
+            91
+          ],
+          [
+            27.5,
+            11323,
+            100
+          ],
+          [
+            28.6,
+            11323,
+            56
+          ],
+          [
+            29.6,
+            11323,
+            73
+          ],
+          [
+            30.7,
+            11323,
+            78
+          ],
+          [
+            31.7,
+            11323,
+            77
+          ],
+          [
+            32.8,
+            11323,
+            83
+          ],
+          [
+            33.8,
+            11323,
+            89
+          ],
+          [
+            34.9,
+            11323,
+            47
+          ],
+          [
+            36.0,
+            11323,
+            87
+          ],
+          [
+            37.0,
+            11323,
+            67
+          ],
+          [
+            38.1,
+            11323,
+            73
+          ],
+          [
+            39.1,
+            11323,
+            95
+          ],
+          [
+            40.2,
+            11323,
+            89
+          ],
+          [
+            41.2,
+            11323,
+            74
+          ],
+          [
+            42.3,
+            11323,
+            98
+          ],
+          [
+            43.3,
+            11323,
+            85
+          ],
+          [
+            44.4,
+            11323,
+            76
+          ],
+          [
+            45.4,
+            11323,
+            65
+          ],
+          [
+            46.5,
+            11323,
+            58
+          ],
+          [
+            47.6,
+            11323,
+            75
+          ],
+          [
+            48.6,
+            11323,
+            57
+          ],
+          [
+            49.7,
+            11323,
+            100
+          ],
+          [
+            50.7,
+            11323,
+            94
+          ],
+          [
+            51.8,
+            11323,
+            100
+          ],
+          [
+            52.8,
+            11323,
+            93
+          ],
+          [
+            53.9,
+            11323,
+            93
+          ]
+        ],
+        "slots_series": [
+          [
+            0.0,
+            0,
+            [
+              [
+                0,
+                false,
+                15991
+              ]
+            ]
+          ],
+          [
+            0.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            1.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            1.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            2.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            2.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            3.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            3.7,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            4.2,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            4.7,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            5.2,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            5.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            6.3,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            6.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            7.3,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            7.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            8.4,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            8.9,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            9.4,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            10.0,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            10.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            11.0,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            11.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            12.0,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            12.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            13.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            13.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            14.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            14.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            15.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            15.7,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            16.2,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            16.7,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            17.2,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            17.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            18.3,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            18.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            19.3,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            19.8,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            20.4,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            20.9,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            21.4,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            21.9,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            22.4,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            22.9,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            23.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            24.0,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            24.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            25.0,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            25.5,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            26.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            26.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            27.1,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            27.6,
+            1,
+            [
+              [
+                0,
+                true,
+                15711
+              ]
+            ]
+          ],
+          [
+            28.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            28.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            29.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            29.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            30.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            30.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            31.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            31.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            32.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            32.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            33.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            33.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            34.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            34.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            35.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            36.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            36.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            37.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            37.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            38.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            38.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            39.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            39.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            40.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            40.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            41.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            41.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            42.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            42.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            43.3,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            43.8,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            44.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            44.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            45.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            45.9,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            46.4,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            47.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            47.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            48.0,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            48.5,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            49.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            49.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            50.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            50.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            51.1,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            51.6,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            52.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            52.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            53.2,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ],
+          [
+            53.7,
+            0,
+            [
+              [
+                0,
+                true,
+                15990
+              ]
+            ]
+          ]
+        ]
+      },
+      "metrics": [
+        {
+          "id": "e2a34af2484c",
+          "time": 1793887306.5876408,
+          "duration_s": 27.8,
+          "finish": "length",
+          "prompt_tokens": 15711,
+          "reused": 0,
+          "prompt_read": 15711,
+          "output_tokens": 256,
+          "first_engine_token_s": 21.482,
+          "prompt_ms": 21441.5,
+          "decode_ms": 6326.7,
+          "decode_tok_s": 40.5,
+          "hit_rate": 0.754,
+          "file_mb": 56927.2,
+          "drafts_offered": 224,
+          "drafts_accepted": 136
+        },
+        {
+          "id": "87b7c6cab611",
+          "time": 1793887334.3609867,
+          "duration_s": 26.1,
+          "finish": "length",
+          "prompt_tokens": 15990,
+          "reused": 0,
+          "prompt_read": 15990,
+          "output_tokens": 256,
+          "first_engine_token_s": 49.019,
+          "prompt_ms": 21402.4,
+          "decode_ms": 4714.7,
+          "decode_tok_s": 54.3,
+          "hit_rate": 0.901,
+          "file_mb": 26592.1,
+          "drafts_offered": 218,
+          "drafts_accepted": 144
+        }
+      ]
+    }
+  ],
+  "c_finished": "14:02:40Z",
+  "d": [
+    {
+      "step": "X1",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7975,
+        "cached": 0,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 11.077,
+        "done_s": 12.006,
+        "elapsed_s": 12.006,
+        "prompt_ms": 11024.6,
+        "prefill_tok_s": 723.4,
+        "decode_ms": 963.5,
+        "decode_tok_s": 33.2,
+        "draft_n": 30,
+        "draft_accepted": 17,
+        "expected_cached_if_kept": null
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 7975
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 0,
+        "evictions": 1,
+        "requests_reused": -1
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 1933358256,
+        "last_event": "parked",
+        "last_reused": 0
+      },
+      "metrics": [
+        {
+          "id": "e66a1a2ebed8",
+          "time": 1793887361.5581577,
+          "duration_s": 12.0,
+          "finish": "length",
+          "prompt_tokens": 7975,
+          "reused": 0,
+          "prompt_read": 7975,
+          "output_tokens": 32,
+          "first_engine_token_s": 11.062,
+          "prompt_ms": 11024.6,
+          "decode_ms": 963.5,
+          "decode_tok_s": 33.2,
+          "hit_rate": 0.642,
+          "file_mb": 10260.9,
+          "drafts_offered": 30,
+          "drafts_accepted": 17
+        }
+      ]
+    },
+    {
+      "step": "Y1",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 7965,
+        "cached": 0,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 10.919,
+        "done_s": 11.937,
+        "elapsed_s": 11.937,
+        "prompt_ms": 10877.0,
+        "prefill_tok_s": 732.3,
+        "decode_ms": 1046.0,
+        "decode_tok_s": 30.6,
+        "draft_n": 33,
+        "draft_accepted": 14,
+        "expected_cached_if_kept": null
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 7965
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 0,
+        "evictions": 1,
+        "requests_reused": -1
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 1806961924,
+        "last_event": "parked",
+        "last_reused": 0
+      },
+      "metrics": [
+        {
+          "id": "297b7b915b12",
+          "time": 1793887374.6260643,
+          "duration_s": 11.9,
+          "finish": "length",
+          "prompt_tokens": 7965,
+          "reused": 0,
+          "prompt_read": 7965,
+          "output_tokens": 32,
+          "first_engine_token_s": 10.908,
+          "prompt_ms": 10877.0,
+          "decode_ms": 1046.0,
+          "decode_tok_s": 30.6,
+          "hit_rate": 0.7,
+          "file_mb": 10170.5,
+          "drafts_offered": 33,
+          "drafts_accepted": 14
+        }
+      ]
+    },
+    {
+      "step": "X2",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 8030,
+        "cached": 8007,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 0.594,
+        "done_s": 1.45,
+        "elapsed_s": 1.45,
+        "prompt_ms": 549.7,
+        "prefill_tok_s": 41.8,
+        "decode_ms": 883.2,
+        "decode_tok_s": 36.2,
+        "draft_n": 24,
+        "draft_accepted": 13,
+        "expected_cached_if_kept": 8007
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 8030
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 1,
+        "evictions": 0,
+        "requests_reused": 0
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 1929055612,
+        "last_event": "restored",
+        "last_reused": 8007
+      },
+      "metrics": [
+        {
+          "id": "36a241c2eb9c",
+          "time": 1793887387.6177087,
+          "duration_s": 1.4,
+          "finish": "length",
+          "prompt_tokens": 8030,
+          "reused": 8007,
+          "prompt_read": 23,
+          "output_tokens": 32,
+          "first_engine_token_s": 0.58,
+          "prompt_ms": 549.7,
+          "decode_ms": 883.2,
+          "decode_tok_s": 36.2,
+          "hit_rate": 0.749,
+          "file_mb": 7802.0,
+          "drafts_offered": 24,
+          "drafts_accepted": 13
+        }
+      ]
+    },
+    {
+      "step": "Y2",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 8020,
+        "cached": 7996,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 0.503,
+        "done_s": 1.197,
+        "elapsed_s": 1.197,
+        "prompt_ms": 462.0,
+        "prefill_tok_s": 51.9,
+        "decode_ms": 717.5,
+        "decode_tok_s": 44.6,
+        "draft_n": 22,
+        "draft_accepted": 18,
+        "expected_cached_if_kept": 7997
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 8020
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 1,
+        "evictions": 0,
+        "requests_reused": 0
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 2063719696,
+        "last_event": "restored",
+        "last_reused": 7996
+      },
+      "metrics": [
+        {
+          "id": "1a5572d6566f",
+          "time": 1793887390.1251733,
+          "duration_s": 1.2,
+          "finish": "length",
+          "prompt_tokens": 8020,
+          "reused": 7996,
+          "prompt_read": 24,
+          "output_tokens": 32,
+          "first_engine_token_s": 0.489,
+          "prompt_ms": 462.0,
+          "decode_ms": 717.5,
+          "decode_tok_s": 44.6,
+          "hit_rate": 0.765,
+          "file_mb": 6224.9,
+          "drafts_offered": 22,
+          "drafts_accepted": 18
+        }
+      ]
+    },
+    {
+      "step": "X3",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 8085,
+        "cached": 8061,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 0.497,
+        "done_s": 1.403,
+        "elapsed_s": 1.403,
+        "prompt_ms": 441.7,
+        "prefill_tok_s": 54.3,
+        "decode_ms": 928.5,
+        "decode_tok_s": 34.5,
+        "draft_n": 26,
+        "draft_accepted": 11,
+        "expected_cached_if_kept": 8062
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 8085
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 1,
+        "evictions": 0,
+        "requests_reused": 0
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 2080266656,
+        "last_event": "restored",
+        "last_reused": 8061
+      },
+      "metrics": [
+        {
+          "id": "32aee5b351d8",
+          "time": 1793887392.3876526,
+          "duration_s": 1.4,
+          "finish": "length",
+          "prompt_tokens": 8085,
+          "reused": 8061,
+          "prompt_read": 24,
+          "output_tokens": 32,
+          "first_engine_token_s": 0.467,
+          "prompt_ms": 441.7,
+          "decode_ms": 928.5,
+          "decode_tok_s": 34.5,
+          "hit_rate": 0.81,
+          "file_mb": 7164.7,
+          "drafts_offered": 26,
+          "drafts_accepted": 11
+        }
+      ]
+    },
+    {
+      "step": "Y3",
+      "summary": {
+        "status": 200,
+        "error": null,
+        "prompt_tokens": 8075,
+        "cached": 8052,
+        "completion_tokens": 32,
+        "finish": "length",
+        "sent_s": 0.0,
+        "ttft_s": 0.469,
+        "done_s": 1.207,
+        "elapsed_s": 1.207,
+        "prompt_ms": 429.0,
+        "prefill_tok_s": 53.6,
+        "decode_ms": 761.4,
+        "decode_tok_s": 42.0,
+        "draft_n": 33,
+        "draft_accepted": 17,
+        "expected_cached_if_kept": 8052
+      },
+      "slots_after": [
+        {
+          "id": 0,
+          "n_ctx": 32768,
+          "is_processing": false,
+          "n_prompt_tokens": 8075
+        }
+      ],
+      "conv_cache_delta": {
+        "parks": 1,
+        "restores": 1,
+        "evictions": 0,
+        "requests_reused": 0
+      },
+      "conv_cache_after": {
+        "parked": 4,
+        "bytes": 2198362688,
+        "last_event": "restored",
+        "last_reused": 8052
+      },
+      "metrics": [
+        {
+          "id": "84c959fd9550",
+          "time": 1793887394.8326313,
+          "duration_s": 1.2,
+          "finish": "length",
+          "prompt_tokens": 8075,
+          "reused": 8052,
+          "prompt_read": 23,
+          "output_tokens": 32,
+          "first_engine_token_s": 0.454,
+          "prompt_ms": 429.0,
+          "decode_ms": 761.4,
+          "decode_tok_s": 42.0,
+          "hit_rate": 0.831,
+          "file_mb": 5832.0,
+          "drafts_offered": 33,
+          "drafts_accepted": 17
+        }
+      ]
+    }
+  ],
+  "d_finished": "14:03:16Z",
+  "e": {
+    "A": {
+      "status": 200,
+      "error": null,
+      "prompt_tokens": 29930,
+      "cached": 0,
+      "completion_tokens": 64,
+      "finish": "length",
+      "sent_s": 0.001,
+      "ttft_s": 41.536,
+      "done_s": 43.172,
+      "elapsed_s": 43.172,
+      "prompt_ms": 41478.6,
+      "prefill_tok_s": 721.6,
+      "decode_ms": 1655.4,
+      "decode_tok_s": 38.7,
+      "draft_n": 69,
+      "draft_accepted": 35
+    },
+    "B": {
+      "status": 200,
+      "error": null,
+      "prompt_tokens": 29954,
+      "cached": 0,
+      "completion_tokens": 64,
+      "finish": "length",
+      "sent_s": 0.201,
+      "ttft_s": 84.432,
+      "done_s": 85.941,
+      "elapsed_s": 85.74,
+      "prompt_ms": 41432.2,
+      "prefill_tok_s": 723.0,
+      "decode_ms": 1333.1,
+      "decode_tok_s": 48.0,
+      "draft_n": 59,
+      "draft_accepted": 38
+    },
+    "makespan_s": 85.941,
+    "sampler": {
+      "gpu_mem_max_mib": 11323,
+      "gpu_mem_min_mib": 11323,
+      "max_slots_processing": 1,
+      "max_queued": 1,
+      "gpu_series": [
+        [
+          0.0,
+          11323,
+          0
+        ],
+        [
+          1.1,
+          11323,
+          59
+        ],
+        [
+          2.2,
+          11323,
+          71
+        ],
+        [
+          3.2,
+          11323,
+          85
+        ],
+        [
+          4.3,
+          11323,
+          79
+        ],
+        [
+          5.3,
+          11323,
+          93
+        ],
+        [
+          6.4,
+          11323,
+          87
+        ],
+        [
+          7.5,
+          11323,
+          56
+        ],
+        [
+          8.5,
+          11323,
+          71
+        ],
+        [
+          9.6,
+          11323,
+          86
+        ],
+        [
+          10.6,
+          11323,
+          59
+        ],
+        [
+          11.7,
+          11323,
+          74
+        ],
+        [
+          12.7,
+          11323,
+          65
+        ],
+        [
+          13.8,
+          11323,
+          100
+        ],
+        [
+          14.8,
+          11323,
+          93
+        ],
+        [
+          15.9,
+          11323,
+          95
+        ],
+        [
+          17.0,
+          11323,
+          89
+        ],
+        [
+          18.0,
+          11323,
+          74
+        ],
+        [
+          19.1,
+          11323,
+          63
+        ],
+        [
+          20.1,
+          11323,
+          75
+        ],
+        [
+          21.2,
+          11323,
+          93
+        ],
+        [
+          22.2,
+          11323,
+          100
+        ],
+        [
+          23.3,
+          11323,
+          76
+        ],
+        [
+          24.3,
+          11323,
+          77
+        ],
+        [
+          25.4,
+          11323,
+          77
+        ],
+        [
+          26.5,
+          11323,
+          87
+        ],
+        [
+          27.5,
+          11323,
+          80
+        ],
+        [
+          28.6,
+          11323,
+          56
+        ],
+        [
+          29.6,
+          11323,
+          65
+        ],
+        [
+          30.7,
+          11323,
+          81
+        ],
+        [
+          31.7,
+          11323,
+          58
+        ],
+        [
+          32.8,
+          11323,
+          45
+        ],
+        [
+          33.9,
+          11323,
+          83
+        ],
+        [
+          34.9,
+          11323,
+          83
+        ],
+        [
+          36.0,
+          11323,
+          79
+        ],
+        [
+          37.0,
+          11323,
+          49
+        ],
+        [
+          38.1,
+          11323,
+          56
+        ],
+        [
+          39.1,
+          11323,
+          49
+        ],
+        [
+          40.2,
+          11323,
+          64
+        ],
+        [
+          41.3,
+          11323,
+          71
+        ],
+        [
+          42.3,
+          11323,
+          100
+        ],
+        [
+          43.4,
+          11323,
+          91
+        ],
+        [
+          44.4,
+          11323,
+          68
+        ],
+        [
+          45.5,
+          11323,
+          51
+        ],
+        [
+          46.5,
+          11323,
+          60
+        ],
+        [
+          47.6,
+          11323,
+          60
+        ],
+        [
+          48.6,
+          11323,
+          91
+        ],
+        [
+          49.7,
+          11323,
+          100
+        ],
+        [
+          50.8,
+          11323,
+          73
+        ],
+        [
+          51.8,
+          11323,
+          54
+        ],
+        [
+          52.9,
+          11323,
+          98
+        ],
+        [
+          53.9,
+          11323,
+          49
+        ],
+        [
+          55.0,
+          11323,
+          79
+        ],
+        [
+          56.0,
+          11323,
+          56
+        ],
+        [
+          57.1,
+          11323,
+          60
+        ],
+        [
+          58.2,
+          11323,
+          62
+        ],
+        [
+          59.2,
+          11323,
+          100
+        ],
+        [
+          60.3,
+          11323,
+          85
+        ],
+        [
+          61.3,
+          11323,
+          87
+        ],
+        [
+          62.4,
+          11323,
+          96
+        ],
+        [
+          63.4,
+          11323,
+          84
+        ],
+        [
+          64.5,
+          11323,
+          100
+        ],
+        [
+          65.6,
+          11323,
+          100
+        ],
+        [
+          66.6,
+          11323,
+          71
+        ],
+        [
+          67.7,
+          11323,
+          72
+        ],
+        [
+          68.7,
+          11323,
+          83
+        ],
+        [
+          69.8,
+          11323,
+          56
+        ],
+        [
+          70.8,
+          11323,
+          100
+        ],
+        [
+          71.9,
+          11323,
+          100
+        ],
+        [
+          73.0,
+          11323,
+          46
+        ],
+        [
+          74.0,
+          11323,
+          100
+        ],
+        [
+          75.1,
+          11323,
+          80
+        ],
+        [
+          76.1,
+          11323,
+          53
+        ],
+        [
+          77.2,
+          11323,
+          61
+        ],
+        [
+          78.2,
+          11323,
+          52
+        ],
+        [
+          79.3,
+          11323,
+          68
+        ],
+        [
+          80.3,
+          11323,
+          76
+        ],
+        [
+          81.4,
+          11323,
+          99
+        ],
+        [
+          82.5,
+          11323,
+          52
+        ],
+        [
+          83.5,
+          11323,
+          39
+        ],
+        [
+          84.6,
+          11323,
+          47
+        ],
+        [
+          85.6,
+          11323,
+          97
+        ]
+      ],
+      "slots_series": [
+        [
+          0.0,
+          0,
+          [
+            [
+              0,
+              false,
+              8075
+            ]
+          ]
+        ],
+        [
+          0.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          1.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          1.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          2.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          2.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          3.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          3.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          4.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          4.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          5.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          5.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          6.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          6.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          7.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          7.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          8.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          8.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          9.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          10.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          10.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          11.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          11.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          12.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          12.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          13.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          13.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          14.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          14.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          15.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          15.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          16.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          16.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          17.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          17.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          18.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          18.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          19.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          19.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          20.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          21.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          21.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          22.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          22.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          23.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          23.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          24.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          24.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          25.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          25.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          26.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          26.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          27.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          27.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          28.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          28.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          29.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          29.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          30.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          30.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          31.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          32.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          32.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          33.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          33.5,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          34.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          34.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          35.1,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          35.6,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          36.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          36.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          37.2,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          37.7,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          38.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          38.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          39.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          39.8,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          40.3,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          40.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          41.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          41.9,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          42.4,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          43.0,
+          1,
+          [
+            [
+              0,
+              true,
+              29930
+            ]
+          ]
+        ],
+        [
+          43.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          44.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          44.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          45.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          45.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          46.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          46.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          47.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          47.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          48.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          48.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          49.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          49.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          50.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          50.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          51.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          51.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          52.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          52.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          53.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          53.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          54.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          55.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          55.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          56.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          56.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          57.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          57.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          58.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          58.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          59.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          59.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          60.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          60.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          61.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          61.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          62.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          62.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          63.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          63.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          64.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          64.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          65.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          66.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          66.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          67.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          67.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          68.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          68.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          69.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          69.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          70.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          70.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          71.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          71.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          72.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          72.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          73.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          73.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          74.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          74.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          75.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          75.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          76.4,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          77.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          77.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          78.0,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          78.5,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          79.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          79.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          80.1,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          80.6,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          81.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          81.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          82.2,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          82.7,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          83.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          83.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          84.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          84.8,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          85.3,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ],
+        [
+          85.9,
+          0,
+          [
+            [
+              0,
+              true,
+              29954
+            ]
+          ]
+        ]
+      ]
+    },
+    "metrics": [
+      {
+        "id": "8d90784afb73",
+        "time": 1793887397.133086,
+        "duration_s": 43.1,
+        "finish": "length",
+        "prompt_tokens": 29930,
+        "reused": 0,
+        "prompt_read": 29930,
+        "output_tokens": 64,
+        "first_engine_token_s": 41.512,
+        "prompt_ms": 41478.6,
+        "decode_ms": 1655.4,
+        "decode_tok_s": 38.7,
+        "hit_rate": 0.797,
+        "file_mb": 13683.0,
+        "drafts_offered": 69,
+        "drafts_accepted": 35
+      },
+      {
+        "id": "de8f55d7e44a",
+        "time": 1793887440.2750623,
+        "duration_s": 42.8,
+        "finish": "length",
+        "prompt_tokens": 29954,
+        "reused": 0,
+        "prompt_read": 29954,
+        "output_tokens": 64,
+        "first_engine_token_s": 84.408,
+        "prompt_ms": 41432.2,
+        "decode_ms": 1333.1,
+        "decode_tok_s": 48.0,
+        "hit_rate": 0.837,
+        "file_mb": 9622.8,
+        "drafts_offered": 59,
+        "drafts_accepted": 38
+      }
+    ],
+    "slots_after": [
+      {
+        "id": 0,
+        "n_ctx": 32768,
+        "is_processing": false,
+        "n_prompt_tokens": 29954
+      }
+    ]
+  },
+  "e_finished": "14:04:43Z",
+  "nvidia_smi_end": {
+    "memory_used_mib": 11323,
+    "memory_total_mib": 12288,
+    "util_pct": 91,
+    "temp_c": 64,
+    "apps": [
+      [
+        "31749",
+        "11314"
+      ]
+    ]
+  },
+  "finished": "2026-11-05T14:04:43Z"
+}
