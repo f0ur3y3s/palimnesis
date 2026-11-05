@@ -10,7 +10,8 @@ judged by ``agent_settled``).
 - **Arm 1** (Pi's own compaction, D44.1 as for OpenCode): ``serve --passthrough``,
   ``compaction.enabled: true`` and every model's ``contextWindow`` at ``--expect-n-ctx``
   (the emulated context under ``--input-budget``). Pi's other compaction settings keep
-  their defaults unless ``--pi-keep-recent-tokens`` sets ``keepRecentTokens`` (HP5).
+  their defaults, except that ``keepRecentTokens`` is a quarter of a window too small for
+  Pi's default to compact anything (D99), or ``--pi-keep-recent-tokens`` (HP5).
 
 One task is one Pi session: the driver writes an empty session file whose id is the
 Palimnesis session id (``pi_harness.new_session_file``), and every task turn is one
@@ -80,11 +81,23 @@ def resolve_arm(arm: int) -> dict:
     raise ValueError(f"no Pi arm {arm}")
 
 
+# Pi 1.5.0's compaction defaults (``core/compaction/compaction.js``, docs/compaction.md).
+PI_RESERVE_TOKENS = 16_384
+PI_KEEP_RECENT_TOKENS = 20_000
+
+
 def pi_config(arm: int, n_ctx: int, keep_recent_tokens: int | None = None) -> dict:
     """The Pi settings an arm changes: ``context_window`` and ``compaction`` for
-    ``pi_harness.PiHome``. Arm 4 is the adapter unchanged."""
+    ``pi_harness.PiHome``. Arm 4 is the adapter unchanged.
+
+    Arm 1 keeps Pi's compaction defaults where they can work. Below a window of
+    reserve + keep (36,384) the threshold fires but Pi finds nothing to compact, so the
+    session runs into the window instead (R46). There arm 1 keeps a quarter of the window
+    unless ``keep_recent_tokens`` is given (D99)."""
     if arm == 1:
         comp = {"enabled": True}
+        if keep_recent_tokens is None and n_ctx < PI_RESERVE_TOKENS + PI_KEEP_RECENT_TOKENS:
+            keep_recent_tokens = n_ctx // 4
         if keep_recent_tokens is not None:
             comp["keepRecentTokens"] = keep_recent_tokens
         return {"context_window": n_ctx, "compaction": comp}

@@ -296,3 +296,27 @@ The first live development needle run through Pi (Chat, `a4-d77`) stopped at dev
    - The needle results record it as a model behaviour on Pi's sessions. It is not a proxy defect, and arm 4 is the only needle arm, so no comparison depends on it.
 3. **The Pi coding-task driver** (`eval/tasks/run.py --harness pi`, `eval/tasks/pi_task.py`). Arm 4 is the shipped adapter through `serve` (`a4-d77`). Arm 1 is `--passthrough` with Pi's compaction on and `contextWindow` set to the true capacity. Real Pi ran dev-t1 on both arms and dev-t4 on Messages against the fake upstream; the hidden checks passed, and arm 1's compaction was recorded.
 
+
+## D98: Two pre-existing races in the request lifecycle (S15 findings)
+
+Two full-suite runs on pythia each failed one test that passes most of the time. Both are real races in the proxy, not test faults, and both predate Phase 4B's review fixes.
+
+1. **A finished response no longer holds its session.**
+   - **Finding.** `test_session_usable_after_mid_stream_commit_failure` failed 2 runs in 4 when run alone. With storage down mid-stream, the relay could not record its terminal event, so the session's active marker stayed set. The request stayed in `live` (the requests this process is relaying) until its handler returned, which is after the final body and the `delivery_completed` write. A client that resent at once arrived inside that window and got 409 `request_in_progress`, although its response had ended.
+   - **Fix.** The handler drops the request from `live` just before the response's final body is sent. A marker outside `live` is abandoned as stale at the next request (contracts §11: "on the next request when its terminal event could not be written"). `attempt_abandoned` is terminal, so a later `interrupt` for the old request records only `delivery_failed`, never a second terminal event. In the normal path the terminal commit has already cleared the marker, so nothing changes there.
+   - **Test:** the existing one, now 8 of 8 alone.
+2. **Past the deadline, the record is the deadline's.**
+   - **Finding.** `test_a_client_that_stops_reading_cannot_hold_the_upstream_past_the_deadline` failed 2 runs in 20 without item 1, and as often with it. When the deadline cancels a send that is blocked on a client that stopped reading, the send can fail with an error rather than the window's cancellation. That skipped `_expired`, so the generic path recorded `cancelled`, or else `delivery_failed` with no reason. The upstream was closed on time in every run; only the archived reason was wrong.
+   - **Fix.** The generic path records through `ledger.expire` once the request's deadline has passed, and through `ledger.interrupt` otherwise. Both run after any terminal write already queued, so neither adds a second terminal event.
+   - **Test:** the existing one, now 25 of 25 alone.
+
+## D99: Pi's arm 1 keeps a quarter of a small window (S14 finding)
+
+- **Finding.** The first live dev-t1 run on arm 1 (Pi's own compaction, `contextWindow` 32,768) never compacted, and failed 0/4.
+  - Pi 1.5.0 compacts when the context passes `contextWindow − reserveTokens`, 16,384 here. It then keeps the newest `keepRecentTokens` (default 20,000) and summarizes what came before.
+  - Below a window of 16,384 + 20,000 = 36,384, the threshold fires, but `prepareCompaction` finds no cut point and returns nothing. Pi emits no event and does not compact.
+  - The session ran on toward the window. Pi then shrank `max_completion_tokens` to fit what was left, down to 1, and every turn from 4 on ended after one token with `length`.
+- **Rule.** Pi's defaults stay wherever they can work. Below 36,384, arm 1 sets `keepRecentTokens` to a quarter of the window: 8,192 at 32K. After a compaction the context is then about the fixed input, plus the summary, plus 8K, under the 16,384 threshold. `--pi-keep-recent-tokens` still overrides it, and `result.json` records the settings used (`pi_compaction`).
+- **Why not Pi's defaults as shipped:** at 32K they cannot compact at all, so arm 1 would measure a harness that runs out of context, not native compaction. D44.1 sets OpenCode's `limit.context` to the true window for the same reason: to measure compaction working.
+- **Rejected:** lowering `reserveTokens`. Compaction would then start later, closer to the window.
+- **The first dev-t1 arm 1 run** is kept in the records as attempt 2 and is not reported as arm 1's result. (`test_arm_1_keeps_few_enough_recent_tokens_for_compaction_to_run`)

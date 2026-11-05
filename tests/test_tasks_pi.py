@@ -81,8 +81,18 @@ def test_arm_4_keeps_the_adapter_and_arm_1_compacts_at_the_real_context():
         "compaction": adapter["compaction"]}
     assert pi_task.pi_config(4, 32768)["context_window"] == 1_000_000
     assert pi_task.pi_config(4, 32768)["compaction"] == {"enabled": False}
-    assert pi_task.pi_config(1, 32768) == {"context_window": 32768, "compaction": {"enabled": True}}
+    assert pi_task.pi_config(1, 65536) == {"context_window": 65536, "compaction": {"enabled": True}}
     assert pi_task.pi_config(1, 32768, 4000)["compaction"] == {"enabled": True, "keepRecentTokens": 4000}
+
+
+def test_arm_1_keeps_few_enough_recent_tokens_for_compaction_to_run():
+    """Pi's defaults (reserve 16,384, keep 20,000) compact nothing below a 36,384 window:
+    the threshold fires but ``prepareCompaction`` finds no cut point (D99). Below that,
+    arm 1 keeps a quarter of the window."""
+    assert pi_task.pi_config(1, 32768) == {
+        "context_window": 32768, "compaction": {"enabled": True, "keepRecentTokens": 8192}}
+    assert pi_task.pi_config(1, 36384)["compaction"] == {"enabled": True}
+    assert pi_task.pi_config(1, 36383)["compaction"]["keepRecentTokens"] == 9095
 
 
 def test_arm_fields_record_pi_settings_and_the_emulated_context():

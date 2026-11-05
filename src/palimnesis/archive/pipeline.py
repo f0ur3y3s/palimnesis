@@ -240,6 +240,12 @@ class ArchiveHandler:
             nonlocal started
             if message["type"] == "http.response.start":
                 started = True
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                # The client has the whole response once this goes out, and may send its
+                # next request at once. That request must not find this one still live:
+                # a terminal event storage could not record leaves the active marker,
+                # and only a marker outside ``live`` is abandoned as stale.
+                self.live.discard(plan.request_id)
             await send(message)
 
         try:
@@ -272,10 +278,15 @@ class ArchiveHandler:
             # Cancellation (client disconnect) or an unexpected failure: record it
             # if storage allows, never claim success. ledger.interrupt runs after
             # any terminal write already queued, so it never adds a second one.
+            # Past the deadline, the record is the deadline's: a send to a client that
+            # stopped reading can fail with a transport error rather than the window's
+            # cancellation, and that must not turn into ``cancelled`` (D98).
             if plan.replay is None and not gen.delivered:
+                record = (ledger.expire if anyio.current_time() >= expires
+                          else ledger.interrupt)
                 with anyio.CancelScope(shield=True):
                     try:
-                        await self.store.write(lambda c: ledger.interrupt(c, gen))
+                        await self.store.write(lambda c: record(c, gen))
                     except Exception:
                         log.exception("could not record the interrupted attempt")
             raise

@@ -885,7 +885,7 @@ def main() -> int:
     p.add_argument("--protocol", choices=["chat", "messages"], default="chat",
                    help="Pi only: the adapter's provider (OpenCode runs Chat)")
     p.add_argument("--pi-keep-recent-tokens", type=int,
-                   help="Pi arm 1 only: compaction.keepRecentTokens (default: Pi's own)")
+                   help="Pi arm 1 only: compaction.keepRecentTokens (default: Pi's own, or a quarter of a window too small for it, D99)")
     p.add_argument("--task", choices=TASKS)
     p.add_argument("--arm", type=int, choices=[1, 4, 5])
     p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith(("a4-", "a5-"))],
