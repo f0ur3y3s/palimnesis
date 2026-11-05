@@ -194,3 +194,14 @@ Supersedes D84 item 7, and settles the counter fix D82 asked for.
 4. **The `/status` guard, one slot only.** Before dispatch, `UpstreamProfile.slot_probe` (Strata: `GET /status`) is polled every 0.25 s while it shows `busy` or `queued`. With several slots the upstream is meant to be busy, so the guard is off. A route that is missing or slow (1 s) turns the probe off rather than holding dispatch.
 5. **Deferred:** the 60 s release ceiling that would mark the upstream unhealthy (contracts §8, still [defined]). The guard waits within each request's `D` instead. Command-line flags for Q, H and K are also deferred: the defaults fit all three harnesses' 300 s idle limits.
 6. **Test fake.** `tests/fake_upstream.py` answers `GET /status` statically (`status_busy`, `status_queued`), outside `requests`, like `/props`.
+
+## D90: Harness strings as adapter data; the tool-result instruction rule deferred (Phase 4B S7)
+
+1. **Harness-written user prefixes are adapter data.** Each adapter declares them in `integrations/<harness>/synthetic_user_prefixes.json`, each with the probe that recorded it. Core reads their union as one flat list (`palimnesis.harness_strings`), which names no harness. `test_harness_synthetic_prefixes_from_adapter_data` keeps the two equal. OpenCode's two strings moved there unchanged, so OpenCode behaviour is unchanged. Claude Code and Pi declare none: no probe has recorded one (HC2–HC9, HP1–HP7).
+2. **"A user message carrying a tool result is never an instruction": deferred, for lack of a case.**
+   - In the neutral form a tool result is a `tool` message, never a user message, so a Messages user turn of tool results alone is no instruction already.
+   - The rule would matter only for text blocks beside a tool result. Neither harness sends them: none in 269 captured Claude Code requests (103 tool-result turns), none in Pi's 8.
+   - Making it hold would need a per-occurrence flag carried through the archive and every caller of `is_instruction`, which read message text. That is not worth building for a shape no harness sends.
+   - If a capture shows one, the Messages split is where to mark it.
+3. **Claude Code's interrupt marker is unverified.** No capture holds Claude Code's message after a user interrupts a tool call. `test_cc_interrupt_marker_hosts_no_excerpt` waits for one. Recording it needs an interactive run, which S13's live smoke can include. If it is a harness-written user message, its prefix goes into `integrations/claude-code/`.
+4. **What S7 does cover:** a late system entry starts no turn (D86), and a tool-result-only user turn adds no instruction. Both are tested on the neutral split.

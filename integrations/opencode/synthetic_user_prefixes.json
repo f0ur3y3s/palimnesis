@@ -1,0 +1,14 @@
+{
+  "harness": "OpenCode 2.1.4",
+  "about": "User-role messages OpenCode writes itself. They are not user instructions: they start no turn and host no excerpt (palimnesis.harness_strings, archive.turns).",
+  "prefixes": [
+    {
+      "text": "The previous response was interrupted. Continue from where you left off",
+      "evidence": "docs/probes/opencode_partials.md; docs/probes/harnesses.md (Continue after a partial)"
+    },
+    {
+      "text": "Your last response hit the output token limit (stop reason: length).",
+      "evidence": "docs/probes/opencode_faults.md (length follow-up); D67"
+    }
+  ]
+}

@@ -105,3 +105,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D87 | Messages archive route (S4) | [phase4b.md](phase4b.md) |
 | D88 | Errors on Messages (S5) | [phase4b.md](phase4b.md) |
 | D89 | Proxy admission: FIFO, 429, H and K, `/status` guard (S6) | [phase4b.md](phase4b.md) |
+| D90 | Harness strings as adapter data; tool-result rule deferred (S7) | [phase4b.md](phase4b.md) |
