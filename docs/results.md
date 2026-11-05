@@ -2075,3 +2075,61 @@ Commit `5048e8f`, clean tree, 14:02–16:23Z, tag `dev-r40`, Strata on Zeus in i
 - **Next decision (the user's):** what goes to a fresh held-out set.
   - `a4-trn2` or `a4-trn2h` as is, accepting the needle cost.
   - Or a change aimed at the early stop first. The proxy sets no sampling parameters (R38-D), so the options are a harness-side temperature or a change in how the notes shape the answer turn, and either is a new decision.
+
+## R41 — D77 held-out run: `a4-d77` on ho3 (2026-11-04/05, pythia, held-out per D77)
+
+**Outcome: every D77 gate passes.**
+- **Needles: 115/120 loose exact (95.8%)**, against the 85% bar.
+- **Coding: `a4-d77` 5/5, arm 1 (native compaction) 4/5.** `ho3-t3` passed under `a4-d77` with its key constraint held.
+- **Archives:** every `a4-d77` archive has clean D44.6 inputs.
+- **Comparability:** nothing was waived or rerun. Per D77.7 this judges `a4-d77` on fresh data at 32K on pythia (Strata 0.1.54, D76), and no number here is evidence against a Zeus run.
+
+Commit `f2bd688`, clean tree on pythia, real OpenCode 2.1.4. Needles ran first (one attempt, 113.6 min wall), then the tasks in D77.8's order from 14:16Z on 11-04 to 02:54Z on 11-05. Records on pythia: `~/runs/d77/needles/records/attempt-001/` and `~/runs/d77/tasks/records/attempt-001..010/`, with logs `~/runs/d77/needles.log` and `tasks.log`.
+
+**R41-A. Needle gate (D44.4).**
+
+| Arm | Loose exact | 95% Wilson | History-clustered bootstrap | Strict exact | Needle in view / excerpt / absent | Exact when absent | Lookups (questions) | Prompt / completion tokens | Upstream calls |
+|---|---|---|---|---|---|---|---|---|---|
+| `a4-d77` | **115/120 (95.8%)** | 90.6–98.2% | 93.3–98.3% (10,000 resamples, seed 44) | 113 | 91 / 29 / 22 | 22/22 | 41 (22) | 5.56M / 162K | 298 |
+
+- **Categories:** identifier 23/24, vague 23/24, mid_task 9/12. irrelevant_matches, multi_fact, oversized_read, restart_multi_eviction and superseded were all 12/12.
+- **All 5 loose misses gave the right value with extra text.** There were no empty answers, nothing cut short and no wrong values. The upstream early stops of R36–R40 did not occur: 0 here, against 20/240 for `a4-trn2h` on ho2 (R40). Host, Strata build and set all differ from R40, so the drop is not attributable to any one of them.
+  - In each miss, the model first did workspace work and then explained:
+    - three `mid_task` questions (ho3-h2, h7 and h12, q7) answered `38`, `950` and `125`, each followed by a note about the failing test;
+    - ho3-h1 q2 wrote the branch name to a file before quoting it;
+    - ho3-h3 q10 made 5 workspace tool calls and appended the old name.
+  - This is R39's return to the coding task, seen 5 times in 120 questions.
+- **The 2 strict-only misses** (ho3-h3 q2 and h11 q2) were the branch name in backticks.
+- **Gate inputs:**
+  - `--explain` exit 0 with 286/286 pairs explained, `transcripts verify` 12/12, and 0 over-budget inputs;
+  - leak scans: 0 leaks and 0 echoes over 144,312 client texts and 516 transcript texts; the internal scan found 0 hard leaks and 0 model or harness mentions;
+  - 0 hidden calls, 0 errored questions, 0 foreign requests during or between calls, and 0 view-disabled or unbounded forwards.
+
+**R41-B. Coding gate (D44.5).** One attempt per task and arm. Constraints are given as held/3.
+
+| Task | `a4-d77` | Arm 1 (native, `limit.context` 32768) |
+|---|---|---|
+| ho3-t1 | **pass**, 3/3 · 64 calls · 42 min · kills 0 | **fail**, 1/3 (C1, C2) · 207 · 150 min · kills 4, 1 `compaction.failed` |
+| ho3-t2 | **pass**, 3/3 · 56 · 36 min · kills 0 | pass, 2/3 (C2) · 67 · 42 min · kills 0 |
+| ho3-t3 (restart) | **pass**, 3/3, restart gate True · 103 · 61 min · kills 0 | pass, 3/3, restart gate True · 161 · 79 min · kills 1, 1 `compaction.failed` |
+| ho3-t4 | **pass**, 3/3 · 53 · 33 min · kills 0 | pass, 3/3 · 175 · 98 min · kills 2 |
+| ho3-t5 | **pass**, 3/3 · 84 · 60 min · kills 0 | pass, 3/3 · 249 · 156 min · kills 4, 1 `compaction.failed` |
+| Total | **5/5, 15/15 constraints** · 360 calls · 6.0M prompt tokens · 0 kills | 4/5, 12/15 · 859 calls · 11.4M prompt tokens · 11 kills |
+
+- **Arm 1's failures on t1, t3 and t5:**
+  - each ended an OpenCode turn with exit 1 and `compaction.failed`, "Compaction summary reached the output token limit" on t1 and "Compaction produced no summary" on t3 and t5;
+  - every upstream call in those turns returned 200 with no proxy errors, so each is a task outcome, not an infrastructure failure (D44.7), and the session went on, as on ho-t1 (R25);
+  - arm 1 made 154 compaction calls in all.
+- **`a4-d77`:**
+  - its largest input was 24,228 tokens, under the 24,320 budget, with 0 over-budget inputs;
+  - `--explain`, verification and the leak scans were clean on all five archives;
+  - its longest turn was 1,796 s on ho3-t3, inside the 30-minute limit.
+- **Neither arm:** had proxy rejections. The tap counted 2 foreign requests between calls on ho3-t1 arm 1, which is not a gate input for arm 1.
+
+**R41-C. Reading.**
+- **The working-notes arm generalizes to a fresh set.** On ho3, `a4-d77` passed every task with every constraint, using 42% of arm 1's upstream calls and 53% of its prompt tokens, with no 30-minute kills against arm 1's 11.
+- **The needle cost from ho2 did not show here.** That cost was 102–111/120 with 7–13 early stops. Recall stayed at 115/120, and the misses that remain are the arm returning to the coding task.
+- **What one run cannot say:** one attempt per task and arm, and one needle attempt. pythia's slower decode (D76) puts more pressure on arm 1's turns than Zeus did.
+- **Next:**
+  - Making `a4-d77`'s settings the shipped default is a separate decision.
+  - The extra-text misses are the one recall failure left to look at, on development data.
