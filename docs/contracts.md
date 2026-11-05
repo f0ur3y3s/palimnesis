@@ -162,6 +162,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 - **Exhaustion.** Too little allowance for a continuation, or a limit of §15 reached, ends the response with the length stop. Every hidden call made by then has a result in the archive, so later renders never hold a call without one. OpenCode answers a length stop with a follow-up turn of its own (`harnesses.md`).
 - **Deadline expiry** cancels upstream work and returns the timeout error (§5); `D` covers every call of the response.
 - **Reporting.** The client's usage reports the last call's prompt and the summed completion tokens. Each call's own usage is in its `upstream_call` event.
+  - Messages clients get it in Anthropic's terms (§16): `input_tokens` = prompt − cached, `cache_read_input_tokens` = cached, `cache_creation_input_tokens` = 0, `output_tokens` = the summed completion. Input plus cache read equals the bounded view's prompt.
 
 ## 8. Scheduling and slot release
 
@@ -283,4 +284,11 @@ A visible response is one upstream call, or several when hidden recall tools ans
 | `cache_control`, `signature`, `metadata.user_id`, `eager_input_streaming`, `thinking.display`, `thinking.type` `enabled`/`adaptive` | Accepted, not rendered |
 | `redacted_thinking`, `image`, `document`, server tools and their blocks, `top_k`, `stop_sequences`, other `tool_choice` forms, `context_management`, unknown fields | Rejected |
 
+- **Emission** (`palimnesis.protocols.messages_emit`, S3) **[enforced]** for the emitter; the route is S4.
+  - The upstream's Chat stream becomes `message_start`, then a content block per run of reasoning (`thinking`), text or one tool call (`tool_use`, opened once its name is known, arguments as `input_json_delta`), then `message_delta` and `message_stop` at `[DONE]`. A change of kind closes the open block.
+  - Stop reasons: `stop` → `end_turn`, `tool_calls` → `tool_use`, `length` → `max_tokens`. A tool call cut off by the length stop is streamed as Strata streams it: a closed `tool_use` block whose JSON does not parse.
+  - Thinking blocks carry `signature: ""` and no `signature_delta` (O-4B-2).
+  - Without `[DONE]` there is no `message_stop`: the stream ends with one `event: error` in Anthropic's envelope. An upstream error chunk becomes that event with its message verbatim.
+  - Comments pass through; the proxy's own keepalive is `event: ping`.
+  - Non-streaming: one Messages object. A tool call whose arguments do not parse is left out, as Strata's non-streaming route does.
 - **Content identity.** A message's content hash covers only what renders, so a moved `cache_control` and a single text block sent as a string hash alike. The fingerprint (§6) covers the raw body minus `stream`.

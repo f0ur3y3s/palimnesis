@@ -140,3 +140,13 @@ The S0 probes are in `docs/probes/strata.md` §13, `docs/probes/pi.md` and `docs
 6. **Rejected where Strata would drop silently:** `redacted_thinking`, `document`, images and unknown block types. Strata leaves them out of the prompt. Accepting them would make the archive hold content the model never saw.
 7. **Late `system` becomes `user`.** It is rendered as Strata renders it, but the core would then take it for a user instruction. S7's instruction rule must leave such a message out; until then, Messages archive mode is not offered (S4 lands after S7's rule or with it).
 8. **Tool-call arguments are compact JSON in the client's key order.** Strata parses arguments into an object before rendering, so spacing does not reach the tokens; key order does (M2). The generated turn's archived arguments are the upstream's own string, so S4 must reconcile a resent `tool_use` input against it by JSON value in order, not by bytes.
+
+## D85: The Messages emitter (Phase 4B S3)
+
+`palimnesis.protocols.messages_emit.MessagesEmitter` implements the `Emitter` of D83 for Messages clients. It is a pure state machine over the upstream's Chat SSE bytes. Contracts §16 lists its output; the choices the plan left open:
+
+1. **`message_start` reports `input_tokens: 0`.** The bounded view's prompt is only known from the final Chat usage, which `message_delta` carries. Plan §2.5 lets admission send `message_start` early with a locally counted input; S6 decides that, and the emitter takes no count until then.
+2. **Cut-off tool calls copy Strata.** A length stop inside arguments streams a closed `tool_use` block with unparseable JSON (Strata's streaming route), and the non-streaming body leaves the call out (Strata's non-streaming route). Both arms then show a client the same thing.
+3. **One error event.** An upstream error chunk becomes `event: error` with the upstream's message verbatim (plan §2.3: Claude Code matches on wording). The relay's own error after it is suppressed, so a client never sees two.
+4. **Lone surrogates** in generated text are sent as `\u` escapes, so the client always gets strict UTF-8, as Chat clients get Strata's own escapes.
+5. **Comments pass through** and the proxy's keepalive is `event: ping`. HC5 and HP4 show Claude Code and Pi accept both, also before `message_start`.

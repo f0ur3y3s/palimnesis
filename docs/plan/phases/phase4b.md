@@ -1,6 +1,6 @@
 # Phase 4B plan: harness expansion
 
-> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). Next: S3–S5, with S6 and S7 alongside.
+> **Status:** S0 probes done (Strata §13, `pi.md`, `claude_code.md`); every decision settled (D81, D82, which also corrects positions 3 and 6). One Strata slot kept (O-4B-7, D83). S1 done (D83). S2 done (D84). S3 done (D85). Next: S7's instruction rule, then S4 and S5; S6 alongside.
 
 Planner output, 2026-11-05, at `8df2a68` (after `phase-3`, R42). Module paths follow D80's layout.
 
