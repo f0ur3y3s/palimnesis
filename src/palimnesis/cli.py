@@ -95,6 +95,9 @@ def _settings(args: argparse.Namespace) -> Settings:
     if args.pin_instructions < 0:
         print("error: --pin-instructions takes a token count of 0 or more", file=sys.stderr)
         raise SystemExit(2)
+    if args.notes < 0:
+        print("error: --notes takes a token count of 0 or more", file=sys.stderr)
+        raise SystemExit(2)
     db_path = None if args.passthrough else (args.db or default_db_path())
     return Settings(upstream_base_url=args.upstream, capture_dir=args.capture_dir,
                     db_path=db_path, synchronous=args.synchronous, view=args.view,

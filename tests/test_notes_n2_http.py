@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from palimnesis.upstreams.strata import tokens
 from palimnesis.view import ViewPolicy, notes_block, notes_prompt
 
@@ -144,6 +146,24 @@ def test_a_malformed_refresh_stream_is_failed_and_recorded(tmp_path):
         s, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
     assert first["outcome"] == "malformed"
 
+
+@pytest.mark.parametrize("event", [b"data: 42\n\n", b"data: [1]\n\n",
+                                   b'data: {"choices":[{"index":0,"delta":{"tool_calls":'
+                                   b'[{"function":{"name":"x"}}]}}]}\n\n'])
+def test_a_refresh_event_of_the_wrong_shape_is_malformed_too(tmp_path, event):
+    """Phase 3 acceptance protocol review 2 (R42): valid JSON of the wrong shape is rejected
+    by the parser too, and recorded as such, not as 'cancelled'."""
+    with view_stack(tmp_path, **N2) as (fake, url, s):
+        fake.respond_sse([chunk({"content": "Objective"}), event, DONE])
+        fake.respond_counted("visible answer")
+        r = post(url, _body(_messages()))
+
+    assert r.status_code == 200 and "visible answer" in r.text
+    [(_, status, reason, _)] = _notes_rows(s)
+    assert (status, reason) == ("failed", "malformed")
+    [first, *_] = [json.loads(p) for (p,) in rows(
+        s, "SELECT payload FROM events WHERE kind = 'upstream_call' ORDER BY event_id")]
+    assert first["outcome"] == "malformed"
 
 def test_a_slot_smaller_than_its_header_fails_too_long_without_hanging(tmp_path):
     """Review F2 (D72): fitting never loops when the header alone exceeds the slot."""

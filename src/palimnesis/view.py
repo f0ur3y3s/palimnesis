@@ -35,9 +35,11 @@ Mechanisms (docs/papers.md):
   With ``notes_tokens`` S, S is reserved out of the maskable capacity, as Q is, and the
   oversized and last-resort steps leave S free. A state naming a notes version renders
   its text as one user-role block right after the leading system message, once anything
-  is collapsed: a fixed place, so a later collapse never moves it past a kept message. A move that advances the collapse boundary returns ``refresh``: the request
-  as it rendered before the move, plus ``NOTES_PROMPT``, which the proxy sends upstream
-  to have the model rewrite its notes before the older messages leave its view. The
+  is collapsed: a fixed place, so a later collapse never moves it past a kept message.
+  A move that advances the collapse boundary returns ``refresh``: the request as it
+  rendered before the move (stubbed newest-first if it would overflow, see ``_refresh``),
+  plus the format's notes prompt (``notes_prompt``), which the proxy sends upstream to
+  have the model rewrite its notes before the older messages leave its view. The
   builder itself still makes no upstream calls. Notes format n2 (D74, R34-C) asks for the
   current step second and for a length sized to S, and ``fit_notes`` then cuts every
   section to its first lines instead of cutting the text to a prefix. A reply with no
@@ -46,7 +48,8 @@ Mechanisms (docs/papers.md):
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
-  capacity and ``F`` the non-evictable input. Unchanged views keep the
+  capacity and ``F`` the non-evictable input. With the current turn last (D70),
+  a view left between ``T`` and ``H`` after the turn's own stubbing is accepted. Unchanged views keep the
   upstream's prefix cache.
 
 - **Excerpt blocks** (amendment A1, D20). An item may carry a frozen excerpt
@@ -283,6 +286,9 @@ class View:
     evicted_now: tuple[str, ...] = ()
     # D72: the refresh request for a move that advanced the collapse boundary.
     refresh: "View | None" = None
+    # True when such a move's refresh could not fit B_in even with every unmasked
+    # result stubbed: no call is sent, and the proxy records the failure (R42).
+    refresh_skipped: bool = False
 
 
 def _group_starts(items: Sequence[ViewItem]) -> list[int]:
@@ -760,7 +766,8 @@ def build(items: Sequence[ViewItem], *, tools: Sequence[Mapping] | None,
     new_state = b.keep_fixed(new_state)
     result = view(new_state, new_state != original, base_manifest)
     if policy.notes_tokens and new_state.collapse_seq != before.collapse_seq:
-        result = replace(result, refresh=_refresh(b, before, budget))
+        refresh = _refresh(b, before, budget)
+        result = replace(result, refresh=refresh, refresh_skipped=refresh is None)
     if result.tokens > budget.input_budget:
         raise BudgetError(
             f"the view needs {result.tokens} tokens after masking everything maskable; the "

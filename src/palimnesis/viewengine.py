@@ -182,6 +182,9 @@ class ViewEngine:
                                                         fmt=self.view_policy.stub_format)}
             fixed_tokens = self.counter.count_messages([*fixed, note], counted_tools, **args) \
                 + RESIDUE_SLACK
+            # Working notes (D72): once a version is committed, every view with anything
+            # collapsed renders it, so the slot S the builder reserves is reserved here too.
+            fixed_tokens += self.view_policy.notes_tokens
         check_fixed(budget, fixed_tokens=fixed_tokens + extra_fixed)
         if self.mode == "off":
             total = self.counter.count_messages(messages, tools, **args)

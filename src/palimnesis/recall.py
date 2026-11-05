@@ -19,7 +19,8 @@ back verbatim in a block appended to that message. Adaptations:
   empty query, recorded as such rather than searched.
 - **Only what the view dropped (D26).** Candidates are the blocks the base view
   no longer shows: every block of a collapsed message, and the replaced block
-  of a stubbed one (a tool result, or reasoning), older than the instruction.
+  of a stubbed one (a tool result, or reasoning; r2 drops reasoning, below),
+  older than the instruction.
   Text still verbatim in the view, system messages and excerpt text itself
   (never archived as a block) are never candidates.
 - **Retrieval r1 (D29).** BM25 over chunks (D27), a relevance floor (one

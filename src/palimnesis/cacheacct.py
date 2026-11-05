@@ -241,14 +241,14 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     lcp = common_prefix(a.ids, b.ids)
     estimate = model.expected(a, b)
     out = {"lcp_tokens": lcp, "first_diff": None, "expected_reuse_est": estimate}
-    if cur.call_id.endswith("#notes"):
-        # D72: the proxy's own refresh call, built from the previous view plus the new
-        # messages (newest stubbed first if it must fit B_in) and the notes prompt.
-        out["cause"] = "state_refresh"
-        return out
     if lcp >= a.generation_start:
+        # D72: the proxy's own refresh call, the previous view plus the new messages and
+        # the notes prompt, is `state_refresh` when it extends the call before it. One
+        # that changes earlier tokens (the addendum it is first to carry, or a result it
+        # had to stub to fit B_in) is analysed like any other call (cache audit, R42).
         # A call inside one visible response extends the one before it (D51).
-        out["cause"] = ("internal_continuation" if prev.request_id == cur.request_id
+        out["cause"] = ("state_refresh" if cur.call_id.endswith("#notes")
+                        else "internal_continuation" if prev.request_id == cur.request_id
                         and "#" in cur.call_id else "append")
         return out
     s = _changed_segment(prev, cur, a.segment_at(lcp))

@@ -297,6 +297,8 @@ class ArchiveHandler:
             return True
         if view.refresh is not None:
             view = await self._refresh_notes(scope, req, plan, prepared, view, api_path, headers)
+        elif view.refresh_skipped:
+            await self._record_skipped_refresh(plan)
         selected = None
         hosted = any(i.excerpt for i in plan.items if i.occ_id == plan.host_occ_id)
         if plan.host_occ_id is not None and not hosted:
@@ -378,6 +380,16 @@ class ArchiveHandler:
             log.warning("notes refresh skipped: %s", type(e).__name__)
             return view
 
+    async def _record_skipped_refresh(self, plan) -> None:
+        """A collapse whose refresh could not fit B_in sends no call; the notes the view
+        had stay, and the failure is recorded as ``over_budget`` (contracts §2, R42)."""
+        base_n = plan.view_n
+        try:
+            await self.store.write(lambda c: ledger.record_notes(
+                c, plan, base_view_n=base_n, text="", status="failed", reason="over_budget"))
+        except Exception as e:  # noqa: BLE001 - a notes defect never fails the request
+            log.warning("notes refresh skip not recorded: %s", type(e).__name__)
+
     async def _refresh_notes_once(self, scope, req, plan, prepared, view, api_path, headers):
         overrides = {prepared.limit_field: prepared.budget.reserve, "stream": True,
                      "stream_options": {"include_usage": True}}
@@ -396,21 +408,29 @@ class ArchiveHandler:
                     upstream = await self.client.send(request, stream=True)
                     try:
                         if upstream.status_code != 200:
-                            await upstream.aread()
+                            failure = await upstream.aread()
                             reason, status = "upstream_status", upstream.status_code
+                            # A 5xx or a context-window 400 invalidates the facts, as on
+                            # the client's own call (contracts §1).
+                            self.views.profile.facts.observe(status, failure)
                         else:
                             parser = SSEParser()
                             try:
                                 async for chunk in upstream.aiter_raw():
                                     for event in parser.feed(chunk):
                                         stream.apply(event)
-                            except ValueError:  # an event the parser rejects
+                            # An event the parser rejects: bad JSON, or valid JSON of the
+                            # wrong shape (``data: 42``, a tool-call delta without an index).
+                            except (ValueError, TypeError, AttributeError, KeyError,
+                                    IndexError):
                                 reason = "malformed"
                     finally:
                         with anyio.CancelScope(shield=True):
                             await upstream.aclose()
                 except httpx.TransportError:
                     reason = "transport_error"
+                    profile = self.views.profile
+                    profile.facts.mark_stale(profile.errors.staleness_reason(None))
             if window.cancelled_caught:
                 reason = "timeout"
             written, source = stream.content.strip(), None
@@ -443,9 +463,12 @@ class ArchiveHandler:
         notes_id, n = await self.store.write(record)
         if reason:
             return view
-        plan.notes = {notes_id: (n, text)}
+        notes = {notes_id: (n, text)}
         state = replace(view.state, notes=notes_id)
-        rebuilt = await self.views.build(prepared, replace(plan, view_state=state))
+        rebuilt = await self.views.build(prepared, replace(plan, view_state=state, notes=notes))
+        # Only once the view naming them is built: a rebuild that raises returns the
+        # previous view, whose notes the plan must still hold (protocol review, R42).
+        plan.notes = notes
         # A rebuild that moves again keeps what it evicted visible to retrieval (A1).
         evicted = tuple(dict.fromkeys((*view.evicted_now, *rebuilt.evicted_now)))
         return replace(rebuilt, moved=True, evicted_now=evicted)

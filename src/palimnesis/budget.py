@@ -98,17 +98,20 @@ def check_fixed(budget: Budget, *, fixed_tokens: int) -> None:
 
 
 def check_floor(n_ctx: int, *, fixed_min: int, client_limit: int | None,
-                policy: BudgetPolicy) -> None:
-    """Startup floor: the smallest fixed input plus a minimum recent window must fit."""
+                policy: BudgetPolicy, notes: int = 0) -> None:
+    """Startup floor: the smallest fixed input plus a minimum recent window must fit, with
+    the working-notes slot (D72) reserved as admission reserves it (R42)."""
     budget = plan_budget(n_ctx, client_limit=client_limit, policy=policy)
-    need = fixed_min + policy.min_recent + budget.reserve + budget.margin
+    need = fixed_min + policy.min_recent + notes + budget.reserve + budget.margin
     if need > n_ctx:
         terms = {"fixed_min": fixed_min, "min_recent": policy.min_recent,
+                 **({"notes": notes} if notes else {}),
                  "reserve": budget.reserve, "margin": budget.margin, "n_ctx": n_ctx}
+        slot = f" + notes {notes}" if notes else ""
         raise BudgetError(
             f"bounded views need {need} tokens (fixed {fixed_min} + recent window "
-            f"{policy.min_recent} + reserve {budget.reserve} + margin {budget.margin}) but the "
-            f"upstream context is {n_ctx}",
+            f"{policy.min_recent}{slot} + reserve {budget.reserve} + margin {budget.margin}) "
+            f"but the upstream context is {n_ctx}",
             terms,
         )
 

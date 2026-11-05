@@ -226,3 +226,11 @@ def test_settings_defaults_stay_the_frozen_base_d78():
     from palimnesis.config import Settings
 
     assert _fields(Settings(upstream_base_url="http://u:8080"), BASE_D43) == BASE_D43
+
+
+def test_serve_refuses_a_negative_notes_slot(tmp_path):
+    from palimnesis.cli import serve_settings
+
+    with pytest.raises(SystemExit):
+        serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db"),
+                        "--notes", "-5"])

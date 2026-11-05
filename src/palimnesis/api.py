@@ -115,7 +115,8 @@ class FlooredViews:
             try:
                 check_floor(facts.n_ctx,
                             fixed_min=counter.count_messages([{"role": "user", "content": ""}]),
-                            client_limit=None, policy=self._engine.policy)
+                            client_limit=None, policy=self._engine.policy,
+                            notes=self._engine.view_policy.notes_tokens)
             except BudgetError as e:
                 self.floor_error = e
                 log.warning("bounded views disabled: the startup floor fails: %s (terms: %s)",

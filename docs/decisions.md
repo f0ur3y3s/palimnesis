@@ -1090,3 +1090,30 @@ Written on 2026-11-05, after R41, at the user's go-ahead.
      - Neither was run live. The README advises `--notes 0` under about 8,000 input tokens; scaling the slot to the budget would be a new mechanism, not part of the measured arm.
 6. **Harness neutrality.** Archive mode serves only OpenAI Chat Completions today; Anthropic Messages is rejected until Phase 4B. When Phase 4B adds Messages archiving, these defaults apply to it too, subject to that phase's own checks.
 7. **Known residual.** R41's five needle misses were the right value with extra text, after the model returned to the coding task. That is development work for later and does not hold this default back.
+
+## D79 — Phase 3 acceptance review fixes to the shipped configuration (R42)
+
+Written on 2026-11-05. The protocol review, cache audit and paper-fidelity review of everything changed since S12 (`9482265`), run on the D78 configuration, found no blocker. Every should-fix is fixed test-first (`tests/test_phase3_acceptance_fixes.py` and the tests named below), and the contracts and docstrings are updated.
+
+1. **Admission and the startup floor reserve the notes slot.**
+   - The finding: admission counted the fixed input and the history's span residue but not S. Once a notes version exists, every view with anything collapsed renders it. So a request could pass admission and then fail the builder's final check, a `400` after acceptance (§2 "Per request").
+   - The fix: admission adds S whenever there is older history; the floor is `F + min_recent + S + R + M`.
+   - This refuses, before acceptance, a band of requests that `--notes 0` would admit. That is the reservation the builder already makes, now applied where the contract needs it.
+   - Rejected: adding the committed block's actual size instead of S. That ties admission to the notes text, which changes with every refresh, so a request that fits now could stop fitting after the next refresh.
+2. **Refresh-call accounting.** A `#notes` call is `state_refresh` only when its LCP reaches the previous call's generation start; otherwise it is analysed like any other call.
+   - Re-checked on R41's archives from the tap's exact bodies (scratch `refresh_pairs.py`): 14 refresh pairs were labelled `state_refresh` without extending.
+     - On each of the five `a4-d77` tasks, the first refresh is the first call carrying the transcript addendum, appended to the system message (`view_format_change`).
+     - On the needles, 9 of 48 had stubbed earlier content to fit `B_in`: 8 tool results and 1 reasoning block.
+   - All 14 are allowed causes, so R41's D44.6 inputs stand.
+3. **Refresh failures are recorded completely.**
+   - Valid JSON of the wrong shape is `malformed`, not `cancelled`: `test_a_refresh_event_of_the_wrong_shape_is_malformed_too`.
+   - A refresh that cannot fit `B_in` even with everything stubbed sends no call and is recorded `over_budget`.
+   - A refresh's 5xx, context-window 400 or transport error marks the upstream facts stale, as the client's own call does (§1).
+4. **Smaller fixes.**
+   - The plan's notes change only after the view naming them is built, so a rebuild that raises leaves the plan on the view actually sent.
+   - `--notes` refuses negative values.
+5. **Documented, not changed.**
+   - The refresh stubs newest first, the newest group included, for its own call (§2).
+   - Excerpts selected under r1 before an upgrade are reused (§11).
+   - A second collapse inside one request's rebuild keeps the new notes without another refresh (`capabilities.md`).
+   - `docs/papers.md` now records the Complexity Trap hybrid as related work, not the notes' source, and that reasoning is searched only under r1.

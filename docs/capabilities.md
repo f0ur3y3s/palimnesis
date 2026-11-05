@@ -97,16 +97,21 @@ These are the limits of the first usable release. They are rejected or documente
 
 ## Known limits of Phase 3
 
-Phase 3's held-out coding gate failed at 32K (R25): Palimnesis succeeded on 3 of 5 tasks, against 5 of 5 for OpenCode's own compaction, and failed the restart task. The needle gate passed, 120/120. At 64K both arms succeeded on all 5, but the budget barely bound there (R26). Recall passed the 32K needle gate on synthetic planted facts (one attempt, one model, one harness, with 32 of the 120 needles still in view). It is unproven for long coding sessions at small contexts.
+Phase 3 is accepted on the configuration `serve` ships since D78, `a4-d77` (R41, R42). On the fresh held-out set ho3 at 32K it passed 5 of 5 coding tasks against 4 of 5 for OpenCode's own compaction, passed the restart task, and answered 115 of 120 needles. Phase 3's first configuration, `a4-d43`, failed its coding gate at 32K: 3 of 5 against 5 of 5, and the restart task failed (R25). `a4-d43` is still available as `--no-protect-turn --retrieval r1 --notes 0 --notes-format n1 --notes-header h1`. The evidence is one attempt per task and arm, one model (the pinned Strata build), one harness (OpenCode 2.1.4) and 32K only, on pythia (D76). Results there are not compared with Zeus runs.
 
 - **No recall by address in Phase 3.** The model reaches hidden content through proactive excerpts, and through the transcript files with its harness's own grep and read tools. Phase 3B adds hidden recall tools behind `--hidden-tools` (see "Known limits of Phase 3B").
-- **Transcript lookups cost calls** (R25-E). In the failed restart task, about half of 68 lookups were overhead:
+- **Transcript lookups cost calls** (R25-E). In R25's failed restart task, about half of 68 lookups were overhead:
   - the in-progress turn's file name carries a revision that changes as the archive grows (`turn-NNNN.pREV.md`, D34), so a path the model just saw can be gone on its next call;
   - the model re-read `turn-0000.md`, OpenCode's system prompt, which is always in view;
   - directory listings to recover from both.
 - **Excerpts are chosen once per instruction** (§13). Tool-result steps never select, so in a long agentic turn, content that leaves the view mid-turn is reachable only through the transcript files.
-- **Retrieval is lexical.** q1/r1 rank with BM25 over FTS5 chunks. There are no embeddings; an instruction that shares too few words with the evidence gets no excerpt.
+- **Retrieval is lexical.** q1 ranks with BM25 over FTS5 chunks; r2, the default, leaves the model's reasoning out of the candidates (D71). There are no embeddings; an instruction that shares too few words with the evidence gets no excerpt.
 - **Watermark moves still cost a deep re-read** (Phase 2 limits), and the addendum adds one re-read of the head per session when it is fixed (D36).
+- **Working notes cost one upstream call per collapse** (D72). The client's request waits for it: 15–18% of task wall time on ho2 (R40-B). A failed refresh keeps the notes the view had, and is recorded.
+- **The notes slot is a fixed 2,048 tokens** (D78.5). It was measured only at a 24,320-token input budget. Below about 8,000 input tokens it takes too much of the view; use `--notes 0` there.
+- **Sessions started before D78 keep their stored excerpts.** An excerpt block is chosen once and reused (§11), so a block selected under r1 can still quote reasoning after an upgrade; new selections use r2.
+- **A second collapse inside one request sends no refresh.** A rebuild with the new notes or an excerpt block can, rarely, advance the collapse again; that move keeps the notes just written without another refresh call (R42).
+- **Recall answers can carry extra text** (R41-A). In 5 of 120 held-out needle answers, the model first went back to the coding task and then gave the right value with commentary.
 - **Some internal size estimates run a few tokens low.** Previews, the recent window and excerpt charges are sized on text with tags live (D46.4). The assembled request is counted exactly, so the budget holds.
 - **Transcript files rely on filesystem permissions.** OpenCode's shell tool bypasses its `external_directory` rule (`harnesses.md`). There is no delete command; remove `palimnesis.db*` and `transcripts` with the proxy stopped (Ph8).
 - **Deferred:** proxy FIFO admission, `429` and proxy keepalives (Ph4B, O4); continuation accounting across internal calls and RE2 regex search (3B); Anthropic error re-envelope and other harnesses (Ph4B).

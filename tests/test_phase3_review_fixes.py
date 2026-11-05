@@ -208,3 +208,42 @@ def test_a_move_caused_by_a_new_excerpt_block_is_explained(tmp_path):
     out = subprocess.run([sys.executable, str(replay), "--explain", str(settings.db_path), "--json"],
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stdout[-1500:] + out.stderr[-1500:]
+
+
+
+# Phase 3 acceptance protocol review 1 (D78): with working notes committed, the notes block
+# is rendered in every later view, so admission must reserve the notes slot too.
+def test_with_notes_a_request_near_the_budget_is_refused_before_acceptance(tmp_path):
+    from .test_notes_http import BUDGET, NOTES, _body, _messages
+
+    notes = NOTES + "\n" + " ".join(f"note{i}" for i in range(400))
+    settings = {"input_budget": BUDGET, "notes_tokens": 2048}
+    messages = _messages()
+    with view_stack(tmp_path, **settings) as (fake, url, s):
+        fake.respond_counted(notes)
+        fake.respond_counted("ok")
+        assert post(url, _body(messages)).status_code == 200
+        committed = rows(s, "SELECT count(*) FROM notes_versions WHERE status = 'committed'")[0][0]
+    assert committed == 1
+    words = [f"alpha{i}" for i in range(12000)]
+    base = _count([messages[0], {"role": "user", "content": ""}])
+    sizes = [n for n in range(1, len(words), 23)
+             if BUDGET - 3000 <= base + _count([{"role": "user", "content": " ".join(words[:n])}])
+             <= BUDGET - 200]
+    assert len(sizes) > 5
+    with view_stack(tmp_path, **settings) as (fake, url, s):
+        for n in sizes:
+            for _ in range(3):
+                fake.respond_counted("ok")
+            before = rows(s, "SELECT count(*) FROM requests")[0][0]
+            attempt = _turn(messages, " ".join(words[:n]))
+            r = post(url, _body(attempt))
+            after = rows(s, "SELECT count(*) FROM requests")[0][0]
+            assert r.status_code in (200, 400), r.text
+            if r.status_code == 400:
+                assert r.json()["error"]["code"] == "context_budget_exceeded"
+                assert after == before, f"{n} words: rejected after acceptance"
+            else:
+                messages = attempt
+        failed = rows(s, "SELECT payload FROM events WHERE kind = 'attempt_failed'")
+    assert not [p for (p,) in failed if "context_budget_exceeded" in p]
