@@ -84,9 +84,11 @@ Prefix each with `uv run`. The inspection commands are read-only and take `--db 
 | `--view on\|off` | `on` | `off` keeps archiving and budget checks but never masks. |
 | `--synchronous FULL\|NORMAL` | `FULL` | SQLite durability. `NORMAL` survives process crashes but not power loss. |
 | `--transcripts DIR` / `--no-transcripts` | beside the archive | Where transcript files go, or turn them off. |
+| `--notes TOKENS` | `2048` | Working notes: before older messages leave the view, one extra upstream call has the model rewrite a notes block that stays in view. `0` turns them off; do so when the input budget is under about 8,000 tokens, where the slot takes too much of the view. |
+| `--protect-turn` / `--no-protect-turn` | on | Collapse the current turn's own work last, so the model keeps sight of the steps it just took. |
 | `--capture-dir DIR` | off | Store raw request and response bodies, for debugging and replay. **This writes conversation content to disk.** |
 
-`--query-policy`, `--excerpt-renderer` and `--addendum` select recall variants for evaluation. Their defaults are the frozen choices (D43); leave them alone.
+`--query-policy`, `--excerpt-renderer`, `--addendum`, `--retrieval`, `--notes-format` and `--notes-header` select variants for evaluation. Their defaults are the configuration the held-out run R41 passed (D43, D78); leave them alone.
 
 ## Where data lives
 

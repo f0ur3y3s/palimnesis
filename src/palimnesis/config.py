@@ -37,6 +37,8 @@ class Settings:
     # in view; 0 is off.
     pin_tokens: int = 0
     # The current turn's own work stays in view (D70); off keeps the frozen behaviour.
+    # These five fields (through ``retrieval``) keep the Phase 3 values here, the base frozen
+    # eval configurations build on; ``palimnesis serve`` defaults them to a4-d77's (D78).
     protect_turn: bool = False
     # Working notes (D72): the notes slot in tokens; 0 is off. A collapse move then
     # refreshes the notes with one internal upstream call.

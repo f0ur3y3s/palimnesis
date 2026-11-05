@@ -29,7 +29,7 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
   - **Effective total.** `min(Q, max(0, B_in − P − F − min_recent))`. It falls to zero before fixed input or the minimum recent window would give way.
   - **Never squeezes anything else.** Excerpts never count in F, never consume R or M, never move the watermark, and never cause a budget error.
   - **Catalog slot.** P is 0 until Phase 3B.
-  - **Retrieval r2** (D71, `serve --retrieval r2`) never quotes reasoning blocks; r1, the default, may.
+  - **Retrieval r2** (D71, `serve --retrieval r2`; `serve`'s default since D78) never quotes reasoning blocks; r1 (`--retrieval r1`) may.
 
   **[enforced]**
 - **Bounded view** (`palimnesis.view`, D14).
@@ -40,11 +40,11 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
     - A collapse move keeps behind its boundary every user instruction of at most 1,024 tokens, verbatim and in place. It keeps them newest first, while their total fits `min(pin_tokens, B_in / 6)`, and absorbs the rest.
     - Pins change only with a collapse move, and an absorbed message never returns.
     - When the view would otherwise exceed `B_in`, the collapse absorbs pins too.
-  - **The current turn last** (D70, `serve --protect-turn`; off by default).
+  - **The current turn last** (D70, `serve --protect-turn`; on by default since D78, off with `--no-protect-turn`).
     - A collapse reaches only up to the current turn, which starts at the latest genuine instruction.
     - If the view still exceeds `T`, the turn's own largest tool results and reasoning are stubbed in place, never the newest group's.
     - The turn's own groups are collapsed, oldest first to `T`, only when the view still exceeds `H`.
-  - **Working notes** (D72, `serve --notes TOKENS`; off by default).
+  - **Working notes** (D72, `serve --notes TOKENS`; 2,048 by default since D78, off with `--notes 0`).
     - The notes slot S is reserved out of the maskable capacity, and the oversized and last-resort steps leave it free. The block's tokens never count toward `H` or `T`.
     - A move that advances the collapse boundary first sends one internal call upstream: the request as it rendered before the move, plus the notes prompt, within `B_in`. The client sees nothing of it.
     - Its text, cut to fit S, becomes the next immutable notes version. It is rendered as one user-role block right after the leading system message once anything is collapsed.
@@ -55,14 +55,14 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
       - a tool call, or no text (except as n2 allows below);
       - nothing fitting the slot, not even the block's header (`too_long`).
     - A notes defect never fails the request.
-    - **Format n2** (D74, `--notes-format n2`; n1 is the default):
+    - **Format n2** (D74, `--notes-format n2`; the default since D78, n1 with `--notes-format n1`):
       - The prompt asks for the current step second, and for at most about 0.3 words per slot token, rounded to 100 and at least 100, as the reply.
       - Notes longer than S keep every section's heading and the same number k ≥ 1 of first non-blank lines in each section, the most that fits. Text before the first heading counts as a section without a heading. Text without section headings, or where not even one line per section fits, is cut at a line as in n1.
       - A heading is a line holding only a section's name (or its short key, such as *Current step*), in any case, optionally after Markdown heading marks, a number or bold, and before a parenthetical and a colon. Bullets and sentences are not headings.
       - A reply with no text is committed from its reasoning when the reasoning holds a draft of the notes: a run of headings in which at least three distinct sections have a line under them. A draft ends where a section repeats; the last such draft is taken, from its first heading to the end. It is recorded with reason `from_reasoning`. Reasoning never rescues a failed stream.
       - An unknown format is refused at startup.
       - The view's `policy_version` ends `+notes{S}n2`.
-    - **Header h2** (D75, `--notes-header h2`; h1 is the default): the block's header ends "the user's messages win. When you quote a value from these notes, write it out in full, exactly as recorded". Fitting to S counts the header in use. An unknown header is refused at startup. `policy_version` adds `h2` after the format (`+notes{S}h2`, `+notes{S}n2h2`).
+    - **Header h2** (D75, `--notes-header h2`; the default since D78, h1 with `--notes-header h1`): the block's header ends "the user's messages win. When you quote a value from these notes, write it out in full, exactly as recorded". Fitting to S counts the header in use. An unknown header is refused at startup. `policy_version` adds `h2` after the format (`+notes{S}h2`, `+notes{S}n2h2`).
     - The builder itself makes no upstream calls.
 
   **[enforced]**

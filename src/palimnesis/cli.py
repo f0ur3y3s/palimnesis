@@ -65,17 +65,19 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
     serve.add_argument("--pin-instructions", type=int, default=0, metavar="TOKENS",
                        help="keep short user instructions in view through collapses, up to "
                             "this many tokens (D65); 0 is off")
-    serve.add_argument("--protect-turn", action="store_true",
-                       help="collapse the current turn's own work last (D70)")
-    serve.add_argument("--notes", type=int, default=0, metavar="TOKENS",
+    # D78: the defaults below ship a4-d77, the arm D77's held-out run passed (R41).
+    serve.add_argument("--protect-turn", action=argparse.BooleanOptionalAction, default=True,
+                       help="collapse the current turn's own work last (D70; on by default, D78)")
+    serve.add_argument("--notes", type=int, default=2048, metavar="TOKENS",
                        help="working notes of up to this many tokens, refreshed by one "
-                            "upstream call at each collapse (D72); 0 is off")
-    serve.add_argument("--notes-format", choices=["n1", "n2"], default="n1",
-                       help="working-notes format: n1, or n2 by section (D74)")
-    serve.add_argument("--notes-header", choices=["h1", "h2"], default="h1",
-                       help="working-notes header: h1, or h2 asking for values in full (D75)")
-    serve.add_argument("--retrieval", choices=["r1", "r2"], default="r1",
-                       help="excerpt retrieval: r1, or r2 without reasoning (D71)")
+                            "upstream call at each collapse (D72); 0 is off (default 2048, D78)")
+    serve.add_argument("--notes-format", choices=["n1", "n2"], default="n2",
+                       help="working-notes format: n2 by section (D74, the default), or n1")
+    serve.add_argument("--notes-header", choices=["h1", "h2"], default="h2",
+                       help="working-notes header: h2 asking for values in full (D75, the "
+                            "default), or h1")
+    serve.add_argument("--retrieval", choices=["r1", "r2"], default="r2",
+                       help="excerpt retrieval: r2 without reasoning (D71, the default), or r1")
     files = serve.add_mutually_exclusive_group()
     files.add_argument("--transcripts", type=Path, metavar="DIR",
                        help="transcript files root (default: 'transcripts' beside the archive)")

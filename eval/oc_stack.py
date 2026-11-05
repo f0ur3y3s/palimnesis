@@ -6,8 +6,10 @@
   every inference request and keeps each exact upstream body and stream.
 - The **front tap** (``needle.Tap`` without a gate) keeps each client request, the proxy's
   own status and stream, so a proxy rejection is visible without reading logs.
-- The proxy child runs the ``serve`` app with ``serve``'s defaults, ``deadline_s`` 3600
-  (D45.4), and an explicit transcripts root outside the records tree. ``input_budget``
+- The proxy child runs the ``serve`` app with ``Settings`` built from the configuration's
+  fields, ``deadline_s`` 3600 (D45.4), and an explicit transcripts root outside the records
+  tree. Fields a configuration does not name take ``Settings``' defaults, which D78 keeps at
+  the Phase 3 values (``serve``'s own defaults are ``a4-d77``'s since D78). ``input_budget``
   (development only: O2's emulated 32K, ``--input-budget 24320`` at 65536) reaches the
   child's ``Settings``; by default there is none, as in ``serve``.
 

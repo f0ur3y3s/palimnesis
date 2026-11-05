@@ -6,8 +6,9 @@
     uv run python eval/tasks/run.py --check-reference [--task ID]   # no model: the checks themselves
 
 Arms (D44.1):
-  4  ``a4-d43``: the default ``serve`` (q1/r1/x2/a3, transcripts), OpenCode with
-     ``compaction.auto`` off and ``limit.context`` 1,000,000 (the shipped settings).
+  4  ``a4-d43``: ``serve`` as Phase 3 shipped it (q1/r1/x2/a3, transcripts), OpenCode with
+     ``compaction.auto`` off and ``limit.context`` 1,000,000; ``--config a4-d77`` runs the
+     working-notes arm D77 froze, ``serve``'s defaults since D78.
   1  native OpenCode compaction: ``serve --passthrough``, ``compaction.auto`` on and
      ``limit.context`` at ``--expect-n-ctx``, the true capacity (32768 for the gated runs,
      65536 for the 64K report, D44.9).

@@ -1064,3 +1064,29 @@ Written on 2026-11-03, after R40 and before the fresh set `ho3` was run or read 
 6. **Reruns and defects:** as D44.7 and D44.8. No waivers.
 7. **What a verdict means.** It judges `a4-d77` on fresh data at 32K on pythia. It does not revise R32's Phase 3B verdict on arm 5, and results stay per machine and build (D48, D76): no number here is compared with a Zeus run as evidence.
 8. **Order.** Needles first (one `a4-d77` attempt), then the tasks, `a4-d77` then arm 1 for each task, t1 to t5.
+
+## D78 — `serve` ships `a4-d77`
+
+Written on 2026-11-05, after R41, at the user's go-ahead.
+
+1. **The change.** `palimnesis serve` with no variant flags now runs `a4-d77`'s settings: `--protect-turn` (D70), `--retrieval r2` (D71), `--notes 2048` (D72) with `--notes-format n2` (D74) and `--notes-header h2` (D75). Everything else is unchanged from D43: fts recall, q1, x2, a3, transcripts on, stub s1, no hidden tools and no pinned instructions.
+2. **Why.** On the fresh held-out set ho3 (R41), `a4-d77` passed every D77 gate.
+   - Tasks: it solved 5/5 with all 15 constraints held, against native compaction's 4/5. It used 42% of arm 1's upstream calls and 53% of its prompt tokens, with no 30-minute kills.
+   - Needles: 115/120.
+   - On ho2 development data the arm also passed all five tasks (R39, R40), where `a4-d43`, the previous default, passed 2 (R32).
+3. **Only `serve`'s defaults move; `Settings`' stay at the Phase 3 values.**
+   - The eval proxy child builds `Settings` from a configuration's named fields. `a4-d43` and every arm-5 configuration name none of these five, so changing `Settings`' defaults would silently change what those frozen configurations run, after their held-out results.
+   - Rejected: moving `Settings`' defaults and writing every field into every eval configuration. That rewrites configurations frozen before their held-out runs, and turns notes on in every fake-upstream test that builds `Settings` directly.
+   - `tests/test_eval_d77.py` checks that `serve`'s defaults equal `a4-d77`.
+   - `eval/tasks/run.py --arm 4` without `--config` still means `a4-d43`.
+4. **Opting out.**
+   - `--no-protect-turn` is new: the flag is now a boolean pair.
+   - `--notes 0`, `--retrieval r1`, `--notes-format n1` and `--notes-header h1` restore the Phase 3 behaviour.
+5. **Costs and limits.**
+   - Every move that advances the collapse boundary sends one internal upstream call to refresh the notes; on ho2 these took 15–18% of task wall time (R40-B).
+   - The arm was measured only at a 24,320-token input budget (32K `n_ctx`, 8,192 client output) on Strata. The 2,048-token slot is a fixed reservation, so at smaller budgets it takes a larger share of the view.
+     - A pure-view probe at `n_ctx` 12,288 with an 8,192 client limit (input budget 3,840) collapsed a 34-message view to 15 messages and sent no refresh.
+     - At 16,384 (budget 7,936) it collapsed to 48 of 59 messages and refreshed.
+     - Neither was run live. The README advises `--notes 0` under about 8,000 input tokens; scaling the slot to the budget would be a new mechanism, not part of the measured arm.
+6. **Harness neutrality.** Archive mode serves only OpenAI Chat Completions today; Anthropic Messages is rejected until Phase 4B. When Phase 4B adds Messages archiving, these defaults apply to it too, subject to that phase's own checks.
+7. **Known residual.** R41's five needle misses were the right value with extra text, after the model returned to the coding task. That is development work for later and does not hold this default back.

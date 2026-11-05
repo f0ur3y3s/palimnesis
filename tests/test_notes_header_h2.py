@@ -90,7 +90,7 @@ def test_serve_takes_the_notes_header_flag(tmp_path):
     from palimnesis.cli import serve_settings
 
     base = ["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db")]
-    assert serve_settings(base).notes_header == "h1"
-    assert serve_settings(base + ["--notes-header", "h2"]).notes_header == "h2"
+    assert serve_settings(base).notes_header == "h2"  # the shipped default since D78
+    assert serve_settings(base + ["--notes-header", "h1"]).notes_header == "h1"
     with pytest.raises(SystemExit):
         serve_settings(base + ["--notes-header", "h9"])
