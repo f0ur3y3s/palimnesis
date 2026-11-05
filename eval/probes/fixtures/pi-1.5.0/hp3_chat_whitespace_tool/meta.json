@@ -1,0 +1,39 @@
+{
+  "name": "hp3_chat_whitespace_tool",
+  "protocol": "chat",
+  "base": "http://127.0.0.1:37422/s/probe-sess/v1",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:37422/s/probe-sess/v1",
+    "api": "openai-completions",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "turns",
+      "args": [],
+      "rc": 3221226505,
+      "completed": true,
+      "seconds": 0.45
+    }
+  ]
+}

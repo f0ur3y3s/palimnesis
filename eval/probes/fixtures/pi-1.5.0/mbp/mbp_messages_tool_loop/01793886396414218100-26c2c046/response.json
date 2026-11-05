@@ -1,0 +1,10 @@
+{
+  "status": 200,
+  "headers": {
+    "x-powered-by": "Express",
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "date": "Thu, 05 Nov 2026 13:46:36 GMT"
+  },
+  "complete": true
+}

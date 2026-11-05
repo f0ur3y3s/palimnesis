@@ -1,0 +1,49 @@
+{
+  "name": "hp3_messages_default",
+  "protocol": "messages",
+  "base": "http://127.0.0.1:7275/s/probe-sess",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:7275/s/probe-sess",
+    "api": "anthropic-messages",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "turns",
+      "args": [],
+      "rc": 3221226505,
+      "completed": true,
+      "seconds": 0.42
+    },
+    {
+      "label": "restart",
+      "args": [
+        "--session",
+        "01a1abec-5884-701c-bd6a-c3cbe6f6ac13"
+      ],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.33
+    }
+  ]
+}

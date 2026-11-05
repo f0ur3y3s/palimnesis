@@ -1,0 +1,43 @@
+{
+  "name": "hp1_join_messages",
+  "protocol": "messages",
+  "base": "http://127.0.0.1:7176/s/probe-sess",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:7176/s/probe-sess",
+    "api": "anthropic-messages",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "run1",
+      "args": [
+        "--mode",
+        "json",
+        "-nc",
+        "Reply with the single word OK."
+      ],
+      "rc": 0,
+      "seconds": 0.33
+    }
+  ]
+}

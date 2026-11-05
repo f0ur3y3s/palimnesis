@@ -1,0 +1,27 @@
+{
+  "session": "mbp_chat_tool_loop",
+  "started_ns": 1793886350392803800,
+  "method": "POST",
+  "path": "/v1/chat/completions",
+  "query": "",
+  "headers": {
+    "host": "127.0.0.1:9311",
+    "connection": "keep-alive",
+    "accept": "application/json",
+    "x-stainless-retry-count": "0",
+    "x-stainless-timeout": "300",
+    "x-stainless-lang": "js",
+    "x-stainless-package-version": "7.19.0",
+    "x-stainless-os": "Windows",
+    "x-stainless-arch": "x64",
+    "x-stainless-runtime": "node",
+    "x-stainless-runtime-version": "v24.18.0",
+    "authorization": "<redacted>",
+    "user-agent": "pi/1.5.0 (win32; node/v24.18.0; x64)",
+    "content-type": "application/json",
+    "accept-language": "*",
+    "sec-fetch-mode": "cors",
+    "accept-encoding": "gzip, deflate",
+    "content-length": "6062"
+  }
+}

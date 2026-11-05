@@ -1,0 +1,30 @@
+{
+  "session": "mbp_messages_tool_loop",
+  "started_ns": 1793886390867559000,
+  "method": "POST",
+  "path": "/v1/messages",
+  "query": "beta=true",
+  "headers": {
+    "host": "127.0.0.1:9311",
+    "connection": "keep-alive",
+    "x-stainless-retry-count": "0",
+    "x-stainless-timeout": "300",
+    "x-stainless-lang": "js",
+    "x-stainless-package-version": "0.129.0",
+    "x-stainless-os": "Windows",
+    "x-stainless-arch": "x64",
+    "x-stainless-runtime": "node",
+    "x-stainless-runtime-version": "v24.18.0",
+    "anthropic-version": "2023-06-01",
+    "x-api-key": "<redacted>",
+    "user-agent": "pi/1.5.0 (win32; node/v24.18.0; x64)",
+    "accept": "application/json",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "content-type": "application/json",
+    "anthropic-beta": "interleaved-thinking-2025-05-14",
+    "accept-language": "*",
+    "sec-fetch-mode": "cors",
+    "accept-encoding": "gzip, deflate",
+    "content-length": "5808"
+  }
+}

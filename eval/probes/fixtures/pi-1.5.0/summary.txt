@@ -1,0 +1,590 @@
+== hp1_join_chat: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp1_join_chat_trailing_slash: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp1_join_messages: 1 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp1_join_messages_v1: 1 requests
+  #1 POST /s/probe-sess/v1/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp2_affinity_headers: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=env-session-42 step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp2_sessions_chat: 8 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=01a1abec-4181-7693-85b0-c3ff5b9bbec8 step=stream[start,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.03s msgs=2 sess=01a1abec-4251-7693-85b0-c40064726658 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/2; new: user:'text:Turn one in session B (after new_session).'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.03s msgs=2 sess=01a1abec-4273-7693-85b0-c40223e22742 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/2; new: user:'text:Turn in the fork.'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.03s msgs=4 sess=01a1abec-4294-7693-85b0-c405565a6346 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Answer attempt-3' reasoning='Reasoning attempt-3' | user:'text:Turn in the clone.'
+  #5 POST /s/probe-sess/v1/chat/completions attempt=5 gap=0.03s msgs=4 sess=01a1abec-4181-7693-85b0-c3ff5b9bbec8 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/4; new: user:'text:Turn one in session A.' | assistant:'Answer attempt-1' reasoning='Reasoning attempt-1' | user:'text:Turn two in session A (after switch back).'
+  #6 POST /s/probe-sess/v1/chat/completions attempt=6 gap=0.36s msgs=6 sess=01a1abec-4181-7693-85b0-c3ff5b9bbec8 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'Answer attempt-5' reasoning='Reasoning attempt-5' | user:'text:Turn three in A after restart.'
+  #7 POST /s/probe-sess/v1/chat/completions attempt=7 gap=0.36s msgs=8 sess=01a1abec-4181-7693-85b0-c3ff5b9bbec8 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'Answer attempt-6' reasoning='Reasoning attempt-6' | user:'text:Turn after --continue.'
+  #8 POST /s/probe-sess/v1/chat/completions attempt=8 gap=0.38s msgs=2 sess=pal-0123abcd step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/8; new: user:'text:Chosen id.'
+  pi: chosen_id.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: continue.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp2_sessions_messages: 8 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=01a1abec-4826-75b5-a554-3b55399564f6 step=stream[start,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.03s msgs=1 sess=01a1abec-48e7-75b5-a554-3b563323e611 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/1; new: user:'text:Turn one in session B (after new_session).'
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.03s msgs=1 sess=01a1abec-490b-75b5-a554-3b59e5839d7a step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/1; new: user:'text:Turn in the fork.'
+  #4 POST /s/probe-sess/v1/messages?beta=true attempt=4 gap=0.03s msgs=3 sess=01a1abec-492f-75b5-a554-3b5b53222d66 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'text:Reasoning attempt-3+text:Answer attempt-3' | user:'text:Turn in the clone.'
+  #5 POST /s/probe-sess/v1/messages?beta=true attempt=5 gap=0.03s msgs=3 sess=01a1abec-4826-75b5-a554-3b55399564f6 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/3; new: user:'text:Turn one in session A.' | assistant:'text:Reasoning attempt-1+text:Answer attempt-1' | user:'text:Turn two in session A (after switch back).'
+  #6 POST /s/probe-sess/v1/messages?beta=true attempt=6 gap=0.36s msgs=5 sess=01a1abec-4826-75b5-a554-3b55399564f6 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 3/3; new: assistant:'text:Reasoning attempt-5+text:Answer attempt-5' | user:'text:Turn three in A after restart.'
+  #7 POST /s/probe-sess/v1/messages?beta=true attempt=7 gap=0.36s msgs=7 sess=01a1abec-4826-75b5-a554-3b55399564f6 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 5/5; new: assistant:'text:Reasoning attempt-6+text:Answer attempt-6' | user:'text:Turn after --continue.'
+  #8 POST /s/probe-sess/v1/messages?beta=true attempt=8 gap=0.34s msgs=1 sess=pal-0123abcd step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/7; new: user:'text:Chosen id.'
+  pi: chosen_id.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: continue.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: walk.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp2_tree: 3 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=01a1abf1-03f4-74e8-8442-0de6a51d3f90 step=stream[start,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.00s msgs=4 sess=01a1abf1-03f4-74e8-8442-0de6a51d3f90 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Answer attempt-1' reasoning='Reasoning attempt-1' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=1.52s msgs=4 sess=01a1abf1-03f4-74e8-8442-0de6a51d3f90 step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 3/4; new: user:'text:Replacement second prompt.'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp2_tree_summarize: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=01a1abf1-0b34-74c0-af2f-5a1d120e3b2f step=stream[start,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=01a1abf1-0b34-74c0-af2f-5a1d120e3b2f step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Answer attempt-1' reasoning='Reasoning attempt-1' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.02s msgs=2 sess=01a1abf1-0b34-74c0-af2f-5a1d120e3b2f step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/4; new: developer:'You are a context summarization assistant. Your task is to read a conv' | user:'text:<conversation>\n[Assistant]: Answer attempt-2\n</conversa'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=1.50s msgs=5 sess=01a1abf1-0b34-74c0-af2f-5a1d120e3b2f step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/2; new: developer:'You are a coding assistant running inside pi, a coding agent harness. ' | user:'text:First prompt.' | assistant:'Answer attempt-1' reasoning='Reasoning attempt-1' | user:'text:The following is a summary of a branch that this conver' | user:'text:Replacement second prompt.'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: tree.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_bigwindow: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_compat: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Reading attempt-1.' reasoning='I should read notes attempt-1' tool_calls=['read'] | tool:'hello from notes\r\n'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=6 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'The note says hello attempt-2' reasoning='Got the note attempt-2' | user:'text:Thanks. Anything else?'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.41s msgs=8 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'Second turn answer attempt-3' reasoning='Second turn reasoning attempt-3' | user:'text:Third turn after restart.'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_composite: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.03s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'T1 first visible. T2 second visible.' reasoning='R1 first thought attempt-1\n\nR2 second th' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_default: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Reading attempt-1.' reasoning='I should read notes attempt-1' tool_calls=['read'] | tool:'hello from notes\r\n'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.02s msgs=6 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'The note says hello attempt-2' reasoning='Got the note attempt-2' | user:'text:Thanks. Anything else?'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.42s msgs=8 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'Second turn answer attempt-3' reasoning='Second turn reasoning attempt-3' | user:'text:Third turn after restart.'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_smallwindow: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp3_chat_whitespace_tool: 3 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'None' tool_calls=['read'] | tool:'hello from notes\r\n'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.02s msgs=6 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_messages_composite: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'thinking:R1 first thought attempt-1\n+text:T1 first visible.+thinking:\n' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_messages_default: 4 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=3 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'text:I should read notes attempt-1+text:Reading attempt-1.+tool_use:re' | user:'tool_result:'
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.02s msgs=5 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 3/3; new: assistant:'text:Got the note attempt-2+text:The note says hello attempt-2' | user:'text:Thanks. Anything else?'
+  #4 POST /s/probe-sess/v1/messages?beta=true attempt=4 gap=0.44s msgs=7 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 5/5; new: assistant:'text:Second turn reasoning attempt-3+text:Second turn answer attempt-3' | user:'text:Third turn after restart.'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_messages_empty_sig_allowed: 4 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'thinking:I should read notes attempt-1+text:Reading attempt-1.+tool_us' | user:'tool_result:'
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.00s msgs=5 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 3/3; new: assistant:'thinking:Got the note attempt-2+text:The note says hello attempt-2' | user:'text:Thanks. Anything else?'
+  #4 POST /s/probe-sess/v1/messages?beta=true attempt=4 gap=0.44s msgs=7 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 5/5; new: assistant:'thinking:Second turn reasoning attempt-3+text:Second turn answer attem' | user:'text:Third turn after restart.'
+  pi: restart.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp3_messages_signed: 3 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,sig,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,reasoning,sig,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'thinking:I should read notes attempt-1+tool_use:read' | user:'tool_result:'
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.00s msgs=5 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 3/3; new: assistant:'thinking:Got the note attempt-2+text:The note says hello attempt-2' | user:'text:Thanks.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_comments_12s_chat: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[comments,start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_comments_12s_messages: 1 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[comments,start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_comments_after_start_12s_chat: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,comments,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_comments_after_start_12s_messages: 1 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,comments,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_finish_no_done: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_header_delay8_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=5.53s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  server: t=5.282 client_gone attempt=1 during=header_delay
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='Request timed out.'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='Request timed out.'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_header_delay8_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=5.52s msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1
+  server: t=5.297 client_gone attempt=1 during=header_delay
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='Request timed out.'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='Request timed out.'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_idle_after_start_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start] end=hang
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=6.08s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  server: t=5.984 client_gone attempt=1 during=hang
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='terminated'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_idle_after_start_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start] end=hang
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=6.09s msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1
+  server: t=5.875 client_gone attempt=1 during=hang
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='terminated'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_idle_after_text_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text] end=hang
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=6.03s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  server: t=5.828 client_gone attempt=1 during=hang
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='terminated'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_idle_after_text_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text] end=hang
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=6.06s msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1
+  server: t=5.844 client_gone attempt=1 during=hang
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='terminated'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_abort_then_ok_chat: 3 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,sleep] end=abort
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=1.55s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=True err='terminated'
+  pi: turns.rpc.jsonl: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: turns.rpc.jsonl: retry_end success=True attempt=1
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_abort_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,sleep] end=abort
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=1.03s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='terminated'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_abort_then_ok_messages: 3 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,sleep] end=abort
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=1.53s msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.00s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'text:OK from fault server' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=True err='terminated'
+  pi: turns.rpc.jsonl: retry attempt=1/3 delayMs=500 err='terminated'
+  pi: turns.rpc.jsonl: retry_end success=True attempt=1
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_abort_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,sleep] end=abort
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=1.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='terminated'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_eof_then_ok_chat: 3 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.51s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=True err='Stream ended without finish_reason'
+  pi: turns.rpc.jsonl: retry attempt=1/3 delayMs=500 err='Stream ended without finish_reason'
+  pi: turns.rpc.jsonl: retry_end success=True attempt=1
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_eof_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='Stream ended without finish_reason'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_eof_then_ok_messages: 3 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.52s msgs=1 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1
+  #3 POST /s/probe-sess/v1/messages?beta=true attempt=3 gap=0.00s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: assistant:'text:OK from fault server' | user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=True err='Anthropic stream ended before message_stop'
+  pi: turns.rpc.jsonl: retry attempt=1/3 delayMs=500 err='Anthropic stream ended before message_stop'
+  pi: turns.rpc.jsonl: retry_end success=True attempt=1
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_eof_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='Anthropic stream ended before message_stop'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_noretry_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof {'x-should-retry': 'false'}
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_noretry_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof {'x-should-retry': 'false'}
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_noretry_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof {'x-should-retry': 'false'}
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_noretry_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof {'x-should-retry': 'false'}
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_plain_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream_stream_failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_plain_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream_stream_failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_plain_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream_stream_failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_plain_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream_stream_failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_error_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,reasoning,text,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_length: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=length willRetry=False err='None'
+== hp4_partial_tool_error_then_ok_chat: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,tool_call,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_tool_error_then_ok_chat_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,tool_call,error] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.03s msgs=3 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='palimnesis: upstream stream failed'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_tool_error_then_ok_messages: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text,tool_call,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_partial_tool_error_then_ok_messages_retryoff: 2 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,text,tool_call,error] end=eof
+  #2 POST /s/probe-sess/v1/messages?beta=true attempt=2 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/1; new: user:'text:Second prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='{"type": "error", "error": {"type": "api_error", "message": "palimnesis: upstream stream failed"}}'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp4_pings_after_start_12s_messages: 1 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[start,pings,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_pings_before_start_12s_messages: 1 requests
+  #1 POST /s/probe-sess/v1/messages?beta=true attempt=1 msgs=1 sess=None step=stream[pings,start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_provider_retry_409_noretry: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 409 {'x-should-retry': 'false'}
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='409: {"message":"palimnesis: history_divergence: resend does not match archive","type":"fault_server","code":4'
+== hp4_provider_retry_429: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 429 {'retry-after': '7'}
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=7.02s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_role_only_eof_then_ok: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.53s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='Stream ended without finish_reason'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='Stream ended without finish_reason'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_s400_then_ok: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 400
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='400: {"message":"bad request from fault server","type":"fault_server","code":400}'
+== hp4_s409_divergence_then_ok: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 409 {'x-should-retry': 'false'}
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='409: {"message":"palimnesis: history_divergence: resend does not match archive","type":"fault_server","code":4'
+== hp4_s409_shouldretry_then_ok: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 409 {'x-should-retry': 'true'}
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='409: {"message":"request already in progress","type":"fault_server","code":409}'
+== hp4_s409_then_ok: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 409
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='409: {"message":"request already in progress","type":"fault_server","code":409}'
+== hp4_s429_ra7_then_ok: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 429 {'retry-after': '7'}
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.52s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='429: {"message":"rate limited","type":"fault_server","code":429}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='429: {"message":"rate limited","type":"fault_server","code":429}'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_s429_then_ok: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 429
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.52s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='429: {"message":"rate limited","type":"fault_server","code":429}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='429: {"message":"rate limited","type":"fault_server","code":429}'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_s500: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 500
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.52s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=1.03s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=2.00s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=2/3 delayMs=1000 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=3/3 delayMs=2000 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry_end success=False attempt=3
+== hp4_s500_default_delay: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 500
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=2.00s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=4.03s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=8.02s msgs=2 sess=None step=status 500
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=2000 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=2/3 delayMs=4000 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=3/3 delayMs=8000 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: agent_end stop=error willRetry=False err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry_end success=False attempt=3
+== hp4_s500_then_ok: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 500
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.51s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='500: {"message":"fault server error","type":"fault_server","code":500}'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp4_s503_noretry_then_ok: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=status 503 {'x-should-retry': 'false'}
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.55s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2
+  pi: run1.stdout.txt: agent_end stop=error willRetry=True err='503: {"message":"service unavailable","type":"fault_server","code":503}'
+  pi: run1.stdout.txt: retry attempt=1/3 delayMs=500 err='503: {"message":"service unavailable","type":"fault_server","code":503}'
+  pi: run1.stdout.txt: retry_end success=True attempt=1
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp5_manual_compact: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'Answer attempt-1' reasoning='Reasoning attempt-1' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.02s msgs=2 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/4; new: developer:'You are a context summarization assistant. Your task is to read a conv' | user:'text:<conversation>\n[User]: First prompt.\n\n[Assistant]: Answ'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.00s msgs=5 sess=None step=stream[start,reasoning,text,finish,usage,done] end=eof
+     prefix kept 0/2; new: developer:'You are a coding assistant running inside pi, a coding agent harness. ' | user:'text:The conversation history before this point was compacte' | user:'text:Second prompt.' | assistant:'Answer attempt-2' reasoning='Reasoning attempt-2' | user:'text:After compaction.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: compaction_start reason=manual err=None
+  pi: turns.rpc.jsonl: compaction_end reason=manual err=None
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp5_overflow_off: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.02s msgs=6 sess=None step=status 400
+     prefix kept 4/4; new: assistant:'OK from fault server' | user:'text:Third prompt.'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.00s msgs=7 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: user:'text:Fourth prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='400: {"message":"the request exceeds the available context size, try increasing it","type":"fault_server","cod'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp5_overflow_on: 6 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=6 sess=None step=status 400
+     prefix kept 4/4; new: assistant:'OK from fault server' | user:'text:Third prompt.'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 0/6; new: developer:'You are a context summarization assistant. Your task is to read a conv' | user:'text:<conversation>\n[User]: First prompt.\n\n[Assistant]: OK f'
+  #5 POST /s/probe-sess/v1/chat/completions attempt=5 gap=0.02s msgs=5 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 0/2; new: developer:'You are a coding assistant running inside pi, a coding agent harness. ' | user:'text:The conversation history before this point was compacte' | user:'text:Second prompt.' | assistant:'OK from fault server' | user:'text:Third prompt.'
+  #6 POST /s/probe-sess/v1/chat/completions attempt=6 gap=0.00s msgs=7 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 5/5; new: assistant:'OK from fault server' | user:'text:Fourth prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=error willRetry=False err='400: {"message":"the request exceeds the available context size, try increasing it","type":"fault_server","cod'
+  pi: turns.rpc.jsonl: compaction_start reason=overflow err=None
+  pi: turns.rpc.jsonl: compaction_end reason=overflow err=None
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp5_threshold_off: 4 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=6 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'Big attempt-2' | user:'text:Third prompt.'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.02s msgs=8 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'OK from fault server' | user:'text:Fourth prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp5_threshold_on: 5 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'OK from fault server' | user:'text:Second prompt.'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.00s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 0/4; new: developer:'You are a context summarization assistant. Your task is to read a conv' | user:'text:# Conversation\n[User]: First prompt.\n\n# Instructions\nTh'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.02s msgs=6 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 0/2; new: developer:'You are a coding assistant running inside pi, a coding agent harness. ' | user:'text:The conversation history before this point was compacte' | assistant:'OK from fault server' | user:'text:Second prompt.' | assistant:'Big attempt-2' | user:'text:Third prompt.'
+  #5 POST /s/probe-sess/v1/chat/completions attempt=5 gap=0.00s msgs=8 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'OK from fault server' | user:'text:Fourth prompt.'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: compaction_start reason=threshold err=None
+  pi: turns.rpc.jsonl: compaction_end reason=threshold err=None
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+  pi: turns.rpc.jsonl: agent_end stop=stop willRetry=False err='None'
+== hp6_default_tools: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp6_gate: 6 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,tool_call,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.02s msgs=4 sess=None step=stream[start,tool_call,finish,usage,done] end=eof
+     prefix kept 2/2; new: assistant:'None' tool_calls=['read'] | tool:'NEEDLE-7731 lives here\r\n'
+  #3 POST /s/probe-sess/v1/chat/completions attempt=3 gap=0.03s msgs=6 sess=None step=stream[start,tool_call,finish,usage,done] end=eof
+     prefix kept 4/4; new: assistant:'None' tool_calls=['grep'] | tool:'transcript.md:1: NEEDLE-7731 lives here'
+  #4 POST /s/probe-sess/v1/chat/completions attempt=4 gap=0.08s msgs=8 sess=None step=stream[start,tool_call,finish,usage,done] end=eof
+     prefix kept 6/6; new: assistant:'None' tool_calls=['bash'] | tool:'<HOME>/<TMP>'
+  #5 POST /s/probe-sess/v1/chat/completions attempt=5 gap=0.00s msgs=10 sess=None step=stream[start,tool_call,finish,usage,done] end=eof
+     prefix kept 8/8; new: assistant:'None' tool_calls=['ls'] | tool:'transcript.md'
+  #6 POST /s/probe-sess/v1/chat/completions attempt=6 gap=0.20s msgs=12 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 10/10; new: assistant:'None' tool_calls=['find'] | tool:'transcript.md'
+  pi: run1.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp7_import: 1 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=4 sess=None step=stream[start,text,finish,usage,done] end=eof
+  pi: import.stdout.txt: agent_end stop=stop willRetry=False err='None'
+== hp7_print_mode: 2 requests
+  #1 POST /s/probe-sess/v1/chat/completions attempt=1 msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+  #2 POST /s/probe-sess/v1/chat/completions attempt=2 gap=0.36s msgs=2 sess=None step=stream[start,text,finish,usage,done] end=eof
+     prefix kept 1/2; new: user:'text:Reply OK (no session).'

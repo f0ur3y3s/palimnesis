@@ -1,0 +1,68 @@
+{
+  "name": "hp2_sessions_chat",
+  "protocol": "chat",
+  "base": "http://127.0.0.1:7188/s/probe-sess/v1",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:7188/s/probe-sess/v1",
+    "api": "openai-completions",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "walk",
+      "args": [],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.56
+    },
+    {
+      "label": "restart",
+      "args": [
+        "--session",
+        "01a1abec-4181-7693-85b0-c3ff5b9bbec8"
+      ],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.37
+    },
+    {
+      "label": "continue",
+      "args": [
+        "--continue"
+      ],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.35
+    },
+    {
+      "label": "chosen_id",
+      "args": [
+        "--session-id",
+        "pal-0123abcd"
+      ],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.37
+    }
+  ]
+}

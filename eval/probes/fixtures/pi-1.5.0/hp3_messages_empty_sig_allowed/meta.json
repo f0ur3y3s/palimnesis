@@ -1,0 +1,52 @@
+{
+  "name": "hp3_messages_empty_sig_allowed",
+  "protocol": "messages",
+  "base": "http://127.0.0.1:7284/s/probe-sess",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:7284/s/probe-sess",
+    "api": "anthropic-messages",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ],
+    "compat": {
+      "allowEmptySignature": true
+    }
+  },
+  "runs": [
+    {
+      "label": "turns",
+      "args": [],
+      "rc": 3221226505,
+      "completed": true,
+      "seconds": 0.44
+    },
+    {
+      "label": "restart",
+      "args": [
+        "--session",
+        "01a1abec-5baa-7345-99c1-01b7a40c784a"
+      ],
+      "rc": 0,
+      "completed": true,
+      "seconds": 0.34
+    }
+  ]
+}

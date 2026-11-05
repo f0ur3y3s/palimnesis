@@ -1,0 +1,49 @@
+{
+  "name": "hp2_affinity_headers",
+  "protocol": "chat",
+  "base": "http://127.0.0.1:7240/s/probe-sess/v1",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:7240/s/probe-sess/v1",
+    "api": "openai-completions",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ],
+    "compat": {
+      "sendSessionAffinityHeaders": true
+    },
+    "headers": {
+      "X-Palimnesis-Session": "$PALIMNESIS_SESSION"
+    }
+  },
+  "runs": [
+    {
+      "label": "run1",
+      "args": [
+        "--mode",
+        "json",
+        "-nc",
+        "Reply OK."
+      ],
+      "rc": 0,
+      "seconds": 0.34
+    }
+  ]
+}

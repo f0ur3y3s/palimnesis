@@ -1,0 +1,40 @@
+{
+  "name": "hp4_partial_error_then_ok_messages_retryoff",
+  "protocol": "messages",
+  "base": "http://127.0.0.1:22673/s/probe-sess",
+  "settings": {
+    "defaultProvider": "fault",
+    "defaultModel": "m",
+    "defaultProjectTrust": "never",
+    "enableInstallTelemetry": false,
+    "cacheWarming": "off",
+    "quietStartup": true,
+    "retry": {
+      "baseDelayMs": 500,
+      "enabled": false
+    }
+  },
+  "provider": {
+    "baseUrl": "http://127.0.0.1:22673/s/probe-sess",
+    "api": "anthropic-messages",
+    "apiKey": "<dummy>",
+    "models": [
+      {
+        "id": "m",
+        "name": "m",
+        "reasoning": true,
+        "contextWindow": 32768,
+        "maxTokens": 8192
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "turns",
+      "args": [],
+      "rc": 3221226505,
+      "completed": true,
+      "seconds": 0.42
+    }
+  ]
+}
