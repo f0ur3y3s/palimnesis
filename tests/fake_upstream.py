@@ -89,6 +89,7 @@ class FakeUpstream:
     props_build_info: str | None = "Strata 0.1.48"  # None: left out, as Strata does without an engine version
     props_chat_template: str = field(default_factory=_recorded_template)
     props_status: int = 200
+    props_body: bytes | None = None  # served verbatim instead of the recorded props
     props_delay: float = 0.0
     props_requests: int = 0
     # POST /v1/messages/count_tokens handler: parsed body -> input_tokens. The
@@ -297,6 +298,8 @@ class FakeUpstream:
                 status_code=self.props_status,
                 media_type="application/json",
             )
+        if self.props_body is not None:
+            return Response(self.props_body, media_type="application/json")
         props = _recorded_props()
         props["default_generation_settings"]["n_ctx"] = self.props_n_ctx
         if self.props_build_info is None:

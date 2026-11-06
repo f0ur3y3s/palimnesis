@@ -281,3 +281,22 @@ size ≈ 200 KB + N · 8.3 KB + 71 B · O + 1.0 · T + N · L / 66
 | Through the proxy | streamed Chat Completions and Anthropic Messages requests return 200 and are archived (`palimnesis catalog`) |
 
 **What this does not show.** The real 0.1.57 engine was not run, so speed, generation, cancellation and the slot release time (D76) are not measured. The real engine reports a version, so its `/props` would carry `build_info: "Strata 0.1.57"`.
+
+## R51: Wire shapes of Strata 0.1.57, and LM Studio behind the proxy (2026-11-06)
+
+**Outcome.** Strata 0.1.57 sends the same responses as 0.1.54 in all 23 cases of a new shape probe, directly and through the proxy, and one error message has new wording. LM Studio, the first server other than Strata tried behind Palimnesis, works with bounded views off: Pi completed a small task through the proxy on Chat Completions and on Anthropic Messages, and the exchanges were archived. `palimnesis check` called LM Studio unreachable, and now says it answers but is not Strata.
+
+**Shape probe.** `eval/probes/p27_release_shapes.py` sends 23 fixed requests: streamed and non-streamed text and tool calls on both protocols, `count_tokens`, malformed and empty bodies, context overflow, an unknown route, and the status endpoints. It records the status, the content type and a skeleton of each body or event stream: keys and types, with enum values kept and ids reduced to their prefix. Error messages are recorded verbatim. `--compare` diffs two runs.
+
+- Strata Control 0.1.54 and 0.1.57 for macOS (both SHA-256 checked against their releases) ran side by side on mbp in mock mode, with the model's tokenizer and the same two scripts in turn: reasoning then text, and reasoning then a tool call. Mock mode replays the script through Strata's real tokenizer, reasoning and tool-call parsers and stream writers.
+- **Direct:** 0 of 23 cases differ in shape or event counts. One message changed: a Messages context overflow now starts `prompt is too long: 40052 tokens > 32759 maximum;` before the old text. Palimnesis matches `exceeds the context window`, which is still there. The new prefix is Anthropic's own wording, which agents may treat as an overflow; through the proxy the agent never sees it, because the proxy refuses an over-budget request itself.
+- **Through the proxy,** one session per case: 0 of 23 differ between the two versions. Against direct, the 8 generating cases are identical. The other differences are the proxy's own error bodies (it adds `code` and `param`, and Anthropic's top-level `"type": "error"`) and a 400 instead of a 404 for an unsupported route.
+
+**LM Studio** (mbp, Qwen3.6 35B-A3B as `qwen36`, untouched by the test):
+
+- It answers every route it does not know with 200 and `{"error": ...}`, including `/props` and `/v1/messages/count_tokens`. Palimnesis reads that as facts it cannot use, so bounded views stay off and the upstream gets each request's exact bytes (`test_pin_mismatch_disables_the_view_but_still_archives`).
+- `palimnesis setup pi --model qwen36` into a scratch agent directory, then Pi 1.5.0 through the proxy: on Chat it read a file and wrote the answer in 23 s (3 requests). On Messages the same task passed in 3 requests, and a second session answered from its own tool calls. Every exchange was archived (`delivery_completed` on each).
+- One Pi run on Messages stalled for 10 minutes before sending any request, so it never reached the proxy. Rerun with stdin closed, it passed. That Pi waited on an open stdin is likely but unconfirmed.
+- The probe against LM Studio directly and through the proxy cannot be compared case by case, because a real model answers differently each time (one direct call spent all 200 tokens reasoning). Event kinds match where both runs ended the same way.
+
+**Not shown.** The real 0.1.57 engine (generation, speed, cancellation). Bounded views on any server other than Strata. OpenCode against LM Studio.

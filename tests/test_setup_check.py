@@ -252,3 +252,15 @@ def test_check_reports_a_null_context_limit_instead_of_crashing(stack, tmp_path,
 
     assert main(["check", "--upstream", upstream, "--port", str(port), "--pi-dir", str(pi)]) == 1
     assert "contextWindow" in capsys.readouterr().out
+
+
+def test_check_says_a_server_that_answers_is_not_strata_rather_than_absent(tmp_path, capsys):
+    # LM Studio answers every unknown route with 200 and an error object (R51).
+    fake = FakeUpstream()
+    fake.props_body = b'{"error": "Unexpected endpoint or method. (GET /props)"}'
+    with serve(fake.app()) as upstream:
+        code = main(["check", "--upstream", upstream, "--port", "9"])
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "no answer" not in out
+    assert "not Strata" in out and "archives and forwards" in out

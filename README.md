@@ -51,10 +51,10 @@ Open problems: the local model sometimes cuts an answer short ("1" for "1.25s"),
 
 - Python 3.12 and [uv](https://docs.astral.sh/uv/).
 - A **Strata** server reachable over HTTP. Palimnesis counts tokens the way Strata does, with its own copy of the chat template and tokenizer. At startup it asks the server to count a few sample conversations and compares the answers with its own.
-  - When they match, bounded views are on, whatever the Strata version. Tested with 0.1.48 and 0.1.54, and the counting of 0.1.57 ([R50](docs/results/phase4b.md#r50-strata-0157-counts-exactly-as-the-pin-2026-11-06)).
+  - When they match, bounded views are on, whatever the Strata version. Tested with 0.1.48 and 0.1.54, and the counting and wire format of 0.1.57 ([R50](docs/results/phase4b.md#r50-strata-0157-counts-exactly-as-the-pin-2026-11-06), [R51](docs/results/phase4b.md#r51-wire-shapes-of-strata-0157-and-lm-studio-behind-the-proxy-2026-11-06)).
   - When a new release changes the chat template, Palimnesis tries the server's template and switches to it if the counts then match.
   - When the counts still differ, it archives and forwards every request but turns bounded views off, so the model gets the full history and long sessions can overflow the context. The startup log and `palimnesis check` say when this happens.
-  - Other servers (llama.cpp, LM Studio, vLLM) have not been tested.
+  - Other servers get no bounded view: the proxy archives and forwards. LM Studio works this way with Pi on both protocols ([R51](docs/results/phase4b.md#r51-wire-shapes-of-strata-0157-and-lm-studio-behind-the-proxy-2026-11-06)). llama.cpp and vLLM have not been tested.
 - A supported agent: **OpenCode 2.1.4** (OpenAI Chat Completions) or **Pi 1.5.0** (Chat Completions or Anthropic Messages). Claude Code is backlogged.
 
 ## Install

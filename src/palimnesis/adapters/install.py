@@ -213,7 +213,12 @@ def _upstream_items(upstream: str) -> tuple[list[Item], str | None]:
     diag = facts.diagnostics()
     props = diag.get("facts")
     if not props:
-        return [Item("FAIL", "upstream", f"no answer from {upstream}/props ({diag.get('last_error')})",
+        error = diag.get("last_error") or ""
+        if "malformed" in error or "returned" in error:  # it answered, but not as Strata does
+            return [Item("WARN", "upstream", f"{upstream} answers, but is not Strata ({error})"),
+                    Item("FAIL", "bounded views", "off: they need Strata's /props and count_tokens",
+                         "the proxy still archives and forwards every request with the full history")], None
+        return [Item("FAIL", "upstream", f"no answer from {upstream}/props ({error})",
                      "start the model server, or pass --upstream URL")], None
     alias = props.get("model_alias")
     items = [Item("PASS", "upstream", f"{props.get('build_info')}, model {alias}, "
