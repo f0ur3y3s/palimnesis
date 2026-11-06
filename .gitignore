@@ -16,3 +16,6 @@ eval/fixtures/opencode-2.1.4/partials/*
 eval/fixtures/opencode-2.1.4/partials/*/*
 !eval/fixtures/opencode-2.1.4/partials/*/req-*.json
 .claude/worktrees/
+
+# Design-tool working files (decision payloads, review captures)
+.impeccable/

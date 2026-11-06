@@ -3,404 +3,517 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Palimnesis, step by step</title>
-<meta name="description" content="An interactive walkthrough of how Palimnesis keeps a coding agent's full history while the model sees a bounded view.">
+<title>What the model sees</title>
+<meta name="description" content="A step-by-step diff of one coding session through Palimnesis: the agent's full history against the bounded view the model receives.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;600&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: one step at a time. Three lanes left to right (harness → archive → model),
-   a token gauge on each outer lane with the budget and both watermarks marked, and the
-   step's story above them. */
+/* Review Diff: the session is a commit log; each step's diff is the agent's history (left)
+   against the view the model receives (right). Changes only by default, unchanged runs
+   folded, one large readout per step so the eye knows where to land. */
 :root {
-  --bg: #f3f4f6;
-  --surface: #ffffff;
-  --ink: #15191f;
-  --ink-2: #4a5260;
-  --muted: #6f7787;
-  --line: #dde1e7;
-  --accent: #2456c9;        /* the model's view and its replies */
-  --accent-soft: #e5ecfb;
-  --cache: #b9cbf3;         /* the part of a call Strata reads from cache */
-  --proxy: #9a5600;         /* what the proxy writes: stubs, spans, notes, excerpts */
-  --proxy-soft: #fbf0df;
-  --new: #1d7a4c;
-  --new-soft: #e2f3ea;
-  --over: #b42318;
-  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ground: #eef0ea;
+  --sheet: #fbfbf8;
+  --ink: #161914;
+  --ink-2: #454b40;
+  --ink-3: #6a7064;
+  --rule: #d6dacf;
+  --del: #fadbd4;
+  --del-gutter: #e9a395;
+  --del-ink: #8a2414;
+  --add: #d6f0d8;
+  --add-gutter: #8ccd95;
+  --add-ink: #155a24;
+  --fold: #f1e3b8;
+  --fold-ink: #5f4709;
+  --quiet: #e6e9e1;
+  --model: #2456b8;
+  --cache: #7b9bd6;
+  --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111418; --surface: #1a1e24; --ink: #eef1f5; --ink-2: #b9c0cc; --muted: #8f98a8;
-    --line: #2c323b; --accent: #6f9bff; --accent-soft: #1d2a45; --cache: #3b5487; --proxy: #f0a64a;
-    --proxy-soft: #33270f; --new: #4cc38a; --new-soft: #143224; --over: #ff7a6e;
+    --ground: #101210; --sheet: #181b17; --ink: #eceee8; --ink-2: #bcc2b4; --ink-3: #8e9587;
+    --rule: #2c312a; --del: #3f1d18; --del-gutter: #8c3a2c; --del-ink: #ffb3a6;
+    --add: #17331c; --add-gutter: #2f7a3c; --add-ink: #9fe0a8; --fold: #3a3018; --fold-ink: #f0d27e;
+    --quiet: #22261f; --model: #8fb3f5; --cache: #5675b0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111418; --surface: #1a1e24; --ink: #eef1f5; --ink-2: #b9c0cc; --muted: #8f98a8;
-  --line: #2c323b; --accent: #6f9bff; --accent-soft: #1d2a45; --cache: #3b5487; --proxy: #f0a64a;
-  --proxy-soft: #33270f; --new: #4cc38a; --new-soft: #143224; --over: #ff7a6e;
+  --ground: #101210; --sheet: #181b17; --ink: #eceee8; --ink-2: #bcc2b4; --ink-3: #8e9587;
+  --rule: #2c312a; --del: #3f1d18; --del-gutter: #8c3a2c; --del-ink: #ffb3a6;
+  --add: #17331c; --add-gutter: #2f7a3c; --add-ink: #9fe0a8; --fold: #3a3018; --fold-ink: #f0d27e;
+  --quiet: #22261f; --model: #8fb3f5; --cache: #5675b0;
   color-scheme: dark;
 }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
-a { color: var(--accent); }
-.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 40px; display: grid; gap: 18px; }
-header { display: grid; gap: 6px; }
-header h1 { font-size: 24px; font-weight: 600; margin: 0; text-wrap: balance; }
-header p { margin: 0; color: var(--ink-2); max-width: 78ch; }
+body { background: var(--ground); color: var(--ink); font: 16px/1.55 var(--font-ui); caret-color: var(--model); }
+::selection { background: var(--model); color: var(--sheet); }
+a { color: var(--model); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
+* { scrollbar-color: var(--rule) transparent; }
 
-/* step controls */
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.chips { display: flex; gap: 6px; flex: 1 1 auto; overflow-x: auto; padding: 2px; }
-.chip { font: 500 13px var(--font-body); border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink-2); border-radius: 999px; padding: 4px 11px; cursor: pointer; white-space: nowrap; }
-.chip[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn { font: 500 14px var(--font-body); border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn:disabled { opacity: .45; cursor: default; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.page { max-width: 1320px; margin: 0 auto; padding: 32px 20px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
 
-/* story */
-.story { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 6px; }
-.story .kicker { font: 500 12px var(--font-mono); color: var(--muted); }
-.story h2 { margin: 0; font-size: 19px; font-weight: 600; text-wrap: balance; }
-.story p { margin: 0; color: var(--ink-2); max-width: 92ch; }
-.story ul { margin: 2px 0 0; padding-left: 18px; color: var(--ink-2); max-width: 92ch; }
-.story li { margin: 2px 0; }
+/* Masthead */
+.mast { display: grid; gap: 12px; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em; text-wrap: balance; }
+.repo { font: 500 14px var(--font-code); }
+.mast p { margin: 0; max-width: 72ch; color: var(--ink-2); font-size: 17px; }
+.mast p strong { color: var(--ink); font-weight: 600; }
 
-.key { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); }
-.key span { display: inline-flex; align-items: center; gap: 6px; }
-.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.sw.line { width: 2px; height: 14px; border-radius: 0; }
+/* Review: step log | the selected step */
+.review { display: grid; grid-template-columns: 280px minmax(0, 1fr); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.log { border-right: 1px solid var(--rule); padding: 10px 0; }
+#log { display: grid; }
+.commit { all: unset; display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; padding: 10px 16px; cursor: pointer; position: relative; }
+.commit .num { font: 600 13px var(--font-code); color: var(--ink-3); text-align: right; padding-top: 1px; font-variant-numeric: tabular-nums; }
+.commit .msg { font-size: 15px; line-height: 1.35; color: var(--ink-2); }
+.commit:hover .msg { color: var(--ink); }
+.commit[aria-current="true"] { background: var(--ground); }
+.commit[aria-current="true"] .msg { color: var(--ink); font-weight: 600; }
+.commit[aria-current="true"] .num { color: var(--model); }
+.commit:focus-visible { outline: 2px solid var(--model); outline-offset: -2px; }
 
-/* lanes */
-.lanes { display: grid; grid-template-columns: 1fr 0.8fr 1fr; gap: 14px; align-items: start; }
-.lane { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
-.lane h3 { margin: 0; font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
-.lane h3 small { font-weight: 400; color: var(--muted); font-size: 12px; }
-.lane.model { border-color: var(--accent); }
-.list { display: grid; gap: 4px; }
-.sub { font: 500 11px var(--font-mono); color: var(--muted); margin-top: 4px; }
-.row { display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; align-items: baseline;
-  padding: 5px 8px; border-radius: 6px; background: var(--bg); font-size: 13px; }
-.row .role { font: 500 11px var(--font-mono); color: var(--muted); }
-.row .text { color: var(--ink); overflow-wrap: anywhere; white-space: pre-line; }
-.row .tok { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.row.new { background: var(--new-soft); box-shadow: inset 3px 0 0 var(--new); }
-.row.proxy { background: var(--proxy-soft); box-shadow: inset 3px 0 0 var(--proxy); }
-.row.proxy .role { color: var(--proxy); }
-.row.proxy .text { font-family: var(--font-mono); font-size: 12px; }
-.row.reply { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
-.row.reply .role { color: var(--accent); }
-.row.note { grid-template-columns: 1fr; }
+.show { min-width: 0; display: grid; align-content: start; }
 
-/* gauge */
-.gauge { display: grid; gap: 4px; }
-.bar { position: relative; height: 16px; border-radius: 4px; background: var(--bg); margin-top: 14px; }
-.fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px 0 0 4px; }
-.fill.plain { background: var(--ink-2); }
-.fill.cached { background: var(--cache); }
-.fill.fresh { background: var(--accent); }
-.mark { position: absolute; top: -4px; bottom: -4px; width: 2px; }
-.mark.budget { background: var(--ink); }
-.mark.wm { background: var(--muted); }
-.mark span { position: absolute; bottom: 100%; transform: translateX(-50%); font: 500 10px var(--font-mono); color: var(--muted); white-space: nowrap; padding-bottom: 1px; }
-.mark.budget span { color: var(--ink); }
-.legend { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.legend b { color: var(--ink); font-weight: 600; }
-.pill { display: inline-block; font: 500 11px var(--font-mono); padding: 1px 7px; border-radius: 999px; }
-.pill.ok { background: var(--new-soft); color: var(--new); }
-.pill.over { background: color-mix(in srgb, var(--over) 15%, transparent); color: var(--over); }
-.pill.proxy { background: var(--proxy-soft); color: var(--proxy); }
-.facts { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
-.facts div { display: flex; justify-content: space-between; gap: 10px; }
-.facts b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* The readout: where the eye lands first. */
+.readout { padding: 22px 26px 18px; display: grid; gap: 14px; border-bottom: 1px solid var(--rule); }
+.readout h2 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+.sizes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 26px; }
+.size { display: grid; gap: 2px; }
+.size .k { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+.size .v { font: 600 34px/1 var(--font-code); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.size.model .v { color: var(--model); }
+.arrow { font: 400 28px/1 var(--font-ui); color: var(--ink-3); padding-bottom: 2px; }
+.status { align-self: center; font: 600 13px var(--font-ui); padding: 5px 11px; border-radius: 999px; background: var(--quiet); color: var(--ink-2); }
+.status.move { background: var(--fold); color: var(--fold-ink); }
+.status.ok { background: var(--add); color: var(--add-ink); }
+.lede { margin: 0; font-size: 17px; color: var(--ink); max-width: 70ch; }
+.more { margin: 0; padding-left: 20px; color: var(--ink-2); max-width: 70ch; font-size: 15px; }
+.more li { margin: 3px 0; }
 
-/* glossary */
-.terms { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-.terms h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
-.terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
-.terms dt { font: 500 13px var(--font-mono); color: var(--ink); }
-.terms dd { margin: 0; color: var(--ink-2); max-width: 80ch; }
-footer { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+/* Ruler */
+.ruler { display: grid; grid-template-columns: 64px 1fr; gap: 6px 12px; align-items: center; }
+.ruler .lbl { font: 600 12px var(--font-code); color: var(--ink-3); }
+.track { position: relative; height: 10px; border-radius: 3px; background: var(--quiet); }
+.seg { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 3px; }
+.seg.h { background: var(--ink-3); }
+.seg.c { background: var(--cache); border-radius: 3px 0 0 3px; }
+.seg.n { background: var(--model); }
+.tick { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--ink-2); }
+.tick.b { width: 2px; background: var(--ink); }
+.scale { position: relative; height: 15px; grid-column: 2; font: 11px var(--font-code); color: var(--ink-3); }
+.scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.scale span.b { color: var(--ink); font-weight: 600; transform: none; padding-left: 4px; }
+.cachenote { grid-column: 2; font-size: 13px; color: var(--ink-2); }
 
-@media (max-width: 920px) { .lanes { grid-template-columns: 1fr; } .terms dl { grid-template-columns: 1fr; } .terms dd { margin-bottom: 6px; } }
-@media (prefers-reduced-motion: no-preference) { .fill { transition: width .35s ease, left .35s ease; } }
+/* Diff toolbar */
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 10px 26px; border-bottom: 1px solid var(--rule); background: var(--ground); }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1 1 420px; font: 600 13px var(--font-ui); color: var(--ink-2); }
+.ctl { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg-ctl { display: inline-flex; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; background: var(--sheet); }
+.seg-ctl button { all: unset; cursor: pointer; padding: 4px 11px; font: 600 12.5px var(--font-ui); color: var(--ink-2); }
+.seg-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.seg-ctl button:focus-visible { outline: 2px solid var(--model); outline-offset: -2px; }
+
+/* The diff */
+.diff { font: 13.5px/1.55 var(--font-code); }
+.r { display: grid; grid-template-columns: 62px 22px minmax(0, 1fr) 62px 22px minmax(0, 1fr); }
+.unified .r { grid-template-columns: 62px 22px minmax(0, 1fr); }
+.c { padding: 2px 8px; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.6em; }
+.c.n { white-space: nowrap; text-align: right; color: var(--ink-3); font-variant-numeric: tabular-nums; user-select: none; padding-right: 10px; }
+.c.s { padding: 2px 0; text-align: center; user-select: none; font-weight: 600; }
+.role { color: var(--ink-3); }
+.r.ctx .t { color: var(--ink-2); }
+.r.del .L { background: var(--del); } .r.del .L.s { background: var(--del-gutter); color: var(--del-ink); }
+.r.add .R { background: var(--add); } .r.add .R.s { background: var(--add-gutter); color: var(--add-ink); }
+.r.del .L.t, .r.add .R.t { color: var(--ink); }
+.r.del .L .role, .r.add .R .role, .r.del .L.n, .r.add .R.n { color: var(--ink-2); }
+.r.del .R, .r.add .L { background: var(--quiet); }
+.unified .r.del > .c { background: var(--del); } .unified .r.del > .s { background: var(--del-gutter); color: var(--del-ink); }
+.unified .r.add > .c { background: var(--add); } .unified .r.add > .s { background: var(--add-gutter); color: var(--add-ink); }
+.r.new .t { color: var(--ink); font-weight: 500; }
+.r.new .c.n:first-child { color: var(--model); font-weight: 600; }
+.r.reply > .c { background: var(--ground); }
+.fold { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; padding: 5px 12px 5px 22px; font: 600 12.5px var(--font-code); width: 100%; box-sizing: border-box; }
+.fold.span { background: var(--fold); color: var(--fold-ink); }
+.fold.same { background: var(--quiet); color: var(--ink-3); }
+.fold:focus-visible { outline: 2px solid var(--model); outline-offset: -2px; }
+.fold .act { font: 500 12.5px var(--font-ui); text-decoration: underline; text-underline-offset: 3px; }
+.sec { padding: 7px 26px; font: 600 13px var(--font-ui); color: var(--ink-2); border-top: 1px solid var(--rule); background: var(--ground); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 26px; font: 13px var(--font-ui); color: var(--ink-2); border-top: 1px solid var(--rule); }
+.legend i { display: inline-block; width: 16px; height: 11px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 26px 20px; }
+.btn { all: unset; cursor: pointer; font: 600 15px var(--font-ui); padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+.btn[aria-disabled="true"] { opacity: .4; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
+.keys { font: 13px var(--font-ui); color: var(--ink-3); }
+
+/* Terms */
+.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px 32px; margin: 0; align-items: start; }
+.terms div { display: grid; gap: 4px; align-content: start; }
+.terms dt { font: 700 15px var(--font-ui); }
+.terms dd { margin: 0; color: var(--ink-2); font-size: 15px; max-width: 60ch; }
+footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--ink-3); }
+
+/* The one authored motion: rows new to this step land highlighted and settle. */
+@media (prefers-reduced-motion: no-preference) {
+  .r.land > .c, .r.land > .fold { animation: land 900ms cubic-bezier(.16, 1, .3, 1) both; }
+  @keyframes land { from { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--model) 24%, transparent); } to { box-shadow: inset 0 0 0 999px transparent; } }
+}
+
+@media (max-width: 820px) {
+  h1 { font-size: 29px; }
+  .review { grid-template-columns: minmax(0, 1fr); }
+  .log { border-right: 0; border-bottom: 1px solid var(--rule); padding: 4px 0; min-width: 0; }
+  #log { grid-auto-flow: column; grid-auto-columns: minmax(190px, 64%); overflow-x: auto; scroll-snap-type: x proximity; min-width: 0; }
+  .commit { scroll-snap-align: start; }
+  .readout, .bar, .nav, .legend, .sec { padding-left: 16px; padding-right: 16px; }
+  .size .v { font-size: 27px; }
+  .r, .unified .r { grid-template-columns: 54px 20px minmax(0, 1fr); }
+  .seg-ctl.layout { display: none; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Palimnesis, step by step</h1>
-    <p>A coding session through the proxy with a 32K-token model. The harness keeps and sends the whole conversation. The archive stores every message exactly. The model only ever sees a bounded view: at most 24,320 tokens, and in practice well under it. Token counts are illustrative; the mechanisms are the real ones.</p>
+<!--
+THESIS: The model's view is a diff of the agent's history. Refuses the stepper-plus-three-cards explainer; each step is a commit, shown as changes only, with one large readout of what the agent sends against what the model receives.
+OWN-WORLD: Review-tool grammar on a pale green-grey sheet: monospace hunks, red removals and green proxy additions with solid sign gutters, ochre span folds, grey unchanged-run folds, token counts as gutter line numbers, one blue accent for the model.
+STORY: A local-model developer steps through one session and can then explain how the agent keeps everything, the model sees a bounded view, and details come back.
+FIRST VIEWPORT: Title, repo link and two setup sentences; below, the step log on the left beside the selected step: its title, the readout (agent sends then model receives, with a status), one sentence, the ruler, then the changes-only diff. Next step at the bottom.
+FORM: Review Diff, candidate 4 of 7; seed key bb2241dc, a degraded roll (no challengers, no quality-bar boards, code-led).
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<div class="page">
+  <header class="mast">
+    <div class="top">
+      <h1>What the model sees</h1>
+      <a class="repo" href="https://github.com/f0ur3y3s/palimnesis">f0ur3y3s/palimnesis</a>
+    </div>
+    <p><strong>Palimnesis sits between your coding agent and the model.</strong> The agent is set to a 1,000,000-token context with its own compaction off, so it always sends the whole conversation. Palimnesis keeps every message and sends the model a bounded view.</p>
+    <p>Below is one session with a 32K-token model, one step at a time. Each step is a diff: the agent's request on the left, what the model receives on the right. The messages are synthetic. The sizes and every decision come from running them through the real view builder (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/eval/walkthrough_sim.py">eval/walkthrough_sim.py</a>).</p>
   </header>
 
-  <nav class="controls" aria-label="Steps">
-    <button class="btn" id="prev" type="button">← Previous</button>
-    <div class="chips" id="chips"></div>
-    <button class="btn primary" id="next" type="button">Next →</button>
-  </nav>
+  <section class="review" aria-label="Walkthrough">
+    <nav class="log" aria-label="Steps"><div id="log"></div></nav>
 
-  <section class="story" aria-live="polite">
-    <div class="kicker" id="kicker"></div>
-    <h2 id="title"></h2>
-    <p id="body"></p>
-    <ul id="bullets"></ul>
+    <article class="show">
+      <div class="readout">
+        <h2 id="title"></h2>
+        <div class="sizes" id="sizes"></div>
+        <p class="lede" id="lede"></p>
+        <ul class="more" id="more"></ul>
+        <div class="ruler" id="ruler"></div>
+      </div>
+
+      <div class="bar">
+        <div class="sides"><span>Agent sends</span><span>Model receives</span></div>
+        <div class="ctl">
+          <div class="seg-ctl" role="group" aria-label="Lines shown">
+            <button type="button" id="changes" aria-pressed="true">Changes</button>
+            <button type="button" id="all" aria-pressed="false">All lines</button>
+          </div>
+          <div class="seg-ctl layout" role="group" aria-label="Diff layout">
+            <button type="button" id="split" aria-pressed="true">Split</button>
+            <button type="button" id="unified" aria-pressed="false">Unified</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="diff" id="diff" role="table" aria-label="The agent's request against the model's view"></div>
+
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--del-gutter)"></i>left out of the model's view</span>
+        <span><i style="background:var(--add-gutter)"></i>added by Palimnesis</span>
+        <span><i style="background:var(--fold)"></i>collapsed old turns</span>
+        <span><i style="background:var(--quiet)"></i>unchanged, read from cache</span>
+      </div>
+
+      <div class="nav">
+        <button type="button" class="btn" id="prev">Previous step</button>
+        <span class="keys">Arrow keys or j and k</span>
+        <button type="button" class="btn primary" id="next">Next step</button>
+      </div>
+    </article>
   </section>
 
-  <div class="key" aria-hidden="true">
-    <span><i class="sw" style="background:var(--new)"></i>new this step</span>
-    <span><i class="sw" style="background:var(--proxy)"></i>written by the proxy</span>
-    <span><i class="sw" style="background:var(--accent)"></i>the model's reply</span>
-    <span><i class="sw" style="background:var(--cache)"></i>read from Strata's cache</span>
-    <span><i class="sw line" style="background:var(--muted)"></i>watermarks H and T</span>
-  </div>
-
-  <main class="lanes">
-    <section class="lane" aria-labelledby="h-harness">
-      <h3 id="h-harness">1 · Harness sends <small>its whole history, every request</small></h3>
-      <div class="gauge" id="g-harness"></div>
-      <div class="list" id="l-harness"></div>
-    </section>
-    <section class="lane" aria-labelledby="h-archive">
-      <h3 id="h-archive">2 · Proxy archives <small>SQLite, exact, append-only</small></h3>
-      <div class="facts" id="f-archive"></div>
-      <div class="list" id="l-archive"></div>
-    </section>
-    <section class="lane model" aria-labelledby="h-model">
-      <h3 id="h-model">3 · Model sees <small>the bounded view sent to Strata</small></h3>
-      <div class="gauge" id="g-model"></div>
-      <div class="list" id="l-model"></div>
-    </section>
-  </main>
-
-  <section class="terms" aria-labelledby="terms-h">
-    <h2 id="terms-h">Terms</h2>
-    <dl>
-      <dt>budget</dt><dd>The most input the model may get: the context size less the output reserve and a safety margin. 24,320 tokens at 32K. Counted with the server's own template and tokenizer, so it is exact.</dd>
-      <dt>H and T</dt><dd>The high and low watermarks. With F the fixed input (system prompt, tool schemas, the current message) and C the room left in the budget, the view is left alone until it would pass H = F + 0.9·C. Then old turns collapse until it is under T = F + 0.5·C. The gap means the next several turns only append.</dd>
-      <dt>stub</dt><dd>An old tool result replaced by a line naming its archive address and size, with its first and last lines.</dd>
-      <dt>span</dt><dd>A run of whole old turns collapsed into one line. Everything in it stays archived exactly.</dd>
-      <dt>working notes</dt><dd>A short block the model rewrites just before old turns leave its view: objective, constraints, decisions, what is done, the current step, dead ends.</dd>
-      <dt>excerpts</dt><dd>Archived text the view no longer shows, matched to a new message and appended to it in the model's copy only. Chosen once, then fixed, so the cache keeps working.</dd>
-      <dt>transcripts</dt><dd>The whole session published as plain files the model can grep and read with its own tools.</dd>
-    </dl>
-  </section>
+  <dl class="terms">
+    <div><dt>Budget</dt><dd>The most input the model gets: 24,320 tokens at 32K, after room for the reply. Palimnesis counts with Strata's own template and tokenizer, so the count is exact.</dd></div>
+    <div><dt>H and T</dt><dd>The high and low watermarks. The view stays as it is until it would pass H (18,056 here), then old turns collapse until it is below T (10,920). The notes and excerpt slots are reserved, so they never count toward either.</dd></div>
+    <div><dt>Span</dt><dd>A run of old turns shown as one line. Every message in it stays in the archive.</dd></div>
+    <div><dt>Stub</dt><dd>An old tool result shortened to its address, size and first and last lines. Used when shortening results is enough. In this session collapsing was needed.</dd></div>
+    <div><dt>Working notes</dt><dd>A short block the model writes just before old turns leave its view: the goal, constraints, what is done and the next step.</dd></div>
+    <div><dt>Excerpts</dt><dd>Archived text that matches a new message, added to that message in the model's copy only. Picked once and then left unchanged, so Strata's cache stays valid.</dd></div>
+  </dl>
 
   <footer>
-    <span>← and → move between steps; each step has its own link.</span>
-    <a href="https://github.com/f0ur3y3s/palimnesis">Source and docs on GitHub</a>
+    <a href="https://github.com/f0ur3y3s/palimnesis">Palimnesis on GitHub</a>
     <a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/contracts.md">Contracts</a>
     <a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/README.md">Measured results</a>
   </footer>
 </div>
 
 <script>
-const BUDGET = 24320;
-const F = 1900;                      // system and tool schemas plus a short current message
-const C = BUDGET - F;
-const H = Math.round(F + 0.9 * C);   // high watermark
-const T = Math.round(F + 0.5 * C);   // low watermark
+// Sizes and decisions from eval/walkthrough_sim.py (the real builder, serve's defaults, 32K).
+const BUDGET = 24320, H = 18056, T = 10920, SCALE_MAX = 28000;
 
-// The conversation as the harness holds it. Tokens are illustrative.
+// Each message counted alone; a request's total is counted as one rendered request.
 const M = {
-  SYS: ["system", "System prompt and tool schemas", 1800],
-  U1: ["user", "Fix the rounding bug in ledger. Use branch fix/rounding-37.", 60],
-  A1: ["assistant", "→ read(src/ledger/rounding.py)", 40],
-  T1: ["tool", "rounding.py, 412 lines", 9000],
-  A2: ["assistant", "The bug is in round_minor(): it truncates instead of rounding half-even.", 90],
-  U2: ["user", "Write a failing test for it first.", 30],
-  A3: ["assistant", "→ read(tests/test_rounding.py)", 40],
-  T2: ["tool", "test_rounding.py, 180 lines", 3800],
-  A4: ["assistant", "→ edit(tests/test_rounding.py)", 350],
-  T3: ["tool", "Edit applied", 30],
-  A5: ["assistant", "Added test_round_minor_half_even. It fails, as expected.", 60],
-  U3: ["user", "Now fix it.", 15],
-  A6: ["assistant", "→ edit(src/ledger/rounding.py)", 300],
-  T4: ["tool", "Edit applied", 30],
-  A7: ["assistant", "→ bash(pytest -q)", 30],
-  T5: ["tool", "pytest output: 214 passed", 3500],
-  A8: ["assistant", "Fixed: round_minor uses ROUND_HALF_EVEN. 214 tests pass.", 60],
-  U4: ["user", "Check src/ledger/fx_rates.py for logging we should keep.", 40],
-  A9: ["assistant", "→ read(src/ledger/fx_rates.py)", 40],
-  T6: ["tool", "fx_rates.py, 171 lines", 5200],
-  A10: ["assistant", "fx_rates.py logs at debug level only. Nothing to change.", 50],
-  U5: ["user", "Which branch did I ask you to use?", 20],
-  A11: ["assistant", "fix/rounding-37", 10],
-  G1: ["assistant", "→ bash(grep -rn \"branch\" <transcripts>/)", 45],
-  G2: ["tool", "turn-0001.md:3: … Use branch fix/rounding-37.", 60],
+  SYS: ["system", "System prompt and tool schemas", 1934],
+  U1: ["user", "Fix the rounding bug in ledger. Use branch fix/rounding-37.", 69],
+  A1: ["assistant", "read(src/ledger/rounding.py)", 83],
+  T1: ["tool", "rounding.py", 6416],
+  A2: ["assistant", "The bug is in round_minor(). It truncates instead of rounding half-even.", 72],
+  U2: ["user", "Write a failing test for it first.", 60],
+  A3: ["assistant", "read(tests/test_rounding.py)", 83],
+  T2: ["tool", "test_rounding.py", 4257],
+  A4: ["assistant", "edit(tests/test_rounding.py): add test_round_minor_half_even", 3205],
+  T3: ["tool", "Edit applied", 55],
+  A5: ["assistant", "Added test_round_minor_half_even. It fails, as expected.", 69],
+  U3: ["user", "Now fix it.", 56],
+  A6: ["assistant", "edit(src/ledger/rounding.py): use ROUND_HALF_EVEN", 2665],
+  T4: ["tool", "Edit applied", 55],
+  A7: ["assistant", "bash(pytest -q)", 83],
+  T5: ["tool", "pytest output, 214 passed", 3715],
+  A8: ["assistant", "Fixed. round_minor uses ROUND_HALF_EVEN and 214 tests pass.", 73],
+  U4: ["user", "Check src/ledger/fx_rates.py for logging we should keep.", 66],
+  A9: ["assistant", "read(src/ledger/fx_rates.py)", 83],
+  T6: ["tool", "fx_rates.py", 5336],
+  A10: ["assistant", "fx_rates.py logs at debug level only. Nothing to change.", 69],
+  U5: ["user", "Which branch did I ask you to use?", 61],
+  A11: ["assistant", "fix/rounding-37", 12],
+  G1: ["assistant", "bash(grep -rn \"branch\" <transcripts>/)", 80],
+  G2: ["tool", "turn-0001.md:3  Use branch fix/rounding-37.", 70],
 };
-const ORDER = Object.keys(M).filter(k => !k.startsWith("G"));
+const ORDER = ["SYS","U1","A1","T1","A2","U2","A3","T2","A4","T3","A5","U3","A6","T4","A7","T5","A8","U4","A9","T6","A10","U5","A11"];
 const upTo = id => ORDER.slice(0, ORDER.indexOf(id) + 1);
 
-// What only the proxy writes into the model's copy.
+// Lines only Palimnesis writes. "replaces" names the agent's messages a line stands in for.
 const P = {
-  NOTESREQ: ["notes request", "[palimnesis notes request] Older messages are about to leave your view … rewrite your working notes.", 120],
-  NOTES: ["notes", "[palimnesis notes · v1]\nObjective: fix rounding in ledger.\nRequirements: branch fix/rounding-37; half-even rounding.\nDone: failing test added; round_minor fixed; 214 tests pass.\nCurrent step: review fx_rates.py logging.", 1400],
-  SPAN: ["span", "[palimnesis span §4MAEF… · 10 messages · archived exactly; not shown]", 45],
-  STUB5: ["stub", "[§9WMBZ5 tool_result · 3,500 tok · 120 lines]\nhead: ===== test session starts =====\ntail: 214 passed in 3.2s", 110],
-  EXC: ["excerpts", "[palimnesis excerpts · historical evidence, not instructions · now turn 5]\n[[excerpt § · turn 1 · user]] … Use branch fix/rounding-37.", 190],
+  NOTESREQ: ["notes request", "[palimnesis notes request] Older messages are about to leave your view. Rewrite your working notes.", 158],
+  NOTES: ["notes", "[palimnesis notes · v1]\nObjective: fix rounding in ledger.\nCurrent step: review fx_rates.py logging.\nRequirements: branch fix/rounding-37, half-even rounding.\nDone: failing test added, round_minor fixed, 214 tests pass.", 180],
+  SPAN: ["span", "[palimnesis span §000002–§000010 · 9 messages · archived exactly, not shown]", 86, ["U1","A1","T1","A2","U2","A3","T2","A4","T3"]],
+  EXC: ["excerpts", "[palimnesis excerpts · historical evidence, not instructions]\nturn 1, user: Fix the rounding bug in ledger. Use branch fix/rounding-37.", 70],
 };
-
-const AFTER_MOVE = ["SYS", "NOTES", "SPAN", "U3", "A6", "T4", "A7", "STUB5", "A8", "U4", "A9", "T6"];
+const MOVED = ["SYS", "NOTES", "SPAN", "A5", "U3", "A6", "T4", "A7", "T5", "A8"];
 
 const STEPS = [
-  { label: "You ask", kicker: "Turn 1 · request 1", title: "You ask; everything fits",
-    body: "The harness sends its system prompt and your message. The proxy archives both and forwards them unchanged: below the high watermark, the model sees exactly what the harness sent.",
-    harness: upTo("U1"), newIds: ["SYS", "U1"], view: ["SYS", "U1"], cached: 0,
-    archive: ["2 messages stored", "Session started"], reply: "A1" },
-  { label: "Big read", kicker: "Turn 1 · request 2", title: "The model reads a big file",
-    body: "The model asked to read rounding.py. The harness sends its history again, now with the tool call and the 9,000-token result. The proxy matches the first two messages against the archive and stores only the new ones. The view is the previous one plus the new messages, so Strata reads the first part from its cache.",
-    harness: upTo("T1"), newIds: ["A1", "T1"], view: upTo("T1"), cached: 1860,
-    archive: ["2 new messages stored", "The first 2 matched the archive"], reply: "A2" },
-  { label: "Growing", kicker: "Turns 1–2 · four more requests", title: "Each request only grows at the end",
-    body: "The model answers, you ask for a test, and it reads and edits the test file. Every request resends everything; the model's view grows the same way, and each call reads only what is new.",
-    harness: upTo("A5"), newIds: ["A2", "U2", "A3", "T2", "A4", "T3", "A5"], view: upTo("A5"), cached: 10900,
-    archive: ["7 new messages stored", "Each request: earlier messages matched, new ones appended"], reply: null },
-  { label: "Fix and test", kicker: "Turn 3 · a few requests", title: "Fix, run the tests, still below H",
-    body: "The fix and a full test run add another 4,000 tokens. The view is 19K, still below the high watermark H, so nothing changes yet.",
-    harness: upTo("A8"), newIds: ["U3", "A6", "T4", "A7", "T5", "A8"], view: upTo("A8"), cached: 15300,
-    archive: ["6 new messages stored"], reply: null },
-  { label: "Notes", kicker: "Turn 4 · past the watermark", title: "The view would pass H, so the model writes notes first",
-    body: "Another file read makes the history 24,515 tokens, past H and even past the budget. The harness neither knows nor cares: it sends all of it. Before any old message leaves the view, the proxy makes one extra call: the current view plus a request to rewrite the working notes.",
-    bullets: ["The model writes about 1,400 tokens of notes: the objective, constraints such as the branch name, what is done, the current step.",
-              "The notes are archived. The harness never sees this call."],
-    harness: upTo("T6"), newIds: ["U4", "A9", "T6"], view: [...upTo("A8"), "NOTESREQ"], cached: 19235,
-    archive: ["3 new messages stored", "Working notes v1 recorded"], reply: "NOTES" },
-  { label: "View moves", kicker: "Turn 4 · the view moves", title: "Old turns collapse to below T; the current turn stays",
-    body: "The proxy builds a smaller view from the archive and sends that to Strata. Nothing is deleted, and the harness's copy is untouched.",
-    bullets: ["The system prompt and tool schemas are never cut.",
-              "Turns 1–2, 10 messages, become one span line.",
-              "The old 3,500-token test output becomes a stub with its first and last lines.",
-              "The current turn, with the new file read, stays whole.",
-              "The view's start changed, so this one call reads it again. From here every request only grows at the end, and the next move is several turns away."],
-    harness: upTo("T6"), newIds: [], view: AFTER_MOVE, cached: 1800,
-    archive: ["View move recorded: collapse", "All 20 messages still archived exactly"], reply: "A10" },
-  { label: "Recall", kicker: "Turn 5 · recall", title: "You ask about something only the archive still holds",
-    body: "The branch name was in turn 1, which the model now sees only as a span line. The proxy searches the archived text the view no longer shows, finds it, and appends an excerpt block to your message in the model's copy only.",
-    bullets: ["The value is in the working notes too, so the model has two sources.",
-              "The model answers fix/rounding-37. The harness receives only that answer, never the excerpt block."],
-    harness: upTo("U5"), newIds: ["A10", "U5"], view: [...AFTER_MOVE, "A10", "U5", "EXC"], cached: 9070,
-    archive: ["2 new messages stored", "Excerpt selection recorded, fixed for this message"], reply: "A11" },
-  { label: "Grep", kicker: "If recall had missed", title: "The model searches the transcripts itself",
-    body: "The session is also published as plain transcript files, and the model's system prompt says where they are. With its own tools, the model greps them and reads only the matching lines.",
-    harness: [...upTo("U5"), "G1", "G2"], newIds: ["G1", "G2"], view: [...AFTER_MOVE, "A10", "U5", "G1", "G2"], cached: 9185,
-    archive: ["2 new messages stored", "Transcripts: index.md, turn-0001.md … turn-0005.md"], reply: "A11" },
-  { label: "Restart", kicker: "Afterwards", title: "A restart rebuilds the same view",
-    body: "If the proxy restarts, it rebuilds the view from the archive, token for token. The next request matches what Strata already has cached, and the session carries on.",
-    bullets: ["Harness: the whole conversation, 23 messages and growing.",
-              "Archive: every message exactly, plus the notes and every view move.",
-              "Model: about 9K tokens, with old turns as spans and stubs, and the details back as notes, excerpts or a grep."],
-    harness: [...upTo("U5"), "A11"], newIds: [], view: [...AFTER_MOVE, "A10", "U5", "EXC", "A11"], cached: 9340,
-    archive: ["Nothing new: the view is rebuilt from what is stored"], reply: null },
+  { msg: "Everything fits", title: "Everything fits", status: ["ok", "below H"],
+    lede: "Below the high watermark, the model receives exactly what the agent sends.",
+    harness: upTo("U1"), fresh: ["SYS", "U1"], view: ["SYS", "U1"], sent: 2003, seen: 2003, cached: 0, reply: "A1" },
+  { msg: "A large file arrives", title: "A large file arrives", status: ["ok", "below H"],
+    lede: "The agent sends everything again, now with a 6,416-token file. Palimnesis stores only the two new messages, and the model's request grows only at the end.",
+    harness: upTo("T1"), fresh: ["A1", "T1"], view: upTo("T1"), sent: 8411, seen: 8411, cached: 2003, reply: "A2" },
+  { msg: "The request keeps growing", title: "The request keeps growing", status: ["ok", "below H"],
+    lede: "Each request repeats the conversation and adds a little at the end, so each call to the model reads only the new part.",
+    harness: upTo("A5"), fresh: ["A2", "U2", "A3", "T2", "A4", "T3", "A5"], view: upTo("A5"), sent: 15889, seen: 15889, cached: 8411, reply: null },
+  { msg: "Past H: notes first", title: "Past H, the model writes notes first", status: ["move", "past H"],
+    lede: "The fix and a test run take the conversation to 22,260 tokens, past H. Before anything leaves the view, Palimnesis makes one extra call: this request plus a notes request.",
+    more: ["The model writes its working notes, including the branch name.", "Palimnesis stores the notes. The agent never sees this call."],
+    harness: upTo("A8"), fresh: ["U3", "A6", "T4", "A7", "T5", "A8"], view: [...upTo("A8"), "NOTESREQ"], sent: 22260, seen: 22418, cached: 15889, reply: "NOTES" },
+  { msg: "Old turns collapse", title: "Old turns collapse", status: ["move", "below T"],
+    lede: "Palimnesis rebuilds the view from the archive. Turns 1 and 2 collapse into one span line and the notes go after the system prompt. The model's view drops to 8,546 tokens.",
+    more: ["Open the span to see the 9 messages it covers. They stay in the archive exactly, and the agent's copy does not change.",
+           "The view's start changed, so Strata reads it once. After this, requests grow only at the end again."],
+    harness: upTo("A8"), fresh: [], view: MOVED, sent: 22260, seen: 8546, cached: 1934, reply: null },
+  { msg: "The next file just adds", title: "The next file just adds to the end", status: ["ok", "below H"],
+    lede: "Another 5,336-token file arrives. The agent now sends 27,607 tokens, more than the budget. The model's view is 13,893, still below H, so nothing moves.",
+    harness: upTo("T6"), fresh: ["U4", "A9", "T6"], view: [...MOVED, "U4", "A9", "T6"], sent: 27607, seen: 13893, cached: 8546, reply: "A10" },
+  { msg: "A detail comes back", title: "A detail from turn 1 comes back", status: ["ok", "below H"],
+    lede: "You ask for the branch name. Only turn 1 has it, and turn 1 is collapsed. Palimnesis finds it in the archive and adds it to your message in the model's copy.",
+    more: ["The model answers fix/rounding-37. The agent gets only the answer."],
+    harness: upTo("U5"), fresh: ["A10", "U5"], view: [...MOVED, "U4", "A9", "T6", "A10", "U5", "EXC"], sent: 27643, seen: 13999, cached: 13893, reply: "A11" },
+  { msg: "Or the model greps", title: "Or the model searches the transcripts", status: ["ok", "below H"],
+    lede: "Had the search missed, the model could grep the session's transcript files with its own tools. Its system prompt says where they are.",
+    harness: [...upTo("U5"), "G1", "G2"], fresh: ["G1", "G2"], view: [...MOVED, "U4", "A9", "T6", "A10", "U5", "G1", "G2"], sent: 27793, seen: 14079, cached: 13954, reply: "A11", approx: true },
+  { msg: "A restart, same view", title: "A restart gives the same view", status: ["ok", "below H"],
+    lede: "After a restart, Palimnesis rebuilds the view from the archive and gets the same tokens, so Strata's cache still matches.",
+    harness: upTo("A11"), fresh: [], view: [...MOVED, "U4", "A9", "T6", "A10", "U5", "EXC", "A11"], sent: 27655, seen: 14011, cached: 14011, reply: null, approx: true },
 ];
 
 const item = id => M[id] || P[id];
-const tokens = ids => ids.reduce((s, id) => s + item(id)[2], 0);
 const fmt = n => n.toLocaleString("en-US");
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-function row(id, cls, roleText) {
-  const [role, text, tok] = item(id);
-  const r = document.createElement("div");
-  r.className = "row " + cls;
-  for (const [c, t] of [["role", roleText || role], ["text", text], ["tok", fmt(tok)]]) {
-    const s = document.createElement("span"); s.className = c; s.textContent = t; r.appendChild(s);
+let i = 0, unified = matchMedia("(max-width: 820px)").matches, showAll = false, prevKeys = new Set();
+const open = new Set();
+
+// Rows: walk the model's view, keeping each agent message it carries (context), each
+// line Palimnesis adds (+), and what an added line stands in for (−).
+function diffRows(s) {
+  const rows = [];
+  for (const id of s.view) {
+    const p = P[id];
+    if (p && p[3]) rows.push({ kind: "span", left: p[3], right: id, key: "span:" + id });
+    else if (p) rows.push({ kind: "add", right: id, key: "add:" + id });
+    else rows.push({ kind: "ctx", left: id, right: id, key: "ctx:" + id });
   }
+  if (showAll) return rows;
+  // Changes only: fold each run of unchanged context that is not new this step.
+  const out = [];
+  let run = [];
+  const flush = () => {
+    if (run.length > 1) out.push({ kind: "same", ids: run.map(r => r.left), key: "same:" + run[0].left });
+    else out.push(...run);
+    run = [];
+  };
+  for (const r of rows) {
+    if (r.kind === "ctx" && !s.fresh.includes(r.left)) run.push(r); else { flush(); out.push(r); }
+  }
+  flush();
+  return out;
+}
+
+function line(id) {
+  const [role, text] = item(id);
+  const span = el("span");
+  span.append(el("span", "role", (role + " ").padEnd(Math.max(10, role.length + 1), " ")), document.createTextNode(text));
+  return span;
+}
+function cell(cls, content) {
+  const c = el("div", "c " + cls);
+  if (content instanceof Node) c.appendChild(content); else if (content != null) c.textContent = content;
+  c.setAttribute("role", "cell");
+  return c;
+}
+function row(kind, left, right, extra = "") {
+  const r = el("div", "r " + kind + extra); r.setAttribute("role", "row");
+  const sign = { ctx: "", del: "−", add: "+" }[kind];
+  if (unified) {
+    const id = left || right;
+    r.append(cell("n", fmt(item(id)[2])), cell("s", sign), cell("t", line(id)));
+    return r;
+  }
+  r.append(cell("n L", left ? fmt(item(left)[2]) : ""), cell("s L", left ? sign : ""), cell("t L", left ? line(left) : ""),
+           cell("n R", right ? fmt(item(right)[2]) : ""), cell("s R", right ? sign : ""), cell("t R", right ? line(right) : ""));
   return r;
 }
-function sub(text) { const d = document.createElement("div"); d.className = "sub"; d.textContent = text; return d; }
-
-function gauge(el, total, cached, label) {
-  const max = BUDGET * 1.1;
-  const pct = v => (100 * Math.min(v, max) / max).toFixed(2) + "%";
-  const over = total > BUDGET;
-  const fills = cached == null
-    ? `<div class="fill plain" style="width:${pct(total)}"></div>`
-    : `<div class="fill cached" style="width:${pct(cached)}"></div><div class="fill fresh" style="left:${pct(cached)};width:calc(${pct(total)} - ${pct(cached)})"></div>`;
-  el.innerHTML = `
-    <div class="bar" role="img" aria-label="${label}: ${fmt(total)} tokens; budget ${fmt(BUDGET)}, high watermark ${fmt(H)}, low watermark ${fmt(T)}">
-      ${fills}
-      <div class="mark wm" style="left:${pct(T)}"><span>T</span></div>
-      <div class="mark wm" style="left:${pct(H)}"><span>H</span></div>
-      <div class="mark budget" style="left:${pct(BUDGET)}"><span>budget</span></div>
-    </div>
-    <div class="legend"><span><b>${fmt(total)}</b> tokens${cached != null ? ` · ${fmt(cached)} from cache, <b>${fmt(total - cached)}</b> read now` : ""}</span>
-      ${cached == null
-        ? (over ? `<span class="pill proxy">over the budget: fine here</span>` : `<span class="pill ok">fits</span>`)
-        : (over ? `<span class="pill over">over the budget</span>` : `<span class="pill ok">within ${fmt(BUDGET)}</span>`)}</div>`;
+function foldButton(cls, label, action, expanded, onClick) {
+  const wrap = el("div", "r"); wrap.style.gridTemplateColumns = "1fr"; wrap.setAttribute("role", "row");
+  const b = el("button", "fold " + cls); b.type = "button";
+  b.setAttribute("aria-expanded", String(expanded));
+  b.append(el("span", null, label), el("span", "act", action));
+  b.addEventListener("click", onClick);
+  wrap.appendChild(b);
+  return wrap;
 }
 
-let i = 0;
-function render() {
-  const s = STEPS[i];
-  document.getElementById("kicker").textContent = `Step ${i + 1} of ${STEPS.length} · ${s.kicker}`;
+function renderDiff(s) {
+  const d = document.getElementById("diff");
+  d.classList.toggle("unified", unified);
+  d.replaceChildren();
+  const seen = new Set();
+  for (const r of diffRows(s)) {
+    seen.add(r.key);
+    const land = prevKeys.has(r.key) ? "" : " land";
+    if (r.kind === "same") {
+      const total = r.ids.reduce((a, id) => a + item(id)[2], 0);
+      const ex = open.has(r.key);
+      d.appendChild(foldButton("same", `${r.ids.length} unchanged messages · ${fmt(total)} tokens`, ex ? "Hide" : "Show", ex,
+        () => { ex ? open.delete(r.key) : open.add(r.key); render(false); }));
+      if (ex) r.ids.forEach(id => d.appendChild(row("ctx", id, id)));
+      continue;
+    }
+    if (r.kind === "span") {
+      const total = r.left.reduce((a, id) => a + item(id)[2], 0);
+      const ex = open.has(r.key);
+      const f = foldButton("span", `${r.left.length} messages, ${fmt(total)} tokens, collapsed into one span line`, ex ? "Hide them" : "Show them", ex,
+        () => { ex ? open.delete(r.key) : open.add(r.key); render(false); });
+      if (land) f.classList.add("land");
+      d.appendChild(f);
+      if (ex) r.left.forEach(id => d.appendChild(row("del", id, null)));
+      d.appendChild(row("add", null, r.right, land));
+      continue;
+    }
+    const isNew = (r.left && s.fresh.includes(r.left)) ? " new" : "";
+    d.appendChild(row(r.kind, r.left || null, r.right || null, land + isNew));
+  }
+  if (s.reply) {
+    d.appendChild(el("div", "sec", s.reply === "NOTES" ? "The model replies with its notes. This call is internal, so the agent gets nothing." : "The model replies, and the agent gets the same reply"));
+    d.appendChild(row(s.reply === "NOTES" ? "add" : "ctx", s.reply === "NOTES" ? null : s.reply, s.reply, " reply"));
+  }
+  prevKeys = seen;
+}
+
+function renderReadout(s) {
   document.getElementById("title").textContent = s.title;
-  document.getElementById("body").textContent = s.body;
-  const ul = document.getElementById("bullets");
-  ul.replaceChildren(...(s.bullets || []).map(b => Object.assign(document.createElement("li"), { textContent: b })));
-  ul.hidden = !s.bullets;
+  const sizes = document.getElementById("sizes");
+  const box = (cls, k, v) => { const b = el("div", "size " + cls); b.append(el("span", "k", k), el("span", "v", fmt(v))); return b; };
+  sizes.replaceChildren(box("agent", "Agent sends", s.sent), el("span", "arrow", "→"),
+    box("model", s.reply === "NOTES" ? "Notes call to the model" : "Model receives", s.seen),
+    el("span", "status " + s.status[0], s.status[1]));
+  document.getElementById("lede").textContent = s.lede;
+  const ul = document.getElementById("more");
+  ul.replaceChildren(...(s.more || []).map(t => el("li", null, t)));
+  ul.hidden = !s.more;
 
-  // Harness: what it sends, and what it gets back.
-  const lh = document.getElementById("l-harness");
-  lh.replaceChildren(...s.harness.map(id => row(id, s.newIds.includes(id) ? "new" : "")));
-  if (s.reply && M[s.reply]) { lh.appendChild(sub("receives back, unchanged")); lh.appendChild(row(s.reply, "reply", "reply")); }
-  if (s.reply === "NOTES") { lh.appendChild(sub("receives nothing yet: the notes call is internal")); }
-  gauge(document.getElementById("g-harness"), tokens(s.harness), null, "Harness sends");
+  const pct = v => (100 * Math.min(v, SCALE_MAX) / SCALE_MAX).toFixed(2) + "%";
+  const ticks = `<i class="tick" style="left:${pct(T)}"></i><i class="tick" style="left:${pct(H)}"></i><i class="tick b" style="left:${pct(BUDGET)}"></i>`;
+  const cached = Math.min(s.cached, s.seen);
+  document.getElementById("ruler").innerHTML = `
+    <span class="lbl">agent</span>
+    <div class="track" role="img" aria-label="Agent sends ${fmt(s.sent)} tokens"><i class="seg h" style="width:${pct(s.sent)}"></i>${ticks}</div>
+    <span class="lbl">model</span>
+    <div class="track" role="img" aria-label="Model receives ${fmt(s.seen)} tokens, ${fmt(cached)} of them from cache"><i class="seg c" style="width:${pct(cached)}"></i><i class="seg n" style="left:${pct(cached)};width:calc(${pct(s.seen)} - ${pct(cached)})"></i>${ticks}</div>
+    <div class="scale" aria-hidden="true"><span style="left:${pct(T)}">T</span><span style="left:${pct(H)}">H</span><span class="b" style="left:${pct(BUDGET)}">budget</span></div>
+    <div class="cachenote">Strata reads ${fmt(s.seen - cached)} new tokens${cached ? ` and takes the other ${fmt(cached)} from its cache` : ""}.${s.approx ? " Sizes in this step are estimated from the steps before it." : ""}</div>`;
+}
 
-  // Model: the bounded view, then its reply.
-  const prevView = i > 0 ? STEPS[i - 1].view : [];
-  const lm = document.getElementById("l-model");
-  lm.replaceChildren(...s.view.map(id => row(id,
-    P[id] ? "proxy" + (prevView.includes(id) ? "" : " new") : (s.newIds.includes(id) ? "new" : ""),
-    P[id] ? P[id][0] : null)));
-  if (s.reply) { lm.appendChild(sub("replies")); lm.appendChild(row(s.reply, "reply", "reply")); }
-  gauge(document.getElementById("g-model"), tokens(s.view), Math.min(s.cached, tokens(s.view)), "Model sees");
-
-  // Archive.
-  document.getElementById("f-archive").innerHTML =
-    `<div><span>Messages stored</span><b>${s.harness.length}</b></div><div><span>New this step</span><b>${s.newIds.length}</b></div>`;
-  document.getElementById("l-archive").replaceChildren(...s.archive.map(t => {
-    const r = document.createElement("div"); r.className = "row note new"; r.textContent = t; return r;
+function renderLog() {
+  const log = document.getElementById("log");
+  log.replaceChildren(...STEPS.map((s, k) => {
+    const b = el("button", "commit"); b.type = "button";
+    b.setAttribute("aria-current", String(k === i));
+    b.append(el("span", "num", String(k + 1)), el("span", "msg", s.msg));
+    b.addEventListener("click", () => go(k));
+    return b;
   }));
-
-  document.getElementById("prev").disabled = i === 0;
-  document.getElementById("next").disabled = i === STEPS.length - 1;
-  document.querySelectorAll(".chip").forEach((c, k) => c.setAttribute("aria-current", k === i ? "step" : "false"));
+  if (log.scrollWidth > log.clientWidth) log.scrollLeft = Math.max(0, log.children[i].offsetLeft - 12);
 }
 
-function go(k, push = true) {
-  i = Math.max(0, Math.min(STEPS.length - 1, k));
-  render();
-  if (push && location.hash !== `#step-${i + 1}`) history.replaceState(null, "", `#step-${i + 1}`);
-}
-function fromHash() {
-  const m = /^#step-(\d+)$/.exec(location.hash);
-  return m ? Number(m[1]) - 1 : 0;
+function render(moved = true) {
+  const s = STEPS[i];
+  renderLog(); renderReadout(s); renderDiff(s);
+  for (const [id, on] of [["changes", !showAll], ["all", showAll], ["split", !unified], ["unified", unified]])
+    document.getElementById(id).setAttribute("aria-pressed", String(on));
+  document.getElementById("prev").setAttribute("aria-disabled", String(i === 0));
+  document.getElementById("next").setAttribute("aria-disabled", String(i === STEPS.length - 1));
 }
 
-const chips = document.getElementById("chips");
-STEPS.forEach((s, k) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.className = "chip"; b.textContent = `${k + 1}. ${s.label}`;
-  b.setAttribute("aria-label", `Step ${k + 1}: ${s.title}`);
-  b.addEventListener("click", () => go(k));
-  chips.appendChild(b);
-});
+function go(k, write = true) {
+  k = Math.max(0, Math.min(STEPS.length - 1, k));
+  if (k !== i) open.clear();
+  i = k; render();
+  if (write && location.hash !== `#step-${i + 1}`) history.replaceState(null, "", `#step-${i + 1}`);
+}
+const fromHash = () => { const m = /^#step-(\d+)$/.exec(location.hash); return m ? Number(m[1]) - 1 : 0; };
+
 document.getElementById("prev").addEventListener("click", () => go(i - 1));
 document.getElementById("next").addEventListener("click", () => go(i + 1));
+document.getElementById("changes").addEventListener("click", () => { showAll = false; render(false); });
+document.getElementById("all").addEventListener("click", () => { showAll = true; render(false); });
+document.getElementById("split").addEventListener("click", () => { unified = false; prevKeys = new Set(); render(false); });
+document.getElementById("unified").addEventListener("click", () => { unified = true; prevKeys = new Set(); render(false); });
 document.addEventListener("keydown", e => {
-  if (e.target.closest && e.target.closest("input, textarea")) return;
-  if (e.key === "ArrowRight") go(i + 1);
-  if (e.key === "ArrowLeft") go(i - 1);
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === "ArrowRight" || e.key === "j") go(i + 1);
+  if (e.key === "ArrowLeft" || e.key === "k") go(i - 1);
 });
 window.addEventListener("hashchange", () => go(fromHash(), false));
-go(fromHash(), false);
+matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) { unified = true; render(false); } });
+i = fromHash(); render();
 </script>
 </body>
 </html>
