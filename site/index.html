@@ -156,7 +156,7 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .fold .act { font: 500 12.5px var(--font-ui); text-decoration: underline; text-underline-offset: 3px; }
 .sec { padding: 7px 26px; font: 600 13px var(--font-ui); color: var(--ink-2); border-top: 1px solid var(--rule); background: var(--ground); }
 
-.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 26px; font: 13px var(--font-ui); color: var(--ink-2); border-top: 1px solid var(--rule); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 9px 26px; font: 13px var(--font-ui); color: var(--ink-2); border-bottom: 1px solid var(--rule); }
 .legend i { display: inline-block; width: 16px; height: 11px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
 
 .btn { all: unset; cursor: pointer; font: 600 15px var(--font-ui); padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); }
@@ -181,14 +181,27 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .rtable tr.grp th { font-size: 13px; color: var(--ink-2); font-weight: 600; padding-top: 14px; border-bottom: 0; }
 .rtable tr.pal th, .rtable tr.pal td { color: var(--model); font-weight: 600; }
 .rtable tbody th { font-weight: 500; }
-.bars { display: grid; gap: 8px; }
-.bar-row { display: grid; grid-template-columns: 76px 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 3px; align-items: center; }
-.bar-row span { grid-row: span 2; font-size: 13px; color: var(--ink-2); font-weight: 600; }
-.bar-fill { display: block; height: 10px; width: var(--w); border-radius: 3px; }
-.bar-fill.pal, .sw.pal { background: var(--model); }
-.bar-fill.nat, .sw.nat { background: var(--ink-3); }
-.bar-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); padding-left: 88px; }
+.tchart { margin: 0; display: grid; gap: 10px; }
+.tchart figcaption { font-size: 14px; font-weight: 600; color: var(--ink); }
+.bar-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
 .sw { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.sw.pal { background: var(--model); }
+.sw.nat { background: var(--ink-3); }
+.plot { position: relative; display: grid; gap: 12px; padding: 4px 0 22px; }
+.plot .grid, .plot .axis { position: absolute; left: 88px; right: 120px; }
+.plot .grid { top: 0; bottom: 22px; }
+.plot .grid i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule); }
+.plot .axis { bottom: 0; height: 18px; font: 12px var(--font-code); color: var(--ink-3); }
+.plot .axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.bar-row { position: relative; display: grid; grid-template-columns: 76px 1fr; column-gap: 12px; align-items: center; }
+.bar-row .grp { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.pair { display: grid; gap: 4px; margin-right: 120px; }
+.hbar { display: flex; align-items: center; gap: 8px; }
+.bar-fill { display: block; height: 12px; width: var(--w); border-radius: 0 3px 3px 0; flex: none; }
+.bar-fill.pal { background: var(--model); }
+.bar-fill.nat { background: var(--ink-3); }
+.bar-val { font: 600 12.5px var(--font-code); color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bar-val .who { font: 400 12.5px var(--font-ui); color: var(--ink-2); }
 .split { margin: 0; display: grid; gap: 10px; }
 .split div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: baseline; }
 .split dt { font: 600 22px/1.1 var(--font-code); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
@@ -218,7 +231,9 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
   .r, .unified .r { grid-template-columns: 54px 20px minmax(0, 1fr); }
   .seg-ctl.layout { display: none; }
   .btn { white-space: nowrap; }
-  .bar-key { padding-left: 0; }
+  .plot .grid, .plot .axis { right: 92px; }
+  .pair { margin-right: 92px; }
+  .bar-val .who { display: none; }
   .split div { grid-template-columns: 84px 1fr; }
 }
 </style>
@@ -273,14 +288,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         </div>
       </div>
 
-      <div class="diff" id="diff" role="table" aria-label="The agent's request against the model's view"></div>
-
       <div class="legend" aria-hidden="true">
         <span><i style="background:var(--del-gutter)"></i>left out of the model's view</span>
         <span><i style="background:var(--add-gutter)"></i>added by Palimnesis</span>
         <span><i style="background:var(--fold)"></i>collapsed old turns</span>
         <span><i style="background:var(--quiet)"></i>unchanged, read from cache</span>
       </div>
+      <div class="diff" id="diff" role="table" aria-label="The agent's request against the model's view"></div>
 
     </article>
   </section>
@@ -303,11 +317,16 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <tr><th scope="row">Pi's compaction</th><td>4 of 5</td><td>4.9 h</td><td>322</td></tr>
           </tbody>
         </table>
-        <div class="bars" role="img" aria-label="Total task time. OpenCode: Palimnesis 3.9 hours, native compaction 8.8 hours. Pi: Palimnesis 1.0 hour, Pi's compaction 4.9 hours.">
-          <div class="bar-row"><span>OpenCode</span><i class="bar-fill pal" style="--w:44.2%"></i><i class="bar-fill nat" style="--w:100%"></i></div>
-          <div class="bar-row"><span>Pi</span><i class="bar-fill pal" style="--w:11.8%"></i><i class="bar-fill nat" style="--w:55.8%"></i></div>
+        <figure class="tchart">
+          <figcaption>Total time to finish the five tasks, in hours</figcaption>
           <div class="bar-key"><span><i class="sw pal"></i>Palimnesis</span><span><i class="sw nat"></i>the agent's own compaction</span></div>
-        </div>
+          <div class="plot" role="img" aria-label="Total time to finish the five tasks. OpenCode: Palimnesis 3.9 hours, native compaction 8.8 hours. Pi: Palimnesis 1.0 hour, Pi's compaction 4.9 hours.">
+            <div class="grid" aria-hidden="true"><i style="left:0%"></i><i style="left:33.33%"></i><i style="left:66.67%"></i><i style="left:100%"></i></div>
+            <div class="bar-row"><span class="grp">OpenCode</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:43.0%"></i><span class="bar-val">3.9 h <span class="who">Palimnesis</span></span></div><div class="hbar"><i class="bar-fill nat" style="--w:97.2%"></i><span class="bar-val">8.8 h <span class="who">native compaction</span></span></div></div></div>
+            <div class="bar-row"><span class="grp">Pi</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:11.5%"></i><span class="bar-val">1.0 h <span class="who">Palimnesis</span></span></div><div class="hbar"><i class="bar-fill nat" style="--w:54.2%"></i><span class="bar-val">4.9 h <span class="who">Pi's compaction</span></span></div></div></div>
+            <div class="axis" aria-hidden="true"><span style="left:0%">0 h</span><span style="left:33.33%">3 h</span><span style="left:66.67%">6 h</span><span style="left:100%">9 h</span></div>
+          </div>
+        </figure>
       </article>
 
       <article class="rcard">
