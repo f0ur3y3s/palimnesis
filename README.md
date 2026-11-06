@@ -15,7 +15,7 @@ Nothing is summarized and nothing is deleted. The model works in a bounded view 
   <img alt="Held-out results at a 32K context: Palimnesis passed 5 of 5 coding tasks against 4 of 5 for OpenCode's native compaction, with 53% of the prompt tokens and 42% of the upstream calls, and recalled 115 of 120 needles exactly. Per task it took 33 to 61 minutes against 42 to 156, and 53 to 103 upstream calls against 67 to 249." src="docs/images/results-light.svg">
 </picture>
 
-On a fresh held-out set (`ho3`), with real OpenCode 2.1.4 and a local model at a 32K context, Palimnesis passed every coding task, while native compaction failed one. It also used about half the prompt tokens. Recall of facts from earlier in a session cleared the 85% bar. These are one attempt per task and arm on one host, so they show the direction of the effect, not its exact size. Full tables, method and caveats: [results R41](docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77). The figure is drawn by `eval/readme_figures.py` from those tables.
+Held-out set `ho3`, real OpenCode 2.1.4, a local model at 32K, one attempt per task and arm. Details: [R41](docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77); figure drawn by `eval/readme_figures.py`.
 
 ## In plain terms
 
@@ -28,69 +28,20 @@ Palimnesis does it differently:
 - **It keeps every page,** exactly as written, in a filing cabinet on your computer (the archive).
 - **It keeps the desk tidy.** When the desk gets full, it takes the oldest pages off the desk, never out of the cabinet. Your tool still has its full copy of the conversation; only what the model is shown changes.
 - **It hands back what matters.** Each time you ask something new, it looks through the cabinet and puts the most relevant old snippets on the desk. And it tells the model where the cabinet is, so the model can search it and read any old page word for word.
-## The research behind it, and what held up
 
-Five sources shaped the design. Each was a starting point, not a spec: [`docs/contracts.md`](docs/contracts.md) decides behaviour, and [`docs/papers.md`](docs/papers.md) lists every adaptation. R numbers below are entries in [`docs/results/`](docs/results/README.md), and D numbers are entries in [`docs/decisions/`](docs/decisions/README.md).
+## The research behind it
 
-| Source | What it was for | What we built from it | Status |
-|---|---|---|---|
-| [The Complexity Trap](https://arxiv.org/abs/2508.21433) | Evidence that plain, deterministic masking of old tool output competes with LLM summarization | The bounded view: old results become stubs, old turns collapse into spans | Shipped, with changes |
-| [ARC](https://arxiv.org/html/2607.25066v1) | Masking is safe only if every hidden item stays exactly addressable | Exact archive addresses; hidden recall tools the model could call by address | Addresses shipped; the tools failed their gates |
-| [Eunoe](https://github.com/chroxify/eunoe) (software, not a paper) | Proactive recall: quote matching history back before each new message, plus transcript files to search | Excerpt blocks on each new user message; per-session transcript files and a search recipe | Shipped |
-| [LCM](https://arxiv.org/html/2605.04050v1) | Immutable history; an optional hierarchical summary DAG | The append-only SQLite archive | Archive shipped; the DAG is not built (optional Phase 5) |
-| [RaMem](https://arxiv.org/abs/2606.22844) | Retrieval validity: evidence with its context and provenance | Nothing yet | Planned for the optional Phase 6 |
+Papers motivated the mechanisms; [`docs/contracts.md`](docs/contracts.md) decides behaviour and [`docs/papers.md`](docs/papers.md) lists every adaptation. R and D numbers are entries in [`docs/results/`](docs/results/README.md) and [`docs/decisions/`](docs/decisions/README.md).
 
-### The Complexity Trap: deterministic masking
+| Source | Used for | Outcome |
+|---|---|---|
+| [The Complexity Trap](https://arxiv.org/abs/2508.21433) | Deterministic masking instead of LLM summaries: stubs for old results, collapsed old turns | Never over budget, every cache change explained. Alone it lost coding tasks (3/5 vs 5/5, R25) because it hid the current turn's own work (R33). Fixed by keeping that turn in view and adding model-written working notes (D70–D72): 5/5 vs 4/5 (R41). |
+| [ARC](https://arxiv.org/html/2607.25066v1) | Exact addresses for everything hidden; recall tools called by address | Addressing shipped. The hidden recall tools failed both held-out gates (97/120 needles, 2/5 tasks, R32) and are off by default. |
+| [Eunoe](https://github.com/chroxify/eunoe) | Quoting matching history back before each message; transcript files to grep | Shipped. 120/120 held-out recall, 31 of them found only through the transcripts (R25). Quoting the model's own old reasoning hurt coding and was dropped (D71). |
+| [LCM](https://arxiv.org/html/2605.04050v1) | Immutable history; optional summary DAG | Append-only archive shipped; DAG not built (optional Phase 5). |
+| [RaMem](https://arxiv.org/abs/2606.22844) | Retrieval validity and provenance | Not built yet (optional Phase 6). |
 
-- **Built:** a view that stays under the context budget without asking a model to summarize anything. Old tool results become stubs with a head and tail preview, and whole old turns collapse into one line that says they are archived. The view moves at hysteresis watermarks rather than every turn, so the prompt cache survives between moves.
-- **Worked:**
-  - It never overflowed: 0 over-budget inputs across every live run (R17, R27, R41).
-  - Every prompt-cache change is accounted for, with 0 unexplained over thousands of call pairs (R17, R27, R42).
-- **Didn't, at first:** masking alone lost coding tasks to native compaction, 3/5 against 5/5 (R25), and again 2/5 against 4/5 (R32).
-  - The diagnosis (R33): the view hid the model's own work in the turn it was doing, and a stub says only "archived; not shown". Without that work the model invented history, rewrote files from memory, and re-ran tests that had not changed.
-  - The paper keeps recent turns verbatim, and we had departed from that.
-- **The fix:**
-  - The current turn is now collapsed last (D70).
-  - Excerpts no longer quote the model's own earlier reasoning, which had carried its mistakes forward as "evidence" (D71).
-  - A small block of **working notes**, refreshed by the model at each collapse (D72), carries forward the goal, constraints and next step. The notes adapt native compaction's checkpoint, not a paper (R33-D).
-  - With these, the shipped configuration passed 5/5 held-out tasks against native compaction's 4/5 (R41).
-
-### ARC: exact, addressable recall
-
-- **Built:** every archived item has a stable address, and the view's stubs and spans point at what they hide. In Phase 3B we added hidden recall tools: the model could fetch an item by its address inside one response, and the harness never saw the calls.
-- **Worked:** the addressing itself. Excerpts, transcripts and accounting all rest on it.
-- **Didn't:** the hidden tools failed both gates on held-out data: needles 97/120 against an 85% bar, and coding 2/5 against native compaction's 4/5 (R32).
-  - 21 of the 23 needle misses were answers the model cut short.
-  - On the coding tasks the tool arm used 1.6 times the prompt tokens of the masking-only arm (35.3M against 22.1M).
-  - That masking-only arm passed only 2/5 there itself, which led to R33's diagnosis above.
-  - The tools stay in the code, off by default, and are never offered on Anthropic Messages (D64, D87).
-- **Not yet:** ARC's paired-outcome (McNemar) analysis is planned for the Phase 7 evaluation.
-
-### Eunoe: proactive recall and transcript files
-
-- **Built:**
-  - Before each new user message is answered, a lexical search over archived content the view no longer shows quotes the best matches, exactly, in a delimited block appended to that message.
-  - The block is fixed once chosen, so it doesn't break the prompt cache (R15).
-  - The full history is also published as per-session transcript files, with a short recipe telling the model how to grep them and read only the lines it needs.
-  - We adapted the search to 32–64K budgets and to code (D27–D29).
-- **Worked:**
-  - On the first held-out set, recall scored 120/120. The model answered all 31 needles that were absent from both the view and the excerpts by searching the transcript files (R25).
-  - A header that names the current turn and says a later turn overrides an earlier one cut early-stop answers sharply: 1 against 14 in 120 (R22).
-  - Pi found and used the transcript files with its own tools before it was listed as supported (R43).
-- **Didn't, at first:**
-  - Transcript lookups had real overhead. In one task only about half of 68 lookups found what the model was after. Some of the rest chased a file name that changed as the turn grew; that name is now stable (D63).
-  - Quoting the model's own earlier reasoning hurt coding, as above (D71).
-- **Not taken:** cross-session recall, and Eunoe's own context folding.
-
-### LCM: immutable history
-
-- **Built:** an append-only archive. Nothing the client sends or the model generates is rewritten or deleted. Even turns a client drops from its resend stay archived and are marked superseded. Transcripts can be rebuilt from the archive byte for byte.
-- **Not built:** LCM's hierarchical summary DAG. The working notes now carry a short model-written summary of the current work; the DAG stays an optional phase.
-
-### Open problems the research didn't predict
-
-- **Answers cut short.** The local model sometimes stops after a token or two, giving "1" for "1.25s". Once one cut answer is in a session's history, later answers copy the pattern. It is the model's own sampling behaviour, reproduced directly against Strata without Palimnesis (R38, R45), and it hit Pi's sessions hardest. It is backlogged in [`docs/backlog.md`](docs/backlog.md).
-- **Small samples.** Each held-out task ran once per arm on one host. The results show direction, not effect size.
+Open problems: the local model sometimes cuts an answer short ("1" for "1.25s"), and later answers in that session copy it (R38, R45; [backlog](docs/backlog.md)). Every held-out result is one attempt per task and arm, so it shows direction, not effect size.
 
 ## Requirements
 
