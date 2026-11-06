@@ -188,20 +188,19 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .sw.pal { background: var(--model); }
 .sw.nat { background: var(--ink-3); }
 .plot { position: relative; display: grid; gap: 12px; padding: 4px 0 22px; }
-.plot .grid, .plot .axis { position: absolute; left: 88px; right: 120px; }
+.plot .grid, .plot .axis { position: absolute; left: 88px; right: 60px; }
 .plot .grid { top: 0; bottom: 22px; }
 .plot .grid i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule); }
 .plot .axis { bottom: 0; height: 18px; font: 12px var(--font-code); color: var(--ink-3); }
 .plot .axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .bar-row { position: relative; display: grid; grid-template-columns: 76px 1fr; column-gap: 12px; align-items: center; }
 .bar-row .grp { font-size: 13px; color: var(--ink-2); font-weight: 600; }
-.pair { display: grid; gap: 4px; margin-right: 120px; }
+.pair { display: grid; gap: 4px; margin-right: 60px; }
 .hbar { display: flex; align-items: center; gap: 8px; }
 .bar-fill { display: block; height: 12px; width: var(--w); border-radius: 0 3px 3px 0; flex: none; }
 .bar-fill.pal { background: var(--model); }
 .bar-fill.nat { background: var(--ink-3); }
 .bar-val { font: 600 12.5px var(--font-code); color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.bar-val .who { font: 400 12.5px var(--font-ui); color: var(--ink-2); }
 .split { margin: 0; display: grid; gap: 10px; }
 .split div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: baseline; }
 .split dt { font: 600 22px/1.1 var(--font-code); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
@@ -231,9 +230,6 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
   .r, .unified .r { grid-template-columns: 54px 20px minmax(0, 1fr); }
   .seg-ctl.layout { display: none; }
   .btn { white-space: nowrap; }
-  .plot .grid, .plot .axis { right: 92px; }
-  .pair { margin-right: 92px; }
-  .bar-val .who { display: none; }
   .split div { grid-template-columns: 84px 1fr; }
 }
 </style>
@@ -322,8 +318,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           <div class="bar-key"><span><i class="sw pal"></i>Palimnesis</span><span><i class="sw nat"></i>the agent's own compaction</span></div>
           <div class="plot" role="img" aria-label="Total time to finish the five tasks. OpenCode: Palimnesis 3.9 hours, native compaction 8.8 hours. Pi: Palimnesis 1.0 hour, Pi's compaction 4.9 hours.">
             <div class="grid" aria-hidden="true"><i style="left:0%"></i><i style="left:33.33%"></i><i style="left:66.67%"></i><i style="left:100%"></i></div>
-            <div class="bar-row"><span class="grp">OpenCode</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:43.0%"></i><span class="bar-val">3.9 h <span class="who">Palimnesis</span></span></div><div class="hbar"><i class="bar-fill nat" style="--w:97.2%"></i><span class="bar-val">8.8 h <span class="who">native compaction</span></span></div></div></div>
-            <div class="bar-row"><span class="grp">Pi</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:11.5%"></i><span class="bar-val">1.0 h <span class="who">Palimnesis</span></span></div><div class="hbar"><i class="bar-fill nat" style="--w:54.2%"></i><span class="bar-val">4.9 h <span class="who">Pi's compaction</span></span></div></div></div>
+            <div class="bar-row"><span class="grp">OpenCode</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:43.0%"></i><span class="bar-val">3.9 h</span></div><div class="hbar"><i class="bar-fill nat" style="--w:97.2%"></i><span class="bar-val">8.8 h</span></div></div></div>
+            <div class="bar-row"><span class="grp">Pi</span><div class="pair"><div class="hbar"><i class="bar-fill pal" style="--w:11.5%"></i><span class="bar-val">1.0 h</span></div><div class="hbar"><i class="bar-fill nat" style="--w:54.2%"></i><span class="bar-val">4.9 h</span></div></div></div>
             <div class="axis" aria-hidden="true"><span style="left:0%">0 h</span><span style="left:33.33%">3 h</span><span style="left:66.67%">6 h</span><span style="left:100%">9 h</span></div>
           </div>
         </figure>
