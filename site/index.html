@@ -88,7 +88,7 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .show { min-width: 0; display: grid; align-content: start; }
 
 /* The readout: where the eye lands first. */
-.readout { padding: 16px 26px 18px; display: grid; gap: 14px; border-bottom: 1px solid var(--rule); }
+.readout { padding: 16px 26px 18px; display: grid; gap: 14px; align-content: start; border-bottom: 1px solid var(--rule); }
 .head { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 16px 26px 12px; background: var(--sheet); border-bottom: 1px solid var(--rule); }
 .mini { display: flex; gap: 6px; }
 .btn.small { font-size: 13.5px; padding: 6px 12px; border-radius: 8px; }
@@ -655,22 +655,45 @@ function go(k, write = true) {
   i = k; render();
   if (write && location.hash !== `#step-${i + 1}`) history.replaceState(null, "", `#step-${i + 1}`);
 }
+// Every step shares one height: the readout and the diff are held at the tallest any step
+// needs in the current layout, so the page below never jumps between steps.
+function lockHeights() {
+  const readout = document.querySelector(".readout"), diff = document.getElementById("diff");
+  const savedI = i, savedOpen = new Set(open);
+  readout.style.minHeight = ""; diff.style.minHeight = "";
+  let r = 0, d = 0;
+  STEPS.forEach((st, k) => {
+    i = k; open.clear();
+    const before = k > 0 ? STEPS[k - 1].view : [];
+    if (st.view.includes("SPAN") && !before.includes("SPAN")) open.add("span:SPAN");
+    renderReadout(st); renderDiff(st);
+    r = Math.max(r, readout.offsetHeight); d = Math.max(d, diff.offsetHeight);
+  });
+  i = savedI; open.clear(); savedOpen.forEach(k => open.add(k));
+  readout.style.minHeight = r + "px"; diff.style.minHeight = d + "px";
+  prevKeys = new Set();
+}
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { lockHeights(); render(false); }, 150); });
+
 const fromHash = () => { const m = /^#step-(\d+)$/.exec(location.hash); return m ? Number(m[1]) - 1 : 0; };
 
 document.getElementById("prev").addEventListener("click", () => go(i - 1));
 document.getElementById("next").addEventListener("click", () => go(i + 1));
-document.getElementById("changes").addEventListener("click", () => { showAll = false; render(false); });
-document.getElementById("all").addEventListener("click", () => { showAll = true; render(false); });
-document.getElementById("split").addEventListener("click", () => { unified = false; prevKeys = new Set(); render(false); });
-document.getElementById("unified").addEventListener("click", () => { unified = true; prevKeys = new Set(); render(false); });
+document.getElementById("changes").addEventListener("click", () => { showAll = false; lockHeights(); render(false); });
+document.getElementById("all").addEventListener("click", () => { showAll = true; lockHeights(); render(false); });
+document.getElementById("split").addEventListener("click", () => { unified = false; lockHeights(); render(false); });
+document.getElementById("unified").addEventListener("click", () => { unified = true; lockHeights(); render(false); });
 document.addEventListener("keydown", e => {
   if (e.altKey || e.ctrlKey || e.metaKey) return;
   if (e.key === "ArrowRight" || e.key === "j") go(i + 1);
   if (e.key === "ArrowLeft" || e.key === "k") go(i - 1);
 });
 window.addEventListener("hashchange", () => go(fromHash(), false));
-matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) { unified = true; render(false); } });
+matchMedia("(max-width: 820px)").addEventListener("change", e => { if (e.matches) { unified = true; lockHeights(); render(false); } });
+lockHeights();
 go(fromHash(), false);
+if (document.fonts) document.fonts.ready.then(() => { lockHeights(); render(false); });
 </script>
 </body>
 </html>
