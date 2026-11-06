@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="468" viewBox="0 0 880 468" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Held-out results R41: Palimnesis passed 5 of 5 coding tasks against 4 of 5 for native compaction, using 53% of the prompt tokens and 42% of the upstream calls; needles 115 of 120.">
+<rect width="100%" height="100%" rx="8" fill="#1a1a19"/>
+<text x="24" y="28" font-size="17" font-weight="600" fill="#f0efec">Held-out coding and recall at a 32K context</text>
+<text x="24" y="48" font-size="12" fill="#c3c2b7">OpenCode 2.1.4 on the fresh set ho3, Strata on one host, one attempt per task and arm (results R41)</text>
+<text x="24.0" y="100" font-size="30" font-weight="600" fill="#f0efec">5/5</text>
+<text x="24.0" y="120" font-size="12" fill="#c3c2b7">coding tasks passed</text>
+<text x="24.0" y="136" font-size="11" fill="#898781">native compaction: 4/5</text>
+<text x="232.0" y="100" font-size="30" font-weight="600" fill="#f0efec">53%</text>
+<text x="232.0" y="120" font-size="12" fill="#c3c2b7">of the prompt tokens</text>
+<text x="232.0" y="136" font-size="11" fill="#898781">6.0M against native's 11.4M</text>
+<text x="440.0" y="100" font-size="30" font-weight="600" fill="#f0efec">42%</text>
+<text x="440.0" y="120" font-size="12" fill="#c3c2b7">of the upstream calls</text>
+<text x="440.0" y="136" font-size="11" fill="#898781">360 against native's 859</text>
+<text x="648.0" y="100" font-size="30" font-weight="600" fill="#f0efec">115/120</text>
+<text x="648.0" y="120" font-size="12" fill="#c3c2b7">needles recalled exactly</text>
+<text x="648.0" y="136" font-size="11" fill="#898781">95.8%, against an 85% bar</text>
+<rect x="24" y="164" width="12" height="12" rx="3" fill="#3987e5"/>
+<text x="42" y="174" font-size="12" fill="#c3c2b7">Palimnesis (a4-d77)</text>
+<rect x="206.8" y="164" width="12" height="12" rx="3" fill="#d95926"/>
+<text x="224.8" y="174" font-size="12" fill="#c3c2b7">OpenCode native compaction</text>
+<text x="24" y="204" font-size="14" font-weight="600" fill="#f0efec">Wall time per task (minutes)</text>
+<line x1="94.0" y1="218" x2="94.0" y2="436" stroke="#383835" stroke-width="1"/>
+<text x="94.0" y="452" font-size="11" fill="#898781" text-anchor="middle">0</text>
+<line x1="160.5" y1="218" x2="160.5" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="160.5" y="452" font-size="11" fill="#898781" text-anchor="middle">40</text>
+<line x1="227.0" y1="218" x2="227.0" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="227.0" y="452" font-size="11" fill="#898781" text-anchor="middle">80</text>
+<line x1="293.5" y1="218" x2="293.5" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="293.5" y="452" font-size="11" fill="#898781" text-anchor="middle">120</text>
+<line x1="360.0" y1="218" x2="360.0" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="360.0" y="452" font-size="11" fill="#898781" text-anchor="middle">160</text>
+<text x="24" y="239" font-size="12" fill="#c3c2b7">ho3-t1</text>
+<path d="M94.0,222.0 H159.8 Q163.8,222.0 163.8,226.0 V230.0 Q163.8,234.0 159.8,234.0 H94.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t1: 42 min</title></path>
+<text x="169.8" y="232" font-size="11" fill="#c3c2b7">42</text>
+<path d="M94.0,236.0 H339.4 Q343.4,236.0 343.4,240.0 V244.0 Q343.4,248.0 339.4,248.0 H94.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t1: 150 min, failed</title></path>
+<text x="349.4" y="246" font-size="11" fill="#c3c2b7">150  · failed</text>
+<text x="24" y="283" font-size="12" fill="#c3c2b7">ho3-t2</text>
+<path d="M94.0,266.0 H149.8 Q153.8,266.0 153.8,270.0 V274.0 Q153.8,278.0 149.8,278.0 H94.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t2: 36 min</title></path>
+<text x="159.8" y="276" font-size="11" fill="#c3c2b7">36</text>
+<path d="M94.0,280.0 H159.8 Q163.8,280.0 163.8,284.0 V288.0 Q163.8,292.0 159.8,292.0 H94.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t2: 42 min</title></path>
+<text x="169.8" y="290" font-size="11" fill="#c3c2b7">42</text>
+<text x="24" y="327" font-size="12" fill="#c3c2b7">ho3-t3</text>
+<path d="M94.0,310.0 H191.4 Q195.4,310.0 195.4,314.0 V318.0 Q195.4,322.0 191.4,322.0 H94.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t3: 61 min</title></path>
+<text x="201.4" y="320" font-size="11" fill="#c3c2b7">61</text>
+<path d="M94.0,324.0 H221.3 Q225.3,324.0 225.3,328.0 V332.0 Q225.3,336.0 221.3,336.0 H94.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t3: 79 min</title></path>
+<text x="231.3" y="334" font-size="11" fill="#c3c2b7">79</text>
+<text x="24" y="371" font-size="12" fill="#c3c2b7">ho3-t4</text>
+<path d="M94.0,354.0 H144.9 Q148.9,354.0 148.9,358.0 V362.0 Q148.9,366.0 144.9,366.0 H94.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t4: 33 min</title></path>
+<text x="154.9" y="364" font-size="11" fill="#c3c2b7">33</text>
+<path d="M94.0,368.0 H252.9 Q256.9,368.0 256.9,372.0 V376.0 Q256.9,380.0 252.9,380.0 H94.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t4: 98 min</title></path>
+<text x="262.9" y="378" font-size="11" fill="#c3c2b7">98</text>
+<text x="24" y="415" font-size="12" fill="#c3c2b7">ho3-t5</text>
+<path d="M94.0,398.0 H189.8 Q193.8,398.0 193.8,402.0 V406.0 Q193.8,410.0 189.8,410.0 H94.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t5: 60 min</title></path>
+<text x="199.8" y="408" font-size="11" fill="#c3c2b7">60</text>
+<path d="M94.0,412.0 H349.4 Q353.4,412.0 353.4,416.0 V420.0 Q353.4,424.0 349.4,424.0 H94.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t5: 156 min</title></path>
+<text x="359.4" y="422" font-size="11" fill="#c3c2b7">156</text>
+<text x="456.0" y="204" font-size="14" font-weight="600" fill="#f0efec">Upstream calls per task</text>
+<line x1="526.0" y1="218" x2="526.0" y2="436" stroke="#383835" stroke-width="1"/>
+<text x="526.0" y="452" font-size="11" fill="#898781" text-anchor="middle">0</text>
+<line x1="579.2" y1="218" x2="579.2" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="579.2" y="452" font-size="11" fill="#898781" text-anchor="middle">50</text>
+<line x1="632.4" y1="218" x2="632.4" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="632.4" y="452" font-size="11" fill="#898781" text-anchor="middle">100</text>
+<line x1="685.6" y1="218" x2="685.6" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="685.6" y="452" font-size="11" fill="#898781" text-anchor="middle">150</text>
+<line x1="738.8" y1="218" x2="738.8" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="738.8" y="452" font-size="11" fill="#898781" text-anchor="middle">200</text>
+<line x1="792.0" y1="218" x2="792.0" y2="436" stroke="#2c2c2a" stroke-width="1"/>
+<text x="792.0" y="452" font-size="11" fill="#898781" text-anchor="middle">250</text>
+<text x="456.0" y="239" font-size="12" fill="#c3c2b7">ho3-t1</text>
+<path d="M526.0,222.0 H590.1 Q594.1,222.0 594.1,226.0 V230.0 Q594.1,234.0 590.1,234.0 H526.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t1: 64 calls</title></path>
+<text x="600.1" y="232" font-size="11" fill="#c3c2b7">64</text>
+<path d="M526.0,236.0 H742.2 Q746.2,236.0 746.2,240.0 V244.0 Q746.2,248.0 742.2,248.0 H526.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t1: 207 calls, failed</title></path>
+<text x="752.2" y="246" font-size="11" fill="#c3c2b7">207  · failed</text>
+<text x="456.0" y="283" font-size="12" fill="#c3c2b7">ho3-t2</text>
+<path d="M526.0,266.0 H581.6 Q585.6,266.0 585.6,270.0 V274.0 Q585.6,278.0 581.6,278.0 H526.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t2: 56 calls</title></path>
+<text x="591.6" y="276" font-size="11" fill="#c3c2b7">56</text>
+<path d="M526.0,280.0 H593.3 Q597.3,280.0 597.3,284.0 V288.0 Q597.3,292.0 593.3,292.0 H526.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t2: 67 calls</title></path>
+<text x="603.3" y="290" font-size="11" fill="#c3c2b7">67</text>
+<text x="456.0" y="327" font-size="12" fill="#c3c2b7">ho3-t3</text>
+<path d="M526.0,310.0 H631.6 Q635.6,310.0 635.6,314.0 V318.0 Q635.6,322.0 631.6,322.0 H526.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t3: 103 calls</title></path>
+<text x="641.6" y="320" font-size="11" fill="#c3c2b7">103</text>
+<path d="M526.0,324.0 H693.3 Q697.3,324.0 697.3,328.0 V332.0 Q697.3,336.0 693.3,336.0 H526.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t3: 161 calls</title></path>
+<text x="703.3" y="334" font-size="11" fill="#c3c2b7">161</text>
+<text x="456.0" y="371" font-size="12" fill="#c3c2b7">ho3-t4</text>
+<path d="M526.0,354.0 H578.4 Q582.4,354.0 582.4,358.0 V362.0 Q582.4,366.0 578.4,366.0 H526.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t4: 53 calls</title></path>
+<text x="588.4" y="364" font-size="11" fill="#c3c2b7">53</text>
+<path d="M526.0,368.0 H708.2 Q712.2,368.0 712.2,372.0 V376.0 Q712.2,380.0 708.2,380.0 H526.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t4: 175 calls</title></path>
+<text x="718.2" y="378" font-size="11" fill="#c3c2b7">175</text>
+<text x="456.0" y="415" font-size="12" fill="#c3c2b7">ho3-t5</text>
+<path d="M526.0,398.0 H611.4 Q615.4,398.0 615.4,402.0 V406.0 Q615.4,410.0 611.4,410.0 H526.0 Z" fill="#3987e5"><title>Palimnesis (a4-d77), ho3-t5: 84 calls</title></path>
+<text x="621.4" y="408" font-size="11" fill="#c3c2b7">84</text>
+<path d="M526.0,412.0 H786.9 Q790.9,412.0 790.9,416.0 V420.0 Q790.9,424.0 786.9,424.0 H526.0 Z" fill="#d95926"><title>OpenCode native compaction, ho3-t5: 249 calls</title></path>
+<text x="796.9" y="422" font-size="11" fill="#c3c2b7">249</text>
+</svg>

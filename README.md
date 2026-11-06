@@ -8,6 +8,15 @@ A local, lossless context proxy between an agent harness and a [Strata](#require
 
 Nothing is summarized and nothing is deleted. The model works in a bounded view while the archive keeps the full history.
 
+## Results
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/results-dark.svg">
+  <img alt="Held-out results at a 32K context: Palimnesis passed 5 of 5 coding tasks against 4 of 5 for OpenCode's native compaction, with 53% of the prompt tokens and 42% of the upstream calls, and recalled 115 of 120 needles exactly. Per task it took 33 to 61 minutes against 42 to 156, and 53 to 103 upstream calls against 67 to 249." src="docs/images/results-light.svg">
+</picture>
+
+On a fresh held-out set (`ho3`), with real OpenCode 2.1.4 and a local model at a 32K context, Palimnesis passed every coding task, while native compaction failed one. It also used about half the prompt tokens. Recall of facts from earlier in a session cleared the 85% bar. These are one attempt per task and arm on one host, so they show the direction of the effect, not its exact size. Full tables, method and caveats: [results R41](docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77). The figure is drawn by `eval/readme_figures.py` from those tables.
+
 ## In plain terms
 
 A local model has a small desk. It can only look at so many pages of your conversation at once, and a long coding session soon has more pages than fit.
