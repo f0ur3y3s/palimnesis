@@ -8,6 +8,8 @@ A local, lossless context proxy between an agent harness and a [Strata](#require
 
 Nothing is summarized and nothing is deleted. The model works in a bounded view while the archive keeps the full history.
 
+**[See it step by step →](https://f0ur3y3s.github.io/palimnesis/)** An interactive walkthrough of one session: what the harness sends, what the archive keeps and what the model sees.
+
 ## Results
 
 <picture>
