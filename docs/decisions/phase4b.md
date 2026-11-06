@@ -346,3 +346,49 @@ A read-only protocol review covered everything changed since D95's review: D97's
 - **D98.2 judges the deadline when the exception is handled.** A disconnect just before D, whose cancellation a shielded write holds past D, is recorded as `deadline_exceeded`, not `cancelled`.
 - **`_expired` sends through the raw `send`**, so an expired request with storage down stays in `live` until its handler ends. In that window a retry still gets 409 `request_in_progress`.
 - **The hidden loop's error path after a final body.** If `_delivered` fails after `_hidden_terminal` sent the final body, the except path tries a second final body. The server refuses it; it logs and records a second `delivery_failed`. Hidden tools are off by default.
+
+## D101: `palimnesis setup` and `palimnesis check` (user request, 2026-11-06)
+
+Installing meant copying adapter files and merging JSON by hand, with the model name hard-coded and no way to tell whether the result works. Two commands replace that.
+
+- **`palimnesis setup opencode|pi`** writes the agent's configuration.
+  - **Where:**
+    - OpenCode: `--config-dir`, else `$OPENCODE_CONFIG_DIR`, else `~/.config/opencode` (the path the probes saw on Windows too, `docs/probes/opencode_live.md`).
+    - Pi: `--agent-dir`, else `$PI_CODING_AGENT_DIR`, else `~/.pi/agent`.
+  - **What:** the shipped adapter, with the model id from `--model` and the base URL from `--port` (default 9000).
+    - It merges into existing JSON. It replaces the provider blocks Palimnesis owns, sets the settings it needs (the default model, compaction off, OpenCode's title agent off), adds missing list entries such as the subagent rule, and keeps every other key.
+    - It refuses, writing nothing, when a key holds another type than Palimnesis needs (an object or a list), or when OpenCode's directory has an `opencode.jsonc`, which it would also read.
+    - It writes the session plugin or extension. Pi's goes to `extensions/`, which Pi loads on every start (Pi's `docs/extensions.md`; unverified live), so `-e` is no longer needed.
+  - **Safety:**
+    - A file it changes is first copied to `<name>.bak-<timestamp>`, with `-2`, `-3` added for runs in the same second.
+    - A second run with the same arguments changes nothing and makes no backup.
+    - `--dry-run` writes nothing and prints what it would change.
+    - A file that is not plain JSON (OpenCode also reads JSONC) is refused with a message, never rewritten.
+  - **The model id is required.** The command never guesses it. `check` reports the server's `model_alias` to copy.
+  - The adapter files ship inside the package (`palimnesis/adapters/`), so the command works from a wheel install. A test keeps them byte-identical to `integrations/`.
+- **`palimnesis check`** reports pass, warn or fail per item, with the fix for each, and exits 1 on any failure.
+  - **Upstream:** `GET /props` answers, with its build, model alias and `n_ctx`. The build check uses the same `UpstreamState` the proxy uses, so it reports what `serve` would decide, canary included (D102).
+  - **Proxy:** whether `palimnesis serve` answers on the port.
+  - **Agent config,** for each agent whose directory exists: the provider points at the proxy's port; the context limit is at least 1,000,000; the agent's compaction is off; the session plugin or extension is present and current; and the model id matches the server's `model_alias`. A mismatched id is a warning, not a failure: whether Strata refuses an unknown model name is unverified.
+- **Rejected:**
+  - Writing into the repo's `integrations/` copies at install time. Users install from a wheel.
+  - Guessing the model id from the server during `setup`. `setup` must work before the server is up.
+
+## D102: Strata versions are accepted by their counts, not by name (user request, 2026-11-06)
+
+Strata releases often. The pin listed accepted builds by name (D76), so every new release turned bounded views off until someone verified it by hand. What matters for exact counting is the template, the tokenizer and Strata's message preprocessing, and the canary already measures all three against the live server.
+
+- **An unlisted build is accepted** when the canary passes against the pinned template. Its name alone is no longer a mismatch. `diagnostics` records how the server was accepted: `pinned`, `equivalent`, `canary`, or `canary, server template`. `serve` logs the last two at startup.
+- **A changed template is adopted** when it counts right.
+  - `/props` serves the template text. A candidate counter renders with it and the pinned tokenizer, and the canary runs with that candidate.
+  - If every case matches the server's own `count_tokens`, the upstream's counter switches to the server's template (`Tokens.adopt_template`). Each upstream profile has its own counter (`tokens.default().fork()`, sharing the tokenizer and count caches, which map rendered text to tokens and so stay valid), so one upstream's adoption never changes another's. The facts identity includes the template hash, so cache accounting records `model_template_change`.
+  - If the server later serves the pinned template again, the counter goes back to it.
+  - If any case differs, the template is a mismatch as before, the diagnostics name the failing cases, and bounded views stay off.
+- **Unchanged:**
+  - The per-call usage check (contracts §1): every call's `prompt_tokens` is compared with the local count, and persistent drift still turns bounded views off. That guards whatever the canary cases miss.
+  - A different model (another tokenizer) fails the canary and stays off. Fetching a tokenizer is not built.
+- **Concurrency (review fix).** A template the counter does not render is a mismatch from the moment the facts are read until its own canary passes, and `pinned_ok` requires a canary for the current identity. So a request arriving while a canary runs never builds a view with the old template. Only one template canary runs at a time, and an inconclusive one (`count_tokens` unavailable while the server loads) is retried on the next refresh. The candidate counter is a fork, so no tokenizer is loaded on the event loop.
+- **Known limits.** Some things are fixed when the counter is made, and adoption does not recompute them: the additivity self-test (`fragments_ok`), the turn-layout shape, the profile's `TemplateRules`, and the startup floor's fixed size, which is rechecked only when `n_ctx` changes. A template change that alters any of these but passes the canary would go unnoticed until the per-call drift check sees it. Offline drift reports (`eval/report.py`) count with the pinned template.
+- **Rejected:**
+  - Asking Strata to count every view-build candidate. A build counts many candidates per request, so it needs a local counter.
+  - Keeping a hand-maintained list of builds. That is exactly what kept failing.

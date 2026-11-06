@@ -51,6 +51,7 @@ is a full tokenization.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -321,7 +322,9 @@ class Tokens:
         )
         env.filters["tojson"] = _tojson
         env.globals["raise_exception"] = _raise_exception
+        self._env = env
         self._template = env.from_string(pin.chat_template)
+        self.template_sha256 = pin.template_sha256
         spec = json.loads(pin.tokenizer_json.decode("utf-8"))
         spec["normalizer"] = None  # Strata's tokenizer does not normalize (D47)
         self._tokenizer = Tokenizer.from_str(json.dumps(spec))
@@ -354,6 +357,19 @@ class Tokens:
         return args.pop("tools"), args
 
     # -- render -----------------------------------------------------------------
+
+    def fork(self) -> "Tokens":
+        """A counter that shares this one's tokenizer and caches but has its own template,
+        so one upstream adopting a template (D102) never changes another's. The caches map
+        rendered text to tokens, which the template does not affect."""
+        return copy.copy(self)
+
+    def adopt_template(self, text: str) -> None:
+        """Render with ``text`` from now on, keeping the pinned tokenizer (D102). Every
+        holder of this counter sees the change. The count caches map rendered text to
+        tokens, which the template does not affect, so they stay valid."""
+        self._template = self._env.from_string(text)
+        self.template_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def render(
         self,

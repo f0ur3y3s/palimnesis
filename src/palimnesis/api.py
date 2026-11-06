@@ -281,6 +281,11 @@ class Proxy:
             log.warning("bounded views disabled until the upstream matches the pin: %s",
                         upstream.facts.diagnostics())
         else:
+            accepted = upstream.facts.diagnostics().get("accepted_by")
+            if accepted not in (None, "pinned", "equivalent"):
+                facts = upstream.facts.diagnostics().get("facts") or {}
+                log.info("upstream %s accepted by %s (D102): its counts match",
+                         facts.get("build_info"), accepted)
             floored.check()
         return floored
 

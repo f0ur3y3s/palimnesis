@@ -133,8 +133,11 @@ def test_non_evictable_input_over_the_budget_is_rejected_before_archiving(tmp_pa
 
 
 def test_pin_mismatch_disables_the_view_but_still_archives(tmp_path):
+    # D102: a build is judged by its counts, so the mismatch is a canary that disagrees.
     fake = FakeUpstream()
     fake.props_build_info = "Strata 9.9.9"
+    counted = fake.count_tokens_handler
+    fake.count_tokens_handler = lambda b: counted(b) + 1
     with serve(fake.app()) as upstream_url:
         s = Settings(upstream_base_url=upstream_url, db_path=tmp_path / "a.db", input_budget=8000)
         with serve(create_app(s), palimnesis=True) as url:

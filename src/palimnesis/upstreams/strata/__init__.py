@@ -23,7 +23,7 @@ RULES = TemplateRules(reasoning_every_turn=True, leading_system_only=True,
 
 
 def profile(base_url: str) -> UpstreamProfile:
-    counter = tokens.default()
+    counter = tokens.default().fork()  # its own template: adoption stays per upstream (D102)
     cross_check = CountTokensCrossCheck(base_url, counter)
     return UpstreamProfile(
         id=PROFILE_ID,

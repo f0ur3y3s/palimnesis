@@ -10,8 +10,10 @@
   re-reads them before the next build. It does nothing while the facts are fresh and a
   canary is on record. A failed read keeps the cached facts (still stale) or, at
   startup, none: they are then fetched lazily on the next ``refresh``.
-- ``mismatches`` compares ``build_info`` with the pin's accepted builds (its own and any
-  verified equivalent, D76) and the template hash with the pin.
+- ``mismatches`` lists a chat template that differs from the pin and failed its own
+  canary. A build's name is never a mismatch by itself: a build the pin does not list is
+  accepted when the canary passes (D102). A changed template is adopted when the canary
+  passes with a counter that renders it (``Tokens.adopt_template``).
 - ``canary`` compares local counts with ``POST /v1/messages/count_tokens`` on
   ``CANARY_CASES`` (``CountTokensCrossCheck.canary``); it runs after the first good read
   and again, on the next refresh, whenever the build or template changes or the previous
@@ -33,7 +35,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -154,6 +156,7 @@ class Props:
     chat_template_sha256: str
     model_alias: str | None = None
     total_slots: int | None = None
+    chat_template: str = field(default="", repr=False, compare=False)
 
 
 @dataclass(frozen=True)
@@ -189,15 +192,15 @@ async def fetch_facts(
             chat_template_sha256=hashlib.sha256(template.encode("utf-8")).hexdigest(),
             model_alias=props.get("model_alias"),
             total_slots=props.get("total_slots"),
+            chat_template=template,
         )
     except (ValueError, KeyError, TypeError, AttributeError) as exc:
         raise FactsUnavailable(f"GET /props malformed: {exc!r}") from exc
 
 
 def pin_mismatches(facts: Props, pin: pins.Pin) -> tuple[str, ...]:
+    """The template differs from the pin. A build's name alone is no mismatch (D102)."""
     out = []
-    if facts.build_info not in pin.accepted_builds:
-        out.append(f"build_info: {facts.build_info!r} != pinned {pin.build_info!r}")
     if facts.chat_template_sha256 != pin.template_sha256:
         out.append(f"chat_template_sha256: {facts.chat_template_sha256} != pinned {pin.template_sha256}")
     return tuple(out)
@@ -344,6 +347,11 @@ class UpstreamState:
         self.canary: CanaryResult | None = None
         self.last_error: str | None = None
         self._canary_for: tuple[str, str] | None = None
+        # D102: the canary run with a counter rendering the server's own template, when
+        # that template differs from the pin; and the template the counter adopted.
+        self.template_canary: CanaryResult | None = None
+        self.adopted_template_sha256: str | None = None
+        self._template_checking = False
 
     def mark_stale(self, reason: str) -> None:
         self.stale = True
@@ -371,15 +379,33 @@ class UpstreamState:
             and not self.mismatches
             and self.canary is not None
             and self.canary.ok is True
+            and self._canary_for == self._identity(self.props)
         )
+
+    @staticmethod
+    def _identity(props: Props) -> tuple[str, str]:
+        return (props.build_info, props.chat_template_sha256)
+
+    def _renders(self, props: Props) -> bool:
+        """Whether the counter renders (or, for the pin, switches back to) the server's template."""
+        sha = props.chat_template_sha256
+        return sha == self.pin.template_sha256 or sha == self.adopted_template_sha256
+
+    def _due(self, props: Props) -> bool:
+        """Whether fresh facts still need a canary: a template not yet decided, or a
+        canary that is missing, inconclusive or for another identity."""
+        if not self._renders(props):
+            return not self._template_checking and (
+                self.template_canary is None or self.template_canary.ok is None)
+        return (self.canary is None or self.canary.ok is None
+                or self._canary_for != self._identity(props))
 
     async def refresh(self, client: httpx.AsyncClient) -> UpstreamFacts | None:
         """Re-read facts if stale (or never read) and re-run the canary if due.
 
         Fresh facts with a conclusive canary are returned as they are; an
         inconclusive canary (e.g. count_tokens unavailable while loading) is retried."""
-        if (not self.stale and self.props is not None and self.canary is not None
-                and self.canary.ok is not None):
+        if not self.stale and self.props is not None and not self._due(self.props):
             return self.facts
         if self.stale or self.props is None:
             try:
@@ -391,15 +417,68 @@ class UpstreamState:
             self.stale = False
             self.stale_reason = None
             self.last_error = None
-            self.mismatches = pin_mismatches(props, self.pin)
+            self.template_canary = None
+            # A template the counter does not render stays a mismatch until its own canary
+            # passes, so a concurrent request never builds a view with the old template.
+            self.mismatches = () if self._renders(props) else pin_mismatches(props, self.pin)
         props = self.props
-        identity = (props.build_info, props.chat_template_sha256)
-        if not self.mismatches and (
-            self.canary is None or self.canary.ok is None or self._canary_for != identity
-        ):
+        identity = self._identity(props)
+        if not await self._template_ok(client, props, identity):
+            self.mismatches = pin_mismatches(props, self.pin)
+            return self.facts
+        self.mismatches = ()
+        if self.canary is None or self.canary.ok is None or self._canary_for != identity:
             self.canary = await self.cross_check.canary(client)
             self._canary_for = identity
         return self.facts
+
+    async def _template_ok(self, client: httpx.AsyncClient, props: Props,
+                           identity: tuple[str, str]) -> bool:
+        """Whether the counter can render the server's template (D102)."""
+        sha = props.chat_template_sha256
+        if sha == self.pin.template_sha256:
+            if self.counter is not None and self.counter.template_sha256 != sha:
+                self.counter.adopt_template(self.pin.chat_template)  # the server went back
+            self.adopted_template_sha256 = None
+            return True
+        if sha == self.adopted_template_sha256:
+            return True
+        if self.counter is None or not props.chat_template:
+            return False
+        if self.template_canary is None or self.template_canary.ok is None:
+            if self._template_checking:
+                return False  # another refresh is checking it; views stay off meanwhile
+            self._template_checking = True
+            try:
+                candidate = self.counter.fork()  # shares the tokenizer: no reload on the loop
+                candidate.adopt_template(props.chat_template)
+                result = await CountTokensCrossCheck(self.base_url, candidate).canary(client)
+            finally:
+                self._template_checking = False
+            if self.props is not props:
+                return False  # facts were re-read meanwhile; that refresh decides
+            self.template_canary = result
+        if self.template_canary.ok is not True:
+            return False
+        self.counter.adopt_template(props.chat_template)
+        self.adopted_template_sha256 = sha
+        self.canary, self._canary_for = self.template_canary, identity
+        return True
+
+    @property
+    def accepted_by(self) -> str | None:
+        """How the server was accepted: ``pinned`` (the pin's own build), ``equivalent``
+        (a build the pin lists), ``canary`` (any other build whose counts match) or
+        ``canary, server template`` (a changed template that counts right). None when
+        bounded views are off."""
+        if not self.pinned_ok:
+            return None
+        if self.adopted_template_sha256 is not None:
+            return "canary, server template"
+        build = self.props.build_info
+        if build == self.pin.build_info:
+            return "pinned"
+        return "equivalent" if build in self.pin.accepted_builds else "canary"
 
     def diagnostics(self) -> dict[str, Any]:
         return {
@@ -410,6 +489,12 @@ class UpstreamState:
             "last_error": self.last_error,
             "facts": None if self.props is None else self.props.__dict__.copy(),
             "mismatches": list(self.mismatches),
+            "accepted_by": self.accepted_by,
+            "template_canary": None if self.template_canary is None else {
+                "ok": self.template_canary.ok,
+                "error": self.template_canary.error,
+                "cases": [c.__dict__.copy() for c in self.template_canary.cases],
+            },
             "canary": None if self.canary is None else {
                 "ok": self.canary.ok,
                 "error": self.canary.error,

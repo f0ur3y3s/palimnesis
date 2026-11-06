@@ -137,8 +137,10 @@ async def test_pinned_upstream_is_ok(fake):
 
 
 async def test_template_hash_mismatch_not_pinned_ok(fake):
+    # A template that renders differently while the server counts the pinned way: its
+    # canary fails, so it stays a mismatch (D102).
     fake.count_tokens_handler = _strata_count_tokens
-    fake.props_chat_template = fake.props_chat_template + "\n"
+    fake.props_chat_template = "Server note: be brief.\n" + fake.props_chat_template
     state = UpstreamState(fake.url, pins.load(), tokens.default())
     async with httpx.AsyncClient() as client:
         await state.refresh(client)
@@ -146,14 +148,15 @@ async def test_template_hash_mismatch_not_pinned_ok(fake):
     assert [m.split(":")[0] for m in state.mismatches] == ["chat_template_sha256"]
 
 
-async def test_build_info_mismatch_not_pinned_ok(fake):
+async def test_an_unlisted_build_is_no_mismatch_by_name(fake):
+    # D102: a build the pin does not list is judged by the canary, not by its name.
     fake.count_tokens_handler = _strata_count_tokens
     fake.props_build_info = "Strata 0.1.49"
     state = UpstreamState(fake.url, pins.load(), tokens.default())
     async with httpx.AsyncClient() as client:
         await state.refresh(client)
-    assert not state.pinned_ok
-    assert state.mismatches == ("build_info: 'Strata 0.1.49' != pinned 'Strata 0.1.48'",)
+    assert state.mismatches == ()
+    assert state.pinned_ok
 
 
 async def test_build_verified_equivalent_for_the_pin_is_pinned_ok(fake):
@@ -171,7 +174,7 @@ async def test_build_verified_equivalent_for_the_pin_is_pinned_ok(fake):
 async def test_equivalent_build_with_another_template_still_mismatches(fake):
     fake.count_tokens_handler = _strata_count_tokens
     fake.props_build_info = "Strata 0.1.54"
-    fake.props_chat_template = fake.props_chat_template + "\n"
+    fake.props_chat_template = "Server note: be brief.\n" + fake.props_chat_template
     state = UpstreamState(fake.url, pins.load(), tokens.default())
     async with httpx.AsyncClient() as client:
         await state.refresh(client)

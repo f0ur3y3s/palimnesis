@@ -116,3 +116,5 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D98 | Two pre-existing request-lifecycle races: a finished response holding its session; the deadline's record (S15) | [phase4b.md](phase4b.md) |
 | D99 | Pi's arm 1 keeps a quarter of a small window, so compaction can run (S14) | [phase4b.md](phase4b.md) |
 | D100 | Protocol review of D97–D98: retry kept live, D97 narrowed, transcript label; known limits (S15) | [phase4b.md](phase4b.md) |
+| D101 | `palimnesis setup` and `palimnesis check` (user request) | [phase4b.md](phase4b.md) |
+| D102 | Strata versions are accepted by their counts, not by name (user request) | [phase4b.md](phase4b.md) |
