@@ -177,3 +177,32 @@ Decode is under contracts §8's 1 s. Prefill releases at the end of the current 
 - On Pi, as on OpenCode, the archive and bounded view finished every task without the summary cost. Arm 4 had no task failures and no killed turns.
 - Arm 1's one failure, dev-t3, ran 25 compactions and hit the 30-minute turn limit once.
 - One attempt per task on development data shows direction, not effect size. The Messages cells and the ho2 tasks follow in later entries.
+
+## R48: Pi's development needles on Messages (S14, 2026-11-06, development data, reported, not gated, per D81.6)
+
+**Outcome: 51/60 loose exact (85.0%)**, against 42/60 on Chat (R45). Every archive and accounting check is clean.
+
+- **Setup:** as R45, with the `palimnesis-messages` provider (`--protocol messages`), from 01:37 to 02:38 on 11-06 (61 min). The proxy ran `f3786fb`'s `src/`. Records are in `C:/Users/Daniel/palimnesis-runs/pi-dev-needles-msg/`, tag `pi-msg-r45`.
+
+| Loose exact | 95% Wilson | History-clustered bootstrap | Strict exact | Needle in view / excerpt / absent | Exact when absent | Lookups | Early stops | Prompt / completion tokens |
+|---|---|---|---|---|---|---|---|---|
+| 51/60 (85.0%) | 73.9–91.9% | 73.3–95.0% | 36 | 50 / 35 / 1 | 1/1 | 1 | 3 | 2.01M / 27K |
+
+- **Categories:**
+  - 6/6: multi_fact, oversized_read, restart_multi_eviction and superseded.
+  - identifier 11/12, irrelevant_matches 5/6, vague 9/12, mid_task 2/6.
+- **Misses:**
+  - 3 early stops, each a value without its unit: `1.25` for `1.25s` and `22` for `22s` (h1), and `30` for `30s` (h4).
+  - The `mid_task` misses are the right value followed by a note about the failing test, as in R41.
+- **Strict against loose:** strict exact is 36 because Pi on Messages wrapped most answers in backticks, such as `` `"4.25s"` ``.
+- **Gate inputs, all clean:**
+  - `--explain`: 106/106 pairs explained, 0 unexplained;
+  - `transcripts verify`: 6/6;
+  - over-budget inputs, view-disabled events, unbounded forwards and errored questions: 0 each;
+  - leak scans: 0 leaks and 0 echoes over 50,650 client and 258 transcript texts; 0 internal hard leaks;
+  - 0 hidden calls and 0 foreign requests.
+- **Why Chat stopped early more often (14 against 3) is not established.**
+  - Both protocols reach Strata as the same Chat request: the same system prompt apart from the workspace path, the same tools, and the same `reasoning_effort`. User text arrives as a string from Messages and as text parts from Chat, which render the same tokens (D91.1).
+  - The two runs are separate sessions, though, and their views diverge. At h1 q4, for example, Chat still showed two file reads in full where Messages showed stubs, and the working notes differ.
+  - Early stops cascade within a session (R45-A), so a single first cut changes a history's count by several.
+  - This is consistent with run-to-run variation. It is no evidence that the protocol matters.
