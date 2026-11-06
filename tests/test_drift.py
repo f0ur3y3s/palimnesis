@@ -33,6 +33,16 @@ def test_no_drift_no_event(tmp_path):
     assert {c["budget"]["margin"] for c in calls} == {256}
 
 
+def _eventually(predicate, timeout: float = 10.0) -> bool:
+    import time
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.02)
+    return predicate()
+
+
 def test_drift_raises_margin_then_disables(tmp_path, caplog):
     caplog.set_level(logging.WARNING, logger="palimnesis.view.engine")
     messages = history(1)
@@ -46,6 +56,8 @@ def test_drift_raises_margin_then_disables(tmp_path, caplog):
             data = json.dumps({k: v for k, v in json.loads(data).items()
                                if k != "max_completion_tokens"}).encode()
             assert post(url, data).status_code == 200
+            if i < 3:  # a call's drift is recorded after its response reaches the client
+                assert _eventually(lambda: len(events(settings, "count_drift")) == i + 1)
             sent.append(json.loads(fake.requests[-1].body))
             messages = turn(messages, user=f"next {i}")
 

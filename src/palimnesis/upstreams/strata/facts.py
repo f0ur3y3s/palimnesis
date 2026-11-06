@@ -487,7 +487,8 @@ class UpstreamState:
             "stale": self.stale,
             "stale_reason": self.stale_reason,
             "last_error": self.last_error,
-            "facts": None if self.props is None else self.props.__dict__.copy(),
+            "facts": None if self.props is None else {
+                k: v for k, v in self.props.__dict__.items() if k != "chat_template"},
             "mismatches": list(self.mismatches),
             "accepted_by": self.accepted_by,
             "template_canary": None if self.template_canary is None else {

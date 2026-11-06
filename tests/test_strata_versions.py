@@ -169,3 +169,11 @@ async def test_an_inconclusive_canary_for_a_changed_template_is_retried(fake):
 
     assert state.pinned_ok
     assert state.diagnostics()["accepted_by"] == "canary, server template"
+
+
+async def test_diagnostics_never_carry_the_template_text(fake):
+    # Diagnostics go to the operational log; the template is kilobytes of text.
+    state = await _refresh(fake, tokens.Tokens(pins.load()))
+    facts = state.diagnostics()["facts"]
+    assert "chat_template" not in facts
+    assert facts["chat_template_sha256"] == pins.load().template_sha256
