@@ -71,7 +71,7 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 
 /* Review: step log | the selected step */
 .review { display: grid; grid-template-columns: 280px minmax(0, 1fr); background: var(--sheet);
-  border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+  border: 1px solid var(--rule); border-radius: 14px; overflow: clip; }
 .log { border-right: 1px solid var(--rule); padding: 10px 0; }
 #log { display: grid; }
 .commit { all: unset; display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; padding: 10px 16px; cursor: pointer; position: relative; }
@@ -87,8 +87,8 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .show { min-width: 0; display: grid; align-content: start; }
 
 /* The readout: where the eye lands first. */
-.readout { padding: 22px 26px 18px; display: grid; gap: 14px; border-bottom: 1px solid var(--rule); }
-.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.readout { padding: 16px 26px 18px; display: grid; gap: 14px; border-bottom: 1px solid var(--rule); }
+.head { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 16px 26px 12px; background: var(--sheet); border-bottom: 1px solid var(--rule); }
 .mini { display: flex; gap: 6px; }
 .btn.small { font-size: 13.5px; padding: 6px 12px; border-radius: 8px; }
 .readout h2 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
@@ -159,12 +159,10 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 26px; font: 13px var(--font-ui); color: var(--ink-2); border-top: 1px solid var(--rule); }
 .legend i { display: inline-block; width: 16px; height: 11px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
 
-.nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 26px 20px; }
 .btn { all: unset; cursor: pointer; font: 600 15px var(--font-ui); padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); }
 .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
 .btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 .btn:focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
-.keys { font: 13px var(--font-ui); color: var(--ink-3); }
 
 /* Terms */
 .terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px 32px; margin: 0; align-items: start; }
@@ -185,12 +183,11 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
   .log { border-right: 0; border-bottom: 1px solid var(--rule); padding: 4px 0; min-width: 0; }
   #log { grid-auto-flow: column; grid-auto-columns: minmax(190px, 64%); overflow-x: auto; scroll-snap-type: x proximity; min-width: 0; }
   .commit { scroll-snap-align: start; }
-  .readout, .bar, .nav, .legend, .sec { padding-left: 16px; padding-right: 16px; }
+  .head, .readout, .bar, .legend, .sec { padding-left: 16px; padding-right: 16px; }
   .size .v { font-size: 27px; }
   .r, .unified .r { grid-template-columns: 54px 20px minmax(0, 1fr); }
   .seg-ctl.layout { display: none; }
   .btn { white-space: nowrap; }
-  .keys { display: none; }
 }
 </style>
 </head>
@@ -199,7 +196,7 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
 THESIS: The model's view is a diff of the agent's history. Refuses the stepper-plus-three-cards explainer; each step is a commit, shown as changes only, with one large readout of what the agent sends against what the model receives.
 OWN-WORLD: Review-tool grammar on a pale green-grey sheet: monospace hunks, red removals and green proxy additions with solid sign gutters, ochre span folds, grey unchanged-run folds, token counts as gutter line numbers, one blue accent for the model.
 STORY: A local-model developer steps through one session and can then explain how the agent keeps everything, the model sees a bounded view, and details come back.
-FIRST VIEWPORT: Title, repo link and two setup sentences; below, the step log on the left beside the selected step: its title with Previous and Next beside it, the readout (agent sends then model receives, with a status), one sentence, the ruler, then the changes-only diff. Next step at the bottom.
+FIRST VIEWPORT: Title, repo link and two setup sentences; below, the step log on the left beside the selected step: a sticky bar with its title and the only Previous and Next, then the readout (agent sends then model receives, with a status), one sentence, the ruler, then the changes-only diff.
 FORM: Review Diff, candidate 4 of 7; seed key bb2241dc, a degraded roll (no challengers, no quality-bar boards, code-led).
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
@@ -217,14 +214,14 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <nav class="log" aria-label="Steps"><div id="log"></div></nav>
 
     <article class="show">
-      <div class="readout">
-        <div class="head">
-          <h2 id="title"></h2>
-          <div class="mini" role="group" aria-label="Step">
-            <button type="button" class="btn small" id="prev2">Previous</button>
-            <button type="button" class="btn small primary" id="next2">Next</button>
-          </div>
+      <div class="head">
+        <h2 id="title"></h2>
+        <div class="mini" role="group" aria-label="Step">
+          <button type="button" class="btn small" id="prev">Previous</button>
+          <button type="button" class="btn small primary" id="next">Next</button>
         </div>
+      </div>
+      <div class="readout">
         <div class="sizes" id="sizes"></div>
         <p class="lede" id="lede"></p>
         <ul class="more" id="more"></ul>
@@ -253,11 +250,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         <span><i style="background:var(--quiet)"></i>unchanged, read from cache</span>
       </div>
 
-      <div class="nav">
-        <button type="button" class="btn" id="prev">Previous step</button>
-        <span class="keys">Arrow keys or j and k</span>
-        <button type="button" class="btn primary" id="next">Next step</button>
-      </div>
     </article>
   </section>
 
@@ -507,8 +499,8 @@ function render(moved = true) {
   renderLog(); renderReadout(s); renderDiff(s);
   for (const [id, on] of [["changes", !showAll], ["all", showAll], ["split", !unified], ["unified", unified]])
     document.getElementById(id).setAttribute("aria-pressed", String(on));
-  for (const id of ["prev", "prev2"]) document.getElementById(id).setAttribute("aria-disabled", String(i === 0));
-  for (const id of ["next", "next2"]) document.getElementById(id).setAttribute("aria-disabled", String(i === STEPS.length - 1));
+  document.getElementById("prev").setAttribute("aria-disabled", String(i === 0));
+  document.getElementById("next").setAttribute("aria-disabled", String(i === STEPS.length - 1));
 }
 
 function go(k, write = true) {
@@ -526,8 +518,6 @@ const fromHash = () => { const m = /^#step-(\d+)$/.exec(location.hash); return m
 
 document.getElementById("prev").addEventListener("click", () => go(i - 1));
 document.getElementById("next").addEventListener("click", () => go(i + 1));
-document.getElementById("prev2").addEventListener("click", () => go(i - 1));
-document.getElementById("next2").addEventListener("click", () => go(i + 1));
 document.getElementById("changes").addEventListener("click", () => { showAll = false; render(false); });
 document.getElementById("all").addEventListener("click", () => { showAll = true; render(false); });
 document.getElementById("split").addEventListener("click", () => { unified = false; prevKeys = new Set(); render(false); });
