@@ -125,3 +125,55 @@ Decode is under contracts §8's 1 s. Prefill releases at the end of the current 
 **Reading.**
 - The model's speed is the same on both arms; the difference is how much it is asked to write and re-read.
 - Masking with exact recall needs no summary of what it hides. Palimnesis's one summary-like cost, the working notes, is written only when old turns actually leave the view, and is short.
+
+## R47: Pi's development coding tasks on Chat, arm 4 against Pi's own compaction (S14, 2026-11-05/06, development data, reported, not gated, per D81.6)
+
+**Outcome: `a4-d77` passed 5/5 with every constraint held, in 162 upstream calls and 62 minutes. Pi's own compaction (arm 1) passed 4/5, held 13/15 constraints, and took 322 calls and 4.9 hours.** This repeats R41's OpenCode result on a second harness, on development data with one attempt per task and arm.
+
+- **Setup:**
+  - Real Pi 1.5.0 on Windows with the shipped adapter, through `eval/tasks/run.py --harness pi --protocol chat`.
+  - Strata 0.1.54 on pythia at 32K, one slot, through an SSH tunnel.
+  - Arm 4 is `a4-d77` through `serve`. Arm 1 is `--passthrough` with Pi's compaction on, `contextWindow` 32,768 and `keepRecentTokens` 8,192 (D99).
+  - Tasks ran in order, arm 4 first, from 18:36 on 11-05 to 01:37 on 11-06. Records: `C:/Users/Daniel/palimnesis-runs/pi-dev-tasks-chat2/records/attempt-001..011`, tag `pi-r46b`.
+- **Code:**
+  - dev-t1 arm 4 ran at `446a308` (D98, D99).
+  - Every later run ran `f3786fb`'s `src/` (D100). dev-t1 arm 1 started from the working tree minutes before that commit, with the same `src/`. D100 changes only rare paths (a retry inside a failed handler's tail, empty replies a client resent, transcript labels), and none of them occurred in these runs: 0 proxy rejections.
+- **Excluded:**
+  - The first arm 1 attempt at dev-t1 ran with Pi's default `keepRecentTokens` and never compacted (D99). It is attempt 2 of the earlier directory `pi-dev-tasks-chat`.
+  - dev-t3 arm 1's attempt 6 stopped at turn 6 when the client laptop slept and the tunnel dropped. Its rerun, attempt 7, records the reason. The rerun's reason text says "memory cleanup"; the client misreported the sleep as a memory shortage.
+
+| Task | `a4-d77` | Arm 1 (Pi's compaction) |
+|---|---|---|
+| dev-t1 | **pass** 4/4, constraints 3/3 · 38 calls · 20 min | pass 4/4, 2/3 · 63 calls · 46 min · 13 compactions |
+| dev-t2 | **pass** 4/4, 3/3 · 30 · 12 min | pass 4/4, 3/3 · 59 · 52 min · 15 compactions |
+| dev-t3 | **pass** 3/3, 3/3 · 30 · 10 min | **fail** 2/3, 3/3 · 97 · 114 min · 25 compactions · 1 turn killed at 30 min |
+| dev-t4 (restart) | **pass** 4/4, 3/3, restart gate True · 34 · 11 min | pass 4/4, 3/3, restart gate True · 34 · 13 min · 4 compactions |
+| dev-t5 | **pass** 3/3, 3/3 · 30 · 9 min | pass 3/3, 2/3 · 69 · 68 min · 17 compactions |
+| **Total** | **5/5, 15/15 · 162 calls · 62 min · 0 kills** | 4/5, 13/15 · 322 calls · 4.9 h · 1 kill |
+
+- **Gate inputs on every `a4-d77` archive:**
+  - `--explain` with 0 unexplained;
+  - `transcripts verify` passing;
+  - 0 over-budget inputs and 0 view-disabled events;
+  - 0 leaks and 0 echoes in the client and transcript scans.
+  - The largest input was 23,839 tokens, under the 24,320 budget.
+- **Arm 1:** 0 proxy rejections; every turn's calls returned 200.
+
+**R47-A. Where arm 1's extra time went** (`eval/wall_split.py`, all five pairs; this extends R46-B). Seconds of upstream time:
+
+| | `a4-d77` | Arm 1 | Extra on arm 1 | Share of the gap |
+|---|---|---|---|---|
+| Compaction or notes calls, decode | 383 | 7,082 | 6,699 | 49% |
+| Task calls, prefill | 1,247 | 5,300 | 4,053 | 30% |
+| Task calls, decode | 1,751 | 3,843 | 2,092 | 15% |
+| Compaction or notes calls, prefill | 279 | 974 | 695 | 5% |
+| **Upstream total** | **3,661** | **17,199** | **13,538** | |
+
+- **Summaries:** Pi made 89 summarizer calls that wrote 335,270 tokens. `a4-d77` made 10 notes refreshes that wrote 15,553.
+- **Prompt cache:** the hit rate was 63% on arm 1 against 85%.
+- **Task work:** arm 1 made 230 task calls against 152.
+
+**Reading.**
+- On Pi, as on OpenCode, the archive and bounded view finished every task without the summary cost. Arm 4 had no task failures and no killed turns.
+- Arm 1's one failure, dev-t3, ran 25 compactions and hit the 30-minute turn limit once.
+- One attempt per task on development data shows direction, not effect size. The Messages cells and the ho2 tasks follow in later entries.

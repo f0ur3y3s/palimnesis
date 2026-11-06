@@ -106,5 +106,167 @@
     "decode_s": 1374.2511
    }
   }
+ },
+ {
+  "attempt": "attempt-005",
+  "task": "dev-t3",
+  "arm": "a4-d77",
+  "success": null,
+  "latency_s": 627.5,
+  "split": {
+   "task": {
+    "calls": 29,
+    "prompt": 408122,
+    "cached": 362359,
+    "prefilled": 45763,
+    "prefill_s": 275.06749999999994,
+    "generated": 9308,
+    "decode_s": 235.80139999999997
+   },
+   "compaction": {
+    "calls": 1,
+    "prompt": 19031,
+    "cached": 0,
+    "prefilled": 19031,
+    "prefill_s": 62.399300000000004,
+    "generated": 1446,
+    "decode_s": 37.6068
+   }
+  }
+ },
+ {
+  "attempt": "attempt-007",
+  "task": "dev-t3",
+  "arm": "a1",
+  "success": null,
+  "latency_s": 6836.1,
+  "split": {
+   "task": {
+    "calls": 68,
+    "prompt": 1169054,
+    "cached": 820910,
+    "prefilled": 348144,
+    "prefill_s": 1769.5317,
+    "generated": 67300,
+    "decode_s": 1667.7055000000003
+   },
+   "compaction": {
+    "calls": 27,
+    "prompt": 168602,
+    "cached": 19769,
+    "prefilled": 148833,
+    "prefill_s": 423.4457,
+    "generated": 132074,
+    "decode_s": 2749.8830000000003
+   }
+  }
+ },
+ {
+  "attempt": "attempt-008",
+  "task": "dev-t4",
+  "arm": "a4-d77",
+  "success": null,
+  "latency_s": 630.7,
+  "split": {
+   "task": {
+    "calls": 32,
+    "prompt": 473449,
+    "cached": 422038,
+    "prefilled": 51411,
+    "prefill_s": 229.08909999999997,
+    "generated": 10606,
+    "decode_s": 264.81649999999996
+   },
+   "compaction": {
+    "calls": 2,
+    "prompt": 34953,
+    "cached": 15862,
+    "prefilled": 19091,
+    "prefill_s": 65.2222,
+    "generated": 2474,
+    "decode_s": 61.5961
+   }
+  }
+ },
+ {
+  "attempt": "attempt-009",
+  "task": "dev-t4",
+  "arm": "a1",
+  "success": null,
+  "latency_s": 776.3,
+  "split": {
+   "task": {
+    "calls": 29,
+    "prompt": 383509,
+    "cached": 313351,
+    "prefilled": 70158,
+    "prefill_s": 330.2364,
+    "generated": 8735,
+    "decode_s": 216.01999999999998
+   },
+   "compaction": {
+    "calls": 5,
+    "prompt": 9349,
+    "cached": 0,
+    "prefilled": 9349,
+    "prefill_s": 42.5976,
+    "generated": 7827,
+    "decode_s": 179.5906
+   }
+  }
+ },
+ {
+  "attempt": "attempt-010",
+  "task": "dev-t5",
+  "arm": "a4-d77",
+  "success": null,
+  "latency_s": 539.5,
+  "split": {
+   "task": {
+    "calls": 29,
+    "prompt": 359111,
+    "cached": 324882,
+    "prefilled": 34229,
+    "prefill_s": 156.76060000000004,
+    "generated": 11250,
+    "decode_s": 286.752
+   },
+   "compaction": {
+    "calls": 1,
+    "prompt": 14389,
+    "cached": 0,
+    "prefilled": 14389,
+    "prefill_s": 47.9795,
+    "generated": 1495,
+    "decode_s": 38.2384
+   }
+  }
+ },
+ {
+  "attempt": "attempt-011",
+  "task": "dev-t5",
+  "arm": "a1",
+  "success": null,
+  "latency_s": 4080.2,
+  "split": {
+   "task": {
+    "calls": 50,
+    "prompt": 757417,
+    "cached": 491411,
+    "prefilled": 266006,
+    "prefill_s": 1284.0109999999997,
+    "generated": 29830,
+    "decode_s": 780.5128000000001
+   },
+   "compaction": {
+    "calls": 19,
+    "prompt": 97946,
+    "cached": 0,
+    "prefilled": 97946,
+    "prefill_s": 221.406,
+    "generated": 84935,
+    "decode_s": 1777.4386
+   }
+  }
  }
 ]

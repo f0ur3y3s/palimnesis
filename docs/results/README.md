@@ -60,3 +60,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R44 | Pi's faults (34 runs), cancellation release and proxy restarts through Palimnesis (2026-11-05) | [phase4b.md](phase4b.md) |
 | R45 | Pi's development needles through Palimnesis: 42/60, early stops from one cut answer (2026-11-05) | [phase4b.md](phase4b.md) |
 | R46 | Where the wall-clock gain over native compaction comes from: summaries written, redone work, re-reading (2026-11-05) | [phase4b.md](phase4b.md) |
+| R47 | Pi's development coding tasks on Chat: a4-d77 5/5 in 62 min against Pi's compaction 4/5 in 4.9 h (2026-11-06) | [phase4b.md](phase4b.md) |
