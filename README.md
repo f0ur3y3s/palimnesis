@@ -75,7 +75,7 @@ It listens on `127.0.0.1:9000`. On Windows, start it with `uv run python -m pali
 
 ## Connect OpenCode
 
-1. **Find your model's name.** It is `model_alias` in `http://<strata-host>:8080/props`. The shipped config uses `qwen3.8-flash-next-iq3_xxs`; replace it in both places below if yours differs.
+1. **Find your model's name.** It is `model_alias` in `http://<strata-host>:8080/props`. The shipped config uses `qwen3.8-flash-next-iq3_xxs`. Replace it in both places below if yours differs.
 2. **Copy the integration** into OpenCode's config directory, which is `$OPENCODE_CONFIG_DIR` if set, otherwise `~/.config/opencode` (on Windows too):
    - `integrations/opencode/plugins/palimnesis.ts` → `<config dir>/plugins/palimnesis.ts`
    - `integrations/opencode/opencode.json` → merge into `<config dir>/opencode.json`. Keep your own settings, and take the `providers.palimnesis` block, the top-level `model`, `compaction`, `agents` and `permissions` entries from the shipped file.
