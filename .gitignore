@@ -18,4 +18,5 @@ eval/fixtures/opencode-2.1.4/partials/*/*
 .claude/worktrees/
 
 # Design-tool working files (decision payloads, review captures)
-.impeccable/
+.impeccable/*
+!.impeccable/design.json

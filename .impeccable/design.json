@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: Palimnesis",
+  "extensions": {
+    "colorMeta": {
+      "ground":     { "role": "neutral",   "displayName": "Ground",          "canonical": "oklch(95.2% 0.008 122)", "dark": "#101210", "tonalRamp": ["#0b0c08", "#242621", "#41433e", "#60625d", "#81837e", "#a4a6a0", "#c8cac4", "#edefe9"] },
+      "sheet":      { "role": "neutral",   "displayName": "Sheet",           "canonical": "oklch(98.7% 0.004 106)", "dark": "#181b17", "tonalRamp": ["#0b0b09", "#252523", "#424240", "#61615f", "#828280", "#a5a5a2", "#c9c9c6", "#efefec"] },
+      "ink":        { "role": "neutral",   "displayName": "Ink",             "canonical": "oklch(20.8% 0.011 133)", "dark": "#eceee8", "tonalRamp": ["#090c08", "#232621", "#40433d", "#5f635c", "#80847d", "#a2a7a0", "#c6cbc4", "#ecf0e9"] },
+      "ink-2":      { "role": "neutral",   "displayName": "Ink 2",           "canonical": "oklch(40.4% 0.020 131)", "dark": "#bcc2b4", "tonalRamp": ["#080d05", "#22271d", "#3e4439", "#5d6458", "#7e8579", "#a1a89b", "#c5ccbf", "#eaf1e4"] },
+      "ink-3":      { "role": "neutral",   "displayName": "Ink 3",           "canonical": "oklch(53.6% 0.020 129)", "dark": "#8e9587", "tonalRamp": ["#090d05", "#22271d", "#3f4439", "#5e6458", "#7f8578", "#a1a89b", "#c5ccbe", "#eaf1e4"] },
+      "rule":       { "role": "neutral",   "displayName": "Rule",            "canonical": "oklch(88.2% 0.015 123)", "dark": "#2c312a", "tonalRamp": ["#0a0c06", "#24261e", "#40433a", "#5f6359", "#80847a", "#a3a79c", "#c7cbc0", "#ecf0e5"] },
+      "quiet":      { "role": "neutral",   "displayName": "Quiet",           "canonical": "oklch(93.0% 0.011 123)", "dark": "#22261f", "tonalRamp": ["#0a0c07", "#242620", "#41433d", "#60625b", "#81837c", "#a3a69f", "#c7cac3", "#edf0e8"] },
+      "del":        { "role": "secondary", "displayName": "Removal Rose",    "canonical": "oklch(91.5% 0.036 33)",  "dark": "#3f1d18", "tonalRamp": ["#180503", "#341e1a", "#533b36", "#745a54", "#977b75", "#ba9d97", "#e0c1ba", "#ffe6df"] },
+      "del-gutter": { "role": "secondary", "displayName": "Removal Gutter",  "canonical": "oklch(77.9% 0.086 32)",  "dark": "#8c3a2c", "tonalRamp": ["#210000", "#460e06", "#682e24", "#8b4e42", "#b06f62", "#d69183", "#fcb5a6", "#ffe5de"] },
+      "del-ink":    { "role": "secondary", "displayName": "Removal Ink",     "canonical": "oklch(42.3% 0.140 32)",  "dark": "#ffb3a6", "tonalRamp": ["#220000", "#510000", "#7c1404", "#a13a29", "#c85e4b", "#f0816c", "#ffb09f", "#ffe5de"] },
+      "add":        { "role": "secondary", "displayName": "Addition Mint",   "canonical": "oklch(93.0% 0.042 147)", "dark": "#17331c", "tonalRamp": ["#001002", "#162b19", "#334835", "#516854", "#728a74", "#94ad96", "#b8d1ba", "#ddf7df"] },
+      "add-gutter": { "role": "secondary", "displayName": "Addition Gutter", "canonical": "oklch(79.0% 0.103 148)", "dark": "#2f7a3c", "tonalRamp": ["#001200", "#003100", "#0a501f", "#32713e", "#54935e", "#77b780", "#9adca3", "#bfffc8"] },
+      "add-ink":    { "role": "secondary", "displayName": "Addition Ink",    "canonical": "oklch(41.2% 0.109 147)", "dark": "#9fe0a8", "tonalRamp": ["#001200", "#003100", "#06501b", "#30713a", "#53945b", "#75b87c", "#99dda0", "#beffc4"] },
+      "fold":       { "role": "tertiary",  "displayName": "Span Ochre",      "canonical": "oklch(91.6% 0.058 92)",  "dark": "#3a3018", "tonalRamp": ["#140900", "#2f2400", "#4d411a", "#6d603a", "#8f825a", "#b2a57b", "#d6c99f", "#fceec3"] },
+      "fold-ink":   { "role": "tertiary",  "displayName": "Span Ink",        "canonical": "oklch(41.3% 0.080 85)",  "dark": "#f0d27e", "tonalRamp": ["#1a0500", "#362000", "#553e00", "#765d25", "#987f48", "#bca16a", "#e1c68d", "#ffebb1"] },
+      "model":      { "role": "primary",   "displayName": "Model Blue",      "canonical": "oklch(47.8% 0.165 262)", "dark": "#8fb3f5", "tonalRamp": ["#00003a", "#001073", "#053797", "#285abd", "#497ee3", "#6aa2ff", "#a0c9ff", "#d5f0ff"] },
+      "cache":      { "role": "primary",   "displayName": "Cache Blue",      "canonical": "oklch(68.9% 0.095 262)", "dark": "#5675b0", "tonalRamp": ["#000332", "#092152", "#254074", "#436097", "#6382bb", "#85a5e1", "#a8caff", "#d9efff"] }
+    },
+    "typographyMeta": {
+      "display":    { "displayName": "Display",     "purpose": "The page title only. 29px below 820px." },
+      "headline":   { "displayName": "Headline",    "purpose": "The selected step's title." },
+      "figure":     { "displayName": "Figure",      "purpose": "The two readout token counts. The largest type in the panel. 27px below 820px." },
+      "lede":       { "displayName": "Lede",        "purpose": "Setup paragraphs and the one sentence per step, max 70-72ch." },
+      "body":       { "displayName": "Body",        "purpose": "Page default." },
+      "body-sm":    { "displayName": "Body small",  "purpose": "Log entries, step bullets, term definitions." },
+      "button":     { "displayName": "Button",      "purpose": "Previous and Next buttons. 13.5px in the compact pair." },
+      "code":       { "displayName": "Code",        "purpose": "Every diff row." },
+      "label":      { "displayName": "Label",       "purpose": "Figure labels, diff column headers, status pills, diff section dividers." },
+      "label-sm":   { "displayName": "Label small", "purpose": "Segmented control options." },
+      "code-label": { "displayName": "Code label",  "purpose": "Span and unchanged-run fold rows." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "land", "value": "900ms cubic-bezier(.16, 1, .3, 1) both; from box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--model) 24%, transparent) to transparent", "purpose": "The only authored motion. Rows new to a step arrive under a Model Blue wash and settle. Runs only under prefers-reduced-motion: no-preference." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "820px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The forward action, Next step and the compact Next beside the step title.",
+      "html": "<button type=\"button\" class=\"ds-btn ds-btn-primary\">Next step</button>",
+      "css": ".ds-btn { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-primary { background: var(--ink, #161914); border-color: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-btn:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: 2px; } .ds-btn[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The backward action, Previous step.",
+      "html": "<button type=\"button\" class=\"ds-btn-secondary\">Previous step</button>",
+      "css": ".ds-btn-secondary { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: 2px; } .ds-btn-secondary[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented-option",
+      "description": "Two-option toggle in the diff toolbar, Changes / All lines and Split / Unified.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Lines shown\"><button type=\"button\" aria-pressed=\"true\">Changes</button><button type=\"button\" aria-pressed=\"false\">All lines</button></div>",
+      "css": ".ds-seg { display: inline-flex; border: 1px solid var(--rule, #d6dacf); border-radius: 7px; overflow: hidden; background: var(--sheet, #fbfbf8); } .ds-seg button { all: unset; cursor: pointer; padding: 4px 11px; font: 600 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-seg button[aria-pressed=\"true\"] { background: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-seg button:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; }"
+    },
+    {
+      "name": "Step Log Entry",
+      "kind": "nav",
+      "refersTo": "step-entry",
+      "description": "One step in the commit-log navigation. The current step gets a Ground fill and a Model Blue number.",
+      "html": "<div class=\"ds-log\"><button type=\"button\" class=\"ds-commit\" aria-current=\"false\"><span class=\"ds-num\">4</span><span class=\"ds-msg\">Past H: notes first</span><span class=\"ds-tag\">view changes</span></button><button type=\"button\" class=\"ds-commit\" aria-current=\"true\"><span class=\"ds-num\">5</span><span class=\"ds-msg\">Old turns collapse</span><span class=\"ds-tag\">view changes</span></button></div>",
+      "css": ".ds-log { display: grid; width: 280px; background: var(--sheet, #fbfbf8); } .ds-commit { all: unset; display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; padding: 10px 16px; cursor: pointer; } .ds-num { font: 600 13px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; color: var(--ink-3, #6a7064); text-align: right; padding-top: 1px; font-variant-numeric: tabular-nums; } .ds-msg { font: 15px/1.35 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-commit:hover .ds-msg { color: var(--ink, #161914); } .ds-commit[aria-current=\"true\"] { background: var(--ground, #eef0ea); } .ds-commit[aria-current=\"true\"] .ds-msg { color: var(--ink, #161914); font-weight: 600; } .ds-commit[aria-current=\"true\"] .ds-num { color: var(--model, #2456b8); } .ds-commit:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; } .ds-tag { grid-column: 2; justify-self: start; margin-top: 4px; font: 600 11.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 1px 8px; border-radius: 999px; background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-ok",
+      "description": "Watermark state beside the readout. Green pair when steady, ochre pair when the view changes.",
+      "html": "<span class=\"ds-status ds-ok\">below H</span> <span class=\"ds-status ds-move\">past H</span>",
+      "css": ".ds-status { display: inline-block; font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 5px 11px; border-radius: 999px; background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); } .ds-ok { background: var(--add, #d6f0d8); color: var(--add-ink, #155a24); } .ds-move { background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); }"
+    },
+    {
+      "name": "Readout",
+      "kind": "custom",
+      "refersTo": "figure",
+      "description": "The two token counts per step, the largest type in the panel. The model's count is Model Blue.",
+      "html": "<div class=\"ds-sizes\"><div class=\"ds-size\"><span class=\"ds-k\">Agent sends</span><span class=\"ds-v\">22,260</span></div><div class=\"ds-size ds-model\"><span class=\"ds-k\">Model receives</span><span class=\"ds-v\">8,690</span></div><span class=\"ds-pill\">below T</span></div>",
+      "css": ".ds-sizes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 26px; } .ds-size { display: grid; gap: 2px; } .ds-k { font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-3, #6a7064); } .ds-v { font: 600 34px/1 \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink, #161914); } .ds-model .ds-v { color: var(--model, #2456b8); } .ds-pill { align-self: center; font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 5px 11px; border-radius: 999px; background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); }"
+    },
+    {
+      "name": "Diff Rows",
+      "kind": "custom",
+      "refersTo": "diff-row-add",
+      "description": "Split diff rows. Token counts sit in the line-number column. Removals tint left, additions tint right, the empty side is Quiet.",
+      "html": "<div class=\"ds-diff\"><div class=\"ds-r\"><div class=\"ds-n\">1,934</div><div class=\"ds-s\"></div><div class=\"ds-t ds-ctx\"><span class=\"ds-role\">system    </span>System prompt and tool schemas</div><div class=\"ds-n\">1,934</div><div class=\"ds-s\"></div><div class=\"ds-t ds-ctx\"><span class=\"ds-role\">system    </span>System prompt and tool schemas</div></div><div class=\"ds-r ds-del\"><div class=\"ds-n\">69</div><div class=\"ds-s\">−</div><div class=\"ds-t\"><span class=\"ds-role\">user      </span>Fix the rounding bug in ledger.</div><div class=\"ds-n ds-empty\"></div><div class=\"ds-s ds-empty\"></div><div class=\"ds-t ds-empty\"></div></div><div class=\"ds-r ds-add\"><div class=\"ds-n ds-empty\"></div><div class=\"ds-s ds-empty\"></div><div class=\"ds-t ds-empty\"></div><div class=\"ds-n\">86</div><div class=\"ds-s\">+</div><div class=\"ds-t\"><span class=\"ds-role\">span      </span>[palimnesis span §000002–§000010 · 9 messages]</div></div></div>",
+      "css": ".ds-diff { font: 13.5px/1.55 \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; background: var(--sheet, #fbfbf8); } .ds-r { display: grid; grid-template-columns: 62px 22px minmax(0, 1fr) 62px 22px minmax(0, 1fr); } .ds-r > div { padding: 2px 8px; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.6em; } .ds-n { text-align: right; color: var(--ink-3, #6a7064); font-variant-numeric: tabular-nums; padding-right: 10px !important; } .ds-s { text-align: center; font-weight: 600; padding: 2px 0 !important; } .ds-role { color: var(--ink-3, #6a7064); } .ds-ctx { color: var(--ink-2, #454b40); } .ds-del > div:nth-child(-n+3) { background: var(--del, #fadbd4); color: var(--ink, #161914); } .ds-del > .ds-s:nth-child(2) { background: var(--del-gutter, #e9a395); color: var(--del-ink, #8a2414); } .ds-add > div:nth-child(n+4) { background: var(--add, #d6f0d8); color: var(--ink, #161914); } .ds-add > .ds-s:nth-child(5) { background: var(--add-gutter, #8ccd95); color: var(--add-ink, #155a24); } .ds-empty { background: var(--quiet, #e6e9e1); }"
+    },
+    {
+      "name": "Fold Rows",
+      "kind": "custom",
+      "refersTo": "fold-span",
+      "description": "Full-width toggles inside the diff. Ochre for a collapsed span of old turns, Quiet for a run of unchanged messages.",
+      "html": "<button type=\"button\" class=\"ds-fold ds-span\" aria-expanded=\"false\"><span>9 messages, 14,300 tokens, collapsed into one span line</span><span class=\"ds-act\">Show them</span></button><button type=\"button\" class=\"ds-fold ds-same\" aria-expanded=\"false\"><span>7 unchanged messages · 6,716 tokens</span><span class=\"ds-act\">Show</span></button>",
+      "css": ".ds-fold { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; padding: 5px 12px 5px 22px; font: 600 12.5px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; width: 100%; box-sizing: border-box; } .ds-span { background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); } .ds-same { background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); } .ds-fold:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; } .ds-act { font: 500 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; text-decoration: underline; text-underline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Review Diff",
+    "overview": "Palimnesis explains itself the way a developer already reads change. The session is a commit log, and each step is a diff with the agent's history on the left and the model's view on the right. The visual world is a code-review tool set on a pale green-grey sheet. Monospace hunks carry the content. Red removals, green additions and ochre folds carry the meaning. A single blue marks whatever belongs to the model.\n\nDensity is that of a review tool, not a landing page. Text is set at reading sizes, the diff is set in a mono at 13.5px, and the one large element on any step is the readout of two token counts. Changes show by default and unchanged runs fold away, so the eye goes to what moved. Surfaces are flat. Depth comes from two paper tones and 1px hairlines.\n\nThe system ships a light theme and a dark theme with the same token names. The page follows `prefers-color-scheme` and honours `data-theme=\"light\"` or `data-theme=\"dark\"` on the root element.",
+    "keyCharacteristics": [
+      "Review-tool grammar with split and unified diffs, sign gutters, line numbers and folds.",
+      "Token counts sit where line numbers sit in a code diff.",
+      "One accent (`--model`), reserved for the model's side.",
+      "Diff colours always carry diff meaning and always come as a tint plus an ink.",
+      "Flat surfaces, hairline rules, no shadows.",
+      "One typeface family in two cuts, Atkinson Hyperlegible Next and Mono."
+    ],
+    "rules": [
+      { "name": "The One Blue Rule", "body": "`--model` is the only accent, and it always means the model's side. The agent's side is never blue. Decoration is never blue.", "section": "colors" },
+      { "name": "The Diff Meaning Rule", "body": "Red means left out of the model's view. Green means written by Palimnesis. Ochre means collapsed into a span. Quiet grey means unchanged and read from cache. The status pill is the one other place the pairs appear. There green marks a steady view and ochre a view that changes.", "section": "colors" },
+      { "name": "The Paired Tint Rule", "body": "A tinted fill never appears without its ink. `--del` goes with `--del-ink`, `--add` with `--add-ink`, `--fold` with `--fold-ink`. Both themes redefine the pair together.", "section": "colors" },
+      { "name": "The Numbers Are Code Rule", "body": "Every token count is set in the mono cut with `font-variant-numeric: tabular-nums`, right-aligned where it sits in a column, so counts line up the way line numbers do.", "section": "typography" },
+      { "name": "The Readout Outranks the Title Rule", "body": "On each step the two figures are the largest type in the panel. Nothing else in the panel goes above 26px.", "section": "typography" },
+      { "name": "The Shared Edge Rule", "body": "Every band inside the step uses the same horizontal inset (26px, 16px on narrow screens), so the title, figures, toolbar, divider text and legend share one left edge.", "section": "layout" },
+      { "name": "The Hairline Rule", "body": "Separation is a 1px `--rule` line or a change of paper tone. Never a shadow.", "section": "elevation" },
+      { "name": "The One Motion Rule", "body": "The arrival flash on new rows is the only authored motion. State changes elsewhere are instant.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** keep `--model` for the model's side only, the figure, the current step, the ruler, focus and links.",
+      "**Do** use the diff pairs only for their diff meaning and always with their ink (`--del`/`--del-ink`, `--add`/`--add-ink`, `--fold`/`--fold-ink`).",
+      "**Do** set every token count in Atkinson Hyperlegible Mono with tabular figures.",
+      "**Do** make the step's figures the largest type in the panel (34px against a 26px title).",
+      "**Do** separate surfaces with 1px `--rule` hairlines and the `--ground`/`--sheet` step.",
+      "**Do** align every band inside the panel on the 26px inset (16px below 820px).",
+      "**Do** define any new colour in both themes as a pair under one token name.",
+      "**Do** gate the arrival flash behind `prefers-reduced-motion: no-preference`."
+    ],
+    "donts": [
+      "**Don't** introduce a second accent hue. A new emphasis uses weight, `--ink`, or an existing diff pair with the same meaning.",
+      "**Don't** use the red, green or ochre pairs anywhere outside the diff, its legend and the status pill.",
+      "**Don't** add drop shadows or glows to cards, buttons or the panel.",
+      "**Don't** round diff rows or gutters. The diff runs square and edge to edge.",
+      "**Don't** set prose in the mono cut or counts in the proportional cut.",
+      "**Don't** add hover lifts or transitions to controls. The only authored motion is the arrival flash."
+    ]
+  }
+}
