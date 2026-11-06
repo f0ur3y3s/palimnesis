@@ -28,8 +28,8 @@
   --fold: #f1e3b8;
   --fold-ink: #5f4709;
   --quiet: #e6e9e1;
-  --model: #2456b8;
-  --cache: #7b9bd6;
+  --model: #7a2470;
+  --cache: #a85b9c;
   --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-code: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   color-scheme: light;
@@ -39,7 +39,7 @@
     --ground: #101210; --sheet: #181b17; --ink: #eceee8; --ink-2: #bcc2b4; --ink-3: #8e9587;
     --rule: #2c312a; --del: #3f1d18; --del-gutter: #8c3a2c; --del-ink: #ffb3a6;
     --add: #17331c; --add-gutter: #2f7a3c; --add-ink: #9fe0a8; --fold: #3a3018; --fold-ink: #f0d27e;
-    --quiet: #22261f; --model: #8fb3f5; --cache: #5675b0;
+    --quiet: #22261f; --model: #e59bd7; --cache: #a5629b;
     color-scheme: dark;
   }
 }
@@ -47,7 +47,7 @@
   --ground: #101210; --sheet: #181b17; --ink: #eceee8; --ink-2: #bcc2b4; --ink-3: #8e9587;
   --rule: #2c312a; --del: #3f1d18; --del-gutter: #8c3a2c; --del-ink: #ffb3a6;
   --add: #17331c; --add-gutter: #2f7a3c; --add-ink: #9fe0a8; --fold: #3a3018; --fold-ink: #f0d27e;
-  --quiet: #22261f; --model: #8fb3f5; --cache: #5675b0;
+  --quiet: #22261f; --model: #e59bd7; --cache: #a5629b;
   color-scheme: dark;
 }
 
@@ -55,7 +55,8 @@
 html, body { margin: 0; }
 body { background: var(--ground); color: var(--ink); font: 16px/1.55 var(--font-ui); caret-color: var(--model); }
 ::selection { background: var(--model); color: var(--sheet); }
-a { color: var(--model); text-underline-offset: 3px; }
+a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--ink-3); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
 :focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
 * { scrollbar-color: var(--rule) transparent; }
 
@@ -164,7 +165,7 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 .btn:focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
 
-/* Results: Palimnesis in the model blue, the agent's own compaction in neutral grey, so the
+/* Results: Palimnesis in the model plum, the agent's own compaction in neutral grey, so the
    diff colours keep their meaning. */
 .results { display: grid; gap: 14px; }
 .results > h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
@@ -181,6 +182,13 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .rtable tr.grp th { font-size: 13px; color: var(--ink-2); font-weight: 600; padding-top: 14px; border-bottom: 0; }
 .rtable tr.pal th, .rtable tr.pal td { color: var(--model); font-weight: 600; }
 .rtable tbody th { font-weight: 500; }
+.tasks { display: grid; gap: 12px; padding-top: 4px; }
+.tasks-lede { margin: 0; color: var(--ink-2); font-size: 15px; }
+.tasks-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 28px; }
+.tasks h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.tasks ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; font-size: 15px; color: var(--ink); }
+.tasks li::marker { color: var(--ink-3); font-family: var(--font-code); font-size: 13px; }
+.tasks .fail { display: inline-block; margin-left: 6px; font-size: 12.5px; font-weight: 600; color: var(--del-ink); background: var(--del); padding: 0 7px; border-radius: 999px; }
 .tchart { margin: 0; display: grid; gap: 10px; }
 .tchart figcaption { font-size: 14px; font-weight: 600; color: var(--ink); }
 .bar-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
@@ -237,7 +245,7 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
 <body>
 <!--
 THESIS: The model's view is a diff of the agent's history. Refuses the stepper-plus-three-cards explainer; each step is a commit, shown as changes only, with one large readout of what the agent sends against what the model receives.
-OWN-WORLD: Review-tool grammar on a pale green-grey sheet: monospace hunks, red removals and green proxy additions with solid sign gutters, ochre span folds, grey unchanged-run folds, token counts as gutter line numbers, one blue accent for the model.
+OWN-WORLD: Review-tool grammar on a pale green-grey sheet: monospace hunks, red removals and green proxy additions with solid sign gutters, ochre span folds, grey unchanged-run folds, token counts as gutter line numbers, one plum accent for the model.
 STORY: A local-model developer steps through one session and can then explain how the agent keeps everything, the model sees a bounded view, and details come back.
 FIRST VIEWPORT: Title, repo link and two setup sentences; below, the step log on the left beside the selected step: a sticky bar with its title and the only Previous and Next, then the readout (agent sends then model receives, with a status), one sentence, the ruler, then the changes-only diff.
 FORM: Review Diff, candidate 4 of 7; seed key bb2241dc, a degraded roll (no challengers, no quality-bar boards, code-led).
@@ -322,6 +330,31 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <tr><th scope="row">Pi's compaction</th><td>4 of 5</td><td>4.9 h</td><td>322</td></tr>
           </tbody>
         </table>
+        <div class="tasks">
+          <p class="tasks-lede">Each task is a small Python library built over 8 turns of instructions, with a long reference document to read, Palimnesis restarted before turn 5, and hidden tests at the end. Details stated early are needed late, after they have left the model's view.</p>
+          <div class="tasks-cols">
+            <div>
+              <h4>OpenCode, unseen tasks</h4>
+              <ol>
+                <li>IBAN formats and validation with exact error codes <span class="fail">native compaction failed this one</span></li>
+                <li>Phone numbers to E.164, and contact sheets</li>
+                <li>Bracket problems in source text, and its command line</li>
+                <li>Parcel rates from a rate card, with oversize and fuel surcharges</li>
+                <li>A cron expression parser, matcher and next-run search</li>
+              </ol>
+            </div>
+            <div>
+              <h4>Pi, development tasks</h4>
+              <ol>
+                <li>An inventory CSV importer, with prices in cents</li>
+                <li>URL slugs with transliteration and length limits</li>
+                <li>A retry and backoff schedule with deterministic jitter <span class="fail">Pi's compaction failed this one</span></li>
+                <li>Latency rollups, with a rounding rule given only in turn 1</li>
+                <li>Pump-station telemetry, with firmware codes mentioned once in turn 3</li>
+              </ol>
+            </div>
+          </div>
+        </div>
         <figure class="tchart">
           <figcaption>Total time to finish the five tasks, in hours</figcaption>
           <div class="bar-key"><span><i class="sw pal"></i>Palimnesis</span><span><i class="sw nat"></i>the agent's own compaction</span></div>

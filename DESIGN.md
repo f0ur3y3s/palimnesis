@@ -17,8 +17,8 @@ colors:
   fold: "#f1e3b8"
   fold-ink: "#5f4709"
   quiet: "#e6e9e1"
-  model: "#2456b8"
-  cache: "#7b9bd6"
+  model: "#7a2470"
+  cache: "#a85b9c"
 typography:
   display:
     fontFamily: "Atkinson Hyperlegible Next, system-ui, -apple-system, Segoe UI, sans-serif"
@@ -176,7 +176,7 @@ components:
 
 **Creative North Star: "The Review Diff"**
 
-Palimnesis explains itself the way a developer already reads change. The session is a commit log, and each step is a diff with the agent's history on the left and the model's view on the right. The visual world is a code-review tool set on a pale green-grey sheet. Monospace hunks carry the content. Red removals, green additions and ochre folds carry the meaning. A single blue marks whatever belongs to the model.
+Palimnesis explains itself the way a developer already reads change. The session is a commit log, and each step is a diff with the agent's history on the left and the model's view on the right. The visual world is a code-review tool set on a pale green-grey sheet. Monospace hunks carry the content. Red removals, green additions and ochre folds carry the meaning. A single plum marks whatever belongs to the model. Nothing on the page is blue, so nothing but an underlined link reads as clickable.
 
 Density is that of a review tool, not a landing page. Text is set at reading sizes, the diff is set in a mono at 13.5px, and the one large element on any step is the readout of two token counts. Changes show by default and unchanged runs fold away, so the eye goes to what moved. Surfaces are flat. Depth comes from two paper tones and 1px hairlines.
 
@@ -192,11 +192,11 @@ The system ships a light theme and a dark theme with the same token names. The p
 
 ## Colors
 
-A low-chroma green-grey neutral range carries the page, and four diff pairs plus one blue carry all the meaning.
+A low-chroma green-grey neutral range carries the page, and four diff pairs plus one plum carry all the meaning.
 
 ### Primary
-- **Model Blue** (`--model`): the only accent. It colours the "Model receives" figure, the current step number in the log, the model segment of the ruler, the token count on rows new to a step, links, text selection, the caret, the focus ring and the arrival flash on new rows.
-- **Cache Blue** (`--cache`): a paler partner to Model Blue, used only for the cached part of the model's ruler bar. It reads as "the model's tokens, but already paid for".
+- **Model Plum** (`--model`): the only accent. It colours the "Model receives" figure, the current step number in the log, the model segment of the ruler, the token count on rows new to a step, the Palimnesis rows and bars in the results, text selection, the caret, the focus ring and the arrival flash on new rows. It replaced a blue that read as a link.
+- **Cache Plum** (`--cache`): a paler partner to Model Plum, used only for the cached part of the model's ruler bar. It reads as "the model's tokens, but already paid for".
 
 ### Secondary
 - **Removal Rose** (`--del`), **Removal Gutter** (`--del-gutter`), **Removal Ink** (`--del-ink`): what the agent sends that the model's view leaves out. The tint fills the left cell, the gutter fills the sign column, and the ink colours the minus sign.
@@ -215,10 +215,12 @@ A low-chroma green-grey neutral range carries the page, and four diff pairs plus
 - **Quiet** (`--quiet`): unchanged and cache-read content. It fills unchanged-run folds, the empty side of a one-sided diff row, the ruler track, neutral pills and the log tag.
 
 ### Dark theme
-The dark theme redefines every token. Ground `#101210`, Sheet `#181b17`, Ink `#eceee8`, Ink 2 `#bcc2b4`, Ink 3 `#8e9587`, Rule `#2c312a`, Removal Rose `#3f1d18`, Removal Gutter `#8c3a2c`, Removal Ink `#ffb3a6`, Addition Mint `#17331c`, Addition Gutter `#2f7a3c`, Addition Ink `#9fe0a8`, Span Ochre `#3a3018`, Span Ink `#f0d27e`, Quiet `#22261f`, Model Blue `#8fb3f5`, Cache Blue `#5675b0`. In dark mode the tints go deep and the inks go pale, so each pair keeps its contrast.
+The dark theme redefines every token. Ground `#101210`, Sheet `#181b17`, Ink `#eceee8`, Ink 2 `#bcc2b4`, Ink 3 `#8e9587`, Rule `#2c312a`, Removal Rose `#3f1d18`, Removal Gutter `#8c3a2c`, Removal Ink `#ffb3a6`, Addition Mint `#17331c`, Addition Gutter `#2f7a3c`, Addition Ink `#9fe0a8`, Span Ochre `#3a3018`, Span Ink `#f0d27e`, Quiet `#22261f`, Model Plum `#e59bd7`, Cache Plum `#a5629b`. In dark mode the tints go deep and the inks go pale, so each pair keeps its contrast.
 
 ### Named Rules
-**The One Blue Rule.** `--model` is the only accent, and it always means the model's side. The agent's side is never blue. Decoration is never blue.
+**The One Plum Rule.** `--model` is the only accent, and it always means the model's side. The agent's side is never plum. Decoration is never plum.
+
+**The Link Rule.** Links are `--ink` with a `--ink-3` underline that darkens to `--ink` on hover. No colour on the page means "clickable" except the underline.
 
 **The Diff Meaning Rule.** Red means left out of the model's view. Green means written by Palimnesis. Ochre means collapsed into a span. Quiet grey means unchanged and read from cache. The status pill is the one other place the pairs appear. There green marks a steady view and ochre a view that changes.
 
@@ -318,7 +320,7 @@ The two figures sit side by side, agent first, with a 13px 600 `--ink-3` label a
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep `--model` for the model's side only, the figure, the current step, the ruler, focus and links.
+- **Do** keep `--model` for the model's side only, the figure, the current step, the ruler and focus. Links stay ink with an underline.
 - **Do** use the diff pairs only for their diff meaning and always with their ink (`--del`/`--del-ink`, `--add`/`--add-ink`, `--fold`/`--fold-ink`).
 - **Do** set every token count in Atkinson Hyperlegible Mono with tabular figures.
 - **Do** make the step's figures the largest type in the panel (34px against a 26px title).

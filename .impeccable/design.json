@@ -19,8 +19,8 @@
       "add-ink":    { "role": "secondary", "displayName": "Addition Ink",    "canonical": "oklch(41.2% 0.109 147)", "dark": "#9fe0a8", "tonalRamp": ["#001200", "#003100", "#06501b", "#30713a", "#53945b", "#75b87c", "#99dda0", "#beffc4"] },
       "fold":       { "role": "tertiary",  "displayName": "Span Ochre",      "canonical": "oklch(91.6% 0.058 92)",  "dark": "#3a3018", "tonalRamp": ["#140900", "#2f2400", "#4d411a", "#6d603a", "#8f825a", "#b2a57b", "#d6c99f", "#fceec3"] },
       "fold-ink":   { "role": "tertiary",  "displayName": "Span Ink",        "canonical": "oklch(41.3% 0.080 85)",  "dark": "#f0d27e", "tonalRamp": ["#1a0500", "#362000", "#553e00", "#765d25", "#987f48", "#bca16a", "#e1c68d", "#ffebb1"] },
-      "model":      { "role": "primary",   "displayName": "Model Blue",      "canonical": "oklch(47.8% 0.165 262)", "dark": "#8fb3f5", "tonalRamp": ["#00003a", "#001073", "#053797", "#285abd", "#497ee3", "#6aa2ff", "#a0c9ff", "#d5f0ff"] },
-      "cache":      { "role": "primary",   "displayName": "Cache Blue",      "canonical": "oklch(68.9% 0.095 262)", "dark": "#5675b0", "tonalRamp": ["#000332", "#092152", "#254074", "#436097", "#6382bb", "#85a5e1", "#a8caff", "#d9efff"] }
+      "model":      { "role": "primary",   "displayName": "Model Plum",      "canonical": "oklch(47.8% 0.165 262)", "dark": "#e59bd7", "tonalRamp": ["#00003a", "#001073", "#053797", "#285abd", "#497ee3", "#6aa2ff", "#a0c9ff", "#d5f0ff"] },
+      "cache":      { "role": "primary",   "displayName": "Cache Plum",      "canonical": "oklch(68.9% 0.095 262)", "dark": "#a5629b", "tonalRamp": ["#000332", "#092152", "#254074", "#436097", "#6382bb", "#85a5e1", "#a8caff", "#d9efff"] }
     },
     "typographyMeta": {
       "display":    { "displayName": "Display",     "purpose": "The page title only. 29px below 820px." },
@@ -37,7 +37,7 @@
     },
     "shadows": [],
     "motion": [
-      { "name": "land", "value": "900ms cubic-bezier(.16, 1, .3, 1) both; from box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--model) 24%, transparent) to transparent", "purpose": "The only authored motion. Rows new to a step arrive under a Model Blue wash and settle. Runs only under prefers-reduced-motion: no-preference." }
+      { "name": "land", "value": "900ms cubic-bezier(.16, 1, .3, 1) both; from box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--model) 24%, transparent) to transparent", "purpose": "The only authored motion. Rows new to a step arrive under a Model Plum wash and settle. Runs only under prefers-reduced-motion: no-preference." }
     ],
     "breakpoints": [
       { "name": "narrow", "value": "820px" }
@@ -50,7 +50,7 @@
       "refersTo": "button-primary",
       "description": "The forward action, Next step and the compact Next beside the step title.",
       "html": "<button type=\"button\" class=\"ds-btn ds-btn-primary\">Next step</button>",
-      "css": ".ds-btn { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-primary { background: var(--ink, #161914); border-color: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-btn:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: 2px; } .ds-btn[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
+      "css": ".ds-btn { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-primary { background: var(--ink, #161914); border-color: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-btn:focus-visible { outline: 2px solid var(--model, #7a2470); outline-offset: 2px; } .ds-btn[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
     },
     {
       "name": "Secondary Button",
@@ -58,7 +58,7 @@
       "refersTo": "button-secondary",
       "description": "The backward action, Previous step.",
       "html": "<button type=\"button\" class=\"ds-btn-secondary\">Previous step</button>",
-      "css": ".ds-btn-secondary { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: 2px; } .ds-btn-secondary[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
+      "css": ".ds-btn-secondary { all: unset; cursor: pointer; font: 600 15px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--rule, #d6dacf); background: var(--sheet, #fbfbf8); color: var(--ink, #161914); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--model, #7a2470); outline-offset: 2px; } .ds-btn-secondary[aria-disabled=\"true\"] { opacity: .4; cursor: default; }"
     },
     {
       "name": "Segmented Control",
@@ -66,15 +66,15 @@
       "refersTo": "segmented-option",
       "description": "Two-option toggle in the diff toolbar, Changes / All lines and Split / Unified.",
       "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Lines shown\"><button type=\"button\" aria-pressed=\"true\">Changes</button><button type=\"button\" aria-pressed=\"false\">All lines</button></div>",
-      "css": ".ds-seg { display: inline-flex; border: 1px solid var(--rule, #d6dacf); border-radius: 7px; overflow: hidden; background: var(--sheet, #fbfbf8); } .ds-seg button { all: unset; cursor: pointer; padding: 4px 11px; font: 600 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-seg button[aria-pressed=\"true\"] { background: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-seg button:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; }"
+      "css": ".ds-seg { display: inline-flex; border: 1px solid var(--rule, #d6dacf); border-radius: 7px; overflow: hidden; background: var(--sheet, #fbfbf8); } .ds-seg button { all: unset; cursor: pointer; padding: 4px 11px; font: 600 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-seg button[aria-pressed=\"true\"] { background: var(--ink, #161914); color: var(--sheet, #fbfbf8); } .ds-seg button:focus-visible { outline: 2px solid var(--model, #7a2470); outline-offset: -2px; }"
     },
     {
       "name": "Step Log Entry",
       "kind": "nav",
       "refersTo": "step-entry",
-      "description": "One step in the commit-log navigation. The current step gets a Ground fill and a Model Blue number.",
+      "description": "One step in the commit-log navigation. The current step gets a Ground fill and a Model Plum number.",
       "html": "<div class=\"ds-log\"><button type=\"button\" class=\"ds-commit\" aria-current=\"false\"><span class=\"ds-num\">4</span><span class=\"ds-msg\">Past H: notes first</span><span class=\"ds-tag\">view changes</span></button><button type=\"button\" class=\"ds-commit\" aria-current=\"true\"><span class=\"ds-num\">5</span><span class=\"ds-msg\">Old turns collapse</span><span class=\"ds-tag\">view changes</span></button></div>",
-      "css": ".ds-log { display: grid; width: 280px; background: var(--sheet, #fbfbf8); } .ds-commit { all: unset; display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; padding: 10px 16px; cursor: pointer; } .ds-num { font: 600 13px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; color: var(--ink-3, #6a7064); text-align: right; padding-top: 1px; font-variant-numeric: tabular-nums; } .ds-msg { font: 15px/1.35 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-commit:hover .ds-msg { color: var(--ink, #161914); } .ds-commit[aria-current=\"true\"] { background: var(--ground, #eef0ea); } .ds-commit[aria-current=\"true\"] .ds-msg { color: var(--ink, #161914); font-weight: 600; } .ds-commit[aria-current=\"true\"] .ds-num { color: var(--model, #2456b8); } .ds-commit:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; } .ds-tag { grid-column: 2; justify-self: start; margin-top: 4px; font: 600 11.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 1px 8px; border-radius: 999px; background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); }"
+      "css": ".ds-log { display: grid; width: 280px; background: var(--sheet, #fbfbf8); } .ds-commit { all: unset; display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; padding: 10px 16px; cursor: pointer; } .ds-num { font: 600 13px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; color: var(--ink-3, #6a7064); text-align: right; padding-top: 1px; font-variant-numeric: tabular-nums; } .ds-msg { font: 15px/1.35 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-2, #454b40); } .ds-commit:hover .ds-msg { color: var(--ink, #161914); } .ds-commit[aria-current=\"true\"] { background: var(--ground, #eef0ea); } .ds-commit[aria-current=\"true\"] .ds-msg { color: var(--ink, #161914); font-weight: 600; } .ds-commit[aria-current=\"true\"] .ds-num { color: var(--model, #7a2470); } .ds-commit:focus-visible { outline: 2px solid var(--model, #7a2470); outline-offset: -2px; } .ds-tag { grid-column: 2; justify-self: start; margin-top: 4px; font: 600 11.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 1px 8px; border-radius: 999px; background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); }"
     },
     {
       "name": "Status Pill",
@@ -88,9 +88,9 @@
       "name": "Readout",
       "kind": "custom",
       "refersTo": "figure",
-      "description": "The two token counts per step, the largest type in the panel. The model's count is Model Blue.",
+      "description": "The two token counts per step, the largest type in the panel. The model's count is Model Plum.",
       "html": "<div class=\"ds-sizes\"><div class=\"ds-size\"><span class=\"ds-k\">Agent sends</span><span class=\"ds-v\">22,260</span></div><div class=\"ds-size ds-model\"><span class=\"ds-k\">Model receives</span><span class=\"ds-v\">8,690</span></div><span class=\"ds-pill\">below T</span></div>",
-      "css": ".ds-sizes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 26px; } .ds-size { display: grid; gap: 2px; } .ds-k { font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-3, #6a7064); } .ds-v { font: 600 34px/1 \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink, #161914); } .ds-model .ds-v { color: var(--model, #2456b8); } .ds-pill { align-self: center; font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 5px 11px; border-radius: 999px; background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); }"
+      "css": ".ds-sizes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 26px; } .ds-size { display: grid; gap: 2px; } .ds-k { font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; color: var(--ink-3, #6a7064); } .ds-v { font: 600 34px/1 \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--ink, #161914); } .ds-model .ds-v { color: var(--model, #7a2470); } .ds-pill { align-self: center; font: 600 13px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; padding: 5px 11px; border-radius: 999px; background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); }"
     },
     {
       "name": "Diff Rows",
@@ -106,12 +106,12 @@
       "refersTo": "fold-span",
       "description": "Full-width toggles inside the diff. Ochre for a collapsed span of old turns, Quiet for a run of unchanged messages.",
       "html": "<button type=\"button\" class=\"ds-fold ds-span\" aria-expanded=\"false\"><span>9 messages, 14,300 tokens, collapsed into one span line</span><span class=\"ds-act\">Show them</span></button><button type=\"button\" class=\"ds-fold ds-same\" aria-expanded=\"false\"><span>7 unchanged messages · 6,716 tokens</span><span class=\"ds-act\">Show</span></button>",
-      "css": ".ds-fold { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; padding: 5px 12px 5px 22px; font: 600 12.5px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; width: 100%; box-sizing: border-box; } .ds-span { background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); } .ds-same { background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); } .ds-fold:focus-visible { outline: 2px solid var(--model, #2456b8); outline-offset: -2px; } .ds-act { font: 500 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; text-decoration: underline; text-underline-offset: 3px; }"
+      "css": ".ds-fold { all: unset; cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; padding: 5px 12px 5px 22px; font: 600 12.5px \"Atkinson Hyperlegible Mono\", ui-monospace, monospace; width: 100%; box-sizing: border-box; } .ds-span { background: var(--fold, #f1e3b8); color: var(--fold-ink, #5f4709); } .ds-same { background: var(--quiet, #e6e9e1); color: var(--ink-2, #454b40); } .ds-fold:focus-visible { outline: 2px solid var(--model, #7a2470); outline-offset: -2px; } .ds-act { font: 500 12.5px \"Atkinson Hyperlegible Next\", system-ui, sans-serif; text-decoration: underline; text-underline-offset: 3px; }"
     }
   ],
   "narrative": {
     "northStar": "The Review Diff",
-    "overview": "Palimnesis explains itself the way a developer already reads change. The session is a commit log, and each step is a diff with the agent's history on the left and the model's view on the right. The visual world is a code-review tool set on a pale green-grey sheet. Monospace hunks carry the content. Red removals, green additions and ochre folds carry the meaning. A single blue marks whatever belongs to the model.\n\nDensity is that of a review tool, not a landing page. Text is set at reading sizes, the diff is set in a mono at 13.5px, and the one large element on any step is the readout of two token counts. Changes show by default and unchanged runs fold away, so the eye goes to what moved. Surfaces are flat. Depth comes from two paper tones and 1px hairlines.\n\nThe system ships a light theme and a dark theme with the same token names. The page follows `prefers-color-scheme` and honours `data-theme=\"light\"` or `data-theme=\"dark\"` on the root element.",
+    "overview": "Palimnesis explains itself the way a developer already reads change. The session is a commit log, and each step is a diff with the agent's history on the left and the model's view on the right. The visual world is a code-review tool set on a pale green-grey sheet. Monospace hunks carry the content. Red removals, green additions and ochre folds carry the meaning. A single plum marks whatever belongs to the model. Nothing on the page is blue, so nothing but an underlined link reads as clickable.\n\nDensity is that of a review tool, not a landing page. Text is set at reading sizes, the diff is set in a mono at 13.5px, and the one large element on any step is the readout of two token counts. Changes show by default and unchanged runs fold away, so the eye goes to what moved. Surfaces are flat. Depth comes from two paper tones and 1px hairlines.\n\nThe system ships a light theme and a dark theme with the same token names. The page follows `prefers-color-scheme` and honours `data-theme=\"light\"` or `data-theme=\"dark\"` on the root element.",
     "keyCharacteristics": [
       "Review-tool grammar with split and unified diffs, sign gutters, line numbers and folds.",
       "Token counts sit where line numbers sit in a code diff.",
@@ -121,7 +121,7 @@
       "One typeface family in two cuts, Atkinson Hyperlegible Next and Mono."
     ],
     "rules": [
-      { "name": "The One Blue Rule", "body": "`--model` is the only accent, and it always means the model's side. The agent's side is never blue. Decoration is never blue.", "section": "colors" },
+      { "name": "The One Plum Rule", "body": "`--model` is the only accent, and it always means the model's side. The agent's side is never plum. Decoration is never plum.", "section": "colors" },
       { "name": "The Diff Meaning Rule", "body": "Red means left out of the model's view. Green means written by Palimnesis. Ochre means collapsed into a span. Quiet grey means unchanged and read from cache. The status pill is the one other place the pairs appear. There green marks a steady view and ochre a view that changes.", "section": "colors" },
       { "name": "The Paired Tint Rule", "body": "A tinted fill never appears without its ink. `--del` goes with `--del-ink`, `--add` with `--add-ink`, `--fold` with `--fold-ink`. Both themes redefine the pair together.", "section": "colors" },
       { "name": "The Numbers Are Code Rule", "body": "Every token count is set in the mono cut with `font-variant-numeric: tabular-nums`, right-aligned where it sits in a column, so counts line up the way line numbers do.", "section": "typography" },
