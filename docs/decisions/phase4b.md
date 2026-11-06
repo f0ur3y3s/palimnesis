@@ -341,7 +341,7 @@ A read-only protocol review covered everything changed since D95's review: D97's
 - **A complete but undelivered empty reply** (a disconnect after its terminal commit) that the client then leaves out is still a 409 `history_divergence`. The unfinished-turn path handles it first. It is reported loudly, never accepted silently.
 - **Whitespace text resent as `null` beside tool calls** is accepted (D97). The upstream gets the client's `null`, not the archived text. The pinned template renders them alike: `"
 
-"`, `""`, `" "` and `null` beside a tool call give the same text through the counter (`palimnesis.upstreams.strata.tokens`, the D47 pin). So it is not a prefix change.
+"`, `""`, `" "` and `null` beside a tool call give the same text through the counter (`palimnesis.upstreams.strata.tokens`, the pin D76 confirms for 0.1.54). So it is not a prefix change.
 - **A deadline between the terminal batch and the final empty body** (the client stopped reading) can follow `[DONE]` or `message_stop` with a `deadline_exceeded` error event. This predates 4B. It needs a client that stops reading after the end of the answer and resumes within 2 s.
 - **D98.2 judges the deadline when the exception is handled.** A disconnect just before D, whose cancellation a shielded write holds past D, is recorded as `deadline_exceeded`, not `cancelled`.
 - **`_expired` sends through the raw `send`**, so an expired request with storage down stays in `live` until its handler ends. In that window a retry still gets 409 `request_in_progress`.
