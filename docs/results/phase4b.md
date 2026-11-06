@@ -206,3 +206,60 @@ Decode is under contracts §8's 1 s. Prefill releases at the end of the current 
   - The two runs are separate sessions, though, and their views diverge. At h1 q4, for example, Chat still showed two file reads in full where Messages showed stubs, and the working notes differ.
   - Early stops cascade within a session (R45-A), so a single first cut changes a history's count by several.
   - This is consistent with run-to-run variation. It is no evidence that the protocol matters.
+
+## R49: Archive size and how it grows (2026-11-06)
+
+**Outcome.** An archive grows roughly linearly with requests and output tokens, plus one quadratic term from periodic full snapshots of the request body. At the pace of the ho2-t2 run (about 700 output tokens and 3.7 KB of new request body per request), it reaches about 7 MB at 100 requests, 45 MB at 500 and 117 MB at 1,000.
+
+**Method.** `eval/archive_size.py` reads an archive read-only and reports bytes per table (`dbstat`), row counts, and the raw request bodies' logical and stored sizes. It was run on the nine `a4-d77` Pi task archives from R47 and the ho2 Chat runs (28–140 requests, 1.4–10.2 MB each).
+
+**Where the bytes go** (ho2-t2, 140 requests, 10.2 MB):
+
+| Part | Bytes | Share | Grows with |
+|---|---|---|---|
+| Delivery events (`delivery_progress` and the rest) | 4.05 MB | 40% | streamed reply chunks |
+| Reply text rows and their index (`segments` + autoindex) | 3.02 MB | 30% | streamed reply chunks |
+| Raw request bodies (5 snapshots + 135 deltas) | 1.92 MB | 19% | requests, and history size at each snapshot |
+| Full-text index (`fts_*`) | 0.48 MB | 5% | archived text |
+| Everything else (occurrences, requests, notes, views, schema) | 0.75 MB | 7% | requests |
+
+- **Replies are stored per streamed chunk.** Each chunk costs 284 bytes on average across the nine archives (272–312): its text row, its index entry and its delivery event. A chunk carries about 4 tokens (98,246 output tokens in 24,577 chunks on ho2-t2), so this is about 71 bytes per output token. The text itself is about 10 bytes of each chunk.
+- **Request bodies are stored as deltas.** The agent sent 39.6 MB of request bodies over ho2-t2; the archive stored 1.9 MB, about 5%. A full snapshot is taken every 33 requests (one snapshot, then at most 32 deltas, `rawdelta.py`), and the snapshots are 1.31 MB of the 1.92 MB.
+- **What the agent adds is stored once.** Tool results and user messages were 147 rows and 201 KB.
+
+**Model.** For a session of N requests whose request body reaches L bytes, with O output tokens and T bytes of archived text:
+
+```
+size ≈ 200 KB + N · 8.3 KB + 71 B · O + 1.0 · T + N · L / 66
+```
+
+- 200 KB is the schema and fixed tables. 8.3 KB per request is 3.9 KB of bookkeeping plus about 4.4 KB of body delta. T is counted once more for the full-text index.
+- N · L / 66 is the snapshots: about N/33 of them, at half the final body size on average when the body grows steadily. With L = h · N for a body that grows by h bytes per request, this is h · N² / 66, the one term that grows faster than linearly.
+
+| Archive | N | Output tokens | Predicted | Actual | Error |
+|---|---|---|---|---|---|
+| dev-t1 | 34 | 29,040 | 2.81 MB | 3.09 MB | −9% |
+| dev-t2 | 28 | 19,163 | 1.99 MB | 2.34 MB | −15% |
+| dev-t3 | 29 | 10,754 | 1.31 MB | 1.41 MB | −7% |
+| dev-t4 | 32 | 13,080 | 1.55 MB | 1.58 MB | −2% |
+| dev-t5 | 29 | 12,745 | 1.50 MB | 1.69 MB | −11% |
+| ho2-t1 | 39 | 37,704 | 3.50 MB | 3.42 MB | +2% |
+| ho2-t2 | 140 | 98,246 | 9.88 MB | 10.22 MB | −3% |
+| ho2-t3 | 79 | 72,346 | 6.81 MB | 6.63 MB | +3% |
+| ho2-t4 | 51 | 55,572 | 5.14 MB | 6.08 MB | −15% |
+
+**Projection** at ho2-t2's per-request rates (700 output tokens, 3.2 KB of archived text, body growth h = 3.65 KB per request), so about 61 KB per request plus 55 · N² bytes of snapshots:
+
+| Requests | Agent's history | Linear part | Snapshots | Archive |
+|---|---|---|---|---|
+| 100 | about 90K tokens | 6.1 MB | 0.6 MB | about 7 MB |
+| 500 | about 460K tokens | 30.6 MB | 13.8 MB | about 45 MB |
+| 1,000 | about 910K tokens | 61.2 MB | 55.4 MB | about 117 MB |
+| 2,000 | about 1.8M tokens | 122 MB | 221 MB | about 344 MB |
+
+- History tokens assume about 4 bytes per token. ho2-t2 ran 140 requests in 72 minutes, so 1,000 requests is about 8.5 hours of agent work in one session.
+- Separate sessions are independent and add up.
+- Not counted: the transcript files, which are written beside the database.
+- **The levers, not acted on here:**
+  - Storing replies per batch instead of per chunk would remove most of the 70% that events and text rows take.
+  - Snapshotting by bytes instead of every 33 requests would bound the quadratic term.

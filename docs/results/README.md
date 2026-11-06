@@ -62,3 +62,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R46 | Where the wall-clock gain over native compaction comes from: summaries written, redone work, re-reading (2026-11-05) | [phase4b.md](phase4b.md) |
 | R47 | Pi's development coding tasks on Chat: a4-d77 5/5 in 62 min against Pi's compaction 4/5 in 4.9 h (2026-11-06) | [phase4b.md](phase4b.md) |
 | R48 | Pi's development needles on Messages: 51/60, 3 early stops (2026-11-06) | [phase4b.md](phase4b.md) |
+| R49 | Archive size and how it grows: a measured model, within ±15% on nine archives (2026-11-06) | [phase4b.md](phase4b.md) |
