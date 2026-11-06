@@ -162,8 +162,11 @@ def test_client_disconnect_closes_the_upstream_stream(stack):
 def _eventually(predicate, timeout: float = 3.0) -> bool:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if predicate():
-            return True
+        try:
+            if predicate():
+                return True
+        except PermissionError:
+            pass  # Windows: a file being replaced right now cannot be opened; poll again
         time.sleep(0.02)
     return predicate()
 
