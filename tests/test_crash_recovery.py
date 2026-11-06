@@ -122,6 +122,11 @@ def test_crash_after_input_commit_then_identical_resend_gets_a_new_attempt(upstr
     with palimnesis_process(upstream_url, db) as (url, _):
         fake.respond_sse([L0.response_body])
         r = _post(url, L0.request_body)
+        # The delivery record follows the final body; let it land before the process stops.
+        deadline = time.monotonic() + 5
+        while (time.monotonic() < deadline and not _rows(
+                db, "SELECT 1 FROM events WHERE kind = 'delivery_completed'")):
+            time.sleep(0.05)
 
     assert r.status_code == 200 and r.content == L0.response_body
     assert _rows(db, "SELECT count(*) FROM requests") == [(1,)]

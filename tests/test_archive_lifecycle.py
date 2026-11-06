@@ -376,6 +376,9 @@ def test_delivery_events_sequence_stream(lc):
     r = lc.post(SID, body([user("q")]))
 
     assert r.status_code == 200
+    # delivery_completed is written once the final body is out, so a client can read the
+    # archive just before it lands (seen on a Windows CI runner).
+    assert eventually(lambda: lc.events("delivery_completed"))
     milestones = {"accepted_input", "attempt_started", "delivery_started", "turn_complete",
                   "delivery_completed", "delivery_failed", "cancelled", "attempt_failed"}
     kinds = [k for k, _ in lc.events() if k in milestones]

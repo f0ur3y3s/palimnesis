@@ -11,4 +11,8 @@ captures/
 eval/fixtures/opencode-2.1.4/faults/
 eval/fixtures/opencode-2.1.4/partials/*
 !eval/fixtures/opencode-2.1.4/partials/summary.txt
+# The request bodies the archive-lifecycle tests replay (paths replaced by <PROBE_ROOT>).
+!eval/fixtures/opencode-2.1.4/partials/*/
+eval/fixtures/opencode-2.1.4/partials/*/*
+!eval/fixtures/opencode-2.1.4/partials/*/req-*.json
 .claude/worktrees/
