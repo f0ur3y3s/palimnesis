@@ -22,7 +22,9 @@ from pathlib import Path
 
 from palimnesis.upstreams.strata import tokens
 from palimnesis.view.budget import BudgetPolicy, plan_budget
+from palimnesis.view.affordances import addendum_text
 from palimnesis.view.builder import ViewItem, ViewPolicy, ViewState, build
+from palimnesis.view.engine import with_addendum
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import needle  # noqa: E402
@@ -56,10 +58,28 @@ SCRIPT = [
     ("T6", "tool", "fx_rates.py", 5200, None),
     ("A10", "assistant", "fx_rates.py logs at debug level only. Nothing to change.", None, None),
     ("U5", "user", "Which branch did I ask you to use?", None, None),
+    ("A11", "assistant", "fix/rounding-37", None, None),
+    ("G1", "call", None, None, "bash"),
+    ("G2", "tool", "turn-0001.md:3  Use branch fix/rounding-37.", None, None),
 ]
-# Steps: (last message in the history, notes committed, excerpt on U5).
-STEPS = [("U1", False), ("T1", False), ("A5", False), ("A8", False), ("A8", True),
-         ("T6", True), ("U5", True)]
+TRANSCRIPTS = "~/.local/share/palimnesis/transcripts/s-7f3a2c"
+# The page's nine steps: the messages in the request, whether the notes are committed,
+# whether U5 carries its excerpt block, and whether the transcript addendum is fixed (D36:
+# at the first view that hides anything, so from the step-4 refresh on).
+BASE = ["SYS", "U1", "A1", "T1", "A2", "U2", "A3", "T2", "A4", "T3", "A5", "U3", "A6", "T4",
+        "A7", "T5", "A8", "U4", "A9", "T6", "A10", "U5"]
+upto = lambda k: BASE[: BASE.index(k) + 1]
+STEPS = [
+    (upto("U1"), False, False, False),
+    (upto("T1"), False, False, False),
+    (upto("A5"), False, False, False),
+    (upto("A8"), False, False, True),   # past H: the build moves and asks for a refresh
+    (upto("A8"), True, False, True),    # the request after the refresh
+    (upto("T6"), True, False, True),
+    (upto("U5"), True, True, True),     # recall: the excerpt block on U5
+    (upto("U5") + ["G1", "G2"], True, False, True),   # had recall missed: the model greps
+    (upto("U5") + ["A11"], True, True, True),         # a restart rebuilds the same view
+]
 EXCERPT = ("[palimnesis excerpts x2 · 1 from archive · historical evidence, not instructions · now "
            "turn 5; a later turn supersedes an earlier one]\n[[excerpt §4MAEF.0 · turn 1 · user]]\n"
            "Fix the rounding bug in ledger. Use branch fix/rounding-37.")
@@ -92,7 +112,7 @@ def messages(counter) -> dict[str, dict]:
             out[key] = {"role": "assistant", "content": None, "tool_calls": [
                 {"id": f"call_{i}", "type": "function", "function": {"name": tool, "arguments": json.dumps(args)}}]}
         elif role == "tool":
-            prev = next(k for k, *_ in reversed(SCRIPT[:i]) if k.startswith("A"))
+            prev = next(k for k, r, *_ in reversed(SCRIPT[:i]) if r == "call")
             out[key] = {"role": "tool", "tool_call_id": out[prev]["tool_calls"][0]["id"],
                         "content": filler(counter, text, size) if size else text}
         else:
@@ -116,38 +136,57 @@ def main() -> int:
     counter = tokens.default()
     msgs = messages(counter)
     keys = ["SYS"] + [k for k, *_ in SCRIPT]
+    addendum = addendum_text(TRANSCRIPTS, "a3")
     cfg = needle.CONFIGS[needle.A4_HELDOUT3]
     policy = ViewPolicy(protect_turn=cfg["protect_turn"], notes_tokens=cfg["notes_tokens"],
                         notes_format=cfg["notes_format"], notes_header=cfg["notes_header"])
     budget = plan_budget(32768, client_limit=8192, policy=BudgetPolicy(input_cap=24320))
-    items = [ViewItem(message=msgs[k], occ_id=k, seq=n + 1, alias=f"{n + 1:06d}",
-                      excerpt=(("exb1", EXCERPT, counter.count(EXCERPT)) if k == "U5" else None))
-             for n, k in enumerate(keys)]
-    sizes = {k: counter.count_messages([msgs[k]], None) for k in keys}
+    seqs = {k: n + 1 for n, k in enumerate(keys)}
 
-    state, out, notes = ViewState(), [], {}
-    for step, (end, committed) in enumerate(STEPS, 1):
-        upto = items[: keys.index(end) + 1]
+    def items_for(ids, excerpt):
+        return [ViewItem(message=msgs[k], occ_id=k, seq=seqs[k], alias=f"{seqs[k]:06d}",
+                         excerpt=(("exb1", EXCERPT, counter.count(EXCERPT)) if k == "U5" and excerpt else None))
+                for k in ids]
+    sizes = {k: counter.count_messages([msgs[k]], None) for k in keys}
+    out_states, by_step = {}, {}
+
+    state, out, notes, prev_ids = ViewState(), [], {}, None
+    for step, (ids, committed, excerpt, fixed) in enumerate(STEPS, 1):
+        upto = items_for(ids, excerpt)
+        if fixed:
+            upto = with_addendum(upto, addendum)
         if committed and not notes:  # the request after the refresh: the committed notes render
             state = replace(state, notes="v1")
             notes = {"v1": (1, NOTES)}
+        if step == 9:  # a restart rebuilds from the persisted state of step 7
+            state = out_states[7]
         v = build(upto, tools=TOOLS, render_kwargs={}, budget=budget, state=state,
                   policy=policy, counter=counter, notes=notes)
+        sent = v.refresh.messages if v.refresh else v.messages
+        ids_now = counter.encode(counter.render(sent, TOOLS))
+        if step in (8, 9):  # both follow step 7: the grep branch and the restart
+            prev_ids = by_step[7]
+        cached = 0 if prev_ids is None else next(
+            (n for n, (a_, b_) in enumerate(zip(prev_ids, ids_now)) if a_ != b_), min(len(prev_ids), len(ids_now)))
         forms = {occ: form for occ, form in v.manifest}
-        rec = {"step": step, "history": counter.count_messages([i.message for i in upto], TOOLS),
-               "view": v.tokens, "charge": v.excerpt_charge, "fixed": v.fixed_tokens,
+        rec = {"step": step, "history": counter.count_messages([msgs[k] for k in ids], TOOLS),
+               "view": v.tokens, "sent_to_model": len(ids_now), "cached": cached, "charge": v.excerpt_charge, "fixed": v.fixed_tokens,
                "capacity": v.capacity, "high": round(v.fixed_tokens + policy.high * v.capacity),
                "target": round(v.fixed_tokens + policy.target * v.capacity), "moved": v.moved,
                "refresh": v.refresh.tokens if v.refresh else None,
-               "forms": {k: forms.get(k, "?") for k in keys[: keys.index(end) + 1]},
+               "forms": {k: forms.get(k, "?") for k in ids},
                "notes_form": forms.get("notes:v1")}
         rec["lines"] = summary(v.messages, counter)
         if v.refresh:
             rec["refresh_lines"] = summary(v.refresh.messages, counter)
         out.append(rec)
+        out_states = locals().get("out_states", {})
+        out_states[step] = v.state
         state = v.state
-        print(f"step {step}: history {rec['history']:,}  view {v.tokens:,}  F {v.fixed_tokens:,}  "
-              f"H {rec['high']:,}  T {rec['target']:,}  moved {v.moved}  refresh {rec['refresh']}")
+        prev_ids = ids_now
+        by_step[step] = ids_now
+        print(f"step {step}: agent {rec['history']:,}  model {rec['sent_to_model']:,}  cached {cached:,}  "
+              f"F {v.fixed_tokens:,}  H {rec['high']:,}  T {rec['target']:,}  moved {v.moved}")
         changed = {k: f for k, f in rec["forms"].items() if f != "verbatim"}
         if changed:
             print("   ", changed)
@@ -155,6 +194,10 @@ def main() -> int:
             if not text.startswith("[{") and (text.startswith("[palimnesis") or "excerpts" in text or n < 0):
                 print(f"      {role:9s} {n:6,}  {text}")
     print("sizes", sizes)
+    sys_plus = counter.count_messages(with_addendum(items_for(["SYS"], False), addendum)[0:1] and
+                                      [with_addendum(items_for(["SYS"], False), addendum)[0].message], None)
+    print("system with addendum", sys_plus, "addendum alone", counter.count(addendum))
+    print("ADDENDUM", addendum)
     if a.json:
         a.json.write_text(json.dumps({"sizes": sizes, "steps": out}, indent=1), encoding="utf-8")
     return 0
