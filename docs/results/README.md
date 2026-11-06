@@ -63,3 +63,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R47 | Pi's development coding tasks on Chat: a4-d77 5/5 in 62 min against Pi's compaction 4/5 in 4.9 h (2026-11-06) | [phase4b.md](phase4b.md) |
 | R48 | Pi's development needles on Messages: 51/60, 3 early stops (2026-11-06) | [phase4b.md](phase4b.md) |
 | R49 | Archive size and how it grows: a measured model, within ±15% on nine archives (2026-11-06) | [phase4b.md](phase4b.md) |
+| R50 | Strata 0.1.57 counts exactly as the pin: 209 of 209 recorded counts; `build_info` made optional (2026-11-06) | [phase4b.md](phase4b.md) |

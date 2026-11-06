@@ -22,8 +22,9 @@ jobs:
       fail-fast: false
       matrix:
         # Linux is where the suite is run day to day (pythia); Windows is where Pi and
-        # OpenCode run against the proxy.
-        os: [ubuntu-latest, windows-latest]
+        # OpenCode run against the proxy; macOS is where people run local models on Apple
+        # silicon, and where a Strata release is vetted in mock mode (mbp, R50).
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
@@ -52,6 +53,7 @@ jobs:
           uv venv /tmp/smoke
           uv pip install --python /tmp/smoke/bin/python dist/*.whl
           /tmp/smoke/bin/palimnesis --help
+          /tmp/smoke/bin/palimnesis setup pi --model smoke --agent-dir /tmp/smoke-pi --dry-run
       - uses: actions/upload-artifact@v7
         with:
           name: dist

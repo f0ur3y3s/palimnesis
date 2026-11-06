@@ -188,7 +188,9 @@ async def fetch_facts(
         template = props["chat_template"]
         return Props(
             n_ctx=int(props["default_generation_settings"]["n_ctx"]),
-            build_info=str(props["build_info"]),
+            # Strata leaves build_info out when its engine reports no version; since D102
+            # the name decides nothing, so a missing one is only reported as unknown.
+            build_info=str(props.get("build_info") or "unknown"),
             chat_template_sha256=hashlib.sha256(template.encode("utf-8")).hexdigest(),
             model_alias=props.get("model_alias"),
             total_slots=props.get("total_slots"),

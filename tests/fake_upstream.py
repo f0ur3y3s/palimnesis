@@ -86,7 +86,7 @@ class FakeUpstream:
     _lock: threading.Lock = field(default_factory=threading.Lock)
     # Static GET /props (not scripted).
     props_n_ctx: int = 65536
-    props_build_info: str = "Strata 0.1.48"
+    props_build_info: str | None = "Strata 0.1.48"  # None: left out, as Strata does without an engine version
     props_chat_template: str = field(default_factory=_recorded_template)
     props_status: int = 200
     props_delay: float = 0.0
@@ -299,7 +299,10 @@ class FakeUpstream:
             )
         props = _recorded_props()
         props["default_generation_settings"]["n_ctx"] = self.props_n_ctx
-        props["build_info"] = self.props_build_info
+        if self.props_build_info is None:
+            props.pop("build_info", None)
+        else:
+            props["build_info"] = self.props_build_info
         props["chat_template"] = self.props_chat_template
         return Response(
             json.dumps(props, ensure_ascii=False).encode("utf-8"),

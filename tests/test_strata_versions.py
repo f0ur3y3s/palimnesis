@@ -177,3 +177,15 @@ async def test_diagnostics_never_carry_the_template_text(fake):
     facts = state.diagnostics()["facts"]
     assert "chat_template" not in facts
     assert facts["chat_template_sha256"] == pins.load().template_sha256
+
+
+async def test_a_server_that_leaves_out_build_info_is_judged_by_its_counts(fake):
+    # Strata sets build_info only when its engine reports a version (its own test_server
+    # checks the key is absent otherwise); since D102 the name decides nothing.
+    fake.props_build_info = None
+    fake.count_tokens_handler = _strata_count_tokens
+    state = await _refresh(fake, tokens.Tokens(pins.load()))
+
+    assert state.props is not None and state.props.build_info == "unknown"
+    assert state.pinned_ok
+    assert state.diagnostics()["accepted_by"] == "canary"

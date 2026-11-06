@@ -263,3 +263,21 @@ size ≈ 200 KB + N · 8.3 KB + 71 B · O + 1.0 · T + N · L / 66
 - **The levers, not acted on here:**
   - Storing replies per batch instead of per chunk would remove most of the 70% that events and text rows take.
   - Snapshotting by bytes instead of every 33 requests would bound the quadratic term.
+
+## R50: Strata 0.1.57 counts exactly as the pin (2026-11-06)
+
+**Outcome.** Strata 0.1.57, the latest stable release, renders and counts every recorded case exactly as the pin does, and Palimnesis accepts it with bounded views on (D102). The first run found one gap: Strata's `/props` leaves out `build_info` when its engine reports no version, and Palimnesis refused such a server as unreadable. `build_info` is now optional.
+
+**Setup.** pythia's Strata 0.1.54 stayed untouched because the Pi evaluation and other work use it. Strata Control 0.1.57 for macOS arm64 (`strata-control-0.1.57-macos-arm64.tar.gz` from the v0.2.11 release, SHA-256 `e61f9906…` matching the release's `SHA256SUMS.txt`) ran on mbp in mock mode (`serve.server --engine mock`) with the model's tokenizer copied from pythia's pack (`packs/iq3_xxs/tokenizer`, 9.5 MB). Strata's `count_tokens` renders and tokenizes in Control without running the model, and the mock's `usage.prompt_tokens` comes from the same prompt encoding, so this tests what Palimnesis depends on: the template, the message preprocessing and the token counts. The engine and generation were not tested.
+
+**Results.**
+
+| Check | Result |
+|---|---|
+| `/props` template | sha `12827f24…`, equal to the pin. `n_ctx` 32,768. No `build_info` (mock engine). |
+| `palimnesis check` before the fix | FAIL: `GET /props malformed: KeyError('build_info')`, so bounded views would be off |
+| `palimnesis check` after the fix | PASS upstream, PASS bounded views (`canary`: 7 of 7 cases match) |
+| Counting probes against recorded counts | 209 of 209 equal: 19 `count_tokens` (p04), 10 normalization (p12), 174 literal-tag (p14), 6 NFC (p15). p04's error case gives the same 400. The other two recorded `count_tokens` cases are canary cases, which also matched |
+| Through the proxy | streamed Chat Completions and Anthropic Messages requests return 200 and are archived (`palimnesis catalog`) |
+
+**What this does not show.** The real 0.1.57 engine was not run, so speed, generation, cancellation and the slot release time (D76) are not measured. The real engine reports a version, so its `/props` would carry `build_info: "Strata 0.1.57"`.
