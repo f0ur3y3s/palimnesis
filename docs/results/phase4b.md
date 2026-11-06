@@ -79,3 +79,49 @@ Decode is under contracts §8's 1 s. Prefill releases at the end of the current 
 - **Pi's system prompt may raise the first cut, but the evidence is weak.** On h5 q2 and h6 q4 together it cut 7 of 16 calls, against 2 of 16 with OpenCode's system prompt (Fisher p ≈ 0.11). Removing only Pi's "Be concise in your responses" rule gave 4/16. h1 q4 cut at about the same rate under every form. Effort is not the cause: Pi sends `reasoning_effort: medium` and OpenCode sends none, and neither form changes the rate.
 - **Why R41 saw none of this:** R41 ran OpenCode on ho3, a different set, so the two runs cannot be compared. An OpenCode run on the development set would separate the harness from the set; it was not run.
 - **What Palimnesis can and cannot do here:** the proxy sets no sampling parameters and does not rewrite the client's history (R38-D, D75). The cut answer is the model's own reply, which Pi resends verbatim. This is recorded as a model behaviour on Pi's sessions, as D97.2 decided. Two follow-ups are backlogged, neither tried here: a harness-side temperature, and an OpenCode development-set run.
+
+## R46: Where the wall-clock gain over native compaction comes from (2026-11-05)
+
+**Outcome.** Palimnesis's tasks finish sooner because native compaction makes the model do extra work, not because any call runs faster:
+- **On both harnesses, most of the gap is the model writing summaries:** 57% for OpenCode and 55% for Pi.
+- **The second cause differs by harness:**
+  - **OpenCode** (31% of the gap): more task work, with more than twice as many task calls.
+  - **Pi** (35% of the gap): re-reading prompts whose cached start each compaction rewrote.
+
+**Method.** `eval/wall_split.py` reads Strata's per-call `timings` from each run's recorded responses:
+- `prompt_ms` covers the uncached tokens prefilled, and `predicted_ms` covers decoding.
+- It splits them between task calls and compaction calls. Compaction calls are OpenCode's compaction requests, Pi's summarizer, and Palimnesis's working-notes refresh (D72).
+- Per run, the four parts add up to the run's upstream time, which matches its recorded latency to within a few percent (tool execution is the rest).
+- The data are in `eval/fixtures/wall-split/`.
+
+**R46-A. OpenCode 2.1.4, held-out `ho3` (the R41 runs, pythia, 32K).** Totals over the five tasks, in seconds of upstream time:
+
+| | `a4-d77` | Arm 1 (native) | Extra on arm 1 | Share of the gap |
+|---|---|---|---|---|
+| Compaction or notes calls, decode | 2,326 | 11,951 | 9,625 | 57% |
+| Task calls, decode | 8,740 | 13,906 | 5,166 | 31% |
+| Task calls, prefill | 2,379 | 3,733 | 1,354 | 8% |
+| Compaction or notes calls, prefill | 343 | 1,038 | 695 | 4% |
+| **Upstream total** | **13,788** | **30,628** | **16,840** | |
+
+- **Summaries:** arm 1 made 148 compaction calls that wrote 541,523 tokens. `a4-d77` made 42 notes refreshes that wrote 96,884 tokens. Decoding them took 3.3 hours against 0.6.
+- **More task work:** arm 1 made 700 task calls that generated 577,670 tokens, against 318 calls and 361,370 tokens. Arm 1 also had 11 turns killed at the 30-minute limit, against none. Which calls re-did earlier work was not measured.
+- **Prompt cache:** this is not where OpenCode's gain comes from. The cache hit rate was 86% on arm 1 and 80% on `a4-d77`, and prefill is 12% of the gap.
+
+**R46-B. Pi 1.5.0, development tasks dev-t1 and dev-t2 (Chat).** These are the two tasks with both arms complete at the time. Arm 1 keeps 8,192 recent tokens (D99).
+
+| | `a4-d77` | Arm 1 (Pi's compaction) | Extra on arm 1 | Share of the gap |
+|---|---|---|---|---|
+| Compaction or notes calls, decode | 246 | 2,375 | 2,129 | 55% |
+| Task calls, prefill | 586 | 1,917 | 1,331 | 35% |
+| Task calls, decode | 964 | 1,179 | 214 | 6% |
+| Compaction or notes calls, prefill | 104 | 286 | 182 | 5% |
+| **Upstream total** | **1,899** | **5,756** | **3,857** | |
+
+- **Summaries:** Pi made 38 summarizer calls that wrote 110,434 tokens. `a4-d77` made 6 notes refreshes that wrote 10,138 tokens.
+- **Re-reading:** each Pi compaction rewrites the start of the prompt, so the next call prefills it again. The cache hit rate was 61–63% on arm 1 against 83–84%. Palimnesis changes the prompt's start only at its watermark moves; between them, each request extends the cached prefix.
+- **Caveat:** the compaction count follows D99's setting. A larger `keepRecentTokens` would compact less often but leave less room per turn at 32K.
+
+**Reading.**
+- The model's speed is the same on both arms; the difference is how much it is asked to write and re-read.
+- Masking with exact recall needs no summary of what it hides. Palimnesis's one summary-like cost, the working notes, is written only when old turns actually leave the view, and is short.

@@ -1,0 +1,110 @@
+[
+ {
+  "attempt": "attempt-001",
+  "task": "dev-t1",
+  "arm": "a4-d77",
+  "success": null,
+  "latency_s": 1187.0,
+  "split": {
+   "task": {
+    "calls": 34,
+    "prompt": 507357,
+    "cached": 424816,
+    "prefilled": 82541,
+    "prefill_s": 389.31810000000013,
+    "generated": 20998,
+    "decode_s": 533.4614
+   },
+   "compaction": {
+    "calls": 4,
+    "prompt": 80135,
+    "cached": 64507,
+    "prefilled": 15628,
+    "prefill_s": 57.476400000000005,
+    "generated": 8042,
+    "decode_s": 190.9714
+   }
+  }
+ },
+ {
+  "attempt": "attempt-002",
+  "task": "dev-t1",
+  "arm": "a1",
+  "success": null,
+  "latency_s": 2734.8,
+  "split": {
+   "task": {
+    "calls": 44,
+    "prompt": 601617,
+    "cached": 401709,
+    "prefilled": 199908,
+    "prefill_s": 1028.9396,
+    "generated": 21819,
+    "decode_s": 541.5771
+   },
+   "compaction": {
+    "calls": 19,
+    "prompt": 59313,
+    "cached": 0,
+    "prefilled": 59313,
+    "prefill_s": 150.49220000000003,
+    "generated": 46967,
+    "decode_s": 1000.9821000000002
+   }
+  }
+ },
+ {
+  "attempt": "attempt-003",
+  "task": "dev-t2",
+  "arm": "a4-d77",
+  "success": null,
+  "latency_s": 737.8,
+  "split": {
+   "task": {
+    "calls": 28,
+    "prompt": 355125,
+    "cached": 307502,
+    "prefilled": 47623,
+    "prefill_s": 196.514,
+    "generated": 17067,
+    "decode_s": 430.6171
+   },
+   "compaction": {
+    "calls": 2,
+    "prompt": 35397,
+    "cached": 21843,
+    "prefilled": 13554,
+    "prefill_s": 46.316199999999995,
+    "generated": 2096,
+    "decode_s": 54.9513
+   }
+  }
+ },
+ {
+  "attempt": "attempt-004",
+  "task": "dev-t2",
+  "arm": "a1",
+  "success": null,
+  "latency_s": 3138.2,
+  "split": {
+   "task": {
+    "calls": 39,
+    "prompt": 584331,
+    "cached": 399326,
+    "prefilled": 185005,
+    "prefill_s": 887.6356000000001,
+    "generated": 25828,
+    "decode_s": 636.9361999999999
+   },
+   "compaction": {
+    "calls": 19,
+    "prompt": 70007,
+    "cached": 12470,
+    "prefilled": 57537,
+    "prefill_s": 135.59859999999998,
+    "generated": 63467,
+    "decode_s": 1374.2511
+   }
+  }
+ }
+]

@@ -17,6 +17,8 @@ Nothing is summarized and nothing is deleted. The model works in a bounded view 
 
 Held-out set `ho3`, real OpenCode 2.1.4, a local model at 32K, one attempt per task and arm. Details are in [R41](docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77), and `eval/readme_figures.py` draws the figure.
 
+**Why it is faster.** The model runs at the same speed on both sides. Native compaction makes it do more: each time the context fills, the model writes a long summary (148 times, 542K tokens, in these runs), and it then makes many more task calls (700 against 318). Palimnesis hides old turns without summarizing them and refreshes a short notes block only when turns leave the view (42 times, 97K tokens). Writing summaries accounts for 57% of the extra time and the extra task work for 31% ([R46](docs/results/phase4b.md#r46-where-the-wall-clock-gain-over-native-compaction-comes-from-2026-11-05)).
+
 ## In plain terms
 
 A local model has a small desk. It can only look at so many pages of your conversation at once, and a long coding session soon has more pages than fit.

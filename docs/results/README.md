@@ -59,3 +59,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R43 | Pi 1.5.0 live through Palimnesis: smoke on both protocols and the transcript gate (2026-11-05) | [phase4b.md](phase4b.md) |
 | R44 | Pi's faults (34 runs), cancellation release and proxy restarts through Palimnesis (2026-11-05) | [phase4b.md](phase4b.md) |
 | R45 | Pi's development needles through Palimnesis: 42/60, early stops from one cut answer (2026-11-05) | [phase4b.md](phase4b.md) |
+| R46 | Where the wall-clock gain over native compaction comes from: summaries written, redone work, re-reading (2026-11-05) | [phase4b.md](phase4b.md) |
