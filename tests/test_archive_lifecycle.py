@@ -478,6 +478,8 @@ def test_nonstream_response_delivered_and_prepared(lc):
     assert (status, prepared) == (200, NONSTREAM)
     generated = history(lc)[-1]
     assert (generated.text, generated.reasoning, generated.complete) == ("391", "17*23", True)
+    # delivery_completed is written once the body is out, so the client can see it first.
+    assert eventually(lambda: lc.events("delivery_completed"))
     kinds = [k for k, _ in lc.events()]
     assert kinds.index("response_prepared") < kinds.index("delivery_completed")
 
