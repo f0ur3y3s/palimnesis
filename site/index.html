@@ -110,14 +110,14 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .ruler .lbl { font: 600 12px var(--font-code); color: var(--ink-3); }
 .track { position: relative; height: 10px; border-radius: 3px; background: var(--quiet); }
 .seg { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 3px; }
-.seg.h { background: var(--ink-3); }
-.seg.c { background: var(--cache); border-radius: 3px 0 0 3px; }
-.seg.n { background: var(--model); }
+.seg-agent { background: var(--ink-3); }
+.seg-cache { background: var(--cache); border-radius: 3px 0 0 3px; }
+.seg-new { background: var(--model); }
 .tick { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--ink-2); }
-.tick.b { width: 2px; background: var(--ink); }
+.tick-budget { width: 2px; background: var(--ink); }
 .scale { position: relative; height: 15px; grid-column: 2; font: 11px var(--font-code); color: var(--ink-3); }
 .scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-.scale span.b { color: var(--ink); font-weight: 600; transform: none; padding-left: 4px; }
+.scale span.budget { color: var(--ink); font-weight: 600; transform: none; padding-left: 4px; }
 .cachenote { grid-column: 2; font-size: 13px; color: var(--ink-2); }
 
 /* Diff toolbar */
@@ -184,9 +184,9 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .bars { display: grid; gap: 8px; }
 .bar-row { display: grid; grid-template-columns: 76px 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 3px; align-items: center; }
 .bar-row span { grid-row: span 2; font-size: 13px; color: var(--ink-2); font-weight: 600; }
-.b { display: block; height: 10px; width: var(--w); border-radius: 3px; }
-.b.pal, .sw.pal { background: var(--model); }
-.b.nat, .sw.nat { background: var(--ink-3); }
+.bar-fill { display: block; height: 10px; width: var(--w); border-radius: 3px; }
+.bar-fill.pal, .sw.pal { background: var(--model); }
+.bar-fill.nat, .sw.nat { background: var(--ink-3); }
 .bar-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); padding-left: 88px; }
 .sw { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 .split { margin: 0; display: grid; gap: 10px; }
@@ -304,8 +304,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           </tbody>
         </table>
         <div class="bars" role="img" aria-label="Total task time. OpenCode: Palimnesis 3.9 hours, native compaction 8.8 hours. Pi: Palimnesis 1.0 hour, Pi's compaction 4.9 hours.">
-          <div class="bar-row"><span>OpenCode</span><i class="b pal" style="--w:44.2%"></i><i class="b nat" style="--w:100%"></i></div>
-          <div class="bar-row"><span>Pi</span><i class="b pal" style="--w:11.8%"></i><i class="b nat" style="--w:55.8%"></i></div>
+          <div class="bar-row"><span>OpenCode</span><i class="bar-fill pal" style="--w:44.2%"></i><i class="bar-fill nat" style="--w:100%"></i></div>
+          <div class="bar-row"><span>Pi</span><i class="bar-fill pal" style="--w:11.8%"></i><i class="bar-fill nat" style="--w:55.8%"></i></div>
           <div class="bar-key"><span><i class="sw pal"></i>Palimnesis</span><span><i class="sw nat"></i>the agent's own compaction</span></div>
         </div>
       </article>
@@ -559,14 +559,14 @@ function renderReadout(s) {
   ul.hidden = !s.more;
 
   const pct = v => (100 * Math.min(v, SCALE_MAX) / SCALE_MAX).toFixed(2) + "%";
-  const ticks = `<i class="tick" style="left:${pct(T)}"></i><i class="tick" style="left:${pct(H)}"></i><i class="tick b" style="left:${pct(BUDGET)}"></i>`;
+  const ticks = `<i class="tick" style="left:${pct(T)}"></i><i class="tick" style="left:${pct(H)}"></i><i class="tick tick-budget" style="left:${pct(BUDGET)}"></i>`;
   const cached = Math.min(s.cached, s.seen);
   document.getElementById("ruler").innerHTML = `
     <span class="lbl">agent</span>
-    <div class="track" role="img" aria-label="Agent sends ${fmt(s.sent)} tokens"><i class="seg h" style="width:${pct(s.sent)}"></i>${ticks}</div>
+    <div class="track" role="img" aria-label="Agent sends ${fmt(s.sent)} tokens"><i class="seg seg-agent" style="width:${pct(s.sent)}"></i>${ticks}</div>
     <span class="lbl">model</span>
-    <div class="track" role="img" aria-label="Model receives ${fmt(s.seen)} tokens, ${fmt(cached)} of them from cache"><i class="seg c" style="width:${pct(cached)}"></i><i class="seg n" style="left:${pct(cached)};width:calc(${pct(s.seen)} - ${pct(cached)})"></i>${ticks}</div>
-    <div class="scale" aria-hidden="true"><span style="left:${pct(T)}">T</span><span style="left:${pct(H)}">H</span><span class="b" style="left:${pct(BUDGET)}">budget</span></div>
+    <div class="track" role="img" aria-label="Model receives ${fmt(s.seen)} tokens, ${fmt(cached)} of them from cache"><i class="seg seg-cache" style="width:${pct(cached)}"></i><i class="seg seg-new" style="left:${pct(cached)};width:calc(${pct(s.seen)} - ${pct(cached)})"></i>${ticks}</div>
+    <div class="scale" aria-hidden="true"><span style="left:${pct(T)}">T</span><span style="left:${pct(H)}">H</span><span class="budget" style="left:${pct(BUDGET)}">budget</span></div>
     <div class="cachenote">${cached === 0 ? `Strata reads all ${fmt(s.seen)} tokens. Nothing is cached yet.` : `Strata reads ${fmt(s.seen - cached)} new tokens and takes the other ${fmt(cached)} from its cache.`}</div>`;
 }
 
