@@ -236,16 +236,19 @@ class ArchiveHandler:
                               header_wait=self.header_wait_s, keepalive=self.keepalive_s)
             send = gate.send
 
+        released = False
+
         async def tracked(message) -> None:
-            nonlocal started
+            nonlocal started, released
             if message["type"] == "http.response.start":
                 started = True
             if message["type"] == "http.response.body" and not message.get("more_body", False):
                 # The client has the whole response once this goes out, and may send its
                 # next request at once. That request must not find this one still live:
                 # a terminal event storage could not record leaves the active marker,
-                # and only a marker outside ``live`` is abandoned as stale.
+                # and only a marker outside ``live`` is abandoned as stale (D98.1).
                 self.live.discard(plan.request_id)
+                released = True
             await send(message)
 
         try:
@@ -291,7 +294,10 @@ class ArchiveHandler:
                         log.exception("could not record the interrupted attempt")
             raise
         finally:
-            self.live.discard(plan.request_id)
+            # Once released, the id may already belong to a retry of this request (same
+            # request id, a new attempt): that retry's entry must stay (protocol review).
+            if not released:
+                self.live.discard(plan.request_id)
             if plan.replay is None:
                 self._changed(session)
 

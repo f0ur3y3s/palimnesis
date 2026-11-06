@@ -321,3 +321,26 @@ Two full-suite runs on pythia each failed one test that passes most of the time.
 - **Why not Pi's defaults as shipped:** at 32K they cannot compact at all, so arm 1 would measure a harness that runs out of context, not native compaction. D44.1 sets OpenCode's `limit.context` to the true window for the same reason: to measure compaction working.
 - **Rejected:** lowering `reserveTokens`. Compaction would then start later, closer to the window.
 - **The first dev-t1 arm 1 run** is kept in the records as attempt 2 and is not reported as arm 1's result. (`test_arm_1_keeps_few_enough_recent_tokens_for_compaction_to_run`)
+
+## D100: Protocol review of D97–D98 (S15): three fixes and known limits
+
+A read-only protocol review covered everything changed since D95's review: D97's omission rule and D98's lifecycle fixes. Each fix has a red test first.
+
+**Fixed**
+1. **A retry accepted in the old handler's tail stays live** (introduced by D98.1).
+   - `live` is keyed by request id, and a retry of the same request runs under the same id. D98.1 released the id before the final body, so an identical resend could be accepted while the failed handler was still finishing. Then that handler's `finally` discarded the id under the running retry.
+   - The retry's marker then looked stale. A second request on the session abandoned the running attempt and got past the busy check: two terminal events for the retry, and a broken per-session serialization (contracts §4, §5 `session_busy`).
+   - Now `finally` discards only if the final-body send did not already release the id. (`test_a_retry_accepted_in_the_old_handlers_tail_keeps_the_session_serialized`; it failed 3 of 3 before.)
+2. **D97 is narrowed as D95.**
+   - An empty reply may be left out only while it is the newest archived turn, or once an earlier request superseded it. Pi leaves it out from the very next request, so Pi is unaffected.
+   - Before, "anywhere" let a later request supersede a turn that an earlier request had resent. The turn's transcript file was already sealed and write-once, and would be rewritten after a restart.
+   - A composite turn (D51) never counts as empty: its hidden calls and results render upstream even when its visible text is empty, so leaving it out would drop what the model saw. (`test_an_empty_reply_the_client_resent_may_not_be_deleted_later`, `test_a_composite_turn_with_hidden_calls_is_never_left_out_as_empty`)
+3. **A complete reply the client left out is labelled complete** in transcripts, not `incomplete: superseded`. Its message keeps the `superseded` flag. (`test_a_complete_reply_the_client_left_out_is_not_labelled_incomplete`)
+
+**Known limits, recorded rather than built**
+- **A complete but undelivered empty reply** (a disconnect after its terminal commit) that the client then leaves out is still a 409 `history_divergence`. The unfinished-turn path handles it first. It is reported loudly, never accepted silently.
+- **Whitespace text resent as `null` beside tool calls** is accepted (D97). The upstream gets the client's `null`, not the archived text. Whether the pinned template renders the two alike is unverified. If not, it is a prefix change at that turn, which `--explain` would report.
+- **A deadline between the terminal batch and the final empty body** (the client stopped reading) can follow `[DONE]` or `message_stop` with a `deadline_exceeded` error event. This predates 4B. It needs a client that stops reading after the end of the answer and resumes within 2 s.
+- **D98.2 judges the deadline when the exception is handled.** A disconnect just before D, whose cancellation a shielded write holds past D, is recorded as `deadline_exceeded`, not `cancelled`.
+- **`_expired` sends through the raw `send`**, so an expired request with storage down stays in `live` until its handler ends. In that window a retry still gets 409 `request_in_progress`.
+- **The hidden loop's error path after a final body.** If `_delivered` fails after `_hidden_terminal` sent the final body, the except path tries a second final body. The server refuses it; it logs and records a second `delivery_failed`. Hidden tools are off by default.

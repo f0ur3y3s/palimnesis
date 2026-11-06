@@ -305,9 +305,13 @@ def reconcile(messages: tuple[Message, ...], archived: list[Archived],
                     return Divergence(i, reason)
                 partials.append((i, extent))
         elif (past.source == "generated" and past.complete and message.role != "assistant"
-              and not past.text.strip() and not past.tool_calls):
+              and not past.text.strip() and not past.tool_calls and not past.parts
+              and omittable(j, past)):
             # A reply with no text and no tool calls renders nothing upstream (#843, D41);
             # Pi leaves it out of the resend (D97). Superseded: nothing the model saw changes.
+            # Narrowed as D95: only where Pi leaves it out, so a turn a later request resent
+            # (and its sealed transcript) is never superseded after the fact. A composite
+            # turn's hidden calls do render, so it never qualifies (protocol review).
             superseded.append(past.occ_id)
             j += 1
             continue

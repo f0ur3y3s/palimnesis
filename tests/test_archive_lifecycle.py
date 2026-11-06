@@ -17,6 +17,7 @@ import threading
 import time
 from pathlib import Path
 
+import anyio
 import httpx
 import pytest
 
@@ -676,6 +677,46 @@ def test_session_usable_after_mid_stream_commit_failure(lc):
     r = lc.post(SID, body([user("q")]))
 
     assert r.status_code == 200, r.content[:300]
+
+
+def test_a_retry_accepted_in_the_old_handlers_tail_keeps_the_session_serialized(lc, monkeypatch):
+    """D98.1 lets the identical resend in while the failed handler is still finishing.
+    That handler's own cleanup must not then free the session under the retry, which runs
+    under the same request id: a concurrent request is refused, not run alongside
+    (contracts §4, §5 ``session_busy``; protocol review of D98)."""
+    from palimnesis.archive import pipeline
+
+    original = pipeline.ArchiveHandler._delivered
+    held = threading.Event()
+
+    async def slow_delivered(self, gen):
+        if not held.is_set():  # only the failed handler's tail, shielded as the write is
+            held.set()
+            with anyio.CancelScope(shield=True):
+                await anyio.sleep(1.5)
+        await original(self, gen)
+
+    monkeypatch.setattr(pipeline.ArchiveHandler, "_delivered", slow_delivered)
+    _fail_mid_stream_commit(lc)
+    assert held.is_set()
+
+    lc.upstream.respond_sse([chunk({"role": "assistant", "content": ""})]
+                            + [(0.1, chunk({"content": f"{i} "})) for i in range(40)]
+                            + [chunk({}, "stop"), DONE])
+    retried: list[httpx.Response] = []
+    retry = threading.Thread(target=lambda: retried.append(lc.post(SID, body([user("q")]))))
+    retry.start()
+    time.sleep(2.5)  # the old handler's tail has ended; the retry is still generating
+    other = lc.post(SID, body([user("something else")]))
+    retry.join(30)
+
+    assert retried and retried[0].status_code == 200, retried[0].content[:300] if retried else None
+    assert other.status_code == 409, other.content[:300]
+    assert error_of(other)["code"] == "session_busy"
+    terminal = [k for k, _ in lc.events() if k in ("turn_complete", "attempt_failed",
+                                                   "attempt_abandoned", "cancelled")]
+    assert len(terminal) == 2, terminal  # one each for the failed attempt and the retry
+    assert terminal[-1] == "turn_complete"
 
 
 # --- Keepalive relay (R4) ----------------------------------------------------

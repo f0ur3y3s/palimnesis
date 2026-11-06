@@ -287,9 +287,11 @@ def _status(attempts: Sequence[str], terminal: Mapping[str, str],
     if not attempts:
         return "complete"  # imported history: no attempt of this proxy's
     latest = attempts[-1]
-    if occ_of_attempt.get(latest) in superseded:
-        return "incomplete: superseded"
     kind = terminal.get(latest)
+    # A complete reply the client left out (D97) stays complete; its message carries the
+    # ``superseded`` flag. Only an unfinished one is ``incomplete: superseded``.
+    if occ_of_attempt.get(latest) in superseded and kind != "turn_complete":
+        return "incomplete: superseded"
     return "incomplete: in progress" if kind is None else _TERMINAL[kind]
 
 

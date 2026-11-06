@@ -516,14 +516,38 @@ def test_a_turn_that_renders_nothing_may_be_left_out():
     upstream (Strata drops it, #843, D41), so leaving it out changes nothing the model sees."""
     reasoning_only = Archived.generated("occ-r", text="", reasoning="The user wants an ack.",
                                         tool_calls=(), complete=True)
+    # Pi leaves it out from the very next request on: it is the newest archived turn.
+    first = reconcile(client(SYS, U1, U2), _archive(SYS, U1, reasoning_only))
+    assert isinstance(first, Extend) and first.superseded == ("occ-r",)
+    # ... and every request after that, once it was superseded.
     archive = _archive(SYS, U1, reasoning_only, U2, generated(text="answer"))
     resend = client(SYS, U1, U2, {"role": "assistant", "content": "answer"},
                     {"role": "user", "content": "more"})
 
-    result = reconcile(resend, archive)
+    result = reconcile(resend, archive, frozenset({"occ-r"}))
 
     assert isinstance(result, Extend) and result.matched == 4
-    assert result.superseded == ("occ-r",)
+
+
+def test_an_empty_reply_the_client_resent_may_not_be_deleted_later():
+    """D97 narrowed as D95 (protocol review of D97): once a later request resent the empty
+    reply (OpenCode does), deleting it is a divergence, so a sealed transcript turn is never
+    rewritten as superseded."""
+    empty = Archived.generated("occ-e", text="", reasoning="ack", tool_calls=(), complete=True)
+    archive = _archive(SYS, U1, empty, U2, generated(text="answer"))
+    deleted = client(SYS, U1, U2, {"role": "assistant", "content": "answer"},
+                     {"role": "user", "content": "more"})
+
+    assert isinstance(reconcile(deleted, archive), Divergence)
+
+
+def test_a_composite_turn_with_hidden_calls_is_never_left_out_as_empty():
+    """Its hidden calls and results render upstream, whatever its visible text (protocol
+    review of D97): leaving it out would drop what the model saw."""
+    composite = Archived("occ-c", "assistant", "generated", text="", reasoning="done",
+                         tool_calls=(), complete=True, parts=("occ-c1", "occ-c2", "occ-c3"))
+
+    assert isinstance(reconcile(client(SYS, U1, U2), _archive(SYS, U1, composite)), Divergence)
 
 
 def test_whitespace_only_text_resent_as_null_still_matches():

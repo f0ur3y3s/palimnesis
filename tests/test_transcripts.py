@@ -312,3 +312,15 @@ def test_the_last_turn_keeps_its_name_while_it_grows_and_once_sealed(archive, tm
                      "turn-0002.md", "turn-0003.md"]
     assert (directory / "turn-0002.md").read_bytes() != before  # replaced in place, sealed
     assert _consistent(directory) == []
+
+
+def test_a_complete_reply_the_client_left_out_is_not_labelled_incomplete():
+    """D97: a complete reply that renders nothing may be left out of a resend. Its message
+    keeps the ``superseded`` flag, but the turn is complete, not ``incomplete: superseded``
+    (contracts §14 marks only incomplete turns; protocol review of D97)."""
+    from palimnesis.transcripts.projector import _status
+
+    assert _status(["a1"], {"a1": "turn_complete"}, {"a1": "occ"}, {"occ"}) == "complete"
+    assert _status(["a1"], {"a1": "attempt_failed"}, {"a1": "occ"}, {"occ"}) == \
+        "incomplete: superseded"
+    assert _status(["a1"], {}, {"a1": "occ"}, {"occ"}) == "incomplete: superseded"
