@@ -50,9 +50,10 @@ Open problems: the local model sometimes cuts an answer short ("1" for "1.25s"),
 ## Requirements
 
 - Python 3.12 and [uv](https://docs.astral.sh/uv/).
-- A **Strata** server reachable over HTTP. Palimnesis counts tokens exactly as Strata does, with a pinned chat template and tokenizer. At startup it checks the server against that pin.
-  - Verified builds: 0.1.48 and 0.1.54.
-  - On a build it cannot verify, it still archives and forwards every request, but turns bounded views off, so the model gets the full history and long sessions can overflow the context. The startup log says when this happens.
+- A **Strata** server reachable over HTTP. Palimnesis counts tokens the way Strata does, with its own copy of the chat template and tokenizer. At startup it asks the server to count a few sample conversations and compares the answers with its own.
+  - When they match, bounded views are on, whatever the Strata version. Tested with 0.1.48 and 0.1.54.
+  - When a new release changes the chat template, Palimnesis tries the server's template and switches to it if the counts then match.
+  - When the counts still differ, it archives and forwards every request but turns bounded views off, so the model gets the full history and long sessions can overflow the context. The startup log and `palimnesis check` say when this happens.
   - Other servers (llama.cpp, LM Studio, vLLM) have not been tested.
 - A supported agent: **OpenCode 2.1.4** (OpenAI Chat Completions) or **Pi 1.5.0** (Chat Completions or Anthropic Messages). Claude Code is backlogged.
 
@@ -73,26 +74,30 @@ uv run palimnesis serve --upstream http://<strata-host>:8080
 
 It listens on `127.0.0.1:9000`. On Windows, start it with `uv run python -m palimnesis serve …` instead: stopping `uv run palimnesis` there can leave the server process running and holding the archive.
 
-## Connect OpenCode
+## Connect an agent
 
-1. **Find your model's name.** It is `model_alias` in `http://<strata-host>:8080/props`. The shipped config uses `qwen3.8-flash-next-iq3_xxs`. Replace it in both places below if yours differs.
-2. **Copy the integration** into OpenCode's config directory, which is `$OPENCODE_CONFIG_DIR` if set, otherwise `~/.config/opencode` (on Windows too):
-   - `integrations/opencode/plugins/palimnesis.ts` → `<config dir>/plugins/palimnesis.ts`
-   - `integrations/opencode/opencode.json` → merge into `<config dir>/opencode.json`. Keep your own settings, and take the `providers.palimnesis` block, the top-level `model`, `compaction`, `agents` and `permissions` entries from the shipped file.
-3. **Chat normally:** `opencode`, `opencode run …`, `opencode run --session <id> …`. If you run `opencode serve --service`, use `opencode run --standalone`: the service ignores plugins, so requests would reach the proxy without a session.
+```sh
+uv run palimnesis check --upstream http://<strata-host>:8080     # prints the server's model name
+uv run palimnesis setup opencode --model <model name>            # or: setup pi
+uv run palimnesis check --upstream http://<strata-host>:8080     # everything should PASS
+```
 
-The plugin routes each OpenCode session to its own Palimnesis session, so new and resumed chats need no extra steps. [`docs/harnesses.md`](docs/harnesses.md) explains each setting.
+`setup` writes into the agent's own configuration directory:
 
-## Connect Pi
+| Agent | Directory | What it writes |
+| --- | --- | --- |
+| OpenCode | `$OPENCODE_CONFIG_DIR`, else `~/.config/opencode` (on Windows too) | the `palimnesis` provider, model and `compaction.auto: false` in `opencode.json`, and the session plugin in `plugins/` |
+| Pi | `$PI_CODING_AGENT_DIR`, else `~/.pi/agent` | the `palimnesis` and `palimnesis-messages` providers in `models.json`, `compaction.enabled: false` and the default model in `settings.json`, and the session extension in `extensions/` |
 
-1. **Find your model's name** as for OpenCode, and replace `qwen3.8-flash-next-iq3_xxs` in the two files below if yours differs.
-2. **Copy the integration** into Pi's agent directory, which is `$PI_CODING_AGENT_DIR` if set, otherwise `~/.pi/agent`:
-   - merge `integrations/pi/models.json` into `<agent dir>/models.json` (its `palimnesis` and `palimnesis-messages` providers).
-   - merge `integrations/pi/settings.json` into `<agent dir>/settings.json` (`compaction.enabled: false` and the default provider and model).
-   - copy `integrations/pi/extensions/palimnesis-session.ts` to `<agent dir>/extensions/palimnesis-session.ts`, where Pi loads it on every start.
-3. **Run Pi** with the search tools enabled, so the model can search its transcripts: `pi --tools read,grep,bash,ls,find`. Use the `palimnesis-messages` provider instead of `palimnesis` to talk to it over Anthropic Messages.
+It keeps your other settings and copies each file it changes to `<name>.bak-<time>` first. `--dry-run` shows what it would change. `--port` matches a proxy on another port. It refuses a file with comments, since it can only rewrite plain JSON. The files it installs are in [`integrations/`](integrations/) if you would rather merge them by hand.
 
-[`docs/harnesses.md`](docs/harnesses.md) lists what Pi does differently through the proxy, such as `/tree` and `/compact` starting a new branch.
+`check` reports PASS, WARN or FAIL for the server, its token counts, the proxy and each agent's settings, with a fix for each problem.
+
+**OpenCode.** Chat as usual: `opencode`, `opencode run …`, `opencode run --session <id> …`. The plugin routes each OpenCode session to its own Palimnesis session. If you run `opencode serve --service`, use `opencode run --standalone`: the service ignores plugins, so requests would reach the proxy without a session.
+
+**Pi.** Run it with the search tools enabled, so the model can search its transcripts: `pi --tools read,grep,bash,ls,find`. Pick the `palimnesis-messages` provider to talk to the proxy over Anthropic Messages instead of Chat Completions.
+
+[`docs/harnesses.md`](docs/harnesses.md) explains each setting and what each agent does differently through the proxy.
 
 ## Other OpenAI-compatible clients
 
@@ -112,6 +117,8 @@ The URL has the form `http://127.0.0.1:9000/s/<session>/v1`. A client that can't
 | Command | What it does |
 | --- | --- |
 | `palimnesis serve --upstream URL` | Run the proxy. |
+| `palimnesis setup opencode\|pi --model NAME` | Configure an agent for the proxy. |
+| `palimnesis check [--upstream URL]` | Check the server, its token counts, the proxy and agent settings. |
 | `palimnesis session new` / `session url ID` | Base URL for a new or resumed chat. |
 | `palimnesis catalog SESSION [--page N]` | Print a session's catalog: what is archived and its addresses. |
 | `palimnesis excerpts SESSION` | List the recall excerpt blocks a session has received. |

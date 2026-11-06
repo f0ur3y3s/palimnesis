@@ -46,12 +46,13 @@ def _identifiers(tree: ast.AST):
 
 
 def test_core_never_keys_off_harness_or_user_agent():
-    """Position 4: harness specifics live in adapters (``integrations/``), never in core.
-    No core identifier names a harness, and no core code reads ``User-Agent``."""
+    """Position 4: harness specifics live in adapters (``integrations/`` and the packaged
+    ``palimnesis.adapters``, D101), never in core. No core identifier names a harness, and
+    no core code reads ``User-Agent``."""
     offenders = []
     for path in sorted(SRC.rglob("*.py")):
         rel = path.relative_to(SRC).as_posix()
-        if rel.startswith("integrations/"):
+        if rel.startswith(("integrations/", "adapters/")):
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for name in _identifiers(tree):

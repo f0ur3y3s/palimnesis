@@ -7,8 +7,8 @@ Setup and verified behavior per supported harness. Evidence lives in `docs/probe
 ### Setup
 
 1. Run the proxy: `uv run palimnesis serve --upstream http://<strata-host>:8080`. It archives to `%LOCALAPPDATA%\palimnesis\palimnesis.db` by default (`--db PATH` to choose, `--passthrough` to relay without archiving). One proxy process owns an archive at a time.
-2. Copy `integrations/opencode/opencode.json` and `integrations/opencode/plugins/palimnesis.ts` into your OpenCode config directory (`$OPENCODE_CONFIG_DIR`, or the global config dir), keeping the `plugins/` subfolder. Merge with an existing config rather than replacing it.
-3. If the proxy is not on `127.0.0.1:9000`, set `PALIMNESIS_PROXY_ORIGIN` and change `providers.palimnesis.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`.
+2. `uv run palimnesis setup opencode --model <model name> [--port N]` merges `integrations/opencode/opencode.json` into `opencode.json` in OpenCode's config directory (`$OPENCODE_CONFIG_DIR`, else `~/.config/opencode`) and installs `plugins/palimnesis.ts` there, with the proxy's port in both (D101). By hand: copy the two files, keeping the `plugins/` subfolder, and merge the config rather than replacing it.
+3. If the proxy is not on `127.0.0.1:9000` and you configured by hand, set `PALIMNESIS_PROXY_ORIGIN` and change `providers.palimnesis.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`. `palimnesis check` reports a provider or plugin that points elsewhere.
 4. Start or resume chats normally: `opencode`, `opencode run …`, `opencode run --session <id> …`.
 
 ### Recall and transcript files (Phase 3)
@@ -133,7 +133,7 @@ Scripted runs need `--standalone`, stdin at EOF (non-TTY stdin is read to EOF), 
 
 Evidence: `docs/probes/pi.md` (HP1–HP7). Adapter: `integrations/pi/`.
 
-- **Setup.** Copy `models.json` and `settings.json` into Pi's agent directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`), and load the session extension: `pi -e integrations/pi/extensions/palimnesis-session.ts`.
+- **Setup.** `uv run palimnesis setup pi --model <model name> [--port N]` merges `models.json` and `settings.json` into Pi's agent directory (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`) and installs the session extension in its `extensions/` folder, which Pi loads on every start (Pi's docs; unverified live, D101). By hand: merge the two files and load the extension with `pi -e integrations/pi/extensions/palimnesis-session.ts`.
   - `palimnesis` is the Chat provider (`baseUrl` `http://127.0.0.1:9000/v1`) with `supportsDeveloperRole: false` and `supportsStore: false`. `palimnesis-messages` is the Messages provider (`baseUrl` `http://127.0.0.1:9000`; Pi joins `/v1/messages?beta=true`) with `allowEmptySignature: true`, so Palimnesis's empty thinking signatures replay as thinking (HP3, O-4B-2).
   - `contextWindow` is 1,000,000, as for OpenCode: Palimnesis bounds the view, and a large window keeps Pi's output limit at `maxTokens` (HP3).
   - `compaction.enabled: false` (HP5).

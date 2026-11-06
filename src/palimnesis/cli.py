@@ -9,6 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from palimnesis.adapters import install
 from palimnesis.config import Settings
 from palimnesis.sessions import SessionError, resolve_session
 
@@ -360,5 +361,37 @@ def main(argv: list[str] | None = None) -> int:
                          help="transcripts root (default: 'transcripts' beside the archive)")
         sub.set_defaults(run=run)
 
+    setup = commands.add_parser("setup", help="write an agent's configuration for Palimnesis")
+    setup_agents = setup.add_subparsers(dest="agent", required=True)
+    for agent in install.AGENTS.values():
+        sub = setup_agents.add_parser(agent.name, help=f"configure {agent.name}")
+        sub.add_argument("--model", required=True,
+                         help="the server's model name (`model_alias` in its /props)")
+        sub.add_argument(agent.dir_flag, dest="directory", type=Path,
+                         help=f"directory (default: ${agent.env}, else {agent.default_dir})")
+        sub.add_argument("--dry-run", action="store_true", help="print what would change")
+        address(sub)
+        sub.set_defaults(run=_setup)
+
+    check = commands.add_parser("check", help="check the upstream, the proxy and agent configs")
+    check.add_argument("--upstream", default="http://127.0.0.1:8080",
+                       help="the model server (default: http://127.0.0.1:8080)")
+    for agent in install.AGENTS.values():
+        check.add_argument(f"--{agent.name}-dir", dest=f"{agent.name}_dir", type=Path,
+                           help=f"{agent.name} directory (default: ${agent.env}, else {agent.default_dir})")
+    address(check)
+    check.set_defaults(run=_check)
+
     args = parser.parse_args(argv)
     return args.run(args)
+
+
+def _setup(args: argparse.Namespace) -> int:
+    agent = install.AGENTS[args.agent]
+    return install.setup(agent, agent.directory(args.directory), args.model,
+                         f"http://{args.host}:{args.port}", dry_run=args.dry_run)
+
+
+def _check(args: argparse.Namespace) -> int:
+    dirs = {name: getattr(args, f"{name}_dir") for name in install.AGENTS}
+    return install.check(args.upstream, args.host, args.port, dirs)
