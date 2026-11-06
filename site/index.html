@@ -164,6 +164,36 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .btn[aria-disabled="true"] { opacity: .4; cursor: default; }
 .btn:focus-visible { outline: 2px solid var(--model); outline-offset: 2px; }
 
+/* Results: Palimnesis in the model blue, the agent's own compaction in neutral grey, so the
+   diff colours keep their meaning. */
+.results { display: grid; gap: 14px; }
+.results > h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.rlede { margin: 0; color: var(--ink-2); font-size: 17px; max-width: 72ch; }
+.rgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.rcard { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; }
+.rcard h3 { margin: 0; font-size: 18px; font-weight: 700; }
+.rcard p { margin: 0; color: var(--ink-2); font-size: 15px; }
+.rcard:first-child { grid-column: 1 / -1; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+.rtable th, .rtable td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rule); }
+.rtable thead th { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+.rtable td { font-family: var(--font-code); }
+.rtable tr.grp th { font-size: 13px; color: var(--ink-2); font-weight: 600; padding-top: 14px; border-bottom: 0; }
+.rtable tr.pal th, .rtable tr.pal td { color: var(--model); font-weight: 600; }
+.rtable tbody th { font-weight: 500; }
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 76px 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 3px; align-items: center; }
+.bar-row span { grid-row: span 2; font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.b { display: block; height: 10px; width: var(--w); border-radius: 3px; }
+.b.pal, .sw.pal { background: var(--model); }
+.b.nat, .sw.nat { background: var(--ink-3); }
+.bar-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); padding-left: 88px; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.split { margin: 0; display: grid; gap: 10px; }
+.split div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: baseline; }
+.split dt { font: 600 22px/1.1 var(--font-code); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.split dd { margin: 0; color: var(--ink-2); font-size: 15px; }
+
 /* Terms */
 .terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px 32px; margin: 0; align-items: start; }
 .terms div { display: grid; gap: 4px; align-content: start; }
@@ -188,6 +218,8 @@ footer { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: 
   .r, .unified .r { grid-template-columns: 54px 20px minmax(0, 1fr); }
   .seg-ctl.layout { display: none; }
   .btn { white-space: nowrap; }
+  .bar-key { padding-left: 0; }
+  .split div { grid-template-columns: 84px 1fr; }
 }
 </style>
 </head>
@@ -251,6 +283,63 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       </div>
 
     </article>
+  </section>
+
+  <section class="results" aria-labelledby="results-h">
+    <h2 id="results-h">What we measured</h2>
+    <p class="rlede">Real coding agents, a local model at a 32K context on one GPU, Palimnesis against each agent's own compaction. Every task ran once per side, so these show the direction of the difference, not its exact size.</p>
+
+    <div class="rgrid">
+      <article class="rcard">
+        <h3>Coding tasks</h3>
+        <table class="rtable">
+          <thead><tr><th scope="col"></th><th scope="col">Passed</th><th scope="col">Time</th><th scope="col">Upstream calls</th></tr></thead>
+          <tbody>
+            <tr class="grp"><th scope="rowgroup" colspan="4">OpenCode 2.1.4, five unseen tasks (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77">R41</a>)</th></tr>
+            <tr class="pal"><th scope="row">Palimnesis</th><td>5 of 5</td><td>3.9 h</td><td>360</td></tr>
+            <tr><th scope="row">Native compaction</th><td>4 of 5</td><td>8.8 h</td><td>859</td></tr>
+            <tr class="grp"><th scope="rowgroup" colspan="4">Pi 1.5.0, five development tasks (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase4b.md#r47-pis-development-coding-tasks-on-chat-arm-4-against-pis-own-compaction-s14-2026-110506-development-data-reported-not-gated-per-d816">R47</a>)</th></tr>
+            <tr class="pal"><th scope="row">Palimnesis</th><td>5 of 5</td><td>1.0 h</td><td>162</td></tr>
+            <tr><th scope="row">Pi's compaction</th><td>4 of 5</td><td>4.9 h</td><td>322</td></tr>
+          </tbody>
+        </table>
+        <div class="bars" role="img" aria-label="Total task time. OpenCode: Palimnesis 3.9 hours, native compaction 8.8 hours. Pi: Palimnesis 1.0 hour, Pi's compaction 4.9 hours.">
+          <div class="bar-row"><span>OpenCode</span><i class="b pal" style="--w:44.2%"></i><i class="b nat" style="--w:100%"></i></div>
+          <div class="bar-row"><span>Pi</span><i class="b pal" style="--w:11.8%"></i><i class="b nat" style="--w:55.8%"></i></div>
+          <div class="bar-key"><span><i class="sw pal"></i>Palimnesis</span><span><i class="sw nat"></i>the agent's own compaction</span></div>
+        </div>
+      </article>
+
+      <article class="rcard">
+        <h3>Why it is faster</h3>
+        <p>The model runs at the same speed either way. Native compaction gives it more to do. On the OpenCode runs (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase4b.md#r46-where-the-wall-clock-gain-over-native-compaction-comes-from-2026-11-05">R46</a>), it spent the extra 4.7 hours like this.</p>
+        <dl class="split">
+          <div><dt>57%</dt><dd>writing summaries: 542K tokens over 148 calls, against 97K for Palimnesis's notes</dd></div>
+          <div><dt>31%</dt><dd>more task work: 700 task calls against 318</dd></div>
+          <div><dt>12%</dt><dd>reading prompts again</dd></div>
+        </dl>
+      </article>
+
+      <article class="rcard">
+        <h3>Recall</h3>
+        <p>Questions about facts from earlier in a long session, answered by the model.</p>
+        <dl class="split">
+          <div><dt>115/120</dt><dd>OpenCode, unseen histories (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase3-acceptance.md#r41--d77-held-out-run-a4-d77-on-ho3-2026-11-0405-pythia-held-out-per-d77">R41</a>)</dd></div>
+          <div><dt>51/60</dt><dd>Pi on Messages (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase4b.md#r48-pis-development-needles-on-messages-s14-2026-11-06-development-data-reported-not-gated-per-d816">R48</a>)</dd></div>
+          <div><dt>42/60</dt><dd>Pi on Chat. Most misses were answers the model cut short, such as 1 for 1.25s, which it also does without Palimnesis (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase4b.md#r45-pis-development-needles-through-palimnesis-s14-2026-11-05-development-data-reported-not-gated-per-d816">R45</a>)</dd></div>
+        </dl>
+      </article>
+
+      <article class="rcard">
+        <h3>Archive size</h3>
+        <p>The archive keeps everything, so it grows. Measured on nine sessions (<a href="https://github.com/f0ur3y3s/palimnesis/blob/main/docs/results/phase4b.md#r49-archive-size-and-how-it-grows-2026-11-06">R49</a>), it comes to about 61 KB per request, plus a full copy of the request every 33 requests.</p>
+        <dl class="split">
+          <div><dt>7 MB</dt><dd>at 100 requests</dd></div>
+          <div><dt>45 MB</dt><dd>at 500 requests</dd></div>
+          <div><dt>117 MB</dt><dd>at 1,000 requests, about 8.5 hours of agent work in one session</dd></div>
+        </dl>
+      </article>
+    </div>
   </section>
 
   <dl class="terms">
