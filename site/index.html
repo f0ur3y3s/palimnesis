@@ -295,6 +295,15 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </article>
   </section>
 
+  <dl class="terms">
+    <div><dt>Budget</dt><dd>The model gets at most 24,320 input tokens at 32K, after room for the reply. Palimnesis counts with Strata's own template and tokenizer, so the count is exact.</dd></div>
+    <div><dt>H and T</dt><dd>The high and low watermarks. The view stays as it is until it would pass H (about 18,070 here), then old turns collapse until it is below T (about 10,990). The notes and excerpt slots are reserved, so they never count toward either.</dd></div>
+    <div><dt>Span</dt><dd>A run of old turns shown as one line. Every message in it stays in the archive.</dd></div>
+    <div><dt>Stub</dt><dd>An old tool result shortened to its address, size and first and last lines. Palimnesis uses stubs when shortening results is enough. In this session it had to collapse turns instead.</dd></div>
+    <div><dt>Working notes</dt><dd>A short block the model writes just before old turns leave its view. It holds the goal, the constraints, what is done and the next step.</dd></div>
+    <div><dt>Excerpts</dt><dd>Archived text that matches a new message, added to that message in the model's copy only. Picked once and then left unchanged, so Strata's cache stays valid.</dd></div>
+  </dl>
+
   <section class="results" aria-labelledby="results-h">
     <h2 id="results-h">What we measured</h2>
     <p class="rlede">Real coding agents, a local model at a 32K context on one GPU, Palimnesis against each agent's own compaction. Every task ran once per side, so these show the direction of the difference, not its exact size.</p>
@@ -357,14 +366,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </div>
   </section>
 
-  <dl class="terms">
-    <div><dt>Budget</dt><dd>The model gets at most 24,320 input tokens at 32K, after room for the reply. Palimnesis counts with Strata's own template and tokenizer, so the count is exact.</dd></div>
-    <div><dt>H and T</dt><dd>The high and low watermarks. The view stays as it is until it would pass H (about 18,070 here), then old turns collapse until it is below T (about 10,990). The notes and excerpt slots are reserved, so they never count toward either.</dd></div>
-    <div><dt>Span</dt><dd>A run of old turns shown as one line. Every message in it stays in the archive.</dd></div>
-    <div><dt>Stub</dt><dd>An old tool result shortened to its address, size and first and last lines. Palimnesis uses stubs when shortening results is enough. In this session it had to collapse turns instead.</dd></div>
-    <div><dt>Working notes</dt><dd>A short block the model writes just before old turns leave its view. It holds the goal, the constraints, what is done and the next step.</dd></div>
-    <div><dt>Excerpts</dt><dd>Archived text that matches a new message, added to that message in the model's copy only. Picked once and then left unchanged, so Strata's cache stays valid.</dd></div>
-  </dl>
 
   <footer>
     <a href="https://github.com/f0ur3y3s/palimnesis">Palimnesis on GitHub</a>
