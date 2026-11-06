@@ -88,7 +88,8 @@ h1 { margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spac
 .show { min-width: 0; display: grid; align-content: start; }
 
 /* The readout: where the eye lands first. */
-.readout { padding: 16px 26px 18px; display: grid; gap: 14px; align-content: start; border-bottom: 1px solid var(--rule); }
+.readout { padding: 16px 26px 18px; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid var(--rule); }
+.readout .ruler { margin-top: auto; }
 .head { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 16px 26px 12px; background: var(--sheet); border-bottom: 1px solid var(--rule); }
 .mini { display: flex; gap: 6px; }
 .btn.small { font-size: 13.5px; padding: 6px 12px; border-radius: 8px; }
