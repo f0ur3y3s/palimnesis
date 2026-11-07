@@ -451,7 +451,7 @@ def run(a) -> int:
     materialize(task, ws)
     subprocess.run(["git", "init", "-q"], cwd=ws, check=True)
     subprocess.run(["git", "add", "-A"], cwd=ws, check=True)
-    subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q",
+    subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q", "--allow-empty",
                     "-m", "task start"], cwd=ws, check=True)
     troot = wsroot / "transcripts" if arm != 1 else None
     settings = needle.proxy_settings(info["cfg"]) if arm != 1 else {}
@@ -685,7 +685,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
     materialize(task, ws)
     subprocess.run(["git", "init", "-q"], cwd=ws, check=True)
     subprocess.run(["git", "add", "-A"], cwd=ws, check=True)
-    subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q",
+    subprocess.run(["git", "-c", "user.name=eval", "-c", "user.email=eval@localhost", "commit", "-q", "--allow-empty",
                     "-m", "task start"], cwd=ws, check=True)
     troot = wsroot / "transcripts" if arm != 1 else None
     settings = needle.proxy_settings(info["cfg"]) if arm != 1 else {}
