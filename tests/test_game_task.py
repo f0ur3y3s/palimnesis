@@ -62,3 +62,15 @@ def test_a_gradient_given_nan_fails_the_run_check_as_in_a_browser():
     assert page != task.REFERENCE["index.html"]
     _, r = _check({"index.html": page})
     assert r["results"]["test_f_runs_900_frames"] != "ok", r["tail"]
+
+
+@needs_node
+def test_the_fix_task_starts_broken_and_its_reference_runs():
+    task_run = _runner()
+    t = task_run.load("game-t1-fix")
+    start = task_run.check_one(t, {}, sys.executable)  # the buggy fixture as materialized
+    assert start["results"]["test_f_runs_900_frames"] != "ok"
+    assert start["functional_passed"] == start["functional_total"] - 1
+    ref = task_run.check_one(t, t.REFERENCE, sys.executable)
+    assert ref["success"] and ref["constraints_held"] == 1, ref["tail"]
+    assert "createRadialGradient" in t.TURNS[0] and "index.html:652" in t.TURNS[0]

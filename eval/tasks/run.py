@@ -100,7 +100,7 @@ TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
          "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5",  # ho3: D77's fresh set
          "ho4-t1", "ho4-t2", "ho4-t3", "ho4-t4", "ho4-t5"]  # ho4: the Phase 7 held-out set
 # Runnable but outside the evaluation's task shape (no restart turn, one constraint).
-EXTRA_TASKS = ["game-t1"]  # the user's single-prompt game test (2026-11-06)
+EXTRA_TASKS = ["game-t1", "game-t1-fix"]  # the user's game tests (2026-11-06, 2026-11-07)
 RUNNER_VERSION = "tasks-run v2"
 TURN_TIMEOUT_S = 1800
 CHECK_TIMEOUT_S = 300
