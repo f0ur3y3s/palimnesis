@@ -427,3 +427,23 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
 - Both agents fixed the name where the explosion is created, not where it is read. The reference renames the reader. Both are correct.
 - The `a4-d77` archive's gate inputs are clean: no drift, every cache change explained, 0 leaks.
 - **Why it does not discriminate.** The report names the line, and the session peaked at about 7,500 tokens of 32,768. Bounded views and compaction only act once a session outgrows the context, as on the eight-turn tasks of R47 and R52.
+
+## R55: Strata 0.1.58 on pythia: accepted by its counts, counts unchanged, faster cancellation (2026-11-07)
+
+**Outcome.** The latest Strata release, 0.1.58 (engine and Control), works with Palimnesis on the real engine. `palimnesis check` accepts it by its counts (D102) with bounded views on. All 209 recorded counting cases match. A development task through the proxy passed with clean gate inputs. Cancelling while Strata reads a prompt now frees the slot in 0.7–2.3 s, against 13–15 s on 0.1.48.
+
+- **Setup.** `strata update` on pythia (feed sequence 122) installed engine 0.1.58 (CUDA 13) and Control 0.1.58 (`~/.local/share/strata/components/control/0.1.58`), after its own test start. 0.1.54 stays installed for `strata components rollback`. The server ran from Control 0.1.58 with the same preset as D76 (`iq3_xxs-32k.json`, `--parallel 1`, port 8080), started by `~/strata-start.sh`. Palimnesis at `c1f37f1`.
+- `/props`: `build_info` "Strata 0.1.58", template sha `12827f24…` (the pin), `n_ctx` 32,768, model `qwen3.8-flash-next-iq3_xxs`.
+
+| Check | 0.1.58 |
+|---|---|
+| `palimnesis check` | PASS upstream, PASS bounded views (`canary`) |
+| Counting probes p04, p12, p14, p15 | 209 of 209 equal, from real inference. p04's 400 case unchanged |
+| Cancel while decoding (p09, 3 trials) | release 0.143, 0.085, 0.080 s (0.1.48: 0.047–0.079 s, §9) |
+| Cancel while reading a ~20K-token prompt (p09, 3 trials) | release 0.69, 2.26, 2.16 s. Server records: `prompt_read` 768 and 1,536 (0.1.48: 13–16 s at 8,192-token chunks, §9) |
+| dev-t4 on Chat through `a4-d77` | pass 4/4, 3/3, restart gate True · 27 calls · 7.8 min. On 0.1.54: 34 calls, 11 min (R47) |
+
+- **Gate inputs on the dev-t4 archive:** no drift, every cache change explained, transcripts verified, no over-budget input, no view disabled, 0 leaks and 0 echoes.
+- **p20** did not run: it refuses any build but "Strata 0.1.48", a check written before D102. p09 measures the same release time.
+- **Not measured.** Generation quality and decode speed beyond this one task, and the thinking cap's answer-room rule (D48.3).
+- **Comparability.** R41–R54 ran on 0.1.54. A comparison with them needs its arms run on the same build.
