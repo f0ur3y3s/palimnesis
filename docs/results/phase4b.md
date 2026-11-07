@@ -447,3 +447,11 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
 - **p20** did not run: it refuses any build but "Strata 0.1.48", a check written before D102. p09 measures the same release time.
 - **Not measured.** Generation quality and decode speed beyond this one task, and the thinking cap's answer-room rule (D48.3).
 - **Comparability.** R41–R54 ran on 0.1.54. A comparison with them needs its arms run on the same build.
+
+## R56: The user prefers pair 2's arm 1 game to its `a4-d77` game (TINY TANK WAR, 2026-11-07)
+
+**Outcome.** The user played pair 2 blind with the scoring kit (`tank-rubric/pair2/`) and judged B better than A overall. The key shows B is arm 1 (Pi's own compaction) and A is `a4-d77`. No item-by-item rubric scores were given.
+
+- **What was played.** A was `a4-d77`'s page as written (attempt 5). It crashes on its first explosion (R53). B was arm 1's game, which had no `index.html`. Its nine parts were joined in order, with three marked patches (R52).
+- **What it shows.** Played as delivered, the patched arm 1 game was the better game, and the crash cut the `a4-d77` game short. As written, both score 0 under the rubric, because one crashes and the other has no page.
+- **Not yet compared.** B against `a4-d77`'s game after the one-line crash fix (R54, `pi-game-fix-ws/attempt-001`).
