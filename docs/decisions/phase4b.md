@@ -394,3 +394,12 @@ Strata releases often. The pin listed accepted builds by name (D76), so every ne
 - **Rejected:**
   - Asking Strata to count every view-build candidate. A build counts many candidates per request, so it needs a local counter.
   - Keeping a hand-maintained list of builds. That is exactly what kept failing.
+
+## D103: pythia stays on Strata 0.1.58 (user decision, 2026-11-07)
+
+After R55, the user kept pythia on Strata 0.1.58, engine and Control, in place of 0.1.54 (D76).
+
+- **Why.** 0.1.58 is the current release. It passes every check Palimnesis depends on (R55): acceptance by counts with bounded views on, all 209 recorded counts equal, and a development task with clean gate inputs. Cancelling during prompt reading also frees the slot sooner.
+- **Comparability.** R41–R54 ran on 0.1.54. A new comparison with them reruns its arms on 0.1.58, as D48 and D76 require of a build change.
+- **Operation.** The server runs from Control 0.1.58 with D76's preset, started by `~/strata-start.sh` on pythia. 0.1.54 stays installed: `strata components rollback`, then `~/strata-start.sh ~/.local/share/strata/terminal/0.1.54`.
+- **No pin change.** The pin stays `strata-0.1.48`, and 0.1.58 is accepted by its counts at every start (D102). It is not added to `equivalent_builds`.

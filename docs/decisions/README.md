@@ -118,3 +118,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D100 | Protocol review of D97–D98: retry kept live, D97 narrowed, transcript label; known limits (S15) | [phase4b.md](phase4b.md) |
 | D101 | `palimnesis setup` and `palimnesis check` (user request) | [phase4b.md](phase4b.md) |
 | D102 | Strata versions are accepted by their counts, not by name (user request) | [phase4b.md](phase4b.md) |
+| D103 | pythia stays on Strata 0.1.58 (user decision) | [phase4b.md](phase4b.md) |
