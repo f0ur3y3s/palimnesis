@@ -99,6 +99,8 @@ TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
          "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5",
          "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5",  # ho3: D77's fresh set
          "ho4-t1", "ho4-t2", "ho4-t3", "ho4-t4", "ho4-t5"]  # ho4: the Phase 7 held-out set
+# Runnable but outside the evaluation's task shape (no restart turn, one constraint).
+EXTRA_TASKS = ["game-t1"]  # the user's single-prompt game test (2026-11-06)
 RUNNER_VERSION = "tasks-run v2"
 TURN_TIMEOUT_S = 1800
 CHECK_TIMEOUT_S = 300
@@ -171,6 +173,7 @@ def task_seed(task_id: str) -> int:
 
 def materialize(task, ws: Path) -> None:
     rnd = random.Random(task_seed(task.ID))
+    ws.mkdir(parents=True, exist_ok=True)  # game-t1 starts from an empty workspace
     for rel, text in task.files(rnd).items():
         p = ws / rel
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -886,7 +889,7 @@ def main() -> int:
                    help="Pi only: the adapter's provider (OpenCode runs Chat)")
     p.add_argument("--pi-keep-recent-tokens", type=int,
                    help="Pi arm 1 only: compaction.keepRecentTokens (default: Pi's own, or a quarter of a window too small for it, D99)")
-    p.add_argument("--task", choices=TASKS)
+    p.add_argument("--task", choices=TASKS + EXTRA_TASKS)
     p.add_argument("--arm", type=int, choices=[1, 4, 5])
     p.add_argument("--config", choices=[c for c in needle.config_names() if c.startswith(("a4-", "a5-"))],
                    help="arm 5 only: a matrix arm, or a5-d64 (a5-Dp, frozen by D64)")
