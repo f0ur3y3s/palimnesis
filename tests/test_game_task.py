@@ -48,3 +48,17 @@ def test_a_page_that_loads_a_script_file_breaks_the_constraint():
     page = task.REFERENCE["index.html"].replace("</head>", '<script src="https://cdn.example/x.js"></script></head>')
     _, r = _check({"index.html": page})
     assert r["constraints"]["C1"] is False
+
+
+@needs_node
+def test_a_gradient_given_nan_fails_the_run_check_as_in_a_browser():
+    # Browsers throw on a non-finite gradient argument (pair 2's a4-d77 game: `b.maxR` read
+    # where `max` was stored, so every explosion's radius was NaN).
+    task = _runner().load("game-t1")
+    page = task.REFERENCE["index.html"].replace(
+        "ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();",
+        "ctx.fillStyle = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, Math.max(1, b.missing));"
+        " ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();")
+    assert page != task.REFERENCE["index.html"]
+    _, r = _check({"index.html": page})
+    assert r["results"]["test_f_runs_900_frames"] != "ok", r["tail"]

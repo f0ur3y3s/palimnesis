@@ -61,11 +61,23 @@ const any = new Proxy(function () {}, {
   get: (t, k) => k === Symbol.toPrimitive ? () => 0 : (typeof k === "symbol" || k === "then") ? undefined : any,
   apply: () => any, construct: () => any, set: () => true,
 });
+function finite(name, args) {
+  if (args.some(v => !Number.isFinite(Number(v)))) throw new TypeError(`Failed to execute '${name}': a provided double value is non-finite`);
+}
+function nonneg(name, ...rs) {
+  if (rs.some(r => Number(r) < 0)) throw new RangeError(`IndexSizeError: ${name} radius is negative`);
+}
 function context(canvas) {
   const grad = { addColorStop: noop };
   const t = {
     canvas, measureText: s => ({ width: String(s).length * 7, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }),
-    createLinearGradient: () => grad, createRadialGradient: () => grad, createConicGradient: () => grad,
+    // As browsers do: gradients throw on any non-finite argument, and a negative radius
+    // throws in gradients, arc and ellipse (IndexSizeError).
+    createLinearGradient: (...a) => finite('createLinearGradient', a) || grad,
+    createRadialGradient: (...a) => finite('createRadialGradient', a) || nonneg('createRadialGradient', a[2], a[5]) || grad,
+    createConicGradient: (...a) => finite('createConicGradient', a) || grad,
+    arc: (x, y, r) => { nonneg('arc', r); draws++; },
+    ellipse: (x, y, rx, ry) => { nonneg('ellipse', rx, ry); draws++; },
     createPattern: () => ({ setTransform: noop }),
     getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(Math.max(0, (w | 0) * (h | 0) * 4)), width: w, height: h }),
     createImageData: (w, h) => ({ data: new Uint8ClampedArray(Math.max(0, (w | 0) * (h | 0) * 4)), width: w, height: h }),
@@ -172,7 +184,10 @@ let ran = 0;
       const x = 480 + 300 * Math.cos(i / 20), y = 320 + 200 * Math.sin(i / 20);
       fire("mousemove", { clientX: x, clientY: y, offsetX: x, offsetY: y, pageX: x, pageY: y });
       fire("pointermove", { clientX: x, clientY: y, offsetX: x, offsetY: y, pageX: x, pageY: y });
-      if (i % 9 === 0) { for (const t of ["pointerdown", "mousedown"]) fire(t, {}); for (const t of ["pointerup", "mouseup", "click"]) fire(t, {}); }
+      // Hold the button and Space across frames, as a player does: games that poll a held
+      // state (mouse.down, keys.Space) fire only while it is down during an update.
+      if (i % 40 === 3) { for (const t of ["pointerdown", "mousedown"]) fire(t, {}); fire("keydown", KEYS.space); }
+      if (i % 40 === 28) { for (const t of ["pointerup", "mouseup", "click"]) fire(t, {}); fire("keyup", KEYS.space); }
       if (i === 600) { fire("keydown", KEYS.r); fire("keyup", KEYS.r); }
       const due = frames.splice(0);
       for (const cb of due) { cb(now); ran++; }
