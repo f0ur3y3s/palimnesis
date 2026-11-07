@@ -30,3 +30,18 @@ Work set aside on purpose, with the reason, what already exists and what picking
 - **What picking it up would take:**
   - an OpenCode run on the development set, to separate the harness from the set;
   - then, if Pi's sessions stay worse, a harness-side temperature or system-prompt setting in `integrations/pi/`. The proxy sets no sampling parameters and does not rewrite history (R38-D, D75).
+
+## Pi's Messages ho2 tasks: one attempt is not enough (R52)
+
+- **Status:** recorded, not pursued in Phase 4B. Task runs are reported, not gated, there (D81.6).
+- **What is known:**
+  - On Messages, `a4-d77` passed 3/5 ho2 tasks and Pi's own compaction 4/5. On Chat, both passed 5/5.
+  - Both `a4-d77` failures are string-handling details the model got wrong: the spacing in ho2-t2 and ho2-t4, and plural units in ho2-t4. The recorded bodies show the proxy did not change the inputs involved.
+  - Every task ran once per arm, so the difference cannot be told from run-to-run variance.
+- **What picking it up would take:** three or more attempts per task and arm on Messages, about 13 hours for `a4-d77` and 30 for arm 1 at R52's pace, then a paired comparison per task.
+
+## Single-prompt game tasks (game-t1, R52)
+
+- **Status:** a test the user added. Two pairs run, and the rubric (`eval/tasks/game_t1_rubric.md`) needs a person to play.
+- **What is known:** every failure in four runs was a name used in one write and missing from the others, from a page written in parts. None of the runs opened its page before ending its turn.
+- **What picking it up would take:** blind scores for pair 2 from the user, then more pairs. The 30-minute turn limit cut arm 1 off in pair 1, so later pairs should use `--turn-timeout` (pair 2 used 3 hours).

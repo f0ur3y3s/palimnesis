@@ -65,3 +65,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R49 | Archive size and how it grows: a measured model, within ±15% on nine archives (2026-11-06) | [phase4b.md](phase4b.md) |
 | R50 | Strata 0.1.57 counts exactly as the pin: 209 of 209 recorded counts; `build_info` made optional (2026-11-06) | [phase4b.md](phase4b.md) |
 | R51 | Strata 0.1.57 sends the same wire shapes as 0.1.54 (23 cases, direct and proxied); LM Studio works behind the proxy with views off (2026-11-06) | [phase4b.md](phase4b.md) |
+| R52 | Pi on Chat ho2 (5/5 both arms), Messages development (5/5 both) and Messages ho2 (3/5 against 4/5), 8.4 h against 24.2 h. TINY TANK WAR pairs (2026-11-06/07) | [phase4b.md](phase4b.md) |

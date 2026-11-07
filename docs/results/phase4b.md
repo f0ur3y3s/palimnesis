@@ -300,3 +300,90 @@ size ≈ 200 KB + N · 8.3 KB + 71 B · O + 1.0 · T + N · L / 66
 - The probe against LM Studio directly and through the proxy cannot be compared case by case, because a real model answers differently each time (one direct call spent all 200 tokens reasoning). Event kinds match where both runs ended the same way.
 
 **Not shown.** The real 0.1.57 engine (generation, speed, cancellation). Bounded views on any server other than Strata. OpenCode against LM Studio.
+
+## R52: Pi's ho2 tasks on Chat and Messages, its development tasks on Messages, and TINY TANK WAR (S14, 2026-11-06/07, reported, not gated, per D81.6)
+
+**Outcome.**
+- On Chat, `a4-d77` and Pi's own compaction (arm 1) both passed all five ho2 tasks with every constraint held. `a4-d77` took 439 calls and 3.9 hours against 466 calls and 9.3 hours.
+- On Messages, both passed all five development tasks with every constraint held, in 1.4 hours against 5.0.
+- On the Messages ho2 tasks, `a4-d77` passed 3/5 and arm 1 passed 4/5. The `a4-d77` failures were two coding mistakes the run records show the proxy did not cause, and one arm 1 pass broke two of three constraints. With one attempt per task, the difference is not separable from run-to-run variance.
+- **Gate inputs on all 17 `a4-d77` task archives:** no count drift; `--explain` explained every cache change; `transcripts verify` passed; no over-budget input; no view disabled; 0 leaks and 0 echoes in the client and transcript scans.
+
+**Setup.** As R47: real Pi 1.5.0 on Windows, Strata 0.1.54 on pythia at 32K with one slot through an SSH tunnel, one attempt per task and arm, `a4-d77` first. The ho2 set is retired held-out data (D96), run here as development data. Records are under `C:/Users/Daniel/palimnesis-runs/`:
+
+| Set | Records | Tag | When |
+|---|---|---|---|
+| Chat ho2 | `pi-ho2-tasks-chat`, attempts 1–9 and 11 | `pi-r46-chat` | 11-06 02:38 to 15:15, and 11-07 13:01 |
+| Messages development | `pi-dev-tasks-msg`, attempts 1–10 | `pi-r46-messages` | 11-06 15:29 to 21:54 |
+| Messages ho2 | `pi-ho2-tasks-msg`, attempts 1–10 | `pi-r46-messages` | 11-06 21:54 to 11-07 11:50 |
+
+- **Code.** The runs span commits `c82f6bc` to `17014cf`. Changes to `src/` in that window are D101 (`setup` and `check`), D102 (accepting Strata by its counts) and R50's optional `build_info`. Four runs started from a working tree with uncommitted edits (Chat ho2-t4 arm 1, Chat ho2-t5 `a4-d77`, Messages dev-t1 arm 1, Messages dev-t2 `a4-d77`), each listed in its `provenance`. Of those edits, only D102's touch the proxy, and D102 changes only how the upstream is accepted at start. Every run's records name Strata 0.1.54 with the pinned template, which D102 accepts as before. No change in the window touches views, recall or the archive.
+- **Excluded.** Chat ho2-t5 arm 1, attempt 10, lost turn 4 when stopping the queue's wrapper task closed the driver's console, so Pi could not start (exit `0xC0000142`). Its rerun is attempt 11, run last, and it records the reason.
+- **Turn limit.** 30 minutes, as in R47. "Kills" counts turns stopped there.
+
+**Chat, ho2 tasks**
+
+| Task | `a4-d77` | Arm 1 (Pi's compaction) |
+|---|---|---|
+| ho2-t1 | pass 4/4, 3/3 · 44 calls · 25 min | pass 4/4, 3/3 · 60 · 56 min · 17 compactions |
+| ho2-t2 | pass 3/3, 3/3 · 153 · 72 min · 3 lookups | pass 3/3, 3/3 · 88 · 103 min · 25 compactions · 2 kills |
+| ho2-t3 (restart) | pass 4/4, 3/3, gate True · 87 · 49 min | pass 4/4, 3/3, gate True · 136 · 178 min · 47 compactions · 4 kills |
+| ho2-t4 | pass 4/4, 3/3 · 56 · 35 min | pass 4/4, 3/3 · 123 · 182 min · 47 compactions · 5 kills |
+| ho2-t5 | pass 3/3, 3/3 · 99 · 53 min | pass 3/3, 3/3 · 59 · 41 min · 11 compactions (attempt 11) |
+| **Total** | **5/5, 15/15 · 439 calls · 3.9 h · 0 kills** | 5/5, 15/15 · 466 calls · 9.3 h · 147 compactions · 11 kills |
+
+**Messages, development tasks**
+
+| Task | `a4-d77` | Arm 1 (Pi's compaction) |
+|---|---|---|
+| dev-t1 | pass 4/4, 3/3 · 37 · 15 min | pass 4/4, 3/3 · 31 · 12 min · 4 compactions |
+| dev-t2 | pass 4/4, 3/3 · 41 · 20 min | pass 4/4, 3/3 · 105 · 133 min · 32 compactions · 4 kills |
+| dev-t3 | pass 3/3, 3/3 · 44 · 17 min | pass 3/3, 3/3 · 41 · 22 min · 7 compactions |
+| dev-t4 (restart) | pass 4/4, 3/3, gate True · 30 · 12 min | pass 4/4, 3/3, gate True · 59 · 34 min · 11 compactions |
+| dev-t5 | pass 3/3, 3/3 · 52 · 20 min · 4 lookups | pass 3/3, 3/3 · 98 · 100 min · 28 compactions · 1 kill |
+| **Total** | **5/5, 15/15 · 204 calls · 1.4 h · 0 kills** | 5/5, 15/15 · 334 calls · 5.0 h · 82 compactions · 5 kills |
+
+On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
+
+**Messages, ho2 tasks**
+
+| Task | `a4-d77` | Arm 1 (Pi's compaction) |
+|---|---|---|
+| ho2-t1 | pass 4/4, 3/3 · 143 · 97 min · 1 kill | pass 4/4, **1/3** · 131 · 166 min · 38 compactions · 4 kills |
+| ho2-t2 | **fail** 2/3, 3/3 · 41 · 18 min | pass 3/3, 3/3 · 88 · 104 min · 22 compactions · 2 kills |
+| ho2-t3 (restart) | pass 4/4, 3/3, gate True · 38 · 13 min | pass 4/4, 3/3, gate True · 76 · 67 min · 17 compactions |
+| ho2-t4 | **fail** 3/4, 2/3 · 51 · 31 min | pass 4/4, 3/3 · 126 · 155 min · 36 compactions · 4 kills |
+| ho2-t5 | pass 3/3, 3/3 · 40 · 24 min | **fail** 1/3, 3/3 · 102 · 103 min · 24 compactions · 3 kills |
+| **Total** | **3/5, 14/15 · 313 calls · 3.1 h · 1 kill** | 4/5, 13/15 · 523 calls · 9.9 h · 137 compactions · 13 kills |
+
+- **ho2-t2, `a4-d77`.** `transpose_sheet("C D  E\n", 1)` returned `'DbEb F\n'` for `'Db Eb F\n'`. A chord that grows must use up a following space only when more than one follows. The model's own 310 tests passed, and every turn ended normally.
+- **ho2-t4, `a4-d77`.** Two coding mistakes:
+  - Constraint C2 ("the text after the unit is kept exactly as written") broke on `"1/2 tsp  sea salt, flaky "`, whose double space was collapsed.
+  - `test_f_scale` raised `UnitError` on the plural `cups`.
+  - The run's recorded bodies show the proxy did not cause the whitespace miss: no request Pi sent, and none the proxy sent upstream, contained a unit followed by two spaces. The model never saw the case, only the constraint's wording.
+- **ho2-t5, arm 1.** `test_f_match` and `test_f_rules` failed: `*.py` matched `src/a.py`, and the pattern `x.log` was read as negated.
+- **ho2-t1, arm 1** passed with only C1 of three constraints held.
+- **Chat against Messages.** On Chat, `a4-d77` passed all five of these tasks with the same model. Both Messages failures are string-handling details the model got wrong in one attempt. No measure here separates a protocol effect from variance. Repeat attempts per task would.
+
+**Totals over the 15 task pairs** (Chat ho2, Messages development, Messages ho2):
+- `a4-d77`: 13/15 passed, 44/45 constraints, 956 calls, 8.4 hours, 0 compactions.
+- Arm 1: 14/15 passed, 43/45 constraints, 1,323 calls, 24.2 hours, 366 compactions, 29 turns killed at 30 minutes.
+- On the 20 Pi tasks of R47 and R52 together, `a4-d77` passed 18/20 and arm 1 passed 18/20. `a4-d77` took 9.4 hours against 29.1.
+
+**TINY TANK WAR (`game-t1`).** One turn, the user's prompt verbatim, in an empty workspace, on Chat (`pi-game`, tags `pi-game-t1` and `pi-game-t1-3h`). The hidden check reads the page for the required features, runs `node --check`, and plays 900 frames in Node against stubs. `eval/tasks/game_t1_rubric.md` scores what a player gets.
+- Attempts 1–2 stopped at the empty start commit before Pi started (fixed in `2cf93f6`). Attempts 3–4 are pair 1, and 5–6 are pair 2.
+
+| | Turn limit | Calls · time · compactions | Turn | Hidden check | As written |
+|---|---|---|---|---|---|
+| Pair 1, `a4-d77` | 30 min | 18 · 21.5 min · 0 | ended | 7/8, C1 held | blank page: `updateHi` and three other names undefined |
+| Pair 1, arm 1 | 30 min | 28 · 30 min · 8 | killed | 7/8, C1 broken | blank page: `lastTime` and `audio` undefined, and two test files left beside the page |
+| Pair 2, `a4-d77` | 3 h | 49 · 31 min · 0 | ended | **8/8, C1 held** | **runs** |
+| Pair 2, arm 1 | 3 h | 34 · 39 min · 8 | ended | 0/8 | no `index.html`: the game is nine unjoined parts in `.tmp_build/`, four of the last edits failed, and the reply is empty |
+
+- **Pair 2, `a4-d77`, is the only page of the four that runs as written.**
+- **Pair 1, played on minimally patched copies by the user:**
+  - In the `a4-d77` game, enemies fire but their shells never appear or hit. `fire()` reads the aim spread from `t.err`, while enemies keep it in `t.type.err`, so every enemy shell's direction is NaN. An instrumented run had 76 enemy shots and 0 hits. Reinforcements spawn through each level by design.
+  - The arm 1 game uses tank controls (W/S drive, A/D turn), as its title screen states, and the user found them unnatural.
+  - Neither game was scored with numbers.
+- **Pair 2** is ready for blind scoring in `C:/Users/Daniel/palimnesis-runs/tank-rubric/pair2/`. The arm 1 page there was joined from its parts in order, with three marked patches: `audioResume`, `updateMuteLabel`, and arrays started empty.
+- Every failure in both pairs is a name used in one write and missing from the others, from a model writing a page of 800–1,300 lines in parts. None of the four runs opened its page before ending its turn.
