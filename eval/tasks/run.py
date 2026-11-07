@@ -489,7 +489,7 @@ def run(a) -> int:
             pre = stack.gate.wait_idle(client, f"task:{task.ID}:{i}")
             before, fbefore = len(stack.tap.calls), len(stack.front.calls)
             t0 = time.time()
-            turn = home.run(text, session=ses, label=f"turn{i + 1}", timeout=TURN_TIMEOUT_S)
+            turn = home.run(text, session=ses, label=f"turn{i + 1}", timeout=a.turn_timeout)
             stack.settle()
             calls, front = stack.tap.calls[before:], stack.front.calls[fbefore:]
             summ = nod.turn_summary(turn["events"])
@@ -704,6 +704,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
     client = httpx.Client(timeout=httpx.Timeout(None, connect=15))
     fake_model = pi_task.FakeTaskModel(fake) if fake is not None else None
     res = {"task": task.ID, "set": task.SET, **fields, "harness": "pi", "protocol": a.protocol,
+           "turn_timeout_s": a.turn_timeout,
            "attempt": n_att, "session": session, "runner": RUNNER_VERSION, "pi": pi_task.PI_VERSION,
            "pi_cli": str(pih.PI_CLI), "pi_tools": pi_task.TOOLS, "pi_models": home.models,
            "pi_settings": home.settings, "live": fake is None,
@@ -722,7 +723,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
             pre = stack.gate.wait_idle(client, f"task:{task.ID}:{i}")
             before, fbefore = len(stack.tap.calls), len(stack.front.calls)
             t0 = time.time()
-            turn = home.run(text, sfile, label=f"turn{i + 1}", timeout=TURN_TIMEOUT_S)
+            turn = home.run(text, sfile, label=f"turn{i + 1}", timeout=a.turn_timeout)
             stack.settle()
             calls, front = stack.tap.calls[before:], stack.front.calls[fbefore:]
             summ = pih.turn_summary(turn["events"])
@@ -743,7 +744,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
                 faithful = pih.last_user_text(body) == text
             errors = list(summ["errors"])
             if turn.get("timeout_killed"):
-                errors.append(f"pi killed at {TURN_TIMEOUT_S}s")
+                errors.append(f"pi killed at {a.turn_timeout:g}s")
             if not summ["settled"]:
                 # Judged by the events, not the exit code (HP7: Windows exit 0xC0000409 after work).
                 errors.append(f"pi did not settle (exit {turn['exit']}): {turn['stderr'][-300:]}")
@@ -896,6 +897,8 @@ def main() -> int:
     p.add_argument("--out", help="run directory (attempts.json, records/)")
     p.add_argument("--ws-root", help="workspace tree (default: <out>-ws, beside --out)")
     p.add_argument("--reason", help="why this attempt reruns the task (D44.7)")
+    p.add_argument("--turn-timeout", type=float, default=TURN_TIMEOUT_S,
+                   help=f"seconds before a turn is killed (default {TURN_TIMEOUT_S}); recorded in the result")
     p.add_argument("--expect-n-ctx", type=int, default=32768)
     p.add_argument("--input-budget", type=int,
                    help="development only (O2): emulate a smaller context, e.g. 24320 at 65536")
