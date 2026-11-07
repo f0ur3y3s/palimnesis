@@ -455,3 +455,15 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
 - **What was played.** A was `a4-d77`'s page as written (attempt 5). It crashes on its first explosion (R53). B was arm 1's game, which had no `index.html`. Its nine parts were joined in order, with three marked patches (R52).
 - **What it shows.** Played as delivered, the patched arm 1 game was the better game, and the crash cut the `a4-d77` game short. As written, both score 0 under the rubric, because one crashes and the other has no page.
 - **Not yet compared.** B against `a4-d77`'s game after the one-line crash fix (R54, `pi-game-fix-ws/attempt-001`).
+
+## R57: With its crash fixed, pair 2's `a4-d77` game is much better than arm 1's (TINY TANK WAR, 2026-11-07)
+
+**Outcome.** The user played `a4-d77`'s pair 2 game after the one-line crash fix (R54) and judged it much better than arm 1's assembled and patched game, which they had preferred over the crashing original (R56).
+
+- **What was compared.** `pi-game-fix-ws/attempt-001/ws/index.html` (attempt 5's page with `maxR:` stored in `boom()`) against `tank-rubric/pair2/B.html` (arm 1, nine parts joined, three patches).
+- **Not blind.** The user knew which game was which after R56. No item-by-item rubric scores were given.
+- **Reading R52 to R57 together.**
+  - Neither arm produced a working page as written.
+  - `a4-d77`'s page needed one name fixed.
+  - Arm 1 never assembled its page, and needed joining plus three patches.
+  - Once each was made to run, the user judged the `a4-d77` game the better one.

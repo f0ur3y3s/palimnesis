@@ -70,3 +70,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R54 | Both arms fix the TINY TANK WAR crash with the identical one-line change; the session never outgrew the context (2026-11-07) | [phase4b.md](phase4b.md) |
 | R55 | Strata 0.1.58 on pythia: accepted by its counts, 209/209 counts equal, a task passes, prompt cancellation frees the slot in about 2 s (2026-11-07) | [phase4b.md](phase4b.md) |
 | R56 | The user prefers pair 2's arm 1 TINY TANK WAR game (assembled and patched) to a4-d77's, which crashes as written (2026-11-07) | [phase4b.md](phase4b.md) |
+| R57 | With its crash fixed, pair 2's a4-d77 TINY TANK WAR game is much better than arm 1's (user, not blind, 2026-11-07) | [phase4b.md](phase4b.md) |
