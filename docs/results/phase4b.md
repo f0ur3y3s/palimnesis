@@ -387,3 +387,26 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
   - Neither game was scored with numbers.
 - **Pair 2** is ready for blind scoring in `C:/Users/Daniel/palimnesis-runs/tank-rubric/pair2/`. The arm 1 page there was joined from its parts in order, with three marked patches: `audioResume`, `updateMuteLabel`, and arrays started empty.
 - Every failure in both pairs is a name used in one write and missing from the others, from a model writing a page of 800–1,300 lines in parts. None of the four runs opened its page before ending its turn.
+
+## R53: Correction to R52: pair 2's `a4-d77` game crashes on its first explosion (2026-11-07)
+
+**Outcome.** R52 reported pair 2's `a4-d77` page (attempt 5) as the only one of four that runs as written, with 8/8 on the hidden check. It does not run. The user's play-test in Chrome hit an uncaught `TypeError` on the first explosion, and the corrected check now fails the page too: 7/8, with C1 held. None of the four pages runs as written.
+
+- **The bug.** `boom()` stores an explosion's size as `max`, and `drawEffects` reads `b.maxR`, which is undefined. The radius is therefore NaN, and Chrome throws on a non-finite `createRadialGradient` argument (`index.html:652`). Every explosion comes with a screen shake, so to a player the game crashes when it shakes. Like every other failure in R52, it is a name used in one write and missing from another.
+- **Why the check passed it.** Two gaps in `game_t1.py`'s Node driver:
+  - Its stub canvas accepted any number. Browsers throw on non-finite gradient arguments and on negative radii.
+  - Its driver pressed and released the mouse button and Space in the same instant, so a game that polls a held state (`mouse.down`) never fired, and no shell ever exploded.
+- **The fix** (`1076e2b`, with a test that puts this bug into the reference game):
+  - The stub now throws as a browser does.
+  - The driver holds the button and Space across frames.
+  - The reference game and the patched copies of the other three pages still pass.
+- **Rescored with the corrected check:**
+
+| Attempt | Before | After |
+|---|---|---|
+| 3 (pair 1, `a4-d77`) | 7/8 | 7/8 (`updateHi` undefined) |
+| 4 (pair 1, arm 1) | 7/8 | 7/8 (`lastTime` undefined) |
+| 5 (pair 2, `a4-d77`) | 8/8 | **7/8** (the NaN gradient) |
+| 6 (pair 2, arm 1) | 0/8 | 0/8 (no `index.html`) |
+
+- **The pair 2 scoring kit** keeps attempt 5 as written. Under the rubric its gate is 1 at best, because it plays until the first explosion and then crashes.

@@ -43,5 +43,5 @@ Work set aside on purpose, with the reason, what already exists and what picking
 ## Single-prompt game tasks (game-t1, R52)
 
 - **Status:** a test the user added. Two pairs run, and the rubric (`eval/tasks/game_t1_rubric.md`) needs a person to play.
-- **What is known:** every failure in four runs was a name used in one write and missing from the others, from a page written in parts. None of the runs opened its page before ending its turn.
+- **What is known:** every failure in four runs was a name used in one write and missing from the others, from a page written in parts. None of the runs opened its page before ending its turn. No page runs as written (R53 corrects R52 for pair 2).
 - **What picking it up would take:** blind scores for pair 2 from the user, then more pairs. The 30-minute turn limit cut arm 1 off in pair 1, so later pairs should use `--turn-timeout` (pair 2 used 3 hours).
