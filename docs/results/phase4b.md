@@ -410,3 +410,20 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
 | 6 (pair 2, arm 1) | 0/8 | 0/8 (no `index.html`) |
 
 - **The pair 2 scoring kit** keeps attempt 5 as written. Under the rubric its gate is 1 at best, because it plays until the first explosion and then crashes.
+
+## R54: Both arms fix the TINY TANK WAR crash the same way (`game-t1-fix`, 2026-11-07)
+
+**Outcome.** From the same buggy page (R53) and the user's bug report, `a4-d77` and Pi's own compaction made the identical one-line fix, and both passed every check. The test does not separate the arms: the session stayed far under the context, so neither arm had anything to bound.
+
+- **Setup.** `game-t1-fix`: Pi 1.5.0 on Chat, Strata 0.1.54 on pythia, one turn with a 3-hour limit, commit `82d7658`. Records: `C:/Users/Daniel/palimnesis-runs/pi-game-fix/records/attempt-001..002`, tag `pi-game-t1-fix`.
+
+| | `a4-d77` | Arm 1 (Pi's compaction) |
+|---|---|---|
+| Hidden check | pass 8/8, C1 held | pass 8/8, C1 held |
+| Change | `boom()` stores `maxR:` in place of `max:` (1 line) | the same line, the same resulting file (git blob `dfbf7c2`) |
+| Time, calls | 58 s, 6 | 67 s, 7 |
+| Largest prompt, compactions | 7,493 tokens, 0 | 6,988 tokens, 0 |
+
+- Both agents fixed the name where the explosion is created, not where it is read. The reference renames the reader. Both are correct.
+- The `a4-d77` archive's gate inputs are clean: no drift, every cache change explained, 0 leaks.
+- **Why it does not discriminate.** The report names the line, and the session peaked at about 7,500 tokens of 32,768. Bounded views and compaction only act once a session outgrows the context, as on the eight-turn tasks of R47 and R52.

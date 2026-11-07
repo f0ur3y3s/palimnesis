@@ -67,3 +67,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R51 | Strata 0.1.57 sends the same wire shapes as 0.1.54 (23 cases, direct and proxied); LM Studio works behind the proxy with views off (2026-11-06) | [phase4b.md](phase4b.md) |
 | R52 | Pi on Chat ho2 (5/5 both arms), Messages development (5/5 both) and Messages ho2 (3/5 against 4/5), 8.4 h against 24.2 h. TINY TANK WAR pairs (2026-11-06/07) | [phase4b.md](phase4b.md) |
 | R53 | Correction to R52: pair 2's a4-d77 game crashes on its first explosion; the game check now fails as a browser does (2026-11-07) | [phase4b.md](phase4b.md) |
+| R54 | Both arms fix the TINY TANK WAR crash with the identical one-line change; the session never outgrew the context (2026-11-07) | [phase4b.md](phase4b.md) |
