@@ -467,3 +467,109 @@ On Chat, arm 1 failed dev-t3 (R47). On Messages it passed it.
   - `a4-d77`'s page needed one name fixed.
   - Arm 1 never assembled its page, and needed joining plus three patches.
   - Once each was made to run, the user judged the `a4-d77` game the better one.
+
+## R58: OMP builds TINY TANK WAR at 64K through Palimnesis in 1 h 41 min; with its own compaction, 4 h 16 min (2026-11-08, reported, not gated)
+
+**Outcome.** Both OMP runs at 64K produced a page that passes all 10 `game-t1` hidden checks. Through Palimnesis, OMP finished in 1 h 41 min and used about 40% of the Strata time and uncached prompt tokens that OMP with its own compaction needed. Native compaction ran 21 times and failed 14 times. A first native run was stopped because OMP's compaction fell back to a cloud model.
+
+- **Setup.**
+  - Strata 0.1.58 on pythia restarted at 64K: preset `iq3_xxs-64k.json`, `~/strata-start-64k.sh`, `--parallel 1`. Otherwise it is the R55 configuration.
+  - OMP 18.16.0, headless (`omp -p`), on Windows. Each run had a fresh empty folder and the `game-t1` prompt verbatim, with no nudges.
+  - Palimnesis at `a05f622` plus the uncommitted OMP adapter and the fix for OMP's cut-off tool arguments (`_omp_truncated_arguments`). Archive mode, bounded views on, default budget: `input_budget` 48,000 (`min(48000, n_ctx − R − M)`, phase 2 decision 3). Output limit 8,192 in both arms.
+- **Arms.**
+  - **Palimnesis** (`tiny_tank3`): OMP's default profile, `palimnesis` provider, OMP compaction off (adapter `config.yml`). Archive `omp64k.db`, session `01a1ba53…`.
+  - **Native, first attempt** (`tiny_tank4`): OMP's `strata` provider straight to Strata (`contextWindow` 65,536), `compaction.enabled: true` through a `--config` overlay. Stopped at 1 h 35 min, see below.
+  - **Native rerun** (`tiny_tank5`): isolated profile `native64` with no stored credentials, only the `strata` provider, every model role on `strata/strata`, compaction on, and every other compaction setting at OMP's default.
+
+| | Palimnesis | Native rerun |
+|---|---|---|
+| Wall time | 1 h 41 min, ended by itself | 4 h 16 min, ended by itself |
+| Strata requests | 198 upstream calls (190 harness requests) | 367 (OMP's title and housekeeping calls included) |
+| Strata busy time (read + generate) | 1,482 + 4,493 s | 3,811 + 11,375 s |
+| Largest prompt | 43,128 | 57,004 |
+| Prompt tokens served from cache | 90.8% | 88.1% |
+| Uncached prompt tokens | 630,734 | 1,737,134 |
+| Prompts over 20K with under 10% reused | 1 | 23 |
+| History changes | 26 view versions, 8 notes commits, 1 empty excerpt | 21 compactions applied, 14 handoff failures |
+| Hidden checks | 10/10 | 10/10 |
+| Page | `index.html` 33,940 bytes; the folder was clean | `index.html` 69,738 bytes, plus `.parts/p1–p10.txt` left behind |
+
+- **Palimnesis arm.**
+  - The first call wrote the whole page and stopped at the output limit. The next request was accepted with no 409, the first live check of the cut-off fix at 64K.
+  - `replay.py --explain`: 197 pairs, 0 unexplained (166 full, 26 `checkpoint_limited`, 5 `restart_or_eviction`). No attempt failed.
+  - OMP tested its page in its own browser tool and fixed two real bugs: a lost `</script>` tag and clicks that didn't fire. It also spent about 40 minutes debugging its own test script. Then it deleted its scratch files.
+- **Native rerun.**
+  - OMP wrote the page as ten parts and joined them at 12:46 (1 h 32 min in). It spent the next 2 h 44 min testing it in Node test files and its browser tool, making small fixes. The page changed only a few hundred bytes after 13:00.
+  - Compaction was OMP's speculative handoff, made in the background at about 41K tokens and applied at about 50K. 14 handoffs failed: their output hit the 8,192 limit or came back empty, each after about 3.5 minutes of Strata time. Applying a handoff restarts the prompt from the system prompt (8.7K reused of about 37K).
+  - 0 requests left Strata (`cowork transport` count 0 in its log).
+- **First native attempt, stopped.**
+  - Two compactions applied, then 7 handoff failures. The prompt reached 59.7K.
+  - OMP then tried the next summarization candidates. The default profile assigns no summary model, so OMP's built-in chain picked `claude-fable-5` at `api.anthropic.com` through a stored login. 21 requests carrying the conversation were sent, and every one was refused with 429 (`credits_required`).
+  - It was stopped at 11:10. Its unfinished 63.5 KB page fails 6 of 10 checks.
+  - The Palimnesis arm made no such requests, because its compaction is off. A native OMP baseline needs every role pinned to the local model and no stored cloud credentials.
+- **Not measured.**
+  - Game quality: neither page has been played.
+  - Variance: one run per arm.
+  - The native arm's compaction settings beyond OMP's defaults.
+- **Comparability.** The arms ran one after the other on the same Strata process and preset, with the same prompt and output limit. The 32K OMP run of 2026-11-07 (`tiny_tank2`) used a different context, moved hosts mid-run and was nudged, so it is not compared here.
+
+## R59: OMP's live gates through Palimnesis, and OpenCode's faults through the archive-mode proxy (Phase 4B close, 2026-11-18)
+
+**Outcome.** With the D104 adapter, OMP 18.16.0 passes the plan §6 gates it is advertised for on Chat: smoke with resume, the transcript gate, proxy restarts and cancellation. OpenCode's four through-proxy fault runs, rerun because admission adds a queue (Phase 4B plan §7), generate nothing twice and keep their sessions consistent.
+
+- **Setup.**
+  - Palimnesis at `a05f622` plus the D104 changes (uncommitted, 2026-11-18). Archive mode, bounded views on.
+  - Strata 0.1.58 on pythia at 64K (R58's configuration).
+  - OMP 18.16.0 on Windows, headless (`omp -p --mode json`), set up by `palimnesis setup omp` into a throwaway agent directory, with titles, skills and background roles as shipped.
+  - Driver: `eval/probes/omp_live_smoke.py`. Each scenario has its own proxy, archive and transcript root.
+- **Before the fixes**, on the first adapter (2026-11-18, the same driver):
+  - The Chat smoke passed, but OMP's skill-description compression calls reached the session URL: 409s, and one 163-token compression request became a session's first archived turn.
+  - The Messages smoke failed: `context_management` was rejected (D104.6).
+
+| Scenario | Result | Requests (refused background calls) | Checks |
+|---|---|---|---|
+| smoke | pass | 3 (52 × 400 `session_required`, 0 × 409) | `read` tool loop, then `--resume <id>` answers "Thursday"; one session, OMP's own id; `--explain` 0 unexplained; `transcripts verify` passes; OMP sent only `chat_template_kwargs.enable_thinking` |
+| gate, budget 16,000 | pass | 12 (156, 0) | 4 view versions; largest input 15,174; the deleted file's code answered from a proactive excerpt (`ZX-4471-QUAIL`); the confirming turn's `grep` named the session's transcript directory and quoted `turn-0001.md` line 116 |
+| restart, budget 16,000 | pass | 8 (104, 0) | proxy restarted after each of three reads; the code answered after the third; 3 view versions; 0 failed attempts; `--explain` 0 unexplained |
+| cancel, 3 trials | pass | 5 (130, 0) | OMP killed during decode; Strata's slot free 0.093 s, 0.110 s, 0.219 s after the kill; 3 attempts `cancelled`, none completed; the session then answered "done" |
+
+- **Cancel kill points.** In trials 1 and 2 the model was still reasoning after 3,236 and 3,212 tokens when the driver's 600 s wait for the answer ran out, so OMP was killed during reasoning decode. Trial 3 was killed during the answer, after 447 tokens. All three are decode, under contracts §8's 1 s.
+- **Refused background calls.** Every 400 is `session_required` on `palimnesis-unrouted`: skill-description compression, about 50 per OMP start, because this machine's skills are discovered. OMP caches a refused model as unusable for compression (its changelog), but each throwaway agent directory started empty, so the count repeated per scenario.
+- **OpenCode faults through the proxy** (`eval/probes/opencode_fault_probe.py`, now with its own `--db` per run; fixtures in the gitignored `eval/fixtures/opencode-2.1.4/faults/`):
+
+| Run | Upstream attempts | Archive | OpenCode | Phase 0 passthrough (`docs/probes/opencode_faults.md`) |
+|---|---|---|---|---|
+| `ok_proxy` | 1 | `turn_complete` | OK | same |
+| `s500_proxy` | 1 | `attempt_failed` | error, exit 1, 1.7 s | 11 attempts over about 82 s |
+| `partial_abort_then_ok_proxy` | 1 | `attempt_failed` | partial shown, then the in-stream error, exit 1 | 2 attempts, the second OK |
+| `chunk_timeout5s_keepalive_proxy` | 1 | `turn_complete` | OK after 17.7 s with a 5 s chunk timeout | same |
+
+  - **Why fewer attempts now.** Archive mode ends a failed stream with an in-stream error event and `x-should-retry: false` (contracts §3, D10), so OpenCode does not retry. The Phase 0 passthrough relayed the raw 500 and reset.
+  - **Keepalives.** Comments still reach OpenCode through admission and reset its chunk timer.
+- **Not run.**
+  - OMP under upstream faults: no fault matrix like HP4, so OMP's retries and timers are unverified (D104.7).
+  - Interactive OMP, branching and subagents.
+- **Renamed since R58.** The rule R58 calls `_omp_truncated_arguments` is now the neutral `_matches_preview`, reading the shape from `integrations/omp/argument_previews.json` (D104.1). R58's resend is its literal fixture and still reconciles.
+
+## R60: Phase 4B gate summary (2026-11-18)
+
+Phase 4B is accepted for OpenCode 2.1.4 (Chat), Pi 1.5.0 (Chat and Messages) and OMP 18.16.0 (Chat). Claude Code is backlogged (D92). Held-out performance is Phase 7's, on `ho4` (D96).
+
+| Green light | Evidence | Status |
+|---|---|---|
+| GL1: every advertised harness passes archive, recall, streaming, cancellation and recovery for its subset | OpenCode: Phases 0–3 (R4, R11, R42), and its faults through the archive-mode proxy (R59). Pi: smoke on both protocols and the transcript gate (R43), 34 fault runs, cancellation and restarts (R44). OMP: smoke with resume, transcript gate, restarts, cancellation (R59) | Met. OMP's subset claims no fault or retry behaviour (D104.7) |
+| GL2: session-path preservation, endpoint joining, conflicting path/header rejection | `test_beta_query_accepted_other_query_rejected`, `test_session_mismatch_on_messages_anthropic_envelope`, `test_protocol_fixed_per_session`; live joining for Pi (HP1) and OMP (`/s/<id>/v1/chat/completions`, R58, R59); OMP routing fails closed (D104.4) | Met |
+| GL3: native compaction verified off; discontinuity detection not summary-shaped | OpenCode `compaction.auto: false` (D37), Pi HP5, OMP `compaction.enabled: false` with no compaction request in R58's Palimnesis arm or R59; S8 replays per harness (`tests/test_discontinuity.py`) | Met |
+| GL4: state-independent fixtures | The full suite passes with `Settings` defaults and no Phase 4A: 1,929 passed, 6 skipped on pythia (2026-11-18, `a05f622` plus D104) | Met |
+| §6 D44.6 inputs on every live archive | 0 over budget, `--explain` 0 unexplained, `transcripts verify` passing on every R43–R59 archive | Met |
+| Reviews | Protocol review and cache audit of the OMP work (2026-11-18): every high and medium finding fixed or recorded in D104; cache audit 0 unexplained over R58's 197 pairs. Earlier 4B reviews: D95, D100 | Met |
+
+- **Known limits carried forward:**
+  - D95's.
+  - D100's.
+  - D104.7: OMP interactive use, branching, subagents and faults are unverified.
+  - The backlogged items (`docs/backlog.md`).
+- **Deferred by design:**
+  - Branching and streaming replay (Phase 8).
+  - Hidden tools on Messages (R32).
+  - Held-out runs per harness (Phase 7, `ho4`).

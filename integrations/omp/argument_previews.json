@@ -1,0 +1,13 @@
+{
+  "harness": "OMP 18.16.0",
+  "about": "How OMP resends a tool call whose arguments never parsed as JSON: an object holding only the parser's message and a preview of the raw text. The preview is the raw text whole when it has at most keep_utf16_units UTF-16 code units, else its first keep_utf16_units units followed by marker, where {omitted} is the number of units left out. Reconciliation accepts it only for the same archived call whose arguments are not JSON (palimnesis.harness_strings, archive.transcript).",
+  "previews": [
+    {
+      "error_key": "__parseError",
+      "raw_key": "__rawJson",
+      "keep_utf16_units": 512,
+      "marker": "… [truncated {omitted} chars]",
+      "evidence": "eval/fixtures/omp-18.16.0/length_stopped_call.json (R58); OMP 18.16.0 bundle, functions qwt and wae (String.prototype.slice and length); D104"
+    }
+  ]
+}

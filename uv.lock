@@ -429,6 +429,7 @@ dependencies = [
     { name = "google-re2" },
     { name = "httpx" },
     { name = "jinja2" },
+    { name = "pyyaml" },
     { name = "tokenizers" },
     { name = "uvicorn" },
 ]
@@ -445,6 +446,7 @@ requires-dist = [
     { name = "google-re2", specifier = "==1.1.20251105" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = "==3.1.6" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "tokenizers", specifier = "==0.23.3" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]

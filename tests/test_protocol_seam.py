@@ -21,7 +21,7 @@ from palimnesis import protocols
 from .archive_helpers import answer, body, chunk, lifecycle_stack, user
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "palimnesis"
-HARNESS_TOKENS = {"opencode", "claude", "pi"}
+HARNESS_TOKENS = {"opencode", "claude", "pi", "omp"}
 
 
 def _tokens(identifier: str) -> set[str]:

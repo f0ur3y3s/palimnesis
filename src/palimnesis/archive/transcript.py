@@ -20,6 +20,12 @@ Matching rules:
   (D68) or the turn was interrupted while the call ran (D73, ``docs/harnesses.md``).
   Known limit: an edit that blanks a call's arguments to ``"{}"`` is not detected; the
   archive keeps the generated arguments.
+- Arguments that are not JSON also match a declared preview of them
+  (``palimnesis.harness_strings.ARGUMENT_PREVIEWS``, D104; OMP 18.16.0 resends such a
+  call that way): the exact raw text, or its exact first N UTF-16 code units and the
+  exact count left out. Arguments that are JSON never match a preview. Known limit: the
+  parser message beside the preview is free text and is not compared; the archive keeps
+  the generated arguments.
 - A changed system message before the first non-system message is a new
   context version (D10.5), not divergence. OpenCode embeds the date there.
 
@@ -56,6 +62,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+from palimnesis.harness_strings import ARGUMENT_PREVIEWS
 from palimnesis.protocols.chat import Message, content_sha256
 
 
@@ -166,8 +173,46 @@ def _typed(value):
     return value
 
 
+def _utf16_units(text: str) -> int:
+    return len(text.encode("utf-16-le", "surrogatepass")) // 2
+
+
+def _utf16_head(text: str, units: int) -> str:
+    return text.encode("utf-16-le", "surrogatepass")[:2 * units].decode("utf-16-le", "surrogatepass")
+
+
+def _matches_preview(sent: str, resent: str) -> bool:
+    """``resent`` is a declared preview of ``sent``, arguments that are not JSON (D104)."""
+    try:
+        _strict(sent)
+    except ValueError:
+        pass
+    else:
+        return False
+    try:
+        wrapped = _strict(resent)
+    except ValueError:
+        return False
+    if not isinstance(wrapped, dict):
+        return False
+    for shape in ARGUMENT_PREVIEWS:
+        if set(wrapped) != {shape.error_key, shape.raw_key}:
+            continue
+        error, preview = wrapped[shape.error_key], wrapped[shape.raw_key]
+        if not isinstance(error, str) or not error or not isinstance(preview, str):
+            continue
+        total, keep = _utf16_units(sent), shape.keep_utf16_units
+        expected = sent if total <= keep else (
+            _utf16_head(sent, keep) + shape.marker.format(omitted=total - keep))
+        if preview == expected:
+            return True
+    return False
+
+
 def _same_arguments(sent: str, resent: str) -> bool:
     if sent == resent or resent == "{}":  # a call OpenCode did not run (D68, D73)
+        return True
+    if _matches_preview(sent, resent):
         return True
     try:
         parsed = _strict(sent)

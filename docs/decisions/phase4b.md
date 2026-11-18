@@ -403,3 +403,40 @@ After R55, the user kept pythia on Strata 0.1.58, engine and Control, in place o
 - **Comparability.** R41–R54 ran on 0.1.54. A new comparison with them reruns its arms on 0.1.58, as D48 and D76 require of a build change.
 - **Operation.** The server runs from Control 0.1.58 with D76's preset, started by `~/strata-start.sh` on pythia. 0.1.54 stays installed: `strata components rollback`, then `~/strata-start.sh ~/.local/share/strata/terminal/0.1.54`.
 - **No pin change.** The pin stays `strata-0.1.48`, and 0.1.58 is accepted by its counts at every start (D102). It is not added to `equivalent_builds`.
+
+## D104: OMP 18.16.0 as a third harness, Chat only (Phase 4B close, 2026-11-18)
+
+OMP was added at the user's request (R58, 2026-11-08). Its adapter was reviewed before Phase 4B closed: protocol review and cache audit, 2026-11-18. This entry records the review's fixes and what OMP is supported for.
+
+1. **Resent previews of arguments that never parsed are adapter data.**
+   - **What OMP sends.** OMP 18.16.0 resends a call whose arguments are not JSON as `{"__parseError": <parser message>, "__rawJson": <preview>}` (bundle functions `wae` and `qwt`). `qwt` keeps a string of at most 512 UTF-16 code units whole. Otherwise it keeps the first 512 units and appends `… [truncated N chars]`, with N in code units.
+   - **Evidence.** R58's resend is the literal fixture `eval/fixtures/omp-18.16.0/length_stopped_call.json`.
+   - **Where the shape lives.** `integrations/omp/argument_previews.json` declares it, and `palimnesis.harness_strings.ARGUMENT_PREVIEWS` holds it without naming a harness. `test_argument_previews_from_adapter_data` keeps the two equal, as D90 does for user prefixes.
+   - **The matcher.** `archive.transcript._matches_preview` accepts a declared preview only of archived arguments that are not JSON, and only when it is the exact raw text, or the exact first N units plus the exact count. The contract text is updated (contracts §4).
+   - **Review fixes.**
+     - The first version named OMP in core. `HARNESS_TOKENS` now includes `omp`, and the seam test went red before the fix.
+     - It counted code points, not UTF-16 units, so emoji in the arguments got a false 409.
+     - It rejected a kept-whole preview of 512 units or fewer.
+     - It applied only to length-stopped turns. `wae` wraps any parse failure, so the length condition is gone.
+   - **Known limit.** The parser message is free text and is not compared. As with `{}` (D68), the upstream receives the client's copy and the archive keeps the generation (cache audit: R58's 189 resends were byte-identical, with 0 unexplained changes).
+2. **No fields are stripped.** The first extension deleted `preserve_thinking`, `enable_thinking` and the whole `chat_template_kwargs` from every request. That silently dropped a thinking toggle Palimnesis passes through (capabilities, `chat_template_kwargs.enable_thinking`).
+   - **The fix.** The adapter sets OMP's own compat flags instead: `thinkingFormat: qwen-chat-template` and `qwenPreserveThinking: false`. OMP then sends only `chat_template_kwargs.enable_thinking`, which passes through and counts as an effort change.
+   - **Model-facing difference from R58.** R58's Palimnesis arm sent no thinking field, and now `enable_thinking: true` is sent. The template thinks by default, so the rendered prompt should be the same, but that is unverified. R58 is not rerun for it.
+3. **Background roles never enter a session.** OMP makes model calls of its own:
+   - skill-description compression on the `smol` role, falling back to the default model;
+   - titles: the default generator `fork` is a side turn on the session's model;
+   - commit messages.
+   On the session URL, these became the session's first archived history or got 409s (seen live, 2026-11-18). Unpinned roles sent conversation text to a cloud model in R58's first native attempt.
+   - **The fix.** The adapter pins `smol`, `tiny`, `commit` and `vision` to `palimnesis-unrouted`, a provider the extension never routes. Palimnesis refuses those calls with `session_required`, and OMP keeps its uncompressed skill descriptions. `title.generator` is `tiny`, so a session gets no generated title.
+   - **`check`.** It fails a background role or title setting that would enter the session, and warns on any role that uses another provider.
+4. **Routing fails closed.** OMP has no per-request header hook, so the extension re-registers the `palimnesis` base URL as `/s/<session>/v1` on `session_start`, `session_switch` and `session_branch`.
+   - **Per-request check.** `before_provider_request` throws when the current session id differs from the routed one, and routing throws when the model cannot be re-resolved. A missed event then fails a request instead of merging it into another session (contracts §4).
+5. **Setup.** `setup omp` merges YAML (`models.yml`, `config.yml`) with PyYAML, a new runtime dependency.
+   - **What it refuses:** files containing `#`, since a YAML round trip drops comments; the `.yaml` spellings; and a directory holding Pi's `models.json` or `settings.json`. OMP also reads `PI_CODING_AGENT_DIR`, so a shared variable would put both adapters' extensions in one folder.
+   - **Script name.** The OMP extension is `palimnesis-omp-session.ts`. `check` flags a leftover `palimnesis-session.ts` from the first version.
+6. **Scope: Chat only.** OMP's Messages requests carry `context_management` (`clear_thinking_20251015`, `keep: all`). Palimnesis rejects that as unsupported, never drops it (seen live, 2026-11-18). The adapter therefore ships no Messages provider.
+7. **Not verified live:** interactive `omp` with titles, `/resume` pickers, branching, OMP's task subagents, and OMP's retry behaviour under upstream faults (no fault-server matrix, unlike HP4). R59 records what was run.
+8. **Rejected:**
+   - Matching OMP's strings in core, which D73 and D90 already rejected.
+   - Stripping `context_management` in the extension. It would hide a request feature the user's OMP believes is in effect.
+   - Pointing background roles straight at Strata. It needs the upstream URL in the adapter, and it would send conversation text past the archive.

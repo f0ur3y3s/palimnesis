@@ -38,6 +38,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | --- | --- | --- | --- | --- |
 | OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37); hidden recall tools with `--hidden-tools` (Ph3B, streaming requests) | `harnesses.md` |
 | Pi | 1.5.0 | Chat Completions / Messages | **supported** (Ph4B): adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; live smoke on both protocols and the transcript gate passed through the proxy against Strata (R43, D93); transcript-file fallback | `harnesses.md`, `docs/probes/pi.md` |
+| OMP | 18.16.0 | Chat Completions | **supported, Chat only** (Ph4B close, D104): adapter in `integrations/omp/`; live smoke with resume, transcript gate, restarts and cancellation through the proxy against Strata (R59); a 64K coding task (R58); background roles unrouted; Messages not offered (`context_management`) | `harnesses.md` |
 | Claude Code | 2.1.318 | Messages | **backlogged: closed source** (user, 2026-11-05; D92, `backlog.md`). Probes kept in `docs/probes/claude_code.md` | — |
 
 ## Chat Completions request features (first harness)

@@ -26,6 +26,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
+import yaml
 
 from palimnesis.adapters import read_bytes
 
@@ -70,7 +71,13 @@ PI = Agent("pi", "PI_CODING_AGENT_DIR", "~/.pi/agent", "--agent-dir",
            (JsonFile("models.json", (("providers", "palimnesis"), ("providers", "palimnesis-messages"))),
             JsonFile("settings.json")),
            "extensions/palimnesis-session.ts")
-AGENTS = {a.name: a for a in (OPENCODE, PI)}
+# OMP reads Pi's variable too, so its directory gets its own script name and setup
+# refuses a directory that already holds Pi's files (D104).
+OMP = Agent("omp", "PI_CODING_AGENT_DIR", "~/.omp/agent", "--agent-dir",
+            (), "extensions/palimnesis-omp-session.ts")
+OMP_OWNED = {"models.yml": (("providers", "palimnesis"), ("providers", "palimnesis-unrouted")),
+             "config.yml": ()}
+AGENTS = {a.name: a for a in (OPENCODE, PI, OMP)}
 
 
 # ------------------------------------------------------------------------ rendering
@@ -137,6 +144,33 @@ def plan(agent: Agent, directory: Path, model: str, origin: str) -> list[tuple[P
             raise SetupError(f"{directory / name} exists, and {agent.name} reads it too. Setup only "
                              "writes plain JSON: merge integrations/ into it by hand")
     out = []
+    if agent is OMP:
+        for alternative in ("models.yaml", "config.yaml"):
+            if (directory / alternative).exists():
+                raise SetupError(f"{directory / alternative} exists; merge integrations/omp by hand")
+        for pi_file in ("models.json", "settings.json"):
+            if (directory / pi_file).exists():
+                raise SetupError(f"{directory / pi_file} is Pi's: {directory} is Pi's agent directory "
+                                 "(PI_CODING_AGENT_DIR?). Give OMP its own with --agent-dir")
+        for filename in ("models.yml", "config.yml"):
+            path = directory / filename
+            try:
+                source = path.read_text(encoding="utf-8") if path.exists() else ""
+                if "#" in source:
+                    raise SetupError(f"{path} contains '#' (possibly a comment); merge integrations/omp by hand to preserve it")
+                existing = yaml.safe_load(source) if source else {}
+            except (yaml.YAMLError, UnicodeDecodeError) as exc:
+                raise SetupError(f"{path} is not valid YAML ({exc})") from exc
+            if existing is None:
+                existing = {}
+            if not isinstance(existing, dict):
+                raise SetupError(f"{path} must contain a YAML mapping")
+            shipped = _render(yaml.safe_load(read_bytes(f"omp/{filename}")), model, origin)
+            owned = OMP_OWNED[filename]
+            merged = merge(existing, shipped, owned)
+            out.append((path, yaml.safe_dump(merged, sort_keys=False, allow_unicode=True).encode("utf-8")))
+        out.append((directory / agent.script, rendered_script(agent, origin)))
+        return out
     for f in agent.json_files:
         shipped = _render(json.loads(read_bytes(f"{agent.name}/{f.name}")), model, origin)
         existing = read_json(directory / f.name) or {}
@@ -269,6 +303,8 @@ def _agent_items(agent: Agent, directory: Path, explicit: bool, host: str, port:
                  alias: str | None) -> list[Item]:
     hint = (f"palimnesis setup {agent.name} --model {alias or '<model>'} --port {port}"
             + (f" {agent.dir_flag} {directory}" if explicit else ""))
+    if agent is OMP:
+        return _omp_items(directory, explicit, host, port, alias)
     try:
         docs = {f.name: read_json(directory / f.name) for f in agent.json_files}
     except SetupError as exc:
@@ -323,6 +359,75 @@ def _agent_items(agent: Agent, directory: Path, explicit: bool, host: str, port:
                               f"but the server's model is {alias}", hint))
         else:
             items.append(Item("PASS", f"{label} model", f"{alias}, as the server names it"))
+    return items
+
+
+def _omp_items(directory: Path, explicit: bool, host: str, port: int,
+               alias: str | None) -> list[Item]:
+    hint = f"palimnesis setup omp --model {alias or '<model>'} --port {port}"
+    if explicit:
+        hint += f" --agent-dir {directory}"
+    try:
+        docs = {}
+        for name in ("models.yml", "config.yml"):
+            path = directory / name
+            docs[name] = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
+            if docs[name] is None:
+                docs[name] = {}
+            if not isinstance(docs[name], dict):
+                raise SetupError(f"{path} must contain a YAML mapping")
+    except (OSError, yaml.YAMLError, SetupError) as exc:
+        return [Item("WARN", "omp", str(exc), hint)]
+    providers = docs["models.yml"].get("providers") or {}
+    if not explicit and "palimnesis" not in providers:
+        return [Item("SKIP", "omp", f"not set up in {directory}", hint)]
+    items = []
+    for name in ("palimnesis", "palimnesis-unrouted"):
+        provider = providers.get(name) or {}
+        ok = _points_at(provider.get("baseUrl"), host, port)
+        items.append(Item("PASS" if ok else "FAIL", f"omp provider {name}",
+                          f"points at port {port}" if ok else "missing or wrong baseUrl", hint if not ok else ""))
+        compat = provider.get("compat") or {}
+        sends_ok = (compat.get("thinkingFormat") == "qwen-chat-template"
+                    and compat.get("qwenPreserveThinking") is False)
+        items.append(Item("PASS" if sends_ok else "FAIL", f"omp thinking fields {name}",
+                          "sends only fields Palimnesis accepts" if sends_ok else
+                          "set compat.thinkingFormat: qwen-chat-template and qwenPreserveThinking: false",
+                          hint if not sends_ok else ""))
+        for m in provider.get("models") or []:
+            good = _big(m.get("contextWindow"))
+            items.append(Item("PASS" if good else "FAIL", f"omp context {name}",
+                              "contextWindow is at least 1,000,000" if good else "contextWindow below 1,000,000", hint if not good else ""))
+    config = docs["config.yml"]
+    compact = (config.get("compaction") or {}).get("enabled") is False
+    items.append(Item("PASS" if compact else "FAIL", "omp compaction",
+                      "OMP compaction is off" if compact else "set compaction.enabled to false", hint if not compact else ""))
+    title = (config.get("title") or {}).get("generator")
+    items.append(Item("PASS" if title == "tiny" else "FAIL", "omp titles",
+                      "titles use the unrouted tiny role" if title == "tiny" else
+                      "title.generator `fork` sends a side turn into the session: set it to tiny",
+                      hint if title != "tiny" else ""))
+    roles = config.get("modelRoles") or {}
+    expected = f"palimnesis/{alias}" if alias else None
+    if expected and roles.get("default") != expected:
+        items.append(Item("WARN", "omp model", f"default is {roles.get('default')}, server is {alias}", hint))
+    for role in ("smol", "tiny", "commit"):
+        if not str(roles.get(role, "")).startswith("palimnesis-unrouted/"):
+            items.append(Item("FAIL", f"omp role {role}",
+                              f"{role} is {roles.get(role)}: its background requests would enter the session "
+                              "or go to another provider; set it to palimnesis-unrouted", hint))
+    others = sorted(r for r, v in roles.items() if not str(v).startswith(("palimnesis/", "palimnesis-unrouted/")))
+    if others:
+        items.append(Item("WARN", "omp other roles",
+                          f"{', '.join(others)} use another provider: what they send bypasses Palimnesis", ""))
+    script = directory / OMP.script
+    current = script.exists() and script.read_bytes() == rendered_script(OMP, f"http://{host}:{port}")
+    items.append(Item("PASS" if current else "FAIL", "omp session extension",
+                      "current" if current else "missing or out of date", hint if not current else ""))
+    stale = directory / "extensions" / "palimnesis-session.ts"
+    if stale.exists():
+        items.append(Item("FAIL", "omp old extension",
+                          f"remove {stale}: an earlier adapter version, it routes the session twice", ""))
     return items
 
 

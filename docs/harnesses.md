@@ -7,6 +7,7 @@ Setup and verified behavior per supported harness. Evidence lives in `docs/probe
 ### Setup
 
 1. Run the proxy: `uv run palimnesis serve --upstream http://<strata-host>:8080`. It archives to `%LOCALAPPDATA%\palimnesis\palimnesis.db` by default (`--db PATH` to choose, `--passthrough` to relay without archiving). One proxy process owns an archive at a time.
+   Run `uv run palimnesis check --upstream http://<strata-host>:8080` with that same URL. The check command otherwise probes its default `http://127.0.0.1:8080`, regardless of the proxy's upstream. Its `GET /v1/models` probe intentionally gets a `400 session_required` from the proxy; `PASS proxy` confirms that check.
 2. `uv run palimnesis setup opencode --model <model name> [--port N]` merges `integrations/opencode/opencode.json` into `opencode.json` in OpenCode's config directory (`$OPENCODE_CONFIG_DIR`, else `~/.config/opencode`) and installs `plugins/palimnesis.ts` there, with the proxy's port in both (D101). By hand: copy the two files, keeping the `plugins/` subfolder, and merge the config rather than replacing it.
 3. If the proxy is not on `127.0.0.1:9000` and you configured by hand, set `PALIMNESIS_PROXY_ORIGIN` and change `providers.palimnesis.settings.baseURL` to match. The variable must be in the environment of the process that calls the model. A shared `opencode serve --service` instance does not see a later shell's environment, so restart it, or run with `--standalone`. `palimnesis check` reports a provider or plugin that points elsewhere.
 4. Start or resume chats normally: `opencode`, `opencode run …`, `opencode run --session <id> …`.
@@ -145,6 +146,20 @@ Evidence: `docs/probes/pi.md` (HP1–HP7). Adapter: `integrations/pi/`.
 - **Timeouts.** `httpIdleTimeoutMs` (300 s) is both header wait and read idle; comments and `event: ping` reset it (HP4.1), so admission's H and K keep queued requests alive (D89).
 - **Verified live through the proxy** (R43): a tool loop and a second turn on both protocols, and the transcript gate (Pi's `grep` on the session directory). `eval/probes/pi_live_smoke.py` reruns them.
 - **Tools for the addendum.** Enable `grep` (and `find`, `ls`) with `--tools read,grep,bash,ls,find` or `defaultTools`, so the a3 recipe's grep is a tool call rather than a shell command.
+
+## OMP 18.16.0 (Phase 4B close; Chat Completions only)
+
+Evidence: R58, R59, D104 and the OMP 18.16.0 bundle (functions cited in D104). Adapter: `integrations/omp/`. OMP is a Pi derivative: its JSON events and extension API have Pi's shape, but its configuration is YAML and it makes model calls of its own.
+
+- **Setup.** `uv run palimnesis setup omp --model <model name> [--port N]` merges `models.yml` and `config.yml` into OMP's agent directory (`PI_CODING_AGENT_DIR`, else `~/.omp/agent`) and installs `extensions/palimnesis-omp-session.ts`. OMP reads Pi's variable too, so setup refuses a directory holding Pi's `models.json` or `settings.json`.
+  - `palimnesis` is the Chat provider (`baseUrl` `http://127.0.0.1:9000/v1`), with `supportsDeveloperRole: false`, `supportsStore: false`, `thinkingFormat: qwen-chat-template` and `qwenPreserveThinking: false`. OMP then sends only `chat_template_kwargs.enable_thinking` for thinking (verified live, 2026-11-18); without these flags it sends `preserve_thinking`, which Palimnesis rejects.
+  - `palimnesis-unrouted` is the same server without a session. The `smol`, `tiny`, `commit` and `vision` roles use it, so OMP's skill-description compression, titles and commit messages are refused with `session_required` instead of entering a session or going to a cloud model (R58's first native attempt). `title.generator: tiny`: the default `fork` would send a side turn into the session. Sessions therefore have no generated titles, and OMP keeps its skills' uncompressed descriptions.
+  - `contextWindow` is 1,000,000 and `compaction.enabled: false`, as for Pi.
+- **Association.** OMP has no per-request header hook. The extension re-registers the provider's base URL as `/s/<session>/v1` on `session_start`, `session_switch` and `session_branch`, and refuses any request whose session is not the routed one, so a missed event fails rather than merges. Before routing, requests reach `/v1` and get `session_required`.
+- **Not supported: Messages.** OMP's Messages requests carry `context_management` (`clear_thinking_20251015`). Palimnesis rejects the field as unsupported, so the adapter ships no Messages provider.
+- **Arguments that never parsed.** OMP resends such a call as `{"__parseError", "__rawJson"}` with a 512-unit preview. It reconciles when the preview matches the archived call exactly (D104). This occurs after a length stop cuts a tool call (R58).
+- **Verified live through the proxy** (R59, `eval/probes/omp_live_smoke.py`): a tool loop and a turn resumed with `--resume`; the transcript gate (OMP's own tools on the transcript directory); three proxy restarts in one session; and a kill during decode, with the slot freed and the attempt recorded `cancelled`.
+- **Not verified:** interactive use (titles, pickers), branching and `/tree`, OMP's task subagents, and OMP's retries and timeouts under upstream faults. Treat these as unsupported until probed.
 
 ## Claude Code: backlogged
 

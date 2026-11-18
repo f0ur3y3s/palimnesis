@@ -64,3 +64,21 @@ def test_a_late_system_entry_starts_no_turn():
 
     assert roles == ["user", "system", "assistant", "user"]
     assert turn_numbers(enumerate(roles)) == {0: 1, 1: 1, 2: 1, 3: 2}
+
+
+def _declared_previews() -> list[tuple[str, str, int, str]]:
+    out = []
+    for path in sorted(INTEGRATIONS.glob("*/argument_previews.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for entry in doc["previews"]:
+            assert entry["evidence"], path  # every shape names its evidence
+            out.append((entry["error_key"], entry["raw_key"], entry["keep_utf16_units"],
+                        entry["marker"]))
+    return out
+
+
+def test_argument_previews_from_adapter_data():
+    """Resent previews of arguments that never parsed (D104): adapter data, one flat list."""
+    assert [(p.error_key, p.raw_key, p.keep_utf16_units, p.marker)
+            for p in harness_strings.ARGUMENT_PREVIEWS] == _declared_previews()
+    assert harness_strings.ARGUMENT_PREVIEWS  # at least one adapter declares one

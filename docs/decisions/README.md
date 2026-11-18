@@ -119,3 +119,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D101 | `palimnesis setup` and `palimnesis check` (user request) | [phase4b.md](phase4b.md) |
 | D102 | Strata versions are accepted by their counts, not by name (user request) | [phase4b.md](phase4b.md) |
 | D103 | pythia stays on Strata 0.1.58 (user decision) | [phase4b.md](phase4b.md) |
+| D104 | OMP 18.16.0 as a third harness, Chat only: previews as adapter data, no stripped fields, background roles unrouted | [phase4b.md](phase4b.md) |

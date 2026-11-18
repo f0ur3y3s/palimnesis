@@ -1,0 +1,12 @@
+modelRoles:
+  default: palimnesis/qwen3.8-flash-next-iq3_xxs
+  slow: palimnesis/qwen3.8-flash-next-iq3_xxs
+  plan: palimnesis/qwen3.8-flash-next-iq3_xxs
+  smol: palimnesis-unrouted/qwen3.8-flash-next-iq3_xxs
+  tiny: palimnesis-unrouted/qwen3.8-flash-next-iq3_xxs
+  commit: palimnesis-unrouted/qwen3.8-flash-next-iq3_xxs
+  vision: palimnesis-unrouted/qwen3.8-flash-next-iq3_xxs
+compaction:
+  enabled: false
+title:
+  generator: tiny

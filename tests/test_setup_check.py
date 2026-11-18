@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from palimnesis import adapters
 from palimnesis.api import create_app
@@ -47,6 +48,8 @@ def test_the_packaged_adapters_are_the_integrations_files():
              ("opencode/plugins/palimnesis.ts", "opencode/plugins/palimnesis.ts"),
              ("pi/models.json", "pi/models.json"), ("pi/settings.json", "pi/settings.json"),
              ("pi/extensions/palimnesis-session.ts", "pi/extensions/palimnesis-session.ts")]
+    pairs += [(f"omp/{name}", f"omp/{name}") for name in
+              ("models.yml", "config.yml", "extensions/palimnesis-omp-session.ts")]
     for packaged, repo in pairs:
         assert adapters.read_bytes(packaged) == (ROOT / "integrations" / repo).read_bytes(), packaged
 
@@ -155,6 +158,48 @@ def test_setup_pi_merges_models_and_settings_and_installs_the_extension(tmp_path
     assert len(_backups(tmp_path)) == 2
 
 
+def test_setup_omp_merges_yaml_and_routes_sessions(tmp_path):
+    (tmp_path / "models.yml").write_text("providers:\n  other:\n    auth: none\n", encoding="utf-8")
+    (tmp_path / "config.yml").write_text("theme: dark\ncompaction:\n  reserveTokens: 1000\n", encoding="utf-8")
+    args = ["setup", "omp", "--model", "m1", "--agent-dir", str(tmp_path), "--port", "9100"]
+    assert main(args) == 0
+    models = yaml.safe_load((tmp_path / "models.yml").read_text(encoding="utf-8"))
+    config = yaml.safe_load((tmp_path / "config.yml").read_text(encoding="utf-8"))
+    assert models["providers"]["other"] == {"auth": "none"}
+    assert models["providers"]["palimnesis"]["baseUrl"] == "http://127.0.0.1:9100/v1"
+    assert models["providers"]["palimnesis"]["models"][0]["id"] == "m1"
+    assert config["theme"] == "dark"
+    assert config["compaction"] == {"reserveTokens": 1000, "enabled": False}
+    assert config["modelRoles"]["default"] == "palimnesis/m1"
+    assert config["modelRoles"]["smol"] == "palimnesis-unrouted/m1"  # never enters a session
+    assert config["title"] == {"generator": "tiny"}
+    unrouted = models["providers"]["palimnesis-unrouted"]
+    assert unrouted["baseUrl"] == "http://127.0.0.1:9100/v1"
+    for provider in (models["providers"]["palimnesis"], unrouted):
+        assert provider["compat"]["thinkingFormat"] == "qwen-chat-template"
+        assert provider["compat"]["qwenPreserveThinking"] is False
+    assert "palimnesis-messages" not in models["providers"]  # OMP is Chat only (D104)
+    script = (tmp_path / "extensions" / "palimnesis-omp-session.ts").read_text(encoding="utf-8")
+    assert "http://127.0.0.1:9100/s/${id}" in script
+    assert len(_backups(tmp_path)) == 2
+    before = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+    assert main(args) == 0
+    assert before == {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+
+
+def test_setup_omp_refuses_pi_agent_directory(tmp_path):
+    """OMP also reads PI_CODING_AGENT_DIR: setup never writes OMP's files beside Pi's (D104)."""
+    (tmp_path / "models.json").write_text("{}", encoding="utf-8")
+    assert main(["setup", "omp", "--model", "m1", "--agent-dir", str(tmp_path)]) == 2
+    assert not (tmp_path / "models.yml").exists()
+
+
+def test_setup_omp_refuses_commented_yaml(tmp_path):
+    (tmp_path / "config.yml").write_text("# keep this note\ntheme: dark\n", encoding="utf-8")
+    assert main(["setup", "omp", "--model", "m1", "--agent-dir", str(tmp_path)]) == 2
+    assert not (tmp_path / "models.yml").exists()
+
+
 # ---------------------------------------------------------------- check
 
 @pytest.fixture
@@ -168,13 +213,14 @@ def stack(tmp_path):
 
 def test_check_passes_on_a_working_setup(stack, tmp_path, capsys):
     fake, upstream, port = stack
-    oc, pi = tmp_path / "oc", tmp_path / "pi"
+    oc, pi, omp = tmp_path / "oc", tmp_path / "pi", tmp_path / "omp"
     assert main(["setup", "opencode", "--model", ALIAS, "--config-dir", str(oc), "--port", str(port)]) == 0
     assert main(["setup", "pi", "--model", ALIAS, "--agent-dir", str(pi), "--port", str(port)]) == 0
+    assert main(["setup", "omp", "--model", ALIAS, "--agent-dir", str(omp), "--port", str(port)]) == 0
     capsys.readouterr()
 
     code = main(["check", "--upstream", upstream, "--port", str(port),
-                 "--opencode-dir", str(oc), "--pi-dir", str(pi)])
+                 "--opencode-dir", str(oc), "--pi-dir", str(pi), "--omp-dir", str(omp)])
 
     out = capsys.readouterr().out
     assert code == 0, out

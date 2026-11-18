@@ -252,14 +252,19 @@ def run_one(name: str, root: Path, port: int) -> dict:
             pport = port + 1000
             proxy = subprocess.Popen(
                 [
-                    "uv",
-                    "run",
+                    # The server itself, not a ``uv run`` wrapper (a terminated wrapper
+                    # leaves its child holding the archive on Windows), with an archive
+                    # of its own, never the user's default.
+                    sys.executable,
+                    "-m",
                     "palimnesis",
                     "serve",
                     "--upstream",
                     upstream,
                     "--port",
                     str(pport),
+                    "--db",
+                    str(out / "archive.db"),
                 ],
                 cwd=REPO,
                 stdout=(out / "proxy.log").open("w"),

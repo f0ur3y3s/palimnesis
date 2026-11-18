@@ -55,7 +55,7 @@ Open problems: the local model sometimes cuts an answer short ("1" for "1.25s"),
   - When a new release changes the chat template, Palimnesis tries the server's template and switches to it if the counts then match.
   - When the counts still differ, it archives and forwards every request but turns bounded views off, so the model gets the full history and long sessions can overflow the context. The startup log and `palimnesis check` say when this happens.
   - Other servers get no bounded view: the proxy archives and forwards. LM Studio works this way with Pi on both protocols ([R51](docs/results/phase4b.md#r51-wire-shapes-of-strata-0157-and-lm-studio-behind-the-proxy-2026-11-06)). llama.cpp and vLLM have not been tested.
-- A supported agent: **OpenCode 2.1.4** (OpenAI Chat Completions) or **Pi 1.5.0** (Chat Completions or Anthropic Messages). Claude Code is backlogged.
+- A supported agent: **OpenCode 2.1.4** (OpenAI Chat Completions), **Pi 1.5.0** (Chat Completions or Anthropic Messages), or **OMP 18.16.0** (Chat Completions). Claude Code is backlogged.
 
 ## Install
 
@@ -78,9 +78,13 @@ It listens on `127.0.0.1:9000`. On Windows, start it with `uv run python -m pali
 
 ```sh
 uv run palimnesis check --upstream http://<strata-host>:8080     # prints the server's model name
-uv run palimnesis setup opencode --model <model name>            # or: setup pi
+uv run palimnesis setup opencode --model <model name>            # or: setup pi / setup omp
 uv run palimnesis check --upstream http://<strata-host>:8080     # everything should PASS
 ```
+
+Use the **same upstream URL** for `serve` and every `check` run. Without `--upstream`, `check` probes `http://127.0.0.1:8080`, even if the running proxy was started with a different server. For example, if you started the proxy with `--upstream http://192.168.1.173:8080`, run `uv run palimnesis check --upstream http://192.168.1.173:8080`. A failed check against the default address does not mean the proxy has lost its upstream connection.
+
+During `check`, the proxy log may show `GET /v1/models` returning `400 Bad Request`. This is expected: `check` uses that response to identify Palimnesis, and the unprefixed request has no session ID. The `proxy` line should report `PASS`.
 
 `setup` writes into the agent's own configuration directory:
 
@@ -88,14 +92,21 @@ uv run palimnesis check --upstream http://<strata-host>:8080     # everything sh
 | --- | --- | --- |
 | OpenCode | `$OPENCODE_CONFIG_DIR`, else `~/.config/opencode` (on Windows too) | the `palimnesis` provider, model and `compaction.auto: false` in `opencode.json`, and the session plugin in `plugins/` |
 | Pi | `$PI_CODING_AGENT_DIR`, else `~/.pi/agent` | the `palimnesis` and `palimnesis-messages` providers in `models.json`, `compaction.enabled: false` and the default model in `settings.json`, and the session extension in `extensions/` |
+| OMP | `$PI_CODING_AGENT_DIR`, else `~/.omp/agent` | the `palimnesis` provider and a session-less `palimnesis-unrouted` provider for background roles in `models.yml`; `compaction.enabled: false`, the model roles and `title.generator: tiny` in `config.yml`; and a session routing extension in `extensions/` |
 
-It keeps your other settings and copies each file it changes to `<name>.bak-<time>` first. `--dry-run` shows what it would change. `--port` matches a proxy on another port. It refuses a file with comments, since it can only rewrite plain JSON. The files it installs are in [`integrations/`](integrations/) if you would rather merge them by hand.
+It keeps your other settings and copies each file it changes to `<name>.bak-<time>` first. `--dry-run` shows what it would change. `--port` matches a proxy on another port. OpenCode and Pi setup require plain JSON; they refuse files with comments. The files it installs are in [`integrations/`](integrations/) if you would rather merge them by hand.
+
+OMP setup reads YAML mappings and preserves other settings, but rewrites YAML formatting. It refuses files containing `#` and alternate `.yaml` filenames so those can be merged by hand without losing content. OMP also reads `PI_CODING_AGENT_DIR`, so setup refuses a directory that holds Pi's files: give OMP its own with `--agent-dir`.
 
 `check` reports PASS, WARN or FAIL for the server, its token counts, the proxy and each agent's settings, with a fix for each problem.
 
 **OpenCode.** Chat as usual: `opencode`, `opencode run …`, `opencode run --session <id> …`. The plugin routes each OpenCode session to its own Palimnesis session. If you run `opencode serve --service`, use `opencode run --standalone`: the service ignores plugins, so requests would reach the proxy without a session.
 
 **Pi.** Run it with the search tools enabled, so the model can search its transcripts: `pi --tools read,grep,bash,ls,find`. Pick the `palimnesis-messages` provider to talk to the proxy over Anthropic Messages instead of Chat Completions.
+
+**OMP.** Run `omp` after setup. The extension routes each OMP session to its own archive URL, over Chat Completions only: OMP's Anthropic Messages requests carry `context_management`, which Palimnesis does not support. OMP's own background calls (skill-description compression, titles, commit messages) go to `palimnesis-unrouted` and are refused, so they never enter a session or leave the machine; sessions get no generated titles. Verified live: a tool loop and a resumed turn, the transcript gate, proxy restarts and cancellation ([R59](docs/results/phase4b.md)). Branching, subagents and OMP's retries under upstream faults are not verified.
+
+If OMP reaches its output token limit partway through a tool call, it may leave that call unexecuted and keep a shortened copy in its history. Palimnesis accepts OMP 18.16.0's preview of those arguments when it matches the archived call exactly, so the next request can continue. A changed preview still gets `409 history_divergence`. Raise the model's `maxTokens` if long tool arguments routinely hit this limit.
 
 [`docs/harnesses.md`](docs/harnesses.md) explains each setting and what each agent does differently through the proxy.
 
@@ -117,7 +128,7 @@ The URL has the form `http://127.0.0.1:9000/s/<session>/v1`. A client that can't
 | Command | What it does |
 | --- | --- |
 | `palimnesis serve --upstream URL` | Run the proxy. |
-| `palimnesis setup opencode\|pi --model NAME` | Configure an agent for the proxy. |
+| `palimnesis setup opencode\|pi\|omp --model NAME` | Configure an agent for the proxy. |
 | `palimnesis check [--upstream URL]` | Check the server, its token counts, the proxy and agent settings. |
 | `palimnesis session new` / `session url ID` | Base URL for a new or resumed chat. |
 | `palimnesis catalog SESSION [--page N]` | Print a session's catalog: what is archived and its addresses. |

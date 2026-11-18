@@ -9,6 +9,7 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | [phase3.md](phase3.md) | Phase 3, first gate (R18–R27) |
 | [phase3b.md](phase3b.md) | Phase 3B, hidden recall tools (R28–R32) |
 | [phase3-acceptance.md](phase3-acceptance.md) | Working notes and Phase 3 acceptance (R33–R42) |
+| [phase4b.md](phase4b.md) | Phase 4B, harness expansion (R43–R60) |
 
 ## Index
 
@@ -71,3 +72,6 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R55 | Strata 0.1.58 on pythia: accepted by its counts, 209/209 counts equal, a task passes, prompt cancellation frees the slot in about 2 s (2026-11-07) | [phase4b.md](phase4b.md) |
 | R56 | The user prefers pair 2's arm 1 TINY TANK WAR game (assembled and patched) to a4-d77's, which crashes as written (2026-11-07) | [phase4b.md](phase4b.md) |
 | R57 | With its crash fixed, pair 2's a4-d77 TINY TANK WAR game is much better than arm 1's (user, not blind, 2026-11-07) | [phase4b.md](phase4b.md) |
+| R58 | OMP builds TINY TANK WAR at 64K through Palimnesis in 1 h 41 min; with its own compaction, 4 h 16 min and 14 failed handoffs; both pages pass 10/10 (2026-11-08) | [phase4b.md](phase4b.md) |
+| R59 | OMP's live gates through Palimnesis (smoke, transcript gate, restarts, cancel); OpenCode's faults through the archive-mode proxy (2026-11-18) | [phase4b.md](phase4b.md) |
+| R60 | Phase 4B gate summary (2026-11-18) | [phase4b.md](phase4b.md) |

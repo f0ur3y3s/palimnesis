@@ -10,6 +10,7 @@ dependencies = [
     "google-re2==1.1.20251105",
     "httpx>=0.28.1",
     "jinja2==3.1.6",
+    "pyyaml>=6.0.3",
     "tokenizers==0.23.3",
     "uvicorn>=0.54.0",
 ]
