@@ -7,6 +7,7 @@ files, and refuses heldout4."""
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -60,12 +61,20 @@ def test_state_tools_refuse_heldout4():
 FAKE = SimpleNamespace(ID="fake-t1", TRAP_PATTERNS=(r"int\(\s*float\(",))
 
 
-def _session(tmp_path, calls: int, trap_call: bool):
+RUN_WS = Path("C:/runs/attempt-001/ws")
+SOURCE = str(RUN_WS / "pkg" / "parse.py")
+TRAP_WRITE = ("write", {"path": SOURCE, "content": "cents = int(float(p) * 100)\n"})
+
+
+def _session(tmp_path, calls: int, trap_call: bool | tuple = False):
+    if trap_call is True:
+        trap_call = TRAP_WRITE
     with view_stack(tmp_path, input_budget=BUDGET, notes_tokens=2048, notes_format="n2") as (
             fake, url, s):
         for k in range(calls):
             if trap_call and k == calls - 1:
-                fake.respond_counted(tool_call=("call_t", "write", '{"content": "int(float(p) * 100)"}'))
+                tool, args = trap_call
+                fake.respond_counted(tool_call=("call_t", tool, json.dumps(args)))
             else:
                 _answer(fake, f"answer {k}")
                 _answer(fake, f"answer {k}")
@@ -92,10 +101,62 @@ def test_too_few_moves_are_not_eligible(tmp_path):
 
 def test_trap_repeat_found_in_a_generated_tool_call(tmp_path):
     db = _session(tmp_path, 4, trap_call=True)
-    [r] = state_eval.evaluate(db, FAKE)
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
     assert r["trap_repeated"] is True
-    assert [h["where"] for h in r["trap_hits"]] == ["tool_call"]
+    assert [(h["where"], h["kind"]) for h in r["trap_hits"]] == [("tool_call", "code")]
     assert r["trap_hits"][0]["tool"] == "write"
+    assert r["trap_hits"][0]["path"] == "pkg/parse.py"
+    assert r["trap_doubtful"] == 0
+
+
+# D109: a hit counts as a repeat only when the trap is code (not a comment or a string)
+# that the model put into a task source file. Everything else is doubtful, for review by
+# hand (D107.7): searches, shell commands, scratch files outside the workspace, tests,
+# comments and strings, and an edit's old text (the model removing the trap).
+DOUBTFUL_CALLS = {
+    "scratch file": ("write", {"path": "C:/runs/attempt-001/oc/tmp/opencode/probe.py",
+                               "content": "print(int(float('0.29') * 100))\n"}),
+    "comment only": ("write", {"path": SOURCE,
+                               "content": "# never int(float(p) * 100): 0.29 -> 28\nx = 1\n"}),
+    "string only": ("write", {"path": SOURCE, "content": "WHY = 'not int(float(p) * 100)'\n"}),
+    "test file": ("write", {"path": str(RUN_WS / "tests" / "test_p.py"),
+                            "content": "assert int(float('1') * 100) == 100\n"}),
+    "edit removes it": ("edit", {"path": SOURCE, "oldString": "c = int(float(p) * 100)",
+                                 "newString": "c = to_cents(p)"}),
+    "search": ("grep", {"pattern": "int(float(", "path": str(RUN_WS)}),
+    "shell": ("shell", {"command": "python -c \"print(int(float('0.29')*100))\""}),
+    "no path": ("write", {"content": "int(float(p) * 100)"}),
+}
+
+
+@pytest.mark.parametrize("case", sorted(DOUBTFUL_CALLS))
+def test_doubtful_trap_hits_are_reported_not_counted(tmp_path, case):
+    db = _session(tmp_path, 4, trap_call=DOUBTFUL_CALLS[case])
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is False
+    assert [(h["where"], h["kind"]) for h in r["trap_hits"]] == [("tool_call", "doubtful")]
+    assert r["trap_doubtful"] == 1
+
+
+def test_an_edit_that_adds_the_trap_counts(tmp_path):
+    db = _session(tmp_path, 4, trap_call=("edit", {
+        "path": SOURCE, "oldString": "c = to_cents(p)", "newString": "c = int(float(p) * 100)"}))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is True and r["trap_hits"][0]["kind"] == "code"
+
+
+@pytest.mark.parametrize("path", ["pkg/parse.py", "./pkg/parse.py", "pkg\\parse.py"])
+def test_a_relative_path_is_in_the_run_workspace(tmp_path, path):
+    """The harness resolves a relative path against the workspace it runs in."""
+    db = _session(tmp_path, 4, trap_call=("write", {"path": path, "content": "c = int(float(p))\n"}))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is True and r["trap_hits"][0]["path"] == "pkg/parse.py"
+
+
+def test_without_the_run_workspace_no_tool_call_counts(tmp_path):
+    db = _session(tmp_path, 4, trap_call=True)
+    [r] = state_eval.evaluate(db, FAKE)
+    assert r["trap_repeated"] is False and r["trap_hits"][0]["kind"] == "doubtful"
 
 
 def test_trap_repeat_found_in_final_source_files_not_tests(tmp_path):
@@ -104,10 +165,28 @@ def test_trap_repeat_found_in_final_source_files_not_tests(tmp_path):
     (ws / "pkg").mkdir(parents=True)
     (ws / "tests").mkdir()
     (ws / "pkg" / "parse.py").write_text("cents = int(float(text) * 100)\n", encoding="utf-8")
+    (ws / "pkg" / "notes.py").write_text('"""Never int(float(x) * 100)."""\n# int(float(\n',
+                                         encoding="utf-8")
     (ws / "tests" / "test_x.py").write_text("int(float('1'))\n", encoding="utf-8")
     [r] = state_eval.evaluate(db, FAKE, workspace=ws)
-    assert r["trap_hits"] == [{"where": "file", "path": "pkg/parse.py",
-                               "pattern": FAKE.TRAP_PATTERNS[0]}]
+    assert r["trap_hits"] == [
+        {"where": "file", "path": "pkg/notes.py", "pattern": FAKE.TRAP_PATTERNS[0],
+         "kind": "doubtful"},
+        {"where": "file", "path": "pkg/parse.py", "pattern": FAKE.TRAP_PATTERNS[0],
+         "kind": "code"}]
+    assert r["trap_repeated"] is True and r["trap_doubtful"] == 1
+
+
+def test_code_outside_comments_and_strings():
+    code = state_eval.code_only
+    assert "int(float(" in code("x = int(float(p) * 100)  # int(float( again\n")
+    assert "int(float(" not in code("# int(float(p))\ns = 'int(float(p))'\n")
+    assert "int(float(" not in code('"""\nint(float(p))\n"""\n')
+    assert "int(float(" not in code("f'{int(float(p))}'\n") or sys.version_info < (3, 12)
+    # A fragment that does not tokenize (an edit's newString) still loses its comments
+    # and complete strings.
+    assert "int(float(" in code("    return int(float(p) * 100\n")
+    assert "int(float(" not in code("  # int(float(p)\n  s = 'int(float(p)'\n  )")
 
 
 def test_a_task_without_patterns_is_reviewed_by_hand(tmp_path):

@@ -125,3 +125,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D106 | Phase 4A reviews of S0–S8: provenance never vetoes a version, no scan under the write lock, the marginal cost aligned, stronger goldens | [phase4a.md](phase4a.md) |
 | D107 | Phase 4A evaluation protocol: Zeus at emulated 32K, a4-d77 and a4-tr on 15 tasks, retired sets may emulate | [phase4a.md](phase4a.md) |
 | D108 | S10 continues after Zeus's update restart: Strata relaunched with the identical command; a4-tr ho2-t3 rerun twice for infrastructure aborts | [phase4a.md](phase4a.md) |
+| D109 | A trap repeat is the trap in code the model wrote into the task's source; every other hit is doubtful and reviewed by hand | [phase4a.md](phase4a.md) |

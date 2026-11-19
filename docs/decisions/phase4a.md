@@ -126,3 +126,23 @@ D107.1 says nothing restarts Strata during a comparison, and that a busy host or
    - `a4-tr` ho2-t3's aborted attempt 1 stays in the archive. Attempt 2 reran it with the reason recorded, as D107.5 allows for an infrastructure abort.
    - Attempt 2 was itself cut off in turn 8 of 8, at about 13:56, when the Windows machine running OpenCode and the proxy restarted. Zeus and Strata were unaffected. Its stale `running` status was marked `aborted` (`runner_host_restart`) afterwards, and attempt 3 reran the task with that reason. Both aborted attempts stay in the archive. Attempt 3 is the designated one.
 5. **Not changed.** Zeus's update settings were left alone. The last 8 runs finished at 17:23, inside its active hours, with no further restart.
+
+## D109: A trap repeat is the trap in code the model wrote into the task's source (S11, 2026-11-19)
+
+`TRAP_PATTERNS` matched text, not intent. In the S10 runs, every pattern hit was the model ruling the trap out: a printed demonstration, a grep for the word, a comment saying the code avoids it, and a scratch script comparing it with the right method. D107.7 sends doubtful hits to review by hand. This rule makes "doubtful" mechanical, so the count reported as GL2 is not inflated by hits nobody would call a repeat.
+
+1. **Two kinds of hit** (`eval/state_eval.py`, `tests/test_state_eval.py`). Every pattern match after the statement is still reported, now with a `kind`.
+   - **`code`**, which counts as a repeat: the trap outside comments and string literals, in one of two places:
+     - what a `write`, or an `edit`'s new text, put into a task source file inside the workspace the harness ran in;
+     - a final source file.
+   - **`doubtful`**, everything else, reviewed by hand and reported as `trap_doubtful`:
+     - searches, shell commands and reads;
+     - scratch files outside the workspace (OpenCode's own tmp folder);
+     - tests;
+     - comments, strings and f-strings;
+     - an edit's old text, which is the model removing the trap;
+     - a call with no path.
+2. **Source files.** Python files that are neither tests nor the checker's copy. A relative path is resolved against the workspace, as the harness does. Without the run's workspace, no tool call counts. The CLI takes the workspace from the attempt's transcript root; the S10 collector takes it from `attempts.json`.
+3. **Comments and strings** are blanked with Python's tokenizer. A fragment that does not tokenize, such as an edit's new text, falls back to a scan for comments and complete literals.
+4. **Rejected: stricter patterns.** Every hit would still need its context, and a demonstration (`print(int(float('0.29') * 100))`) is the same code as a repeat. Where the code is written decides it.
+5. **Effect on S10.** 0 `code` hits and 6 `doubtful` hits over both arms. All 6 were read by hand and none is a repeat (R61).

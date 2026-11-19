@@ -13,8 +13,12 @@ Reads one task attempt's records (``eval/tasks/run.py``: ``result.json``, the ar
 - **constraints**: ``test_c<N>`` outcomes from ``result.json`` (``run.py``'s check).
 - **trap repeats**: the task's ``TRAP_PATTERNS`` searched in the model's generated
   tool-call arguments after the statement, and in the final workspace's source files
-  (tests excluded). A task without patterns reports ``trap: "manual"``: hits there are
-  reviewed by hand, as are doubtful pattern hits.
+  (tests excluded). Each hit is ``code`` or ``doubtful`` (D109). Only ``code`` counts as a
+  repeat: the trap outside comments and strings, in what a ``write`` or an ``edit``'s new
+  text put into a task source file in the workspace the harness ran in, or in a final
+  source file. Searches, shell commands, scratch files, tests, comments, strings and an
+  edit's old text are ``doubtful`` and reviewed by hand (D107.7). A task without
+  patterns reports ``trap: "manual"`` and is reviewed by hand.
 - **state**: committed state versions after the statement, and whether the statement's
   own turn was collapsed out of view by the end (then only the state, excerpts and
   transcripts could carry it).
@@ -26,10 +30,12 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import io
 import json
 import re
 import sqlite3
 import sys
+import tokenize
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,7 +83,76 @@ def _moves_after(conn: sqlite3.Connection, branch: str, since: float) -> tuple[i
     return moves, (rows[-1][1] if rows else 0)
 
 
-def _trap_hits(conn, branch: str, after_seq: int, patterns, workspace: Path | None) -> list[dict]:
+_LITERAL = re.compile(
+    r'[rRbBuUfF]{0,2}(?:"""[\s\S]*?"""' + r"|'''[\s\S]*?'''" + r'|"(?:\\.|[^"\\\n])*"'
+    + r"|'(?:\\.|[^'\\\n])*')" + r"|#[^\n]*")
+_WRITES = {"write": ("content",), "edit": ("newString", "content")}
+
+
+def _blank(text: str, spans) -> str:
+    out = list(text)
+    for start, end in spans:
+        for i in range(start, end):
+            if out[i] != "\n":
+                out[i] = " "
+    return "".join(out)
+
+
+def code_only(text: str) -> str:
+    """``text`` with Python comments and string literals (f-strings whole) blanked, so a
+    trap named in a comment, a docstring or a printed message is not code. A fragment
+    that does not tokenize (an edit's new text) falls back to a scan for comments and
+    complete literals."""
+    starts, pos = [], 0
+    for line in text.splitlines(keepends=True):
+        starts.append(pos)
+        pos += len(line)
+    starts.append(pos)
+
+    def offset(rc):
+        return starts[rc[0] - 1] + rc[1] if rc[0] - 1 < len(starts) else len(text)
+
+    spans, fstring = [], []
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(text).readline):
+            name = tokenize.tok_name.get(tok.type, "")
+            if name == "FSTRING_START":
+                fstring.append(offset(tok.start))
+            elif name == "FSTRING_END" and fstring:
+                start = fstring.pop()
+                if not fstring:
+                    spans.append((start, offset(tok.end)))
+            elif not fstring and tok.type in (tokenize.COMMENT, tokenize.STRING):
+                spans.append((offset(tok.start), offset(tok.end)))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        spans = [m.span() for m in _LITERAL.finditer(text)]
+    return _blank(text, spans)
+
+
+def _source(rel: str) -> bool:
+    """A task source file: Python, not a test and not the checker's copy."""
+    return (rel.endswith(".py") and not rel.startswith(("tests/", "_check/", "../"))
+            and "/tests/" not in rel and not rel.rsplit("/", 1)[-1].startswith("test_"))
+
+
+def _relative(path: str, run_ws: Path | None) -> str | None:
+    if run_ws is None or not path:
+        return None
+    path = path.replace("\\", "/")
+    if not re.match(r"[A-Za-z]:|/|~", path):  # relative: the harness resolves it in run_ws
+        while path.startswith("./"):
+            path = path[2:]
+        return None if path.startswith("../") else path
+    root = str(run_ws).replace("\\", "/").rstrip("/") + "/"
+    return path[len(root):] if path.lower().startswith(root.lower()) else None
+
+
+def _trap_hits(conn, branch: str, after_seq: int, patterns, workspace: Path | None,
+               run_ws: Path | None) -> list[dict]:
+    """Every pattern match after the statement, each ``kind`` ``code`` or ``doubtful``
+    (D109). ``code``: outside comments and strings, in what a ``write`` or an ``edit``'s
+    new text put into a task source file inside ``run_ws`` (the workspace the harness
+    ran in), or in a final source file. Everything else that matches is ``doubtful``."""
     compiled = [re.compile(p) for p in patterns]
     hits = []
     for occ_id, seq in conn.execute("SELECT occ_id, seq FROM occurrences WHERE branch_id = ?"
@@ -85,25 +160,41 @@ def _trap_hits(conn, branch: str, after_seq: int, patterns, workspace: Path | No
                                     (branch, after_seq)):
         for block_id, meta in conn.execute("SELECT block_id, meta FROM blocks WHERE occ_id = ?"
                                            " AND kind = 'tool_call'", (occ_id,)):
-            arguments = _text(conn, block_id)
+            arguments, tool = _text(conn, block_id), json.loads(meta).get("name")
+            try:
+                args = json.loads(arguments)
+            except ValueError:
+                args = None
+            rel, written = None, None
+            if isinstance(args, dict) and tool in _WRITES:
+                rel = _relative(str(args.get("path") or args.get("filePath") or ""), run_ws)
+                written = next((args[k] for k in _WRITES[tool] if isinstance(args.get(k), str)),
+                               None)
             for p in compiled:
-                if p.search(arguments):
-                    hits.append({"where": "tool_call", "seq": seq,
-                                 "tool": json.loads(meta).get("name"), "pattern": p.pattern})
+                if not p.search(arguments):
+                    continue
+                code = (rel is not None and _source(rel) and written is not None
+                        and p.search(code_only(written)) is not None)
+                hit = {"where": "tool_call", "seq": seq, "tool": tool, "pattern": p.pattern,
+                       "kind": "code" if code else "doubtful"}
+                if rel is not None:
+                    hit["path"] = rel
+                hits.append(hit)
     if workspace is not None and workspace.is_dir():
         for path in sorted(workspace.rglob("*.py")):
             rel = path.relative_to(workspace).as_posix()
-            if rel.startswith(("tests/", "_check/")) or "/tests/" in rel:
+            if not _source(rel):
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             for p in compiled:
                 if p.search(text):
-                    hits.append({"where": "file", "path": rel, "pattern": p.pattern})
+                    hits.append({"where": "file", "path": rel, "pattern": p.pattern,
+                                 "kind": "code" if p.search(code_only(text)) else "doubtful"})
     return hits
 
 
 def evaluate(db: Path, task, *, check: dict | None = None,
-             workspace: Path | None = None) -> list[dict]:
+             workspace: Path | None = None, run_ws: Path | None = None) -> list[dict]:
     """One report per session in the archive (a task attempt has one)."""
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
@@ -120,7 +211,7 @@ def evaluate(db: Path, task, *, check: dict | None = None,
                 "SELECT count(*) FROM notes_versions WHERE branch_id = ? AND status ="
                 " 'committed' AND created_at > ?", (branch, arrived)).fetchone()[0]
             patterns = tuple(getattr(task, "TRAP_PATTERNS", ()))
-            hits = _trap_hits(conn, branch, seq, patterns, workspace) if patterns else []
+            hits = _trap_hits(conn, branch, seq, patterns, workspace, run_ws) if patterns else []
             eligible = moves >= MIN_MOVES
             constraints = (check or {}).get("constraints") or {}
             out.append({
@@ -133,7 +224,9 @@ def evaluate(db: Path, task, *, check: dict | None = None,
                 "constraints_eligible": len(constraints) if eligible else 0,
                 "trap": "pattern" if patterns else "manual",
                 "trap_hits": hits,
-                "trap_repeated": (bool(hits) if patterns else None) if eligible else None,
+                "trap_doubtful": sum(h["kind"] == "doubtful" for h in hits),
+                "trap_repeated": (any(h["kind"] == "code" for h in hits) if patterns else None)
+                if eligible else None,
             })
         return out
     finally:
@@ -153,7 +246,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     result = json.loads((args.attempt / "result.json").read_text(encoding="utf-8"))
     db = args.attempt / "archive.db"
-    reports = evaluate(db, task, check=result.get("check"), workspace=args.attempt / "check" / "ws")
+    # The harness ran in <attempt ws>/ws; run.py records the attempt's transcript root
+    # beside it.
+    transcripts = (result.get("settings") or {}).get("transcripts")
+    run_ws = Path(transcripts).parent / "ws" if transcripts else None
+    reports = evaluate(db, task, check=result.get("check"),
+                       workspace=args.attempt / "check" / "ws", run_ws=run_ws)
     if args.json:
         print(json.dumps(reports, indent=1))
     else:
@@ -161,7 +259,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{r['task']} {r['session']}: moves after the rules {r['moves_after']}"
                   f" ({'eligible' if r['eligible'] else 'not eligible'}),"
                   f" constraints {r['constraints_held']}/{r['constraints_eligible']},"
-                  f" trap {r['trap']} repeated={r['trap_repeated']} hits={len(r['trap_hits'])},"
+                  f" trap {r['trap']} repeated={r['trap_repeated']} hits={len(r['trap_hits'])}"
+                  f" (doubtful {r['trap_doubtful']}),"
                   f" state versions after {r['state_versions_after']},"
                   f" statement collapsed={r['statement_collapsed']}")
     return 0
