@@ -104,3 +104,25 @@ Written before the first S10 run, as D105.12 requires. Everything here is develo
     - The dev-state needle set (plan §4): not built. GL2 uses tasks only.
     - The 64K report run: later, on pythia as it stands.
     - The Pi Messages neutrality smoke: later, once Pi is set up on this machine.
+
+## D108: S10 continues after Zeus's update restart, with Strata relaunched unchanged (2026-11-19)
+
+D107.1 says nothing restarts Strata during a comparison, and that a busy host or a changed build stops it. Neither happened. Windows restarted Zeus for an update, and Strata was relaunched with the same command.
+
+1. **What happened.**
+   - At 03:29:10 on 2026-11-19, Windows Update (`MoUsoCoreWorker.exe`, System event 1074, "Service pack (Planned)") restarted Zeus. A second restart followed at 03:31:33 for KB5132061. The pause on updates had run out at 2026-11-18 21:14Z, and the active hours (11:00 to 03:00) had ended.
+   - Strata has no autostart, so it stayed down.
+   - `a4-tr` ho2-t3 was at turn 7. Its gate recorded `busy_before_request` with `queued: -1` at 03:29:22, and the run aborted at 03:49 as `slot_busy: slot busy for 1201s`. The host was down, not busy. The gate counts a status it cannot read as busy.
+   - The 22 runs before it had finished: all 15 of `a4-d77`, and `a4-tr` dev-t1..t5, ho2-t1 and ho2-t2.
+2. **The relaunch.**
+   - Strata was started again at about 13:05 local (ready at 13:20) through `strata launch` with the choices the previous start recorded (`%LOCALAPPDATA%\Strata\launch\iq3_xxs-128k.choices.json`): IQ3_XXS at 128K, MTP drafting, no tuning, vision off, LAN on port 8080.
+   - The engine command is the one the launcher logged for every start since 2026-11-05: the 0.1.57 CUDA engine, `--spec 4 --spec-min-p 0.5`, `--max-context 131072 --kv int8 --kv-resident 32768`, and the same adaptive-tier arguments.
+   - `/props` matched before the first run after the relaunch: build, model, `n_ctx` and one slot. `palimnesis check` passed its upstream and bounded-view (canary) items and every OpenCode item; its OMP items fail until `palimnesis setup omp` is rerun, which S10 does not use.
+3. **Why the comparison continues** instead of starting over:
+   - the host, the build, the engine arguments and the context are unchanged, so the arm is not split (D48, D76, D103);
+   - every task is a fresh session, so nothing carries over from one task to the next except Strata's conversation cache and adaptive expert tier. Both were already changing from task to task, and both affect speed, not which comparison a run belongs to.
+4. **What it costs.**
+   - The runs after the relaunch start with a cold conversation cache and an untrained expert tier, so their timings are not comparable with the earlier runs. Reports of prompt time per arm say so.
+   - `a4-tr` ho2-t3's aborted attempt 1 stays in the archive. Attempt 2 reran it with the reason recorded, as D107.5 allows for an infrastructure abort.
+   - Attempt 2 was itself cut off in turn 8 of 8, at about 13:56, when the Windows machine running OpenCode and the proxy restarted. Zeus and Strata were unaffected. Its stale `running` status was marked `aborted` (`runner_host_restart`) afterwards, and attempt 3 reran the task with that reason. Both aborted attempts stay in the archive. Attempt 3 is the designated one.
+5. **Not changed.** Zeus's update settings were left alone. The last 8 runs finished at 17:23, inside its active hours, with no further restart.

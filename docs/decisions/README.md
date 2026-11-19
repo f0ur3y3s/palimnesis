@@ -124,3 +124,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D105 | Phase 4A plan decisions: the state is the notes, no state tool, slot 2,048, outputs archived, GL1 by measurement, Zeus at emulated 32K | [phase4a.md](phase4a.md) |
 | D106 | Phase 4A reviews of S0–S8: provenance never vetoes a version, no scan under the write lock, the marginal cost aligned, stronger goldens | [phase4a.md](phase4a.md) |
 | D107 | Phase 4A evaluation protocol: Zeus at emulated 32K, a4-d77 and a4-tr on 15 tasks, retired sets may emulate | [phase4a.md](phase4a.md) |
+| D108 | S10 continues after Zeus's update restart: Strata relaunched with the identical command; a4-tr ho2-t3 rerun twice for infrastructure aborts | [phase4a.md](phase4a.md) |
