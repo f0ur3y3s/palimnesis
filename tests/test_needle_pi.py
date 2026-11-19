@@ -243,8 +243,8 @@ def test_pi_driver_runs_a4_d77_only():
 
 def test_held_out_sets_keep_their_protections(monkeypatch):
     monkeypatch.setattr(needle_pi.nod.gi, "git_provenance", lambda: {"dirty": False, "status": []})
-    h = [Path("ho3-h1.json")]
-    assert any("O-4B-11" in p for p in needle_pi.refusals(args(set="heldout3"), h))
+    h = [Path("ho4-h1.json")]
+    assert any("O-4B-11" in p for p in needle_pi.refusals(args(set="heldout4"), h))
     retired = needle_pi.refusals(args(set="heldout2", upstream="fake", questions=1, input_budget=24320), h)
     assert any("fake upstream" in p for p in retired)
     assert any("--questions" in p for p in retired)

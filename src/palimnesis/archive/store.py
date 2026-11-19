@@ -318,6 +318,34 @@ CREATE TABLE notes_versions (
 ) STRICT;
 """
 
+# v7: the whole output and provenance of every notes refresh that streamed, and the
+# archive addresses each committed state cites (D105.4).
+_NOTES_OUTPUT_KEYS = {"notes_outputs": [("notes_id",)], "notes_sources": [("notes_id", "idx")]}
+_NOTES_OUTPUTS = """
+CREATE TABLE notes_outputs (
+    notes_id TEXT PRIMARY KEY REFERENCES notes_versions,
+    call_id TEXT NOT NULL,
+    archive_seq INTEGER NOT NULL,
+    prompt_format TEXT NOT NULL,
+    header TEXT NOT NULL,
+    content BLOB NOT NULL,      -- WTF-8: a lone surrogate split across deltas survives
+    reasoning BLOB NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    source TEXT NOT NULL CHECK (source IN ('reply', 'from_reasoning')),
+    dropped TEXT NOT NULL       -- JSON line indices, or null when the cut never ran
+) STRICT;
+
+CREATE TABLE notes_sources (
+    notes_id TEXT NOT NULL REFERENCES notes_versions,
+    idx INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('alias', 'turn')),
+    target_id TEXT,
+    status TEXT NOT NULL CHECK (status IN ('valid', 'unknown', 'ambiguous')),
+    PRIMARY KEY (notes_id, idx)
+) STRICT;
+"""
+
 MIGRATIONS: list[str | tuple[str, str]] = [
     _SCHEMA_V1 + _immutability_triggers(),
     # v2: derived full-text index (palimnesis.recall.search), filled from existing blocks.
@@ -335,6 +363,7 @@ MIGRATIONS: list[str | tuple[str, str]] = [
      "CREATE INDEX chunk_map_block ON chunk_map (block_rowid);",
      "palimnesis.recall.search:backfill_chunks"),
     _NOTES + _immutability_triggers(_NOTES_KEYS),
+    _NOTES_OUTPUTS + _immutability_triggers(_NOTES_OUTPUT_KEYS),
 ]
 
 _DENIED_ACTIONS = frozenset(

@@ -27,19 +27,23 @@ def test_a4_d77_is_a4_trn2h_under_its_held_out_name():
     assert "a4-d77" in needle.HELDOUT_CONFIGS
 
 
-def test_heldout3_is_a_held_out_set_not_retired():
+def test_heldout3_is_retired_to_development_data_after_its_gate():
+    """R41 judged heldout3 (D77); D105.10 retires it to development data, as D69 did ho2."""
     assert needle.SETS["heldout3"] == ("heldout3", "ho3")
     assert "heldout3" in needle.HELDOUT_SETS
-    assert "heldout3" not in needle.RETIRED_SETS
+    assert "heldout3" in needle.RETIRED_SETS
+    assert "heldout4" not in needle.RETIRED_SETS  # unseen for Phase 7 (D96)
     assert report.SET_SHAPE["heldout3"] == (12, 10)
 
 
-def test_ho3_tasks_run_arm_4_only_as_a4_d77_or_a4_d43():
+def test_ho3_tasks_run_any_arm_4_configuration_once_retired():
     info = task_run.resolve_arm(4, "a4-d77", "heldout3")
     assert (info["arm"], info["label"], info["config"]) == (4, "a4-d77", "a4-d77")
     assert task_run.resolve_arm(4, None, "heldout3")["label"] == "a4"
+    # Retired (D105.10): ho3 tasks now run development configurations too.
+    assert task_run.resolve_arm(4, "a4-trn2h", "heldout3")["config"] == "a4-trn2h"
     with pytest.raises(ValueError, match="a4-d77"):
-        task_run.resolve_arm(4, "a4-trn2h", "heldout3")
+        task_run.resolve_arm(4, "a4-trn2h", "heldout4")
     assert task_run.resolve_arm(1, None, "heldout3")["label"] == "a1"
     assert [t for t in task_run.TASKS if t.startswith("ho3-")] == [
         "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5"]

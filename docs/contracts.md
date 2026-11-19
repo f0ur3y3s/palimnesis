@@ -197,6 +197,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 - **Reuse is checkpoint-based.** The upstream resumes from its last checkpoint at or before the first changed token. Reported reuse below the LCP is expected and recorded as checkpoint-limited, not unexplained.
 - Restart and eviction reduce reuse without any input change. The class `restart_or_eviction` means only "below the checkpoint estimate": it also covers Strata no longer holding a checkpoint the model assumed, with no restart (D50).
 - Latency-derived estimates are labeled as estimates.
+- **A state commit's own cost** (Phase 4A, D105.5). A pair caused by `state_commit` also records `state_marginal_tokens`: the re-read from the first changed token, which sits in the notes block, to the segment holding the next turn the same move changed, or to the generation prompt when nothing else changed. Turns after the block are aligned by position once notes blocks are set aside, and appended turns are not changes (D106). The rest of that pair's re-read belongs to what the move made with the commit, such as a collapse or a watermark move. The pair's cause names only its first change. `eval/replay.py --explain --by-cause` reports, per recorded cause string, the re-read tokens, the prompt time, this share and the rest (`with_state_tokens`). It reports the notes refresh calls apart, each with its own re-read. Re-read tokens are a common-prefix figure; the upstream re-reads from its checkpoint, which can be more.
 
 ## 11. Durability and isolation
 
@@ -208,7 +209,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - Each bounded output batch commits, with its transcript mapping, before it is forwarded.
   - Turn-completion markers are separate, so a crash leaves an explicit incomplete turn.
 - No write transaction is held across inference. Blocking database work runs off the event loop.
-- Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
+- Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Immutable tables include `notes_versions`, `notes_outputs` and `notes_sources` (§17). Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
 - An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically.
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.
 - **Excerpt blocks** (A1).
@@ -295,3 +296,30 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - Comments pass through; the proxy's own keepalive is `event: ping`.
   - Non-streaming: one Messages object. A tool call whose arguments do not parse is left out, as Strata's non-streaming route does.
 - **Content identity.** A message's content hash covers only what renders, so a moved `cache_control` and a single text block sent as a string hash alike. The fingerprint (§6) covers the raw body minus `stream` and every `cache_control`, which moves each turn and renders nothing.
+
+## 17. Pinned state (Phase 4A)
+
+**[enforced]** (`palimnesis.view.builder`, `view.state`, `archive.ledger`, `archive.pipeline`; D105, D106; `tests/test_state_*.py`). The pinned state is the working notes (§2). Phase 4A adds provenance, retrievability and measurement, and leaves what the model sees unchanged. Two golden sessions (`tests/test_state_golden.py`), recorded on `phase-4b`, cover the cases where provenance code runs: a cut, notes taken from the reasoning, a split surrogate, cited addresses and excerpts.
+
+- **Provenance.** Every refresh that streamed keeps its whole output in an immutable `notes_outputs` row. A failed refresh that streamed is kept too. The row holds:
+  - the reply and the reasoning, each whole, stored as WTF-8 bytes so a lone surrogate from a split emoji survives, and the reply's hash;
+  - the source the version was taken from (`reply`, or `from_reasoning` under n2);
+  - the refresh call id (`<attempt>#notes`);
+  - the archive cutoff: the highest seq among the messages the refresh rendered;
+  - the prompt format and header it was written under;
+  - `dropped`: the non-blank lines the cut left out, or null when the cut never ran (a failed refresh). They are indexed in the text the cut was applied to: the reply stripped, or the reasoning's draft. A line the cut shortened counts.
+
+  A refresh that got no stream (an HTTP status, a transport error, a timeout before the stream, or `over_budget`) has a version row only.
+- **Provenance never vetoes a version** (D106).
+  - The output and the cited addresses are recorded in the version's transaction, under a savepoint, before the rebuilt view is sent.
+  - If recording them fails, they alone are rolled back. The version commits and renders as it would without them, and a `notes_provenance_failed` event names the exception type.
+- **Retrievable originals.** The cut drops lines deterministically, and the archive keeps them. `palimnesis state SESSION --version N --raw` shows them.
+- **Cited addresses.** Each `§ALIAS[.N]` and `turn-N` (four or more digits) that a committed state names is recorded in the immutable `notes_sources` table as `valid`, `unknown` or `ambiguous`.
+  - An alias is resolved in the session's scope. A named block must exist.
+  - A turn file is valid for N from 0, the system prompt's file (§14), to the request's highest turn. It is counted from the request before the write, and is valid even when transcript files are off.
+  - The state's text is never rewritten.
+  - When anything is cited, a `notes_sources` event carries the counts.
+- **Logs.** `notes_version`, `notes_sources` and `notes_provenance_failed` events carry counts, ids and exception types only, never state text.
+- **Authority.** The state is the model's own fallible text, rendered user-role and never merged into a system message. Its header says the user's messages win.
+- **Isolation.** State text is not a recall source. It is not indexed, not excerpted, not projected into transcripts and not sent to the client.
+- **Known limit: one refresh per move is not guaranteed across a crash** (D106). The version commits before the view move that triggered it. A crash or cancel between the two leaves the move unrecorded, so the retry refreshes again and writes a second version for the same move. This predates Phase 4A. A retry after a failed answer reuses the committed state (tested).

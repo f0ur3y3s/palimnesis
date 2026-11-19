@@ -218,6 +218,22 @@ def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
     return fit_prefix(lines[0], fits)  # one line longer than the slot: cut it
 
 
+def fit_notes_report(text: str, fits: Callable[[str], bool], *,
+                     sections: bool) -> tuple[str, list[int]]:
+    """``fit_notes``'s result and the indices of ``text``'s non-blank lines it left out
+    (D105.4): the archive keeps the whole reply, so a cut line stays retrievable. A line
+    the cut shortened counts as left out. The rule itself is ``fit_notes``'s, unchanged."""
+    kept = fit_notes(text, fits, sections=sections)
+    lines = text.split("\n")
+    kept_lines = kept.split("\n") if kept else []
+    matched, j = set(), 0
+    for i, line in enumerate(lines):  # kept is an ordered subsequence of the lines
+        if j < len(kept_lines) and line == kept_lines[j]:
+            matched.add(i)
+            j += 1
+    return kept, [i for i, line in enumerate(lines) if line.strip() and i not in matched]
+
+
 NOTES_HEADERS = ("h1", "h2")
 # D75: h2 asks for values quoted from the notes in full (R38-E: fewer answers cut short).
 _HEADER_TAILS = {"h1": "", "h2": ". When you quote a value from these notes, write it out in "

@@ -372,3 +372,7 @@ def scale_recipe(text, factor, system="us"):
         out.append(scale_line(body, factor, system=system) + line[len(body):])
     return "".join(out)
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'float\(\s*quantity\s*\)',)

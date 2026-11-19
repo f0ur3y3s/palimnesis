@@ -357,3 +357,7 @@ def quote_parcel(weight_g, dims, zone, with_fuel=False):
         price += (price * Decimal("0.075")).quantize(CENT, rounding=ROUND_HALF_UP)
     return price.quantize(CENT)
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'float\(\s*l\s*\)\s*\*\s*float\(\s*w\s*\)',)

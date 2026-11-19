@@ -673,18 +673,106 @@ def notes_for(conn: sqlite3.Connection, notes_id: str | None) -> dict:
     return {notes_id: (row[0], row[1])} if row else {}
 
 
+@dataclass(frozen=True)
+class NotesOutput:
+    """What a notes refresh streamed and how it was asked (D105.4): kept whole, so the
+    lines a cut leaves out stay retrievable."""
+
+    call_id: str
+    archive_seq: int
+    prompt_format: str
+    header: str
+    content: str
+    reasoning: str
+    source: str  # "reply" or "from_reasoning" (D74)
+    dropped: tuple[int, ...] | None = None  # None: the cut never ran (a failed refresh)
+
+
+def _wtf8(text: str) -> bytes:
+    return text.encode("utf-8", "surrogatepass")
+
+
 def record_notes(conn: sqlite3.Connection, plan: Plan, *, base_view_n: int, text: str,
-                 status: str, reason: str | None) -> tuple[str, int]:
-    """Persist the branch's next notes version (immutable, numbered): (notes_id, n)."""
+                 status: str, reason: str | None, output: NotesOutput | None = None,
+                 turns: int | None = None) -> tuple[str, int]:
+    """Persist the branch's next notes version (immutable, numbered): (notes_id, n).
+
+    Its provenance (D105.4) is recorded in the same transaction, under a savepoint: the
+    refresh's whole output, and for a committed version the archive addresses it cites
+    (``turns``: the request's highest turn number). Provenance never vetoes the version
+    (D106): if recording it fails, it alone is rolled back and the failure is recorded.
+    Events carry counts and ids only, never state text."""
     n = conn.execute("SELECT coalesce(max(n), 0) FROM notes_versions WHERE branch_id = ?",
                      (plan.branch_id,)).fetchone()[0] + 1
     notes_id = new_id("notes")
     conn.execute("INSERT INTO notes_versions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                  (notes_id, plan.branch_id, n, plan.request_id, base_view_n, text, status,
                   reason, time.time()))
+    extra = {}
+    conn.execute("SAVEPOINT provenance")
+    try:
+        if output is not None:
+            content = _wtf8(output.content)
+            conn.execute("INSERT INTO notes_outputs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (notes_id, output.call_id, output.archive_seq, output.prompt_format,
+                          output.header, content, _wtf8(output.reasoning),
+                          hashlib.sha256(content).hexdigest(), output.source,
+                          json.dumps(None if output.dropped is None else list(output.dropped))))
+            extra = {"call_id": output.call_id, "archive_seq": output.archive_seq,
+                     "cut_lines": None if output.dropped is None else len(output.dropped)}
+        if status == "committed" and turns is not None:
+            record_state_sources(conn, plan, notes_id, text, turns)
+        conn.execute("RELEASE SAVEPOINT provenance")
+    except Exception as e:  # noqa: BLE001 - provenance never vetoes the version (D106)
+        conn.execute("ROLLBACK TO SAVEPOINT provenance")
+        conn.execute("RELEASE SAVEPOINT provenance")
+        extra = {}
+        _event(conn, plan.request_id, plan.attempt_id, "notes_provenance_failed",
+               notes_id=notes_id, error=type(e).__name__)
     _event(conn, plan.request_id, plan.attempt_id, "notes_version", notes_id=notes_id, n=n,
-           status=status, reason=reason)
+           status=status, reason=reason, **extra)
     return notes_id, n
+
+
+def source_status(conn: sqlite3.Connection, session_id: str, kind: str, token: str, *,
+                  turns: int) -> tuple[str, str | None]:
+    """(status, target id) of one cited address (D105.4, D106): an alias resolved in the
+    session's scope, whose block, if one is named, must exist; a ``turn-N`` file with N
+    in 0..``turns`` (turn 0 is the system prompt's file, contracts §14)."""
+    from palimnesis.archive import addresses
+
+    if kind == "turn":
+        return ("valid" if 0 <= int(token.split("-")[1]) <= turns else "unknown"), None
+    hit = addresses.resolve(conn, session_id, token)
+    if isinstance(hit, addresses.Ambiguous):
+        return "ambiguous", None
+    if not isinstance(hit, addresses.Hit):
+        return "unknown", None
+    if hit.block is not None and conn.execute(
+            "SELECT 1 FROM blocks WHERE occ_id = ? AND idx = ?",
+            (hit.target_id, hit.block)).fetchone() is None:
+        return "unknown", hit.target_id
+    return "valid", hit.target_id
+
+
+def record_state_sources(conn: sqlite3.Connection, plan: Plan, notes_id: str, text: str,
+                         turns: int) -> dict[str, int]:
+    """Record each archive address a committed state names (D105.4, contracts §17).
+    Nothing is rewritten. Returns the counts per status; the ``notes_sources`` event is
+    written only when something is cited."""
+    from palimnesis.view.state import cited_addresses
+
+    cited = cited_addresses(text)
+    counts = {"valid": 0, "unknown": 0, "ambiguous": 0}
+    for idx, (kind, token) in enumerate(cited):
+        status, target = source_status(conn, plan.session_id, kind, token, turns=turns)
+        counts[status] += 1
+        conn.execute("INSERT INTO notes_sources VALUES (?, ?, ?, ?, ?, ?)",
+                     (notes_id, idx, token, kind, target, status))
+    if cited:
+        _event(conn, plan.request_id, plan.attempt_id, "notes_sources", notes_id=notes_id,
+               **counts)
+    return counts
 
 
 def record_view(conn: sqlite3.Connection, plan: Plan, state, *, policy_version: str,

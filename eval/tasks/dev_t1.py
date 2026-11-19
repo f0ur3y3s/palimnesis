@@ -309,3 +309,7 @@ def parse_file(path) -> tuple[list[Item], list[RowError]]:
             errors.append(e)
     return items, errors
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'int\(\s*float\(',)

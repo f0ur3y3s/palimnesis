@@ -336,3 +336,7 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'\bquantiles\b',)

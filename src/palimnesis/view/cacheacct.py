@@ -222,6 +222,31 @@ def _changed_segment(prev: Call, cur: Call, s: int) -> int:
     return s
 
 
+def _state_marginal(prev: Call, cur: Call, lcp: int) -> int:
+    """GL1 (D105.5, D106): the re-read a state commit alone causes. From the first
+    differing token, inside the notes block, to the start of the segment holding the next
+    turn the same move changed, or to the generation prompt when nothing else changed.
+    Turns after the notes block are aligned with the previous call's by position once
+    notes blocks are set aside, so a notes block appearing for the first time does not
+    count every later turn as changed. Appended turns are not changes."""
+    b = cur.layout
+    rest_a = [t for t in (prev.turns or ()) if t.form != "notes"]
+    turns_b = cur.turns or ()
+    notes = next((i for i, t in enumerate(turns_b) if t.form == "notes"), None)
+    end = b.generation_start
+    if notes is not None:
+        after_b = list(range(notes + 1, len(turns_b)))
+        base = sum(1 for t in turns_b[:notes] if t.form != "notes")
+        for offset, k in enumerate(after_b):
+            j = base + offset
+            if j >= len(rest_a):
+                break  # appended in this call: not a change
+            if rest_a[j] != turns_b[k]:
+                end = next((seg.start for seg in b.segments if k in seg.messages), end)
+                break
+    return max(end - lcp, 0)
+
+
 def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
     """lcp, first differing turn, cause and reuse estimate of ``cur`` after ``prev``.
 
@@ -301,6 +326,8 @@ def explain(prev: Call | None, cur: Call, model, versions=frozenset()) -> dict:
                 causes.append("capacity_budget_change")
         elif diff is None and prev.formats != cur.formats:
             causes.append("view_format_change")
+    if "state_commit" in causes:
+        out["state_marginal_tokens"] = _state_marginal(prev, cur, lcp)
     out["first_diff"] = {
         "segment": s, "kind": ps.kind, "prev_tokens": [ps.start, ps.end],
         "cur_tokens": [cs.start, cs.end] if cs else None,

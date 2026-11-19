@@ -333,3 +333,7 @@ def from_locator(locator):
         last = (dlo, dla)
     return round(float(la + last[1] / 2), 6), round(float(lo + last[0] / 2), 6)
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'chr\(\s*65\s*\+\s*int\(',)

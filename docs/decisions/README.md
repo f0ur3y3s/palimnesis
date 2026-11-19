@@ -9,7 +9,8 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | [phase3.md](phase3.md) | Phase 3 (D26–D50) |
 | [phase3b.md](phase3b.md) | Phase 3B (D51–D68) |
 | [phase3-acceptance.md](phase3-acceptance.md) | Working notes and Phase 3 acceptance (D69–D79) |
-| [phase4b.md](phase4b.md) | Phase 4B (D80–) |
+| [phase4b.md](phase4b.md) | Phase 4B (D80–D104) |
+| [phase4a.md](phase4a.md) | Phase 4A (D105–) |
 
 ## Index
 
@@ -120,3 +121,6 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D102 | Strata versions are accepted by their counts, not by name (user request) | [phase4b.md](phase4b.md) |
 | D103 | pythia stays on Strata 0.1.58 (user decision) | [phase4b.md](phase4b.md) |
 | D104 | OMP 18.16.0 as a third harness, Chat only: previews as adapter data, no stripped fields, background roles unrouted | [phase4b.md](phase4b.md) |
+| D105 | Phase 4A plan decisions: the state is the notes, no state tool, slot 2,048, outputs archived, GL1 by measurement, Zeus at emulated 32K | [phase4a.md](phase4a.md) |
+| D106 | Phase 4A reviews of S0–S8: provenance never vetoes a version, no scan under the write lock, the marginal cost aligned, stronger goldens | [phase4a.md](phase4a.md) |
+| D107 | Phase 4A evaluation protocol: Zeus at emulated 32K, a4-d77 and a4-tr on 15 tasks, retired sets may emulate | [phase4a.md](phase4a.md) |

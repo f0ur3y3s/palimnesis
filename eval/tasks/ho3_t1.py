@@ -379,3 +379,7 @@ def make_iban(country, bban):
     check = 98 - _remainder(s)
     return s[:2] + f"{check:02d}" + s[4:]
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'int\(\s*text\s*\)\s*%\s*97',)

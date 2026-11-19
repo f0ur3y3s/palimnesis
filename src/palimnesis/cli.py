@@ -203,6 +203,101 @@ def _excerpts(args: argparse.Namespace) -> int:
     return 0
 
 
+def _state(args: argparse.Namespace) -> int:
+    """Inspect a session's pinned state, read-only (Phase 4A, contracts §17)."""
+    import json as _json
+
+    from palimnesis.archive import ledger
+    from palimnesis.view.builder import notes_from_reasoning
+
+    if (args.raw or args.sources) and args.version is None:
+        print("error: --raw and --sources need --version N", file=sys.stderr)
+        return 2
+
+    def text(blob) -> str:  # stored as WTF-8 (D106); shown with lone surrogates replaced
+        return blob.decode("utf-8", "surrogatepass").encode("utf-8", "replace").decode("utf-8")
+
+    conn = _read_only(args.db or default_db_path())
+    try:
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'notes_outputs'").fetchone() is None:
+            print("error: this archive predates state provenance (schema v7); open it once with "
+                  "`palimnesis serve` to migrate it", file=sys.stderr)
+            return 2
+        branch = ledger.branch_id_for(args.session)
+        versions = []
+        for notes_id, n, status, reason, committed, base_n in conn.execute(
+                "SELECT notes_id, n, status, reason, text, base_view_n FROM notes_versions"
+                " WHERE branch_id = ? ORDER BY n", (branch,)):
+            out = conn.execute(
+                "SELECT call_id, archive_seq, prompt_format, header, content, reasoning, source,"
+                " dropped FROM notes_outputs WHERE notes_id = ?", (notes_id,)).fetchone()
+            sources = [{"token": t, "kind": k, "status": st} for t, k, st in conn.execute(
+                "SELECT token, kind, status FROM notes_sources WHERE notes_id = ? ORDER BY idx",
+                (notes_id,))]
+            v = {"n": n, "status": status, "reason": reason, "base_view_n": base_n,
+                 "text": committed, "call_id": None, "archive_seq": None, "cut_lines": None,
+                 "sources": sources}
+            if out:
+                dropped = _json.loads(out[7])
+                v.update(call_id=out[0], archive_seq=out[1], prompt_format=out[2],
+                         header=out[3], content=text(out[4]), reasoning=text(out[5]),
+                         source=out[6], dropped=dropped,
+                         cut_lines=None if dropped is None else len(dropped))
+            versions.append(v)
+    finally:
+        conn.close()
+    if args.version is not None:
+        chosen = [v for v in versions if v["n"] == args.version]
+        if not chosen:
+            print(f"error: session {args.session} has no state version {args.version}",
+                  file=sys.stderr)
+            return 2
+        versions = chosen
+    if args.json:
+        print(_json.dumps({"session": args.session, "versions": versions}, indent=2,
+                          ensure_ascii=False))
+        return 0
+
+    def dash(value):
+        return "-" if value is None else value
+
+    if args.version is None:
+        if not versions:
+            print(f"no state versions for session {args.session}")
+        for v in versions:
+            bad = sum(s["status"] != "valid" for s in v["sources"])
+            print(f"v{v['n']} {v['status']}{' ' + v['reason'] if v['reason'] else ''}"
+                  f" · base view {v['base_view_n']} · call {dash(v['call_id'])}"
+                  f" · cutoff {dash(v['archive_seq'])} · cut {dash(v['cut_lines'])} lines"
+                  f" · sources {len(v['sources'])} ({bad} not valid)")
+        return 0
+    v = versions[0]
+    if args.sources:
+        for s in v["sources"]:
+            print(f"{s['kind']} {s['token']} {s['status']}")
+        return 0
+    if not args.raw:
+        print(v["text"])
+        return 0
+    if v.get("content") is None:
+        print(f"v{v['n']} has no archived output ({v['reason']})")
+        return 0
+    # ``dropped`` indexes the text the cut was applied to: the reply, or the draft taken
+    # from the reasoning (D74). Lines marked (cut) are in the archive, not the state.
+    if v["source"] == "reply":
+        source = v["content"].strip()
+    else:
+        source = notes_from_reasoning(v["reasoning"]) or ""
+        print("(notes taken from the reasoning; the draft follows, then the reasoning)")
+    dropped = set(v["dropped"] or ())
+    for i, line in enumerate(source.split("\n")):
+        print(f"{line} (cut)" if i in dropped else f"  {line}")
+    if v["reasoning"]:
+        print("--- reasoning ---")
+        print(v["reasoning"])
+    return 0
+
+
 def _transcript_context(args: argparse.Namespace):
     from palimnesis.upstreams import profile
     from palimnesis.transcripts.projection import ProjectionError
@@ -349,6 +444,17 @@ def main(argv: list[str] | None = None) -> int:
     excerpts.add_argument("session")
     excerpts.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
     excerpts.set_defaults(run=_excerpts)
+
+    state = commands.add_parser("state", help="inspect a session's pinned state (read-only)")
+    state.add_argument("session")
+    state.add_argument("--db", type=Path, help=f"archive (default: {default_db_path()})")
+    state.add_argument("--version", type=int, metavar="N", help="one version's text")
+    state.add_argument("--raw", action="store_true",
+                       help="with --version: the whole archived output, cut lines marked")
+    state.add_argument("--sources", action="store_true",
+                       help="with --version: the archive addresses it cites")
+    state.add_argument("--json", action="store_true", help="print the versions as JSON")
+    state.set_defaults(run=_state)
 
     transcripts = commands.add_parser("transcripts", help="rebuild or verify transcript files")
     transcript_commands = transcripts.add_subparsers(dest="transcripts_command", required=True)

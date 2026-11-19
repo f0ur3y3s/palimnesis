@@ -431,3 +431,8 @@ if __name__ == "__main__":
     sys.exit(main())
 ''',
 }
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+# None: comparing neighbours has no code shape a pattern can tell apart; trap repeats are reviewed by hand.
+TRAP_PATTERNS = ()

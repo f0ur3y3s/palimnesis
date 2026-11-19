@@ -106,8 +106,9 @@ def test_held_out_needles_accept_arm_4_and_the_arm_5_alias_only(set_name):
 
 
 def test_retired_held_out_needles_take_development_configs_and_keep_the_other_rules(monkeypatch):
-    """D69: ho2 is development data, for needles as for tasks. Only the config rule lifts."""
-    assert needle.RETIRED_SETS == ("heldout2",)
+    """D69: ho2 is development data, for needles as for tasks, and so is ho3 since D105.10.
+    Only the config rule lifts."""
+    assert needle.RETIRED_SETS == ("heldout2", "heldout3")
     assert task_run.RETIRED_SETS == needle.RETIRED_SETS
     monkeypatch.setattr(needle_opencode.gi, "git_provenance",
                         lambda: {"dirty": True, "status": ["M x"]})

@@ -2,7 +2,7 @@
 
 Usage:
     python eval/replay.py CAPTURE_DIR --target URL [--header name=value]... [--json]
-    python eval/replay.py --explain DB_PATH [--session S] [--json]
+    python eval/replay.py --explain DB_PATH [--session S] [--by-cause] [--json]
 
 TARGET is the base the captured API path is appended to: an upstream origin for
 a direct baseline (http://127.0.0.1:8080) or a session base for the proxy
@@ -129,7 +129,46 @@ def replay(capture_dir: Path, target: str, overrides: dict[str, str]) -> dict:
     }
 
 
-def explain(db_path: Path, session: str | None = None) -> dict:
+def _by_cause(calls: list[dict]) -> dict:
+    """GL1 (D105.5, D106): per cause (the full recorded cause string), the pairs, the
+    tokens re-read past the common prefix, the prompt time, and for a state commit its own
+    share (``state_marginal_tokens``) and the rest (``with_state_tokens``: what the move
+    made with it, such as a collapse, cost). The notes refresh calls (``#notes``) are
+    reported apart, as the proxy's own calls, with their own re-read. ``summary.pairs``
+    counts those refresh pairs too, so it exceeds the pairs listed here."""
+    rows: dict[str, dict] = {}
+    refresh = {"calls": 0, "prompt_tokens": 0, "cached_tokens": 0, "reread_tokens": 0,
+               "prompt_ms": 0.0}
+    for x in calls:
+        if x["call_id"].endswith("#notes"):
+            refresh["calls"] += 1
+            refresh["prompt_tokens"] += x.get("prompt_tokens") or 0
+            refresh["cached_tokens"] += x.get("cached_tokens") or 0
+            if x.get("lcp_tokens") is not None and x.get("input_tokens") is not None:
+                refresh["reread_tokens"] += x["input_tokens"] - x["lcp_tokens"]
+            refresh["prompt_ms"] += x.get("prompt_ms") or 0
+            continue
+        if x["prev_call_id"] is None:
+            continue
+        row = rows.setdefault(x["cause"], {"pairs": 0, "reread_tokens": 0, "prompt_ms": 0.0,
+                                           "state_marginal_tokens": 0, "with_state_tokens": 0,
+                                           "unmeasured_pairs": 0})
+        row["pairs"] += 1
+        if x.get("lcp_tokens") is None or x.get("input_tokens") is None:
+            row["unmeasured_pairs"] += 1  # rerender failed or view disabled: no re-read
+        else:
+            reread = x["input_tokens"] - x["lcp_tokens"]
+            row["reread_tokens"] += reread
+            marginal = x.get("state_marginal_tokens")
+            if marginal is not None:
+                # The commit's own share, and the rest: what the move made with it cost.
+                row["state_marginal_tokens"] += marginal
+                row["with_state_tokens"] += reread - marginal
+        row["prompt_ms"] += x.get("prompt_ms") or 0
+    return {"calls": rows, "refresh_calls": refresh}
+
+
+def explain(db_path: Path, session: str | None = None, by_cause: bool = False) -> dict:
     """Consecutive upstream-call pairs per branch from an archive's ``upstream_call`` events."""
     c = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
@@ -143,15 +182,20 @@ def explain(db_path: Path, session: str | None = None) -> dict:
               "call_id": x["call_id"], "lcp_tokens": x["lcp_tokens"],
               "cached_tokens": x["cached_tokens"], "expected_reuse_est": x["expected_reuse_est"],
               "expected_reuse_label": x.get("expected_reuse_label"),
-              "cause": x["cause"], "reuse_class": x["reuse_class"]}
+              "cause": x["cause"], "reuse_class": x["reuse_class"],
+              **({"state_marginal_tokens": x["state_marginal_tokens"]}
+                 if x.get("state_marginal_tokens") is not None else {})}
              for x in calls if x["prev_call_id"] is not None]
     classes: dict[str, int] = {}
     for pair in pairs:
         if pair["reuse_class"] is not None:
             classes[pair["reuse_class"]] = classes.get(pair["reuse_class"], 0) + 1
     unexplained = sum("unexplained" in pair["cause"].split(",") for pair in pairs)
-    return {"pairs": pairs, "summary": {"calls": len(calls), "pairs": len(pairs),
-                                        "unexplained": unexplained, "classes": classes}}
+    report = {"pairs": pairs, "summary": {"calls": len(calls), "pairs": len(pairs),
+                                          "unexplained": unexplained, "classes": classes}}
+    if by_cause:
+        report["by_cause"] = _by_cause(calls)
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -161,6 +205,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--explain", type=Path, metavar="DB_PATH",
                         help="report cache accounting for an archive instead of replaying")
     parser.add_argument("--session", help="with --explain: only this session")
+    parser.add_argument("--by-cause", action="store_true",
+                        help="with --explain: re-read tokens and prompt time per cause, and the "
+                             "notes refresh calls apart (D105.5)")
     parser.add_argument(
         "--header",
         action="append",
@@ -171,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="print the full JSON report")
     args = parser.parse_args(argv)
     if args.explain is not None:
-        report = explain(args.explain, args.session)
+        report = explain(args.explain, args.session, by_cause=args.by_cause)
         if args.json:
             print(json.dumps(report, indent=2))
         else:
@@ -180,6 +227,10 @@ def main(argv: list[str] | None = None) -> int:
                       f" cached={p['cached_tokens']} est={p['expected_reuse_est']} (estimate)"
                       f" cause={p['cause']} class={p['reuse_class']}")
             print(report["summary"])
+            if args.by_cause:
+                for cause, row in sorted(report["by_cause"]["calls"].items()):
+                    print(f"{cause}: {row}")
+                print(f"refresh calls: {report['by_cause']['refresh_calls']}")
         return 1 if report["summary"]["unexplained"] else 0
     if args.capture_dir is None or args.target is None:
         parser.error("CAPTURE_DIR and --target are required unless --explain is given")

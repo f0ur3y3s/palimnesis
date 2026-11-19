@@ -299,3 +299,8 @@ def transpose_sheet(text, steps):
         out.append(_transpose_line(body, steps) + end if _is_chord_line(body) else line)
     return "".join(out)
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+# None: a chord dictionary has no code shape a pattern can tell apart; trap repeats are reviewed by hand.
+TRAP_PATTERNS = ()

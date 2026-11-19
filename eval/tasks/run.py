@@ -22,7 +22,8 @@ Arms (D44.1):
 **Emulated 32K** (development only, O2): ``--input-budget 24320`` with Strata at 65536 gives
 the proxy that budget, counts over-budget inputs against it, and sets arm 1's OpenCode
 ``limit.context`` to the emulated context, the smallest ``n_ctx`` whose default budget it
-is (``gate_inputs.emulated_n_ctx``: 24,320 -> 32,768). Held-out tasks refuse it.
+is (``gate_inputs.emulated_n_ctx``: 24,320 -> 32,768). Held-out tasks refuse it; retired sets
+(ho2, ho3) are development data and may use it (D107).
 
 Tasks: dev-t1..t5 (development; dev-t4 is the development restart task, dev-t5 a long
 agentic turn with mid-task information needs), ho-t1..t5 (the Phase 3 held-out set) and
@@ -322,6 +323,15 @@ def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     return {"arm": 5, "label": config, "config": config, "cfg": cfg}
 
 
+def budget_refusal(task_set: str, input_budget: int | None) -> str | None:
+    """Why ``--input-budget`` is refused for this set, or None. Held-out tasks run at the
+    real context (O2); a retired set is development data and may emulate one (D107)."""
+    if (input_budget is not None and task_set.startswith("heldout")
+            and task_set not in RETIRED_SETS):
+        return "held-out tasks run at the real context, never an emulated --input-budget (O2)"
+    return None
+
+
 def arm_fields(arm: dict, n_ctx: int, input_budget: int | None = None) -> dict:
     """The arm's configuration as ``result.json`` records it. With an emulated
     ``input_budget`` (O2), arm 1 compacts at the emulated context."""
@@ -420,9 +430,9 @@ def run(a) -> int:
         return 2
     arm, label = info["arm"], info["label"]
     name = f"{task.ID}-{label}"
-    if task.SET.startswith("heldout") and a.input_budget is not None:
-        print("refused: held-out tasks run at the real context, never an emulated --input-budget (O2)",
-              file=sys.stderr)
+    refusal = budget_refusal(task.SET, a.input_budget)
+    if refusal:
+        print(f"refused: {refusal}", file=sys.stderr)
         return 2
     try:
         fields = arm_fields(info, a.expect_n_ctx, a.input_budget)

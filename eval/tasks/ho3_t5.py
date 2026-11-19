@@ -439,3 +439,8 @@ def next_fire(expr, after):
         day += timedelta(days=1)
     raise CronError(None, "no run in the next four years")
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+# None: the reference also steps with timedelta(minutes=1), from a computed start; trap repeats are reviewed by hand.
+TRAP_PATTERNS = ()

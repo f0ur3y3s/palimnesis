@@ -256,3 +256,8 @@ def unique_slug(title: str, existing: set[str], max_len: int = 60) -> str:
             return candidate
         n += 1
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+# None: the reference also ends with encode('ascii', 'ignore'), after its own table; trap repeats are reviewed by hand.
+TRAP_PATTERNS = ()

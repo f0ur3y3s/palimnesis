@@ -93,7 +93,7 @@ SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2":
 HELDOUT_SETS = ("heldout", "heldout2", "heldout3", "heldout4")
 # Judged held-out sets, now development data (D69): they take any configuration, and keep
 # the other held-out rules (real OpenCode, every question, a clean tree, no resume).
-RETIRED_SETS = ("heldout2",)
+RETIRED_SETS = ("heldout2", "heldout3")  # judged, now development data (D69, D105.10)
 INPUT_BUDGET = 24_320
 MAX_TOOLS = 8
 MAX_ROUNDS = 12

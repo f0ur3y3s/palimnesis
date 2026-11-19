@@ -422,3 +422,7 @@ def is_ignored(path, rules, is_dir=False):
             ignored = not rule["negate"]
     return ignored
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'\bfnmatch\b',)

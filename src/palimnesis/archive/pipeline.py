@@ -63,7 +63,7 @@ from palimnesis.view.budget import BudgetError
 from palimnesis.protocols.assemble import ChatAssembler
 from palimnesis.protocols.sse import ChatStream, SSEParser
 from palimnesis.archive.turns import is_instruction
-from palimnesis.view.builder import fit_notes, notes_block, notes_from_reasoning
+from palimnesis.view.builder import fit_notes_report, notes_block, notes_from_reasoning
 from palimnesis.view.engine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from palimnesis.archive.store import Store
 
@@ -107,6 +107,22 @@ def crash_point(name: str) -> None:
 def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, bytes]]:
     kept = [(k, v) for k, v in headers if k.lower() not in (b"x-should-retry", b"content-length")]
     return kept + [(b"x-should-retry", b"false")]
+
+
+def _highest_turn(items) -> int:
+    """The request's highest turn number, as transcript files number turns (turn 0 is
+    before the first instruction; ``archive.turns``)."""
+    from palimnesis.archive.turns import turn_numbers
+
+    def text(message: dict) -> str:
+        content = message.get("content")
+        if isinstance(content, list):
+            return "".join(p.get("text", "") for p in content if isinstance(p, dict))
+        return content if isinstance(content, str) else ""
+
+    numbers = turn_numbers(((k, i.message.get("role", "")) for k, i in enumerate(items)),
+                           {k: text(i.message) for k, i in enumerate(items)})
+    return max(numbers.values(), default=0)
 
 
 class ArchiveHandler:
@@ -489,6 +505,7 @@ class ArchiveHandler:
         call = (self.accounts.begin(refresh_plan, self.views.mode, f"{plan.attempt_id}#notes")
                 if self.accounts is not None else None)
         stream, reason, status, outcome = ChatStream(), None, None, "ok"
+        streamed, dropped = False, []
         try:
             with anyio.move_on_after(NOTES_REFRESH_S) as window:
                 request = self._request(scope, api_path, headers, refresh_plan.upstream_body)
@@ -502,6 +519,7 @@ class ArchiveHandler:
                             # the client's own call (contracts §1).
                             self.views.profile.facts.observe(status, failure)
                         else:
+                            streamed = True
                             parser = SSEParser()
                             try:
                                 async for chunk in upstream.aiter_raw():
@@ -529,7 +547,9 @@ class ArchiveHandler:
                 reason = ("upstream_error" if stream.error else "incomplete" if not stream.done
                           else "tool_call" if stream.tool_calls
                           else "empty" if not written else None)
-            text = "" if reason else await anyio.to_thread.run_sync(self._fit_notes, written)
+            text = ""
+            if not reason:
+                text, dropped = await anyio.to_thread.run_sync(self._fit_notes, written)
             if reason is None and not text:
                 reason = "too_long"
             outcome = reason or "ok"
@@ -541,12 +561,25 @@ class ArchiveHandler:
                 usage = {"usage": stream.usage} if stream.usage else None
                 await self.accounts.finish(refresh_plan, call, usage, outcome)
         base_n = plan.view_n
+        policy = self.views.view_policy
+        # D105.4: a refresh that streamed keeps its whole output; ``dropped`` indexes the
+        # lines of the text the cut was applied to (the reply, or the reasoning's draft).
+        output = ledger.NotesOutput(
+            call_id=f"{plan.attempt_id}#notes",
+            archive_seq=max((i.seq for i in plan.items if i.seq is not None), default=0),
+            prompt_format=policy.notes_format, header=policy.notes_header,
+            content=stream.content, reasoning=stream.reasoning,
+            source=source or "reply",
+            dropped=None if reason else tuple(dropped)) if streamed else None
+        # The request's highest turn, counted here rather than inside the write
+        # transaction (D106): turn files the state cites are checked against it.
+        turns = _highest_turn(plan.items) if not reason else None
 
         def record(c):
             return ledger.record_notes(c, plan, base_view_n=base_n, text=text,
                                        status="failed" if reason else "committed",
                                        reason=f"{reason}:{status}" if status
-                                       else reason or source)
+                                       else reason or source, output=output, turns=turns)
 
         notes_id, n = await self.store.write(record)
         if reason:
@@ -561,8 +594,9 @@ class ArchiveHandler:
         evicted = tuple(dict.fromkeys((*view.evicted_now, *rebuilt.evicted_now)))
         return replace(rebuilt, moved=True, evicted_now=evicted)
 
-    def _fit_notes(self, text: str) -> str:
-        """``text`` cut so its rendered block fits the notes slot (D72, D74)."""
+    def _fit_notes(self, text: str) -> tuple[str, list[int]]:
+        """``text`` cut so its rendered block fits the notes slot (D72, D74), and the
+        lines the cut left out (D105.4)."""
         policy = self.views.view_policy
         # The header is counted at a 6-digit version, never below the real one.
         limit = policy.notes_tokens - 8  # the message's own template tokens
@@ -571,7 +605,7 @@ class ArchiveHandler:
         def fits(t: str) -> bool:
             return count(notes_block(999_999, t, policy.notes_header)) <= limit
 
-        return fit_notes(text, fits, sections=policy.notes_format == "n2")
+        return fit_notes_report(text, fits, sections=policy.notes_format == "n2")
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
         """Deadline D passed after acceptance; the upstream is already closed."""

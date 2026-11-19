@@ -261,3 +261,7 @@ def retry(fn: Callable[[], object], *, attempts: int = 5, schedule: list[float] 
             if sleep is not None and i < len(waits):
                 sleep(waits[i])
 '''}
+
+# Phase 4A (D105, eval/state_eval.py): code shapes of the TRAP approach, searched in the
+# model's tool-call arguments and final files after the trap was stated.
+TRAP_PATTERNS = (r'time\.sleep\b',)
