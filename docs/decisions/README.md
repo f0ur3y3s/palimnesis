@@ -127,3 +127,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D108 | S10 continues after Zeus's update restart: Strata relaunched with the identical command; a4-tr ho2-t3 rerun twice for infrastructure aborts | [phase4a.md](phase4a.md) |
 | D109 | A trap repeat is the trap in code the model wrote into the task's source; every other hit is doubtful and reviewed by hand | [phase4a.md](phase4a.md) |
 | D110 | The Pi neutrality smoke ran at a smaller emulated budget (12,000) so the view moves and a state is committed | [phase4a.md](phase4a.md) |
+| D111 | Phase 7 scope: Phases 5–6 skipped, a4-d77 vs native compaction, OpenCode confirmatory and Pi reported, 25 tasks + 10 reserve, loose needle scoring, pythia and Zeus split by task on one build | [phase7.md](phase7.md) |
