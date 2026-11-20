@@ -1,4 +1,4 @@
-# Phase 7 handoff (state on 2026-11-19, 20:40 EST)
+# Phase 7 handoff (state on 2026-11-20, 00:30 EST)
 
 For whoever continues Phase 7. Read `CLAUDE.md`, then `docs/plan/phases/phase7.md` (the plan) and `docs/decisions/phase7.md`:
 - D111: the user's scope, host and size decisions, and Zeus on 0.1.58;
@@ -26,17 +26,13 @@ This file says where the work stands. Delete it once its open items are closed.
   - pythia was switched from 64K with `~/strata-start.sh`. Switch it back to 64K after S11 with `~/strata-start-64k.sh`.
   - Zeus was relaunched with `--context 32k`. Windows Update on Zeus is paused until 2026-12-20 (registry pause keys).
 
-## S8 pilot: in progress
+## S8 pilot: done (R64)
 
-- **V1 passed after the revision:** 5 of 5 tasks tempting, every hit read by hand (D112.8). The rewritten traps are on main (`324150b`).
-- **Task runs at a real 32K**, all three arms of a task back to back on one host. Records go to `captures/phase7-pilot-487add0/<arm>/<task>/`.
-  - **pythia:** dev-t7. Script `captures/run-phase7-pilot-t7.ps1`, log `captures/phase7-pilot-t7.log`. Started at `487add0`. Its later arms run at the newer commit, but dev-t7, `run.py`, `src/` and `state_eval` are identical between the two.
-  - **Zeus:** dev-t6, then dev-t8. Script `captures/run-phase7-pilot.ps1 -Upstream http://192.168.1.19:8080 -Tasks "dev-t6,dev-t8"`, log `captures/phase7-pilot-zeus.log`.
-  - **Next, on pythia, once dev-t7 is done:** `captures/run-phase7-pilot.ps1 -Upstream http://192.168.1.173:8080 -Tasks "dev-t9,dev-t10" -Tag pilot-<commit>`, at a clean tree.
-- **Then:**
-  - check V2 (T7 held in every `a4-d77` and `a4-tr` run, from `trap_eligible_at_need`) and V3 (at least one `code` repeat across `a4-tr` and arm 1; for arm 1, use `state_eval --bodies`);
-  - read every `code` hit by hand, because the dev-t8 and dev-t10 patterns can fire on correct code;
-  - write R64 in a new `docs/results/phase7.md`.
+- V1 5/5, V2 10/10 and V3 met: 2 genuine repeats, both in `a4-tr` (dev-t6, dev-t8). See `docs/results/phase7.md`.
+- `captures/collect-phase7-pilot.py` prints the per-run table to stdout. It does not rewrite `captures/phase7-pilot-summary.json`, which is stale.
+- **Open from the pilot, before S9 authoring:**
+  - tighten dev-t10's patterns, which fired on correct code;
+  - add the rule to D112/`AUTHORING.md` that a `code` hit disagreeing with `test_t_*` is reviewed by hand before it counts.
 
 ## After the pilot
 

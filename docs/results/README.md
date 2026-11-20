@@ -78,3 +78,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R61 | S10: with the pinned state, 14/15 tasks and 44/45 constraints against 10/15 and 36/45 without (one attempt each; relaunch confound), 57% of the calls and 54% of the re-reads; 0 trap repeats; priority cut deferred (2026-11-19) | [phase4a.md](phase4a.md) |
 | R62 | The pinned state on Pi through Messages: 5 committed versions, D44.6 inputs clean (2026-11-19) | [phase4a.md](phase4a.md) |
 | R63 | Phase 4A gate summary (2026-11-19) | [phase4a.md](phase4a.md) |
+| R64 | S8 pilot: V1 5/5, V2 10/10, V3 met; trap repeats 0/5 with notes, 2/5 without, 0/5 native compaction; one false `code` hit on dev-t10 (2026-11-20) | [phase7.md](phase7.md) |
