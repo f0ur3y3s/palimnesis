@@ -26,7 +26,8 @@ is (``gate_inputs.emulated_n_ctx``: 24,320 -> 32,768). Held-out tasks refuse it;
 (ho2, ho3) are development data and may use it (D107).
 
 Tasks: dev-t1..t5 (development; dev-t4 is the development restart task, dev-t5 a long
-agentic turn with mid-task information needs), ho-t1..t5 (the Phase 3 held-out set) and
+agentic turn with mid-task information needs), dev-t6..t10 (development, written to the
+Phase 7 trap standard, ``eval/tasks/AUTHORING.md``), ho-t1..t5 (the Phase 3 held-out set),
 ho2-t1..t5 (the fresh Phase 3B held-out set, O-B1), ho3-t1..t5, and the unseen Phase 7 sets
 ho4-t1..t5, ho5-t1..t20 and ho6-t1..t10 (``heldout.py``): they run only once unlocked, at a
 clean tree. A registered task whose module is not present yet is skipped by
@@ -117,6 +118,7 @@ import report  # noqa: E402
 import state_eval  # noqa: E402
 
 TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
+         "dev-t6", "dev-t7", "dev-t8", "dev-t9", "dev-t10",  # the trap standard's pilot (D112)
          "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5",
          "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5",
          "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5",  # ho3: D77's fresh set

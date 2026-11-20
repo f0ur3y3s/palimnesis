@@ -313,7 +313,7 @@ def test_task_definitions():
             restart_tasks.append(tid)
     assert [t for t in restart_tasks if t.startswith("ho-")] == ["ho-t3"]
     assert [t for t in restart_tasks if t.startswith("dev-")] == ["dev-t4"]
-    assert sum(t.startswith("dev-") for t in task_run.TASKS) == 5
+    assert sum(t.startswith("dev-") for t in task_run.TASKS) == 10  # dev-t6..t10: D112
     assert sum(t.startswith("ho-") for t in task_run.TASKS) == 5
     assert sum(t.startswith("ho2-") for t in task_run.TASKS) == 5
     assert sum(t.startswith("ho3-") for t in task_run.TASKS) == 5
