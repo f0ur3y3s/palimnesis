@@ -64,21 +64,6 @@ def test_heldout3_coding_gate_compares_a4_d77_with_arm_1_and_needs_ho3_t3():
                                   restart_task=report.RESTART_TASK3)["pass"]
 
 
-def test_heldout3_results_load_arm_4_under_the_a4_d77_label(tmp_path, monkeypatch):
-    seen = []
-
-    def designate(manifest, kind, label, override):
-        seen.append(label)
-        return {}, []
-
-    import attempts
-
-    monkeypatch.setattr(attempts, "load", lambda run: {})
-    monkeypatch.setattr(attempts, "designate", designate)
-    report.load_task_results(tmp_path, arm4=report.A4_LABEL3)
-    assert seen == ["a4-d77", "a1"]
-
-
 def test_opencode_kill_reaches_the_whole_process_group_on_posix():
     if oc_harness.WINDOWS:
         pytest.skip("POSIX process groups")

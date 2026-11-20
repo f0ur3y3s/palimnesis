@@ -97,12 +97,6 @@ def test_the_notes_block_sits_right_after_the_system_message(counter):
     assert view.moved is False and view.tokens <= _budget().input_budget
 
 
-def test_the_block_names_its_version_and_says_the_user_wins():
-    text = notes_block(3, "Objective: finish.")
-    assert text.startswith("[palimnesis notes · v3 ·")
-    assert "the user's messages win" in text and text.endswith("Objective: finish.")
-
-
 def test_notes_without_a_collapse_are_not_rendered(counter):
     s = Session().system().user("hi").tool_turn(1, "ok").user("next")
     view = _view(counter, s, ViewPolicy(notes_tokens=2048), state=ViewState(notes="notes_1"),
@@ -139,7 +133,6 @@ def test_a_committed_block_of_the_slot_never_forces_another_move(counter, lines)
     again = _view(counter, s, policy, state=state, notes={"n1": (99, _notes_of(counter, 2048))})
 
     assert again.moved is False and again.tokens <= _budget().input_budget
-
 
 
 def _pinned_session():

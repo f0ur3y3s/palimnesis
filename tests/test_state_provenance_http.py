@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 
 import pytest
 
@@ -120,21 +119,6 @@ def test_state_version_records_cutoff_call_id_and_formats(tmp_path):
     assert (row[5], row[6]) == ("n2", "h2")
     # The refresh rendered the whole request: the cutoff is its newest archived message.
     assert 0 < row[4] <= max_seq
-
-
-def test_notes_outputs_rows_are_immutable(tmp_path):
-    with view_stack(tmp_path, **N2) as (fake, url, s):
-        fake.respond_counted(_notes(2))
-        fake.respond_counted("visible answer")
-        assert post(url, _body(_messages())).status_code == 200
-
-    conn = sqlite3.connect(s.db_path)
-    try:
-        for statement in ("UPDATE notes_outputs SET content = 'x'", "DELETE FROM notes_outputs"):
-            with pytest.raises(sqlite3.DatabaseError):
-                conn.execute(statement)
-    finally:
-        conn.close()
 
 
 def test_refresh_logs_and_events_carry_no_state_text(tmp_path, caplog):

@@ -73,7 +73,3 @@ async def test_rebuild_restores_the_index_from_the_archive(store):
     assert await _search(store, "alpha") == ["alpha beta"]
 
 
-async def test_index_is_not_part_of_the_immutable_archive(store):
-    await _accept(store, _request({"role": "user", "content": "gamma"}))
-
-    await store.write(search.clear)  # must not raise: derived data

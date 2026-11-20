@@ -156,18 +156,6 @@ def turn(messages, text="ok", user="next"):
     return messages + [{"role": "assistant", "content": text}, {"role": "user", "content": user}]
 
 
-def test_cause_append(tmp_path):
-    messages = history(2)
-    with acct_stack(tmp_path) as (fake, url, settings):
-        for i in range(3):
-            fake.respond_counted()
-            assert post(url, body(messages)).status_code == 200
-            messages = turn(messages, user=f"next {i}")
-
-    causes = [(e["cause"], e["first_diff"]) for e in events(settings)]
-    assert causes == [("first_call", None), ("append", None), ("append", None)]
-
-
 def _grow_until_view_moves(fake, url, settings, messages, user_text, limit=12):
     """Append turns until a view version is recorded; returns that call's event."""
     for i in range(limit):

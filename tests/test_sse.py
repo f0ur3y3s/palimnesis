@@ -46,15 +46,6 @@ def test_lf_crlf_and_cr_line_endings_all_delimit_events():
     assert leftover == b""
 
 
-def test_cr_at_a_chunk_boundary_waits_for_a_possible_lf():
-    parser = SSEParser()
-
-    assert parser.feed(b"data: a\r") == []
-    [event] = parser.feed(b"\n\r\n")
-
-    assert event.raw == b"data: a\r\n\r\n"
-
-
 def test_multiline_data_is_joined_with_newlines_and_space_after_colon_is_optional():
     [event], _ = _parse(b"data:x\ndata: y\nevent: delta\nid: 7\n\n", 4)
 

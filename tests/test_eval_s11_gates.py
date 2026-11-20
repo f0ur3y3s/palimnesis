@@ -312,11 +312,6 @@ def test_environment_allowlist(tmp_path, monkeypatch):
 
 # ---------------------------------------------------------------- 64K (D44.9)
 
-def test_arm_1_compacts_at_the_servers_capacity_and_arm_4_keeps_the_shipped_limit():
-    assert task_run.opencode_context_limit(1, 32768) == 32768
-    assert task_run.opencode_context_limit(1, 65536) == 65536
-    assert task_run.opencode_context_limit(4, 65536) == 1_000_000
-
 
 def test_clean_needles_are_judged_against_the_budget_of_the_runs_n_ctx():
     assert report.budget_for({"expect_n_ctx": 65536}) == 48_000

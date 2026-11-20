@@ -414,20 +414,13 @@ def test_client_disconnect_before_upstream_headers_cancels_and_abandons(lc):
     assert lc.count("prepared_responses") == 0
 
 
-def test_nonstream_upstream_reset_mid_body_is_shaped_no_retry_failure(lc):
-    lc.upstream.respond_sse([b'{"id":"chatcmpl-1","choices":[', (0.1, RESET)],
-                            headers={"content-type": "application/json"})
-
-    r = httpx.post(lc.url(SID), content=body([user("q")], stream=False), timeout=30)
-
-    assert r.status_code in (502, 503), (r.status_code, r.content[:200])
-    assert r.headers.get("x-should-retry") == "false"
-    assert "error" in r.json()
-    assert len(lc.events("attempt_failed")) == 1
-
-
-def test_nonstream_malformed_upstream_body_is_shaped_no_retry_failure(lc):
-    lc.upstream.respond_json(b'{"id":"chatcmpl-1","choices":[')
+@pytest.mark.parametrize("fault", ["reset_mid_body", "malformed_body"])
+def test_nonstream_upstream_fault_is_shaped_no_retry_failure(lc, fault):
+    if fault == "reset_mid_body":
+        lc.upstream.respond_sse([b'{"id":"chatcmpl-1","choices":[', (0.1, RESET)],
+                                headers={"content-type": "application/json"})
+    else:
+        lc.upstream.respond_json(b'{"id":"chatcmpl-1","choices":[')
 
     r = httpx.post(lc.url(SID), content=body([user("q")], stream=False), timeout=30)
 

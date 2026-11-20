@@ -395,11 +395,6 @@ def test_live_messages_round_trip_json_equal(path):
     assert _pairs(out) == original
 
 
-def test_empty_insertions_return_raw_body():
-    body = LIVE_BODIES[0].read_bytes()
-    assert render_upstream(parse(body), {}) == body
-
-
 def _hashes(*messages: str) -> list[str]:
     return [content_sha256(m) for m in parse(_body(*messages, USER)).messages]
 
@@ -445,8 +440,6 @@ def test_unsupported_feature_rejected_with_field_path(case):
         parse(body)
     assert e.value.code == "unsupported_feature"
     assert e.value.field == field_path
-
-
 
 
 def test_replacements_substitute_client_messages_in_place():

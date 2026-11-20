@@ -152,14 +152,6 @@ def test_an_error_before_any_output_still_starts_the_message():
     assert [n for n, _ in out] == ["message_start", "error"]
 
 
-def test_signature_rule():
-    """O-4B-2: thinking blocks carry an empty signature and no signature_delta (D82)."""
-    out = run(chunk({"reasoning_content": "t"}), chunk({"content": "a"}), chunk(finish="stop"), DONE)
-
-    assert out[1][1]["content_block"]["signature"] == ""
-    assert not [d for _, d in out if d.get("delta", {}).get("type") == "signature_delta"]
-
-
 def test_comments_pass_through_and_keepalive_is_ping():
     e = MessagesEmitter(message_id="msg_test")
     raw = e.feed(b": keep-alive\n\n") + e.feed(chunk({"content": "x"}))

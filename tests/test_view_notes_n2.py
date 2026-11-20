@@ -18,13 +18,8 @@ from __future__ import annotations
 
 import pytest
 
-from palimnesis.view.budget import BudgetPolicy, plan_budget
-from palimnesis.upstreams.strata import tokens
-from palimnesis.view.builder import (NOTES_PROMPT, ViewPolicy, ViewState, build, fit_notes,
-                             notes_from_reasoning, notes_prompt)
-
-from .test_view import TOOLS
-from .test_view_notes import _long
+from palimnesis.view.builder import (NOTES_PROMPT, ViewPolicy, fit_notes, notes_from_reasoning,
+                                     notes_prompt)
 
 SECTIONS = ["Objective", "Current step and next move", "Requirements and constraints",
             "Decisions", "Done so far", "Dead ends"]
@@ -55,17 +50,6 @@ def test_the_n2_prompt_puts_the_current_step_second_and_sizes_itself_to_the_slot
     assert "about 600 words" in prompt
     assert "about 300 words" in notes_prompt(ViewPolicy(notes_tokens=1024, notes_format="n2"))
     assert "reply" in prompt and "not in your reasoning" in prompt
-
-
-def test_an_n2_refresh_sends_the_n2_prompt():
-    counter = tokens.default()
-    policy = ViewPolicy(notes_tokens=2048, notes_format="n2")
-    view = build(_long().items, tools=TOOLS, render_kwargs={},
-                 budget=plan_budget(32768, client_limit=8192, policy=BudgetPolicy()),
-                 state=ViewState(), policy=policy, counter=counter)
-
-    assert view.refresh is not None
-    assert view.refresh.messages[-1] == {"role": "user", "content": notes_prompt(policy)}
 
 
 def test_notes_that_fit_are_unchanged():

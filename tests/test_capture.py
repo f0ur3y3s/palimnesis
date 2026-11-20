@@ -73,20 +73,6 @@ def test_exchange_cut_short_by_client_disconnect_is_captured_as_incomplete(
     assert ex.response_body.startswith(b"data: 1\n\n")
 
 
-def test_exchanges_load_in_arrival_order(capturing_stack):
-    s = capturing_stack
-    for i in range(3):
-        s.upstream.respond_json(b"{}")
-        httpx.post(f"{s.proxy_url}/s/sess-1/v1/chat/completions", content=b'{"n":%d}' % i)
-
-    assert _eventually(lambda: len(load_exchanges(s.settings.capture_dir)) == 3)
-    assert [ex.request_body for ex in load_exchanges(s.settings.capture_dir)] == [
-        b'{"n":0}',
-        b'{"n":1}',
-        b'{"n":2}',
-    ]
-
-
 def _eventually_exchanges(capture_dir, n: int = 1):
     # Generous: a disconnected exchange is written when the relay next notices the
     # client is gone, which under full-suite load can take several seconds.

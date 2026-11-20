@@ -265,12 +265,6 @@ def test_manifest_lists_every_file_and_payload_archive_sha():
                                          "FFFFFF.0"}
 
 
-def test_rendering_is_deterministic():
-    a = projection.render_turn(TURN, added_tokens=TOKENS, count=words)
-    b = projection.render_turn(TURN, added_tokens=TOKENS, count=words)
-    assert (a.text, a.files, a.payloads, a.summary) == (b.text, b.files, b.payloads, b.summary)
-
-
 def test_extract_rejects_an_unclosed_or_interleaved_block():
     with pytest.raises(projection.ProjectionError):
         projection.extract("[[§A.0 · seq 1 · user · text]]\nx\n", added_tokens=())

@@ -33,7 +33,8 @@ def test_missing_identity_is_rejected():
 
 @pytest.mark.parametrize(
     "bad",
-    ["", "a" * 129, "has space", "slash/inside", "dot..", ".hidden", "é", "a\nb"],
+    # "abc." aliases "abc" on Windows; "a%2Fb" decodes to a path separator.
+    ["", "a" * 129, "has space", "slash/inside", "dot..", ".hidden", "é", "a\nb", "abc.", "a%2Fb"],
 )
 def test_malformed_identifiers_are_rejected(bad):
     with pytest.raises(SessionError) as e:
@@ -45,8 +46,3 @@ def test_maximum_length_identifier_is_accepted():
     assert resolve_session(path_id="a" * 128, header_id=None) == "a" * 128
 
 
-@pytest.mark.parametrize("bad", ["abc.", "a%2Fb"])
-def test_identifiers_that_alias_on_windows_or_encode_paths_are_rejected(bad):
-    with pytest.raises(SessionError) as e:
-        resolve_session(path_id=bad, header_id=None)
-    assert e.value.code == "invalid_session_id"
