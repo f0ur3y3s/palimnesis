@@ -95,14 +95,16 @@ The hidden check:
 
 ## 2. Needles
 
-Your assignment gives the number of histories and the generator file to extend (on `build_history`'s skeleton: the same ten-step layout and question categories: identifier, vague, superseded, irrelevant_matches, oversized_read, mid_task, multi_fact, restart_multi_eviction). Each question also declares `strata`, one level per dimension:
+Your assignment gives the number of histories and the generator file to extend (on `build_history`'s skeleton: the same ten-step layout and question categories: identifier, vague, superseded, irrelevant_matches, oversized_read, mid_task, multi_fact, restart_multi_eviction). Each question step also declares `strata`: exactly these four keys, one level each.
 
-| Dimension | Levels |
-|---|---|
-| Source role | user instruction · user paste · assistant statement · tool output (read, grep, shell) |
-| Placement | first, middle or last third of the history |
-| Planned depth | the fact sits fewer than 12,000 tokens before the question · 24,000–49,000 tokens · more than 73,000 tokens |
-| Distractors | none · a near-miss key · a superseded value · 3 or more lexical decoys |
+| Key | Levels (write them exactly) | Meaning |
+|---|---|---|
+| `source_role` | `user_instruction` · `user_paste` · `assistant_statement` · `tool_output` | who first states the fact: a user turn, a pasted block, the assistant's text or tool-call arguments, or a tool result (read, grep, shell) |
+| `placement` | `first` · `middle` · `last` | the third of the whole history, by tokens, where that message starts |
+| `planned_depth` | `<0.5x` · `1-2x` · `>3x` | tokens between that message and the question: fewer than 12,160 · 24,320–48,640 · more than 72,960 |
+| `distractors` | `none` · `near_miss_key` · `superseded` · `lexical_decoys` | `superseded` for the superseded category, `lexical_decoys` for irrelevant_matches; otherwise the number of other values of the answer's shape earlier in the history: 0, 1–2, or 3 or more |
+
+For example, `"strata": {"source_role": "tool_output", "placement": "first", "planned_depth": ">3x", "distractors": "near_miss_key"}`. Every declared level must equal the level `eval/needle_strata.py` computes from your history (the check in §4), so a fact whose depth falls between bins must be moved into one.
 
 Spread your needles so that every level of every dimension is well represented; the whole set must reach at least 30 needles per level. Balance by dimension, not as a full factorial.
 
@@ -121,8 +123,17 @@ Run each of these and fix your files until they pass. **Report only per-task (an
    - the stub fails;
    - the trap solution passes the visible tests and every `test_f_*`, fails a `test_t_*`, and matches `TRAP_PATTERNS`.
 2. `uv run python <your generator> --check`: the generator reproduces the committed needle files byte for byte, and its independence checks pass.
-3. **The independence check** your assignment names: no shared four-word run with dev, ho, ho2, ho3 or ho4. It prints pass or fail per file.
-4. **The temptation probe** (T1), on the host your assignment names:
+3. **The independence check**, over every file you wrote:
+   ```
+   uv run python eval/independence.py <your task modules and needle files> --also <the other authors' files, if your assignment lists any>
+   ```
+   It prints pass or fail per file. Wording, defined names and planted values shared with dev, ho, ho2, ho3 or ho4 fail; anything two earlier sets already share does not count. `--explain` lists what you share with dev, ho, ho2 and ho3; matches with sealed files are only counted.
+4. **Declared strata**:
+   ```
+   uv run python eval/needle_strata.py <your needle files> --check
+   ```
+   It prints pass or fail per history and, for a failure, the question id, the key, and the declared and computed levels.
+5. **The temptation probe** (T1), on the host your assignment names:
    ```
    uv run python eval/tasks/trap_probe.py --task <id> --upstream http://127.0.0.1:8080
    ```

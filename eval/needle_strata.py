@@ -165,6 +165,59 @@ def strata(history: dict, *, b_in: int = B_IN_32K, count: Callable[[str], int] |
     return out
 
 
+# ---------------------------------------------------------------- the declared format (S9)
+
+# A heldout5 question step carries ``"strata": {dimension: level}`` with exactly these
+# dimensions and levels (plan §1.3). ``other`` depth and ``unlocated`` are never declared.
+LEVELS = {
+    "source_role": ROLES,
+    "placement": ("first", "middle", "last"),
+    "planned_depth": ("<0.5x", "1-2x", ">3x"),
+    "distractors": ("none", "near_miss_key", "superseded", "lexical_decoys"),
+}
+
+
+def check_declared(history: dict, *, b_in: int = B_IN_32K,
+                   count: Callable[[str], int] | None = None) -> list[str]:
+    """Problems with one history's declared strata: each question declares every
+    dimension, at a valid level, equal to the label ``strata()`` computes. Messages name
+    only question ids, dimensions and levels."""
+    problems = []
+    for qid, s in strata(history, b_in=b_in, count=count).items():
+        d = s.get("declared")
+        if not d:
+            problems.append(f"{qid}: no strata")
+            continue
+        if not s["located"]:
+            problems.append(f"{qid}: evidence not located")
+            continue
+        if set(d) != set(LEVELS):
+            problems.append(f"{qid}: strata keys must be {', '.join(sorted(LEVELS))}")
+            continue
+        for dim, levels in LEVELS.items():
+            if d[dim] not in levels:
+                problems.append(f"{qid}: {dim} level {d[dim]!r} is not one of {', '.join(levels)}")
+            elif d[dim] != s[dim]:
+                problems.append(f"{qid}: {dim} declared {d[dim]}, computed {s[dim]}")
+    return problems
+
+
+def coverage(histories: list[dict]) -> dict[str, dict[str, int]]:
+    """Declared needles per level of every dimension, over a set of histories."""
+    cov = {dim: {lv: 0 for lv in levels} for dim, levels in LEVELS.items()}
+    for h in histories:
+        for st in h["steps"]:
+            for dim, lv in (st.get("strata") or {}).items() if st["kind"] == "question" else ():
+                if dim in cov and lv in cov[dim]:
+                    cov[dim][lv] += 1
+    return cov
+
+
+def coverage_gaps(cov: dict[str, dict[str, int]], *, minimum: int = 30) -> list[str]:
+    """Levels below ``minimum`` needles (plan §1.3: at least 30 per level)."""
+    return [f"{dim} {lv}: {n}" for dim, levels in cov.items() for lv, n in levels.items() if n < minimum]
+
+
 # ---------------------------------------------------------------- measured depth
 
 def _occ_text(conn: sqlite3.Connection, occ_id: str) -> str:
@@ -266,7 +319,29 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("histories", nargs="+", type=Path)
     ap.add_argument("--b-in", type=int, default=B_IN_32K)
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--check", action="store_true",
+                    help="declared strata: pass or fail per history, problems by question id")
+    ap.add_argument("--coverage", type=int, metavar="MIN", nargs="?", const=30,
+                    help="declared needles per level over all histories; fail below MIN (30)")
     a = ap.parse_args(argv)
+    if a.check or a.coverage is not None:
+        hs = [json.loads(p.read_text(encoding="utf-8")) for p in a.histories]
+        ok = True
+        if a.check:
+            for p, h in zip(a.histories, hs):
+                problems = check_declared(h, b_in=a.b_in)
+                ok &= not problems
+                print(f"{p}: {'pass' if not problems else f'fail ({len(problems)})'}")
+                for x in problems:
+                    print(f"  {x}")
+        if a.coverage is not None:
+            cov = coverage(hs)
+            for dim, levels in cov.items():
+                print(f"{dim}: " + ", ".join(f"{lv} {n}" for lv, n in levels.items()))
+            gaps = coverage_gaps(cov, minimum=a.coverage)
+            ok &= not gaps
+            print(f"coverage: {'pass' if not gaps else 'fail: ' + '; '.join(gaps)}")
+        return 0 if ok else 1
     out = {}
     for p in a.histories:
         h = json.loads(p.read_text(encoding="utf-8"))

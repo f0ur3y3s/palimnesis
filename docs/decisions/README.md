@@ -129,4 +129,5 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D110 | The Pi neutrality smoke ran at a smaller emulated budget (12,000) so the view moves and a state is committed | [phase4a.md](phase4a.md) |
 | D111 | Phase 7 scope: Phases 5–6 skipped, a4-d77 vs native compaction, OpenCode confirmatory and Pi reported, 25 tasks + 10 reserve, loose needle scoring, pythia and Zeus split by task on one build | [phase7.md](phase7.md) |
 | D112 | The trap-design standard as built: T1–T7, the temptation probe, alternative trap patterns, dev-t6..t10 for the S8 pilot | [phase7.md](phase7.md) |
+| D113 | Held-out authoring and seal: the independence check (prose four-word runs, defined identifiers, planted values; runs two earlier sets share are exempt), the pinned needle strata format | [phase7.md](phase7.md) |
 | D114 | Phase 7 tooling as built: unseen-set unlock and seal, traps for any arm with need-turn eligibility, refresh timings, host epoch, the Phase 7 report and schedule, needle strata; a ho4 header exposure recorded | [phase7.md](phase7.md) |

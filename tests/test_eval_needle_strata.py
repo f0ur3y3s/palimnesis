@@ -77,6 +77,41 @@ def test_depth_bins_and_rules_with_a_unit_counter():
     assert s["declared"] == {"source_role": "tool_output"}
 
 
+# ---------------------------------------------------------------- the declared format (S9)
+
+GOOD = {"source_role": "tool_output", "placement": "middle", "planned_depth": "<0.5x",
+        "distractors": "none"}
+
+
+def test_declared_strata_must_match_the_computed_labels():
+    """The pinned ``strata`` format: exactly the four dimensions, each a computed level,
+    and equal to what ``strata()`` computes from the definition (S9)."""
+    count = lambda text: 10  # noqa: E731
+    assert needle_strata.check_declared(_history(strata=GOOD), b_in=100, count=count) == []
+    assert needle_strata.check_declared(_history(), b_in=100, count=count) == ["q1: no strata"]
+    wrong = {**GOOD, "placement": "first"}
+    assert needle_strata.check_declared(_history(strata=wrong), b_in=100, count=count) == [
+        "q1: placement declared first, computed middle"]
+    extra = {**GOOD, "mood": "calm"}
+    assert needle_strata.check_declared(_history(strata=extra), b_in=100, count=count) == [
+        "q1: strata keys must be distractors, placement, planned_depth, source_role"]
+    bad = {**GOOD, "planned_depth": "deep"}
+    assert needle_strata.check_declared(_history(strata=bad), b_in=100, count=count)[0] == (
+        "q1: planned_depth level 'deep' is not one of <0.5x, 1-2x, >3x")
+    lost = _history(strata=GOOD, evidence=["nowhere"])
+    assert needle_strata.check_declared(lost, b_in=100, count=count) == ["q1: evidence not located"]
+
+
+def test_coverage_counts_declared_levels_and_reports_gaps():
+    hs = [_history(strata=GOOD), _history(strata={**GOOD, "placement": "last"})]
+    cov = needle_strata.coverage(hs)
+    assert cov["placement"] == {"first": 0, "middle": 1, "last": 1}
+    assert cov["source_role"]["tool_output"] == 2 and cov["source_role"]["user_paste"] == 0
+    gaps = needle_strata.coverage_gaps(cov, minimum=2)
+    assert "placement first: 0" in gaps and "placement middle: 1" in gaps
+    assert not any(g.startswith("source_role tool_output") for g in gaps)
+
+
 # ---------------------------------------------------------------- measured depth
 
 def _archive(path: Path) -> Path:

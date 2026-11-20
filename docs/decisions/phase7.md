@@ -79,7 +79,7 @@ R61 showed that 4A's traps separated nothing: neither arm repeated any of them i
    - V2: T7 holds in every `a4-d77` and `a4-tr` run;
    - V3: at least one D109 `code` repeat across `a4-tr` and arm 1.
    If V1 or V3 fails, this standard is revised once and piloted again before any authoring starts.
-6. **Not yet built.** There is no tool for the independence check (no 4-word run shared with an earlier set); it is needed before S9. The needle `strata` field format is not pinned yet.
+6. **Not yet built at S8.** There was no tool for the independence check (no 4-word run shared with an earlier set), and the needle `strata` field format was not pinned. Both are built in D113.
 7. **First pilot result: V1 failed, so the standard is revised once** (2026-11-19).
    - **The probe.** Run on pythia and Zeus, both on Strata 0.1.58 at a real 32K, 3 samples per task. T1 passed on 1 of 5 tasks: dev-t7, 3/3. dev-t6, t8, t9 and t10 each scored 0/3.
    - **What the model wrote instead:**
@@ -167,3 +167,29 @@ Red tests first for each slice: `tests/test_phase7_heldout.py`, `tests/test_phas
    - `SET = "heldout4"` from `eval/tasks/ho4_t*.py`;
    - header lines of `eval/needle_gen_ho4.py`: output path, set name, earlier folders, a function name and a docstring line.
    No task text, constraint, trap, needle, history or answer was shown. Every later search left those paths out. ho4 is still treated as unseen. While building S7, a repo-wide search for "four-word" also printed two comment lines from `eval/needle_gen_ho4.py`, about its phrasing bank and its check. No content was shown. The remedy is to keep tooling searches away from held-out paths: `eval/heldout.py` holds the set names, so nothing needs to search those paths again.
+
+## D113: Held-out authoring and seal (S9, from 2026-11-20)
+
+Red tests first: `tests/test_independence.py` and `tests/test_eval_needle_strata.py`. This replaces D112.6's "not yet built".
+
+1. **The independence check (`eval/independence.py`)** compares new task modules and needle histories with dev, ho, ho2, ho3 and ho4, by default. It prints only pass or fail per file, with counts.
+   - **Wording** is prose only:
+     - a module's string literals and comments; a string that is itself Python code (a reference, a stub, a test file) adds only its own comments, docstrings and strings;
+     - a history's user and assistant text and step text, not tool output (as ho2's generator does).
+     - Words are letters only. A path, an identifier, a number or a backtick span breaks a four-word run.
+   - **Identifiers:** the packages, modules, functions and classes that embedded code defines. Names under 3 characters, names starting with `_` or `test`, and the harness paths `tests`, `docs` and `_check` are left out. They are matched whole and case-sensitive.
+   - **Planted values:** the ho2 rule. A needle answer or part with a letter must not occur in an earlier history; a numeric one must not be an earlier answer.
+   - **What is exempt:**
+     - runs in `eval/tasks/common.py` and in the fixed wording of turns 1, 3, 5 and 7 of dev-t6..t10 (`AUTHORING.md` §3);
+     - **any run or identifier that two or more earlier sets already share.**
+   - **Why the two-set rule (a deviation from a literal reading of plan §1.1).** Calibrated on ho3, which was written apart from dev, ho and ho2, the literal rule failed every ho3 file. The shared runs were mostly:
+     - generic English ("and tell me what", "run the full suite");
+     - the lead's own header comments;
+     - the task skeleton's names: `errors`, `legacy` and the hidden-test harness.
+     With the exemption, ho3's identifier hits fall from 42 to 1 and its shared wording runs from 503 to 295. What remains is mostly ho3 reusing ho2's request and comment phrasing, which is what the brief forbids. Wording copied from a single earlier set still fails.
+   - **`--explain`** lists what is shared with dev, ho, ho2 and ho3. ho4 and every `--also` file (other authors' work) are sealed: their matches are counted, never shown (D96). Calibration ran against dev, ho and ho2 only, and no ho4 text was printed.
+2. **The needle `strata` format is pinned** (`eval/needle_strata.py`):
+   - **The format.** A question step carries `"strata"` with exactly the keys `source_role`, `placement`, `planned_depth` and `distractors`, at the levels the labeler computes. `other` and `unlocated` cannot be declared.
+   - **The author check.** `--check` (`check_declared`) requires each declared level to equal the computed one, so the per-level counts measure the files, not intent. A depth between bins must be moved into one.
+   - **The lead's check.** `--coverage [MIN]` counts declared needles per level over a set and fails below 30 (plan §1.3).
+   - **The brief.** `AUTHORING.md` §2 gives the exact keys, levels and token bounds: 12,160, 24,320–48,640 and 72,960, which are 0.5x, 1–2x and 3x of B_in. These replace the rounded figures it had before.
