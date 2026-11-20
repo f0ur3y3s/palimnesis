@@ -27,8 +27,17 @@ is (``gate_inputs.emulated_n_ctx``: 24,320 -> 32,768). Held-out tasks refuse it;
 
 Tasks: dev-t1..t5 (development; dev-t4 is the development restart task, dev-t5 a long
 agentic turn with mid-task information needs), ho-t1..t5 (the Phase 3 held-out set) and
-ho2-t1..t5 (the fresh Phase 3B held-out set, O-B1). A registered task whose module is not
-present yet is skipped by ``--check-reference``.
+ho2-t1..t5 (the fresh Phase 3B held-out set, O-B1), ho3-t1..t5, and the unseen Phase 7 sets
+ho4-t1..t5, ho5-t1..t20 and ho6-t1..t10 (``heldout.py``): they run only once unlocked, at a
+clean tree. A registered task whose module is not present yet is skipped by
+``--check-reference`` and refused with a clear error when run.
+
+**Traps** (Phase 7, plan §1.2). Hidden ``test_t_*`` methods are scored apart from success
+(``trap_tests`` in the check). A task may define ``TRAP_TURN`` (0-based turn, at least 5,
+whose request needs the code the trap applies to) and ``TRAP_SOLUTION`` ({path: full file
+text} overlaid on ``REFERENCE``). ``--check-reference`` then also checks that the trap
+solution passes every visible test and ``test_f_*`` but fails a ``test_t_*``, and that every
+``TRAP_PATTERNS`` entry matches its code and none matches the reference.
 
 **Attempts** (D44.7, ``eval/attempts.py``): each invocation is a new attempt of one task
 under one arm. Records go to ``RUN/records/attempt-NNN/``; the workspace, OpenCode home
@@ -76,6 +85,7 @@ import importlib
 import importlib.util
 import json
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -90,16 +100,20 @@ sys.path[:0] = [str(HERE), str(EVAL)]
 
 import attempts as att  # noqa: E402
 import gate_inputs as gi  # noqa: E402
+import heldout  # noqa: E402
 import needle  # noqa: E402
 import oc_harness as oc  # noqa: E402
 import oc_stack  # noqa: E402
 import report  # noqa: E402
+import state_eval  # noqa: E402
 
 TASKS = ["dev-t1", "dev-t2", "dev-t3", "dev-t4", "dev-t5",
          "ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5",
          "ho2-t1", "ho2-t2", "ho2-t3", "ho2-t4", "ho2-t5",
          "ho3-t1", "ho3-t2", "ho3-t3", "ho3-t4", "ho3-t5",  # ho3: D77's fresh set
-         "ho4-t1", "ho4-t2", "ho4-t3", "ho4-t4", "ho4-t5"]  # ho4: the Phase 7 held-out set
+         # The unseen Phase 7 sets (heldout.TASKS): ho4 (D96), ho5 and the ho6 reserve
+         # (D111.4). Their modules may not exist yet; ``load`` says so when one is run.
+         *(t for s in heldout.UNSEEN_SETS for t in heldout.TASKS[s])]
 # Runnable but outside the evaluation's task shape (no restart turn, one constraint).
 EXTRA_TASKS = ["game-t1", "game-t1-fix"]  # the user's game tests (2026-11-06, 2026-11-07)
 RUNNER_VERSION = "tasks-run v2"
@@ -153,7 +167,18 @@ with open(out, "w", encoding="utf-8") as f:
 
 
 def load(task_id: str):
-    return importlib.import_module(task_id.replace("-", "_"))
+    """The task's module; ``LookupError`` when a registered task's module is not present."""
+    task = load_optional(task_id)
+    if task is None:
+        raise LookupError(f"{task_id}: task module eval/tasks/{task_id.replace('-', '_')}.py "
+                          "is not present")
+    return task
+
+
+def task_refusal(task_id: str, provenance: dict | None = None) -> str | None:
+    """Why a task may not run, decided before its module is imported: a task of an unseen
+    set runs only once unlocked and at a clean tree (``heldout.run_refusal``)."""
+    return heldout.run_refusal(heldout.set_of_task(task_id), provenance)
 
 
 def load_optional(task_id: str):
@@ -199,7 +224,9 @@ def by_method(outcomes: dict[str, str]) -> dict[str, str]:
 
 def score_check(results: dict[str, str], expected: list[str], constraints: dict[str, str]) -> dict:
     """Task success: every expected ``test_f_*`` reported ``ok`` (at least one exists).
-    Constraint ``C<N>``: every expected ``test_c<N>_*`` reported ``ok``. An expected test
+    Constraint ``C<N>``: every expected ``test_c<N>_*`` reported ``ok``. Trap tests
+    ``test_t_*`` (plan §1.2 T6) are scored apart and never count toward success or a
+    constraint: ``trap_tests.passed`` is None when the check has none. An expected test
     with no result counts as failed."""
     def ok(name):
         return results.get(name) == "ok"
@@ -209,11 +236,15 @@ def score_check(results: dict[str, str], expected: list[str], constraints: dict[
     for cid in constraints:
         mine = [n for n in expected if n.startswith(f"test_c{cid[1:]}_")]
         adherence[cid] = bool(mine) and all(ok(n) for n in mine)
+    trap = [n for n in expected if n.startswith("test_t_")]
+    trap_failed = [n for n in trap if not ok(n)]
     return {"success": bool(functional) and all(ok(n) for n in functional),
             "functional_passed": sum(ok(n) for n in functional), "functional_total": len(functional),
             "missing": [n for n in expected if n not in results],
             "constraints": adherence, "constraints_held": sum(adherence.values()),
-            "constraints_total": len(adherence)}
+            "constraints_total": len(adherence),
+            "trap_tests": {"passed": (not trap_failed) if trap else None, "failed": trap_failed,
+                           "total": len(trap)}}
 
 
 def check_env(root: Path) -> dict:
@@ -264,16 +295,47 @@ def run_check(task, ws: Path, check_dir: Path, python: str | None = None,
             "reason": None if results else "no_outcomes", "tail": (p.stdout + p.stderr)[-1500:]}
 
 
-def check_one(task, overlay: dict[str, str], python: str | None = None) -> dict:
-    """The hidden check on a fresh task repo with ``overlay`` files written over it."""
+def check_one(task, overlay: dict[str, str], python: str | None = None,
+              visible: bool = False) -> dict:
+    """The hidden check on a fresh task repo with ``overlay`` files written over it; with
+    ``visible``, the visible tests' outcome too (``run_visible``)."""
     with tempfile.TemporaryDirectory() as d:
         ws = Path(d) / "repo"
         materialize(task, ws)
         for rel, text in overlay.items():
+            (ws / rel).parent.mkdir(parents=True, exist_ok=True)
             (ws / rel).write_text(text, encoding="utf-8", newline="\n")
         cd = Path(d) / "check"
         cd.mkdir()
-        return run_check(task, ws, cd, python)
+        r = run_check(task, ws, cd, python)
+        if visible:
+            r["visible"] = run_visible(task, ws, Path(d) / "visible", python)
+        return r
+
+
+def visible_modules(task) -> list[str]:
+    """The task's visible test modules: ``test_*.py`` files of its initial repository."""
+    files = task.files(random.Random(task_seed(task.ID)))
+    return sorted(rel[:-3].replace("/", ".") for rel in files
+                  if rel.endswith(".py") and rel.rsplit("/", 1)[-1].startswith("test_"))
+
+
+def run_visible(task, ws: Path, out_dir: Path, python: str | None = None,
+                timeout: float = CHECK_TIMEOUT_S) -> dict:
+    """Run the visible tests in ``ws`` as the model could: ``{passed, failed, total}``."""
+    python = python or system_python()
+    out_dir.mkdir(parents=True)
+    (out_dir / "run_check.py").write_text(CHECK_RUNNER, encoding="utf-8", newline="\n")
+    out = out_dir / "outcomes.json"
+    mods = visible_modules(task)
+    try:
+        subprocess.run([python, str(out_dir / "run_check.py"), str(out), *mods], cwd=ws,
+                       capture_output=True, text=True, env=check_env(out_dir / "env"), timeout=timeout)
+        results = json.loads(out.read_text(encoding="utf-8"))
+    except (subprocess.TimeoutExpired, OSError, ValueError):
+        results = {}
+    failed = sorted(t for t, v in results.items() if v != "ok")
+    return {"passed": bool(results) and not failed, "failed": failed, "total": len(results)}
 
 
 def opencode_context_limit(arm: int, n_ctx: int) -> int:
@@ -352,22 +414,97 @@ def restart_gate(task, check: dict) -> bool | None:
     return bool(check.get("success") and check.get("constraints", {}).get(task.KEY_CONSTRAINT))
 
 
+MIN_TRAP_TURN = 5  # plan §1.2 T3: the trap's code is requested at turn 6 or later
+
+
+def trap_contract_problems(task) -> list[str]:
+    """The task-module trap contract (plan §1.2): ``TRAP_TURN`` an int, at least 5 and
+    inside ``TURNS``; ``TRAP_SOLUTION`` a {path: full file text} overlay on ``REFERENCE``;
+    ``TRAP_PATTERNS`` non-empty when there is a trap solution."""
+    out = []
+    t = getattr(task, "TRAP_TURN", None)
+    if t is not None and (not isinstance(t, int) or isinstance(t, bool)
+                          or not MIN_TRAP_TURN <= t < len(task.TURNS)):
+        out.append(f"TRAP_TURN must be an int in [{MIN_TRAP_TURN}, {len(task.TURNS) - 1}], not {t!r}")
+    sol = getattr(task, "TRAP_SOLUTION", None)
+    if sol is not None and not (isinstance(sol, dict) and sol and all(
+            isinstance(k, str) and isinstance(v, str) for k, v in sol.items())):
+        out.append("TRAP_SOLUTION must be a non-empty {path: file text} dict")
+    if sol and not tuple(getattr(task, "TRAP_PATTERNS", ())):
+        out.append("a task with TRAP_SOLUTION needs TRAP_PATTERNS")
+    return out
+
+
+def _full(r: dict) -> bool:
+    """Success, every constraint held, and every trap test passed (when there are any)."""
+    return (r["success"] and r["constraints_held"] == r["constraints_total"]
+            and r["trap_tests"]["passed"] is not False)
+
+
+def check_task_reference(task, python: str | None = None) -> dict:
+    """No model: the checks on one task. ``reference``: the hidden check passes in full
+    (``test_f_*``, ``test_c*``, ``test_t_*``) on ``REFERENCE``. ``stub``: it does not on the
+    initial repository. With a ``TRAP_SOLUTION`` (plan §1.2 T2, T5), also ``contract``
+    (``trap_contract_problems``), ``trap``: the trap solution (``REFERENCE`` overlaid with
+    ``TRAP_SOLUTION``) passes every visible test and every ``test_f_*`` but fails at least
+    one ``test_t_*``, and ``patterns``: every ``TRAP_PATTERNS`` entry matches the trap
+    solution's code (D109 ``code_only``) and none matches the reference.
+    Returns ``{checks: {name: bool}, ok, details}``; details are counts and names only."""
+    checks, details = {}, {}
+    sol = getattr(task, "TRAP_SOLUTION", None)
+    if sol is not None or getattr(task, "TRAP_TURN", None) is not None:
+        problems = trap_contract_problems(task)
+        checks["contract"] = not problems
+        details["contract"] = problems
+    ref = check_one(task, task.REFERENCE, python)
+    checks["reference"] = _full(ref)
+    stub = check_one(task, {}, python)
+    checks["stub"] = not _full(stub)
+    for label, r in (("reference", ref), ("stub", stub)):
+        details[label] = {k: r[k] for k in ("success", "functional_passed", "functional_total",
+                                            "constraints_held", "constraints_total", "trap_tests")}
+    if sol:
+        trap = check_one(task, {**task.REFERENCE, **sol}, python, visible=True)
+        checks["trap"] = bool(trap["visible"]["passed"] and trap["functional_total"]
+                              and trap["functional_passed"] == trap["functional_total"]
+                              and trap["trap_tests"]["passed"] is False)
+        details["trap"] = {"visible": trap["visible"], "functional_passed": trap["functional_passed"],
+                           "functional_total": trap["functional_total"],
+                           "trap_tests": trap["trap_tests"]}
+        patterns = [re.compile(p) for p in getattr(task, "TRAP_PATTERNS", ())]
+        trap_code = [state_eval.code_only(v) for k, v in sol.items() if k.endswith(".py")]
+        reference = "\n".join(task.REFERENCE.values())
+        in_trap = [p.pattern for p in patterns if any(p.search(c) for c in trap_code)]
+        in_ref = [p.pattern for p in patterns if p.search(reference)]
+        checks["patterns"] = bool(patterns) and len(in_trap) == len(patterns) and not in_ref
+        details["patterns"] = {"missing_in_trap": [p.pattern for p in patterns
+                                                   if p.pattern not in in_trap],
+                               "matching_reference": in_ref}
+    return {"checks": checks, "ok": all(checks.values()), "details": details}
+
+
 def check_reference(task_ids: list[str]) -> int:
-    """No model: the hidden check passes on ``REFERENCE`` and fails on the stub."""
+    """No model: ``check_task_reference`` for each task; pass/fail per check, no contents."""
     bad = 0
     for tid in task_ids:
         task = load_optional(tid)
         if task is None:
             print(f"{tid}: not present, skipped")
             continue
-        for label, overlay in (("stub", {}), ("reference", task.REFERENCE)):
-            r = check_one(task, overlay)
-            ok = r["success"] and r["constraints_held"] == r["constraints_total"]
-            want = label == "reference"
-            bad += ok != want
-            print(f"{tid} {label}: success={r['success']} functional={r['functional_passed']}/"
-                  f"{r['functional_total']} constraints={r['constraints_held']}/{r['constraints_total']}"
-                  f"{'' if ok == want else '  <-- UNEXPECTED'}")
+        r = check_task_reference(task)
+        bad += not r["ok"]
+        d = r["details"]
+        for label in ("reference", "stub"):
+            x = d[label]
+            print(f"{tid} {label}: success={x['success']} functional={x['functional_passed']}/"
+                  f"{x['functional_total']} constraints={x['constraints_held']}/{x['constraints_total']}"
+                  f" trap_tests={x['trap_tests']['passed']}"
+                  f"{'' if r['checks'][label] else '  <-- UNEXPECTED'}")
+        sealed = heldout.set_of_task(tid) is not None  # unseen: pass/fail only
+        for label in ("contract", "trap", "patterns"):
+            if label in r["checks"]:
+                why = "" if r["checks"][label] or sealed else "  " + json.dumps(d.get(label))
+                print(f"{tid} {label}: {'PASS' if r['checks'][label] else 'FAIL'}{why}")
     return 1 if bad else 0
 
 
@@ -413,7 +550,8 @@ def hidden_markers(task) -> list[str]:
     """Strings that only the hidden check contains: its class and test definitions."""
     out = ["class HiddenTests"] + list(task.HIDDEN)
     for text in task.HIDDEN.values():
-        out += [l.strip() for l in text.splitlines() if l.strip().startswith(("def test_f_", "def test_c"))]
+        out += [l.strip() for l in text.splitlines()
+                if l.strip().startswith(("def test_f_", "def test_c", "def test_t_"))]
     return out
 
 
@@ -422,6 +560,10 @@ class Abort(RuntimeError):
 
 
 def run(a) -> int:
+    why = task_refusal(a.task)
+    if why:
+        print(f"refused: {why}", file=sys.stderr)
+        return 2
     task = load(a.task)
     try:
         info = resolve_arm(a.arm, a.config, task.SET)
@@ -643,8 +785,11 @@ def run_pi(a) -> int:
 
     import pi_task
 
-    task = load(a.task)
-    problems = pi_task.refusals(task.SET, a.arm, a.config, a.protocol, a.upstream)
+    # A locked unseen task is refused without importing its module.
+    why = task_refusal(a.task)
+    task = None if why else load(a.task)
+    problems = ([why] if why else []) + pi_task.refusals(
+        task.SET if task else heldout.set_of_task(a.task), a.arm, a.config, a.protocol, a.upstream)
     if a.pi_keep_recent_tokens is not None and a.arm != 1:
         problems.append("--pi-keep-recent-tokens applies to arm 1 (Pi's own compaction)")
     info = fields = None

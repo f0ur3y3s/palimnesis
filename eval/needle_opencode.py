@@ -66,6 +66,7 @@ import httpx
 
 import attempts as att
 import gate_inputs as gi
+import heldout
 import needle
 import oc_harness as oc
 import oc_stack
@@ -258,6 +259,9 @@ def refusals(a, histories: list[Path]) -> list[str]:
         prov = gi.git_provenance()
         if prov["dirty"]:
             out.append("held-out runs need a clean git tree: " + "; ".join(prov["status"][:5]))
+        locked = heldout.unlock_problem(a.set)  # unseen sets run only once unlocked
+        if locked:
+            out.append(locked)
     if a.resume:
         out.append("--resume does not apply to the OpenCode driver; each invocation is a new attempt")
     if not histories:

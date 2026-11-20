@@ -35,12 +35,37 @@ import json
 import math
 import sqlite3
 import statistics
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parent))
+import heldout  # noqa: E402
+
 ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43",
          "a5-A", "a5-B", "a5-C", "a5-D", "a5-d64"]
-SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10), "heldout4": (12, 10)}  # D44.3, O-B1: histories x questions
+# Histories x questions (D44.3, O-B1); heldout5 per D111.4; the heldout6 reserve has no needles.
+SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10), "heldout4": (12, 10),
+             "heldout5": (18, 10), "heldout6": (0, 0)}
+NEEDLE_FOLDERS = {"development": "dev", "heldout": "heldout", "heldout2": "heldout2",
+                  "heldout3": "heldout3", "heldout4": "heldout4", "heldout5": "heldout5",
+                  "heldout6": "heldout6"}
+
+
+def shape_problems(set_name: str, expected: dict[str, list]) -> list[str]:
+    """How ``expected`` ({history: questions}) departs from ``SET_SHAPE``; [] when it fits
+    (or the set has no declared shape). A set of shape (0, 0) has no needles."""
+    if set_name not in SET_SHAPE:
+        return []
+    hs, qs = SET_SHAPE[set_name]
+    out = []
+    if len(expected) != hs:
+        out.append(f"{set_name}: {len(expected)} histories, expected {hs}")
+    bad = sorted(h for h, q in expected.items() if len(q) != qs)
+    if bad:
+        out.append(f"{set_name}: {len(bad)} histories without {qs} questions")
+    return out
 INVALID_ID_ERRORS = ("unknown_address", "ambiguous_address", "unknown_block")
 INVALID_ID_MAX = 0.05  # O-B6
 NEEDLE_GATE = 0.85  # D44.4
@@ -149,9 +174,10 @@ def load_attempts(run: Path, config: str, designate: dict | None = None):
 
 def expected_needles(set_name: str, root: Path | None = None) -> dict[str, list[dict]]:
     """{history id: [{id, category, answer}] per question} of a committed needle set
-    (``eval/needles/<dir>``; empty while the set is not written)."""
-    folder = {"heldout": "heldout", "heldout2": "heldout2", "heldout3": "heldout3", "heldout4": "heldout4",
-              "development": "dev"}[set_name]
+    (``eval/needles/<dir>``; empty while the set is not written). A locked unseen set is
+    refused before anything is read (``heldout.Locked``)."""
+    heldout.require_unlocked(set_name)
+    folder = NEEDLE_FOLDERS[set_name]
     out = {}
     for f in sorted((root or Path(__file__).resolve().parent / "needles").joinpath(folder).glob("*.json")):
         h = json.loads(f.read_text(encoding="utf-8"))
@@ -1014,11 +1040,14 @@ def main() -> None:
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
     p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
-    p.add_argument("--set", choices=["development", "heldout", "heldout2", "heldout3", "heldout4"],
+    p.add_argument("--set", choices=sorted(NEEDLE_FOLDERS),
                    help="print the needle gate over the whole committed set (missing = miss)")
     p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
     p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")
     a = p.parse_args()
+    locked = heldout.unlock_problem(a.set) if a.set else None
+    if locked:  # unseen sets are analysed only once unlocked (D96, plan §1.1)
+        p.error(locked)
     if a.phase7:
         raise SystemExit(print_phase7(a))
     if a.run is None:
@@ -1068,10 +1097,9 @@ def main() -> None:
         rows, meta, explain = load(a.run, c, designate)
         if a.set:
             expected = expected_needles(a.set)
-            if a.set in SET_SHAPE:  # D44.3, O-B1: 12 histories x 10 questions
-                shape = {k: len(v) for k, v in expected.items()}
-                hs, qs = SET_SHAPE[a.set]
-                assert len(expected) == hs and set(shape.values()) == {qs}, shape
+            problems = shape_problems(a.set, expected)  # D44.3, O-B1, D111.4
+            if problems:
+                p.error("; ".join(problems))
             gate = needle_gate(rows, expected)
             rows, _ = fill_missing(rows, expected)
             lo, hi = gate["wilson"]
