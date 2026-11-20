@@ -756,24 +756,62 @@ def trap_hit_kinds(r: dict | None) -> list[str] | None:
     return [h.get("kind") for rep in reports for h in rep.get("trap_hits") or []]
 
 
-def trap_summary(results: dict, suite: list[str], arm: str) -> dict:
-    """Trap repeats (any D109 ``code`` hit) per task over the declared trap suite, with
-    ``doubtful`` hits counted for blind hand review. A suite task without a trap scan is
-    ``unscored``, and the gate (0 repeats) needs every suite task scored."""
-    repeats, doubtful, unscored, per_task = 0, 0, [], {}
+def trap_verdict(r: dict | None, review: bool | None = None) -> str | None:
+    """One run's trap outcome (D112.9): ``repeat`` when a D109 ``code`` hit and a failed
+    ``test_t_*`` agree, ``clean`` when neither shows the trap, ``disputed`` when they
+    disagree, None when the run has no trap scan. A recorded hand ``review`` (True =
+    repeat) settles a disputed run. A check without trap tests leaves the code hit alone
+    to decide."""
+    kinds = trap_hit_kinds(r)
+    if kinds is None:
+        return None
+    code = "code" in kinds
+    failed = (((r or {}).get("check") or {}).get("trap_tests") or {}).get("passed") is False
+    has_tests = (((r or {}).get("check") or {}).get("trap_tests") or {}).get("passed") is not None
+    if not has_tests or code == failed:
+        return "repeat" if code else "clean"
+    if review is not None:
+        return "repeat" if review else "clean"
+    return "disputed"
+
+
+def load_trap_reviews(path: Path) -> dict[str, bool]:
+    """``--trap-reviews``: {"task:arm": {"repeat": bool, "note": ...}} -> {"task:arm": bool}."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {k: bool(v["repeat"]) for k, v in raw.items()}
+
+
+def trap_summary(results: dict, suite: list[str], arm: str,
+                 reviews: dict[str, bool] | None = None) -> dict:
+    """Trap repeats per task over the declared trap suite (D112.9: a ``code`` hit and a
+    failed ``test_t_*`` together), with ``doubtful`` hits counted for blind hand review.
+    A suite task without a trap scan is ``unscored``; one whose hit and test disagree is
+    ``disputed`` until ``reviews`` settles it (``reviewed``). The gate (0 repeats) needs
+    every suite task scored and none disputed."""
+    reviews = reviews or {}
+    repeats, doubtful, unscored, disputed, reviewed, per_task = 0, 0, [], [], [], {}
     for t in suite:
-        kinds = trap_hit_kinds(results.get((t, arm)))
-        if kinds is None:
+        r = results.get((t, arm))
+        review = reviews.get(f"{t}:{arm}")
+        verdict = trap_verdict(r, review)
+        if verdict is None:
             unscored.append(t)
             per_task[t] = None
             continue
-        rep = "code" in kinds
+        if review is not None and trap_verdict(r) == "disputed":
+            reviewed.append(t)
+        if verdict == "disputed":
+            disputed.append(t)
+        rep = verdict == "repeat"
         repeats += rep
+        kinds = trap_hit_kinds(r)
         doubtful += kinds.count("doubtful")
-        per_task[t] = {"repeat": rep, "doubtful": kinds.count("doubtful")}
+        per_task[t] = {"repeat": rep, "verdict": verdict, "doubtful": kinds.count("doubtful")}
     return {"arm": arm, "n": len(suite), "repeats": repeats, "doubtful": doubtful,
-            "unscored": unscored, "per_task": per_task, "wilson": wilson(repeats, len(suite)),
-            "gate": bool(suite) and not unscored and repeats <= PHASE7_TRAP_GATE}
+            "unscored": unscored, "disputed": disputed, "reviewed": reviewed,
+            "per_task": per_task, "wilson": wilson(repeats, len(suite)),
+            "gate": (bool(suite) and not unscored and not disputed
+                     and repeats <= PHASE7_TRAP_GATE)}
 
 
 def _paired_binary(outcome, tasks: list[str], candidate: str, baseline: str) -> dict:
@@ -788,6 +826,7 @@ def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CA
                   constraints_declared: dict[str, list[str]] | None = None,
                   needles: tuple[list[dict], dict] | None = None,
                   hosts: dict[str, str] | None = None, sets: dict[str, str] | None = None,
+                  trap_reviews: dict[str, bool] | None = None,
                   resamples: int = BOOT_RESAMPLES, seed: int = BOOT_SEED) -> dict:
     """Phase 7's candidate report (plan §1.4) over the declared ``tasks``.
 
@@ -797,7 +836,8 @@ def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CA
       power floor 2^(1-d) and the observed gate (candidate successes >= baseline's);
     - **by_host**: the same table per host (``hosts``: task -> host), pooled above;
     - **constraints**: per arm, the observed rate with a task-clustered bootstrap;
-    - **traps**: per arm over ``trap_suite``, code repeats and doubtful hits;
+    - **traps**: per arm over ``trap_suite``, repeats (D112.9), disputed runs and doubtful
+      hits; ``trap_reviews`` ("task:arm" -> repeat) settles disputed runs;
     - **needles**: ``needle_gate`` at ``PHASE7_NEEDLE_GATE`` over (rows, expected);
     - **exploratory** (never gates): McNemar on "kept every constraint", on "no trap
       repeat" and the primary table per set (``sets``: task -> set name)."""
@@ -813,7 +853,8 @@ def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CA
                                                   resamples=resamples, seed=seed)
                           for arm in (candidate, baseline)}
     if trap_suite is not None:
-        out["traps"] = {arm: trap_summary(results, trap_suite, arm) for arm in (candidate, baseline)}
+        out["traps"] = {arm: trap_summary(results, trap_suite, arm, trap_reviews)
+                        for arm in (candidate, baseline)}
     if needles is not None:
         out["needles"] = needle_gate(needles[0], needles[1], gate=PHASE7_NEEDLE_GATE)
 
@@ -822,8 +863,7 @@ def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CA
         return bool(held) and all(held.values())
 
     def no_repeat(t, arm):
-        kinds = trap_hit_kinds(results.get((t, arm)))
-        return kinds is not None and "code" not in kinds
+        return trap_verdict(results.get((t, arm)), (trap_reviews or {}).get(f"{t}:{arm}")) == "clean"
 
     ex = {"label": "exploratory",
           "constraint_kept": _paired_binary(kept_all, tasks, candidate, baseline)}
@@ -901,7 +941,9 @@ def format_phase7(r: dict) -> list[str]:
             lo, hi = t["wilson"]
             lines.append(f"{arm}: code repeats {t['repeats']}/{t['n']} (Wilson 95% {_pct(lo)}-"
                          f"{_pct(hi)}); doubtful hits awaiting blind review {t['doubtful']}; "
-                         f"unscored {t['unscored'] or 'none'}{gate}")
+                         f"unscored {t['unscored'] or 'none'}; disputed (code hit and test_t "
+                         f"disagree, unreviewed) {t['disputed'] or 'none'}; reviewed "
+                         f"{t['reviewed'] or 'none'}{gate}")
     if "needles" in r:
         g = r["needles"]
         lo, hi = g["wilson"]
@@ -982,7 +1024,8 @@ def print_phase7(a) -> int:
         rows, _, _ = load(a.needle_run, a.candidate, None)
         needles = (rows, expected)
     r = phase7_report(results, tasks, candidate=a.candidate, baseline=a.baseline, trap_suite=suite,
-                      needles=needles, hosts=hosts, sets=sets, seed=a.seed)
+                      needles=needles, hosts=hosts, sets=sets, seed=a.seed,
+                      trap_reviews=load_trap_reviews(a.trap_reviews) if a.trap_reviews else None)
     if a.json:
         print(json.dumps(r, indent=1, default=str))
     else:
@@ -1031,6 +1074,8 @@ def main() -> None:
     p.add_argument("--candidate", default=PHASE7_CANDIDATE)
     p.add_argument("--baseline", default=PHASE7_BASELINE)
     p.add_argument("--trap-suite", help="task ids or set names forming the declared trap suite")
+    p.add_argument("--trap-reviews", type=Path,
+                   help='JSON {"task:arm": {"repeat": bool, "note": str}}: hand verdicts (D112.9)')
     p.add_argument("--needle-run", type=Path, help="needle run directory of the candidate")
     p.add_argument("--needle-dirs", default="", help="DIR[,DIR]: the needle sets' history folders")
     p.add_argument("--seed", type=int, default=BOOT_SEED, help="bootstrap seed (D115)")

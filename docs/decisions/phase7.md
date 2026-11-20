@@ -101,6 +101,11 @@ R61 showed that 4A's traps separated nothing: neither arm repeated any of them i
    - **The probe**, run on Zeus (0.1.58, 32K), 3 samples per task: dev-t6 2/3, dev-t8 3/3, dev-t9 3/3, dev-t10 3/3. dev-t7 was 3/3 in probe 1.
    - **Every hit was read by hand and is the real trap:** `quote(…, safe="")` without NFC, character-length line widths, `int(x + 0.5)`, and ordering by points alone or by points then name.
    - **Caution for V3.** The dev-t8 pattern (quote with no `normalize(` in the same text) and the dev-t10 pattern (`len(word)` and the like) can fire on correct code. Every pilot `code` hit is therefore read by hand before it counts.
+9. **After the pilot (R64, 2026-11-20).**
+   - **A `code` hit counts as a repeat only when that run's `test_t_*` also fails.** When the two disagree, a person reads the run and records the verdict before it counts. The pilot's one disagreement was a false hit: dev-t10 `a4-tr`, on correct code. The 2 genuine repeats (dev-t6, dev-t8) had both.
+     - `report.py --phase7` applies this. Each suite run gets a verdict: `repeat`, `clean` or `disputed`. A disputed run fails the trap gate until `--trap-reviews FILE` records its hand verdict (`{"task:arm": {"repeat": bool, "note": …}}`). The report lists disputed and reviewed runs. A check with no trap tests falls back to the `code` hit alone.
+   - **dev-t10's `len()` pattern now fires only on a comparison or a sum** (`len(word) > width`, `len(current) + 1 + …`). The false hit was the slice `word[len(piece):]`. `tests/test_trap_standard.py` keeps the lines that pilot runs falsely matched. With the new patterns, re-scoring the pilot leaves dev-t10 with 0 `code` hits and keeps both genuine repeats. The pilot was run once; the patterns are not re-piloted.
+   - **Authors are told the same** (`AUTHORING.md` §1.5): a pattern should match X as it is used, not a name that correct code also uses.
 
 ## D114: Phase 7 tooling as built (S1–S6, 2026-11-19)
 

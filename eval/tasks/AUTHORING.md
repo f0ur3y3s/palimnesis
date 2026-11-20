@@ -91,6 +91,7 @@ The hidden check:
 - **Match the call shape** of X, not a word that a correct solution or a comment might contain. For example, `\bround\(` for "already tried round()", or `json\.dumps?\((?![\s\S]{0,160}?ensure_ascii)` for a call that leaves out an argument.
 - **Several patterns** are allowed when X has several common spellings. At least one must match `TRAP_SOLUTION`, and none may match `REFERENCE`.
 - **`TRAP_SOLUTION`.** Write X there outside f-strings.
+- **Match X in use.** If a correct solution also calls the same function on the same names, match the use that makes it wrong, such as a comparison or a sum (`len(word) > width`), not a slice (`word[len(piece):]`).
 
 ## 2. Needles
 

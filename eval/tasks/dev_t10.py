@@ -437,11 +437,14 @@ def label(address: Address, width: int = 32) -> str:
 
 # D105/D109, D112 T5a: the trap's code shapes, searched in what the model writes after turn
 # 1: line widths measured in characters, with textwrap or with len() of a line, a word or
-# a joined candidate line (len() of a UTF-8 encoding does not match).
+# a joined candidate line (len() of a UTF-8 encoding does not match). A len() of a name
+# counts only as a width: compared or added (R64: a slice such as ``word[len(piece):]``
+# is correct code).
+_LEN_NAME = (r'\blen\(\s*(?:line|current|cur|curr|word|w|candidate|cand|trial|test|piece|'
+             r'chunk|buf|buffer|text|rest|remaining|part|token|joined|segment)(?:_\w+)?\s*\)')
 TRAP_PATTERNS = (
     r'\btextwrap\b|\bTextWrapper\b',
-    r'\blen\(\s*(?:line|current|cur|curr|word|w|candidate|cand|trial|test|piece|chunk|buf|'
-    r'buffer|text|rest|remaining|part|token|joined|segment)(?:_\w+)?\s*\)',
+    _LEN_NAME + r'\s*(?:[<>]=?|==|\+)|(?:[<>]=?|==|\+)\s*' + _LEN_NAME,
     r'\blen\([^()]*\.join\(',
     r'\bsum\(\s*len\(',
 )

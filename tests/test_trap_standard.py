@@ -154,3 +154,18 @@ def test_dev_trap_tasks_meet_t2_t5_t6(tid):
         v = _visible(task, overlay)
         assert v.returncode == 0, v.stderr[-2000:]  # T2: visible tests pass
     assert _visible(task, {}).returncode != 0  # the stub fails them
+
+
+# Correct lines a pilot run wrote that an earlier pattern set matched (R64). A trap
+# pattern must not fire on them, so a `code` hit stays evidence of the trap.
+PILOT_FALSE_POSITIVES = {
+    "dev-t10": ["word = word[len(piece):]",
+                "rest = rest[len(chunk):]"],
+}
+
+
+@pytest.mark.parametrize("tid", sorted(PILOT_FALSE_POSITIVES))
+def test_trap_patterns_skip_pilot_false_positives(tid):
+    task = state_eval.task_module(tid)
+    for line in PILOT_FALSE_POSITIVES[tid]:
+        assert not [p for p in task.TRAP_PATTERNS if re.search(p, line)], line

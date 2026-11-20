@@ -160,6 +160,54 @@ def test_trap_gate_counts_code_repeats_and_lists_doubtful():
     assert (t[BASE]["repeats"], t[BASE]["doubtful"], t[BASE]["unscored"]) == (2, 1, ["x-t3"])
 
 
+def _trap(passed, *kinds) -> dict:
+    """A run whose check carries ``trap_tests.passed`` and the given D109 hit kinds."""
+    return {"check": {"success": True, "constraints": {},
+                      "trap_tests": {"passed": passed, "failed": [] if passed else ["test_t_x"],
+                                     "total": 1}},
+            **_hits(*kinds)}
+
+
+def test_trap_repeat_needs_code_hit_and_failed_trap_test():
+    """D112.9: a code hit with a failed test_t is a repeat; a code hit on a passing
+    test_t, or a failed test_t with no code hit, is disputed until a review settles it."""
+    suite = ["x-t1", "x-t2", "x-t3", "x-t4"]
+    results = {("x-t1", CAND): _trap(False, "code"),
+               ("x-t2", CAND): _trap(True, "code"),
+               ("x-t3", CAND): _trap(False, "doubtful"),
+               ("x-t4", CAND): _trap(True, "doubtful")}
+    t = report.phase7_report(results, suite, candidate=CAND, baseline=BASE,
+                             trap_suite=suite)["traps"][CAND]
+    assert (t["repeats"], t["disputed"]) == (1, ["x-t2", "x-t3"])
+    assert t["gate"] is False
+    reviews = {f"x-t2:{CAND}": False, f"x-t3:{CAND}": True}
+    t = report.phase7_report(results, suite, candidate=CAND, baseline=BASE, trap_suite=suite,
+                             trap_reviews=reviews)["traps"][CAND]
+    assert (t["repeats"], t["disputed"], t["reviewed"]) == (2, [], ["x-t2", "x-t3"])
+
+
+def test_trap_gate_passes_only_with_no_repeat_and_nothing_disputed():
+    suite = ["x-t1", "x-t2"]
+    clean = {("x-t1", CAND): _trap(True), ("x-t2", CAND): _trap(True, "doubtful")}
+    r = report.phase7_report(clean, suite, candidate=CAND, baseline=BASE, trap_suite=suite)
+    assert r["traps"][CAND]["gate"] is True
+    disputed = {**clean, ("x-t2", CAND): _trap(True, "code")}
+    r = report.phase7_report(disputed, suite, candidate=CAND, baseline=BASE, trap_suite=suite)
+    assert (r["traps"][CAND]["repeats"], r["traps"][CAND]["gate"]) == (0, False)
+    text = "\n".join(report.format_phase7(r))
+    assert "disputed" in text and "x-t2" in text
+    r = report.phase7_report(disputed, suite, candidate=CAND, baseline=BASE, trap_suite=suite,
+                             trap_reviews={f"x-t2:{CAND}": False})
+    assert r["traps"][CAND]["gate"] is True
+
+
+def test_trap_reviews_cli_file(tmp_path):
+    p = tmp_path / "reviews.json"
+    p.write_text('{"x-t2:a4-d77": {"repeat": false, "note": "slice, correct code"}}',
+                 encoding="utf-8")
+    assert report.load_trap_reviews(p) == {"x-t2:a4-d77": False}
+
+
 def test_trap_gate_fails_when_a_candidate_run_is_unscored():
     r = report.phase7_report({("x-t1", CAND): _ok(True)}, ["x-t1"], candidate=CAND,
                              baseline=BASE, trap_suite=["x-t1"])

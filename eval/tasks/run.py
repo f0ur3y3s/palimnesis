@@ -61,7 +61,7 @@ outlives its timeout fails with ``check_timeout``. For a task with a ``KEY_CONST
 (the restart task, ho-t3) the restart gate needs success and that constraint (D45.8). The
 stub's own check result is recorded beside it.
 
-**Gate inputs** (arm 4): ``--explain`` (exit 0, pairs = upstream calls − 1, 0 unexplained),
+**Gate inputs** (arm 4): ``--explain`` (exit 0, pairs = upstream calls - 1, 0 unexplained),
 ``transcripts verify``, inputs over budget by the pinned counter, excerpt leaks and echoes
 (client requests and responses, the OpenCode export, transcript files), records
 reachable from the workspace tree, and per call the upstream time (flagged over 600 s).
