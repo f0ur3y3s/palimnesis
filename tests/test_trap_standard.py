@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "eval"), str(ROOT / "eval" / "tasks")]
 import run as task_run  # noqa: E402
 import state_eval  # noqa: E402
+import heldout  # noqa: E402
 import trap_probe  # noqa: E402
 
 sys.path.remove(str(ROOT / "eval"))
@@ -83,8 +84,10 @@ def test_trap_probe_strips_warning_direct_upstream():
 def _trap_modules():
     out = []
     for path in sorted((ROOT / "eval" / "tasks").glob("*.py")):
-        if path.stem.startswith("ho4_") or not re.fullmatch(r"(dev|ho\d?)_t\d+", path.stem):
-            continue  # heldout4 stays unseen (D96)
+        if not re.fullmatch(r"(dev|ho\d?)_t\d+", path.stem):
+            continue
+        if heldout.set_of_task(path.stem.replace("_", "-")) is not None:
+            continue  # unseen sets (ho4, ho5, ho6) stay unread until unlocked (D96, D113)
         if "TRAP_TURN" not in path.read_text(encoding="utf-8"):
             continue
         out.append(state_eval.task_module(path.stem.replace("_", "-")))
@@ -169,3 +172,19 @@ def test_trap_patterns_skip_pilot_false_positives(tid):
     task = state_eval.task_module(tid)
     for line in PILOT_FALSE_POSITIVES[tid]:
         assert not [p for p in task.TRAP_PATTERNS if re.search(p, line)], line
+
+
+def test_trap_probe_runs_on_a_locked_set_without_sample_output(monkeypatch, tmp_path):
+    """Authors probe their own unseen tasks before any unlock (plan §1.1 step 3, T1): the
+    probe prints only pass or fail and the count, and refuses ``--out`` for an unseen task."""
+    import heldout
+
+    monkeypatch.setattr(heldout, "unlock_problem", lambda s, **kw: "locked (D96)" if s else None)
+    monkeypatch.setattr(heldout, "set_of_task", lambda t: "heldout5")
+    assert trap_probe.load_task("dev-t6").ID == "dev-t6"
+    monkeypatch.setattr(trap_probe, "probe", lambda *a, **k: {
+        "task": "dev-t6", "passed": True, "trap_samples": 3, "samples": 3, "replies": ["x"]})
+    assert trap_probe.main(["--task", "dev-t6", "--upstream", "http://u"]) == 0
+    with pytest.raises(SystemExit):
+        trap_probe.main(["--task", "dev-t6", "--upstream", "http://u", "--out", str(tmp_path / "o")])
+    assert not (tmp_path / "o").exists()

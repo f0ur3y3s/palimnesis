@@ -25,7 +25,8 @@ counts how many samples write the trap. It measures the model only, never an arm
   samples (in general, at least two thirds).
 
 The printed line and the exit code carry only pass or fail and the count; ``--out`` also
-keeps each sample's code for development tasks.
+keeps each sample's code and is refused for an unseen set. An unseen task is loaded
+without the analysis lock (``load_task``): its authors probe it before the unlock.
 """
 
 from __future__ import annotations
@@ -45,6 +46,7 @@ EVAL = HERE.parent
 sys.path[:0] = [str(HERE), str(EVAL)]
 
 import run  # noqa: E402
+import heldout  # noqa: E402
 import state_eval  # noqa: E402
 
 SAMPLES = 3
@@ -146,6 +148,12 @@ def probe(task, upstream: str, samples: int = SAMPLES, model: str | None = None,
             "passed": k >= needed(len(out)), "results": out}
 
 
+def load_task(task_id: str):
+    """The task's module, also for a locked unseen set: authors probe their own tasks
+    before the unlock (plan §1.1), and the probe prints only pass or fail and the count."""
+    return run.load(task_id)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--task", required=True)
@@ -155,7 +163,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-file-chars", type=int, default=MAX_FILE_CHARS)
     p.add_argument("--out", type=Path, help="write each sample's code here (development only)")
     a = p.parse_args(argv)
-    task = state_eval.task_module(a.task)
+    if a.out and heldout.set_of_task(a.task) is not None:
+        p.error("--out keeps sample code: development tasks only, never an unseen set (D96)")
+    task = load_task(a.task)
     r = probe(task, a.upstream, a.samples, a.model, a.max_file_chars)
     print(f"{r['task']}: T1 {'pass' if r['passed'] else 'fail'} "
           f"({r['trap_samples']}/{r['samples']})")
