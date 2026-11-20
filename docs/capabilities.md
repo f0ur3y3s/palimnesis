@@ -37,8 +37,8 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | Harness | Version | Endpoint | Status | Setup |
 | --- | --- | --- | --- | --- |
 | OpenCode | 2.1.4 | Chat Completions | first harness (Ph0–3); proactive excerpts and transcript-file fallback (gate passed, D37); hidden recall tools with `--hidden-tools` (Ph3B, streaming requests) | `harnesses.md` |
-| Pi | 1.5.0 | Chat Completions / Messages | **supported** (Ph4B): adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; live smoke on both protocols and the transcript gate passed through the proxy against Strata (R43, D93); transcript-file fallback | `harnesses.md`, `docs/probes/pi.md` |
-| OMP | 18.16.0 | Chat Completions | **supported, Chat only** (Ph4B close, D104): adapter in `integrations/omp/`; live smoke with resume, transcript gate, restarts and cancellation through the proxy against Strata (R59); a 64K coding task (R58); background roles unrouted; Messages not offered (`context_management`) | `harnesses.md` |
+| Pi | 1.5.0 | Chat Completions / Messages | **supported** (Ph4B); Phase 7 reports it on ho4, not confirmatory (D111): adapter in `integrations/pi/` (D91); recorded sessions replay on both protocols; live smoke on both protocols and the transcript gate passed through the proxy against Strata (R43, D93); transcript-file fallback | `harnesses.md`, `docs/probes/pi.md` |
+| OMP | 18.16.0 | Chat Completions | **supported, Chat only, no held-out quality claim** (Ph4B close, D104; D111): adapter in `integrations/omp/`; live smoke with resume, transcript gate, restarts and cancellation through the proxy against Strata (R59); a 64K coding task (R58); background roles unrouted; Messages not offered (`context_management`) | `harnesses.md` |
 | Claude Code | 2.1.318 | Messages | **backlogged: closed source** (user, 2026-11-05; D92, `backlog.md`). Probes kept in `docs/probes/claude_code.md` | — |
 
 ## Chat Completions request features (first harness)
@@ -142,6 +142,8 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 ### Hidden recall tools (Phase 3B, off by default)
 
 `--hidden-tools t1|t2` (contracts §15) failed both Phase 3B held-out gates (R32): 97 of 120 needles against the 85% bar, and 2 of 5 coding tasks against native compaction's 4. They stay off by default and there is no `phase-3b` tag (D64).
+
+**Experimental, not claimed for release** (D111). Phase 7 evaluates the defaults without hidden tools, so no quality figure covers them.
 
 - **Streaming requests only** (D55). A non-streaming request gets no hidden tools.
 - **One visible message per response, but its text order can change upstream.** Text the model writes after a tool call, hidden or external, is re-rendered before the call in later requests (one content field per message), so from that point the prompt differs from what the model generated.
