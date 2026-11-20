@@ -4,6 +4,8 @@
     python eval/report.py RUN --configs a4-d43 --set heldout [--designate ho-h3=2,...]
     python eval/report.py --coding RUN [--designate ho-t3:a4=2,...]
     python eval/report.py --coding RUN --set heldout2      # Phase 3B: arm 5 (a5-d64) vs arm 1
+    python eval/report.py --phase7 TASKRUN --schedule plan.json [--trap-suite ho5]
+        [--needle-run RUN --needle-dirs DIR,DIR] [--seed N] [--json]   # Phase 7 (plan §1.4)
 
 A run directory with ``attempts.json`` (``eval/attempts.py``; the OpenCode driver and
 the task runner) is read per history or task from its designated attempt, the latest by
@@ -43,6 +45,12 @@ INVALID_ID_ERRORS = ("unknown_address", "ambiguous_address", "unknown_block")
 INVALID_ID_MAX = 0.05  # O-B6
 NEEDLE_GATE = 0.85  # D44.4
 BOOT_RESAMPLES, BOOT_SEED = 10_000, 44
+# Phase 7 (plan §1.4, D115): gates read on observed rates.
+PHASE7_NEEDLE_GATE = 0.95  # loose exact over all held-out needles (D111.5)
+PHASE7_CONSTRAINT_GATE = 0.90  # every constraint of every task, candidate
+PHASE7_TRAP_GATE = 0  # code repeats (D109) allowed on the declared trap suite
+PHASE7_ALPHA = 0.05  # the one confirmatory test: two-sided exact McNemar
+PHASE7_CANDIDATE, PHASE7_BASELINE = "a4-d77", "a1"
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -199,8 +207,10 @@ def cluster_bootstrap(by_history: dict[str, list[bool]], resamples: int = BOOT_R
     return (q(0.025), q(0.975))
 
 
-def needle_gate(rows: list[dict], expected: dict[str, list[dict]]) -> dict:
-    """D44.4 on loose exact over every expected needle; missing rows count as misses."""
+def needle_gate(rows: list[dict], expected: dict[str, list[dict]], gate: float = NEEDLE_GATE) -> dict:
+    """D44.4 on loose exact over every expected needle; missing rows count as misses.
+    ``gate`` is the pass rate: ``NEEDLE_GATE`` (0.85) for Phases 3-4, Phase 7's
+    ``PHASE7_NEEDLE_GATE`` (0.95) for the candidate."""
     rows, missing = fill_missing(rows, expected)
     allq = [r for r in rows if r["kind"] == "question" and r["history"] in expected]
     seen, q = set(), []
@@ -217,7 +227,7 @@ def needle_gate(rows: list[dict], expected: dict[str, list[dict]]) -> dict:
     return {"n": n, "rows": len(q), "duplicates": dupes, "loose": k, "strict": sum(bool(r["exact"]) for r in q),
             "rate": k / n if n else 0.0, "wilson": wilson(k, n), "bootstrap": cluster_bootstrap(by_h),
             "missing": missing, "not_run": sum(1 for r in q if r.get("not_run")),
-            "pass": n > 0 and dupes == 0 and k / n >= NEEDLE_GATE}
+            "gate": gate, "pass": n > 0 and dupes == 0 and k / n >= gate}
 
 
 HELDOUT_TASKS = ["ho-t1", "ho-t2", "ho-t3", "ho-t4", "ho-t5"]
@@ -594,6 +604,369 @@ def mcnemar_exact(b: int, c: int) -> float:
     return min(1.0, 2 * tail)
 
 
+# ---------------------------------------------------------------- Phase 7 (plan §1.4)
+
+def power_floor(d: int) -> float:
+    """The smallest two-sided exact McNemar p any split of ``d`` discordant pairs can give:
+    2^(1 - d), reached when all favour one arm (v1_plan Phase 7); 1 with none."""
+    return 1.0 if d <= 0 else min(1.0, 2.0 ** (1 - d))
+
+
+Z975 = statistics.NormalDist().inv_cdf(0.975)  # 1.959964..., as the published examples use
+
+
+def newcombe_paired(a: int, b: int, c: int, d: int, z: float = Z975) -> tuple[float, float, float]:
+    """(difference, lower, upper): Newcombe's (1998) method 10 interval for a paired
+    difference of proportions, p1 - p2 with p1 = (a + b)/n and p2 = (a + c)/n.
+
+    ``a`` both succeed, ``b`` only the first, ``c`` only the second, ``d`` neither. Wilson
+    score limits (l1, u1) and (l2, u2) of each proportion are combined with the
+    correlation phi = C / sqrt((a+b)(c+d)(a+c)(b+d)), where with B = ad - bc, C is
+    B - n/2 if B > n/2, 0 if 0 <= B <= n/2 and B if B < 0 (phi = 0 when a margin is 0):
+    lower = D - sqrt((p1-l1)^2 - 2 phi (p1-l1)(u2-p2) + (u2-p2)^2),
+    upper = D + sqrt((u1-p1)^2 - 2 phi (u1-p1)(p2-l2) + (p2-l2)^2)."""
+    n = a + b + c + d
+    if n == 0:
+        return (0.0, 0.0, 0.0)
+    p1, p2 = (a + b) / n, (a + c) / n
+    l1, u1 = wilson(a + b, n, z)
+    l2, u2 = wilson(a + c, n, z)
+    margins = (a + b) * (c + d) * (a + c) * (b + d)
+    big_b = a * d - b * c
+    corr = big_b - n / 2 if big_b > n / 2 else (0.0 if big_b >= 0 else big_b)
+    phi = corr / math.sqrt(margins) if margins else 0.0
+    dl1, du1, dl2, du2 = p1 - l1, u1 - p1, p2 - l2, u2 - p2
+    diff = p1 - p2
+    lo = diff - math.sqrt(max(0.0, dl1 ** 2 - 2 * phi * dl1 * du2 + du2 ** 2))
+    hi = diff + math.sqrt(max(0.0, du1 ** 2 - 2 * phi * du1 * dl2 + dl2 ** 2))
+    return (diff, max(-1.0, lo), min(1.0, hi))
+
+
+def _usable(r: dict | None) -> bool:
+    """A designated attempt that ran to a result: present and not aborted."""
+    return bool(r) and not r.get("aborted")
+
+
+def paired_table(results: dict, tasks: list[str], candidate: str, baseline: str) -> dict:
+    """The paired 2x2 table of task success (all ``test_f_*``), candidate against baseline,
+    over ``tasks``. ``results`` maps (task, arm label) to the designated attempt's
+    ``result.json``; a missing or aborted designated attempt is a failure for that arm."""
+    cells = Counter()
+    per_task, missing, aborted = {}, [], []
+    for t in tasks:
+        pair = []
+        for arm in (candidate, baseline):
+            r = results.get((t, arm))
+            if r is None:
+                missing.append(f"{t}:{arm}")
+            elif r.get("aborted"):
+                aborted.append(f"{t}:{arm}")
+            pair.append(task_success(r))
+        per_task[t] = tuple(pair)
+        cells[tuple(pair)] += 1
+    a, b, c, d = cells[(True, True)], cells[(True, False)], cells[(False, True)], cells[(False, False)]
+    diff, lo, hi = newcombe_paired(a, b, c, d)
+    return {"n": len(tasks), "a": a, "b": b, "c": c, "d": d, "d_discordant": b + c,
+            "candidate_successes": a + b, "baseline_successes": a + c,
+            "diff": diff, "newcombe": (lo, hi), "mcnemar_p": mcnemar_exact(b, c),
+            "power_floor": power_floor(b + c), "gate": a + b >= a + c,
+            "per_task": per_task, "missing": missing, "aborted": aborted}
+
+
+def _constraints_of(r: dict | None, declared: list[str] | None) -> dict[str, bool]:
+    """{constraint id: held} for one designated attempt. The ids are the declared ones
+    when given, else the attempt's own check; an id with no outcome (a missing or aborted
+    run) is lost."""
+    got = ((r or {}).get("check") or {}).get("constraints") or {} if _usable(r) else {}
+    ids = list(declared) if declared is not None else list(got)
+    return {cid: bool(got.get(cid)) for cid in ids}
+
+
+def constraint_summary(results: dict, tasks: list[str], arm: str, *,
+                       declared: dict[str, list[str]] | None = None,
+                       resamples: int = BOOT_RESAMPLES, seed: int = BOOT_SEED) -> dict:
+    """Observed early-constraint rate over every constraint of every task for ``arm``,
+    with per-task and per-constraint (held, total) tables and a task-clustered percentile
+    bootstrap (``cluster_bootstrap`` over tasks: whole tasks are resampled, never single
+    constraints). Ineligible constraints are not dropped (plan §1.4). Tasks whose
+    constraint ids are unknown (no run and nothing declared) are listed as ``unknown``."""
+    by_task, per_constraint, unknown = {}, {}, []
+    for t in tasks:
+        r = results.get((t, arm))
+        held = _constraints_of(r, (declared or {}).get(t))
+        if not held:
+            if not _usable(r):
+                unknown.append(t)
+            continue
+        by_task[t] = list(held.values())
+        for cid, ok in held.items():
+            k, n = per_constraint.get(cid, (0, 0))
+            per_constraint[cid] = (k + ok, n + 1)
+    k = sum(sum(v) for v in by_task.values())
+    n = sum(len(v) for v in by_task.values())
+    return {"arm": arm, "held": k, "total": n, "rate": k / n if n else 0.0,
+            "wilson": wilson(k, n), "bootstrap": cluster_bootstrap(by_task, resamples, seed),
+            "per_task": {t: (sum(v), len(v)) for t, v in by_task.items()},
+            "per_constraint": dict(sorted(per_constraint.items())),
+            "failures": [f"{t}:{cid}" for t in by_task
+                         for cid, ok in _constraints_of(results.get((t, arm)), (declared or {}).get(t)).items()
+                         if not ok],
+            "unknown": unknown, "gate": n > 0 and not unknown and k / n >= PHASE7_CONSTRAINT_GATE}
+
+
+def trap_hit_kinds(r: dict | None) -> list[str] | None:
+    """The D109 kinds (``code`` or ``doubtful``) of a run's trap hits, from the
+    ``state_eval`` reports (a list, or one report) or ``trap_hits`` it carries; None when
+    the run is missing, aborted or carries no trap scan."""
+    if not _usable(r):
+        return None
+    reports = r.get("state_eval")
+    if isinstance(reports, dict):
+        reports = [reports]
+    if reports is None and "trap_hits" in r:
+        reports = [{"trap_hits": r["trap_hits"]}]
+    if reports is None:
+        return None
+    return [h.get("kind") for rep in reports for h in rep.get("trap_hits") or []]
+
+
+def trap_summary(results: dict, suite: list[str], arm: str) -> dict:
+    """Trap repeats (any D109 ``code`` hit) per task over the declared trap suite, with
+    ``doubtful`` hits counted for blind hand review. A suite task without a trap scan is
+    ``unscored``, and the gate (0 repeats) needs every suite task scored."""
+    repeats, doubtful, unscored, per_task = 0, 0, [], {}
+    for t in suite:
+        kinds = trap_hit_kinds(results.get((t, arm)))
+        if kinds is None:
+            unscored.append(t)
+            per_task[t] = None
+            continue
+        rep = "code" in kinds
+        repeats += rep
+        doubtful += kinds.count("doubtful")
+        per_task[t] = {"repeat": rep, "doubtful": kinds.count("doubtful")}
+    return {"arm": arm, "n": len(suite), "repeats": repeats, "doubtful": doubtful,
+            "unscored": unscored, "per_task": per_task, "wilson": wilson(repeats, len(suite)),
+            "gate": bool(suite) and not unscored and repeats <= PHASE7_TRAP_GATE}
+
+
+def _paired_binary(outcome, tasks: list[str], candidate: str, baseline: str) -> dict:
+    """b, c and the exact McNemar p of a per-task binary ``outcome(task, arm)``."""
+    b = sum(1 for t in tasks if outcome(t, candidate) and not outcome(t, baseline))
+    c = sum(1 for t in tasks if outcome(t, baseline) and not outcome(t, candidate))
+    return {"n": len(tasks), "b": b, "c": c, "mcnemar_p": mcnemar_exact(b, c)}
+
+
+def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CANDIDATE,
+                  baseline: str = PHASE7_BASELINE, trap_suite: list[str] | None = None,
+                  constraints_declared: dict[str, list[str]] | None = None,
+                  needles: tuple[list[dict], dict] | None = None,
+                  hosts: dict[str, str] | None = None, sets: dict[str, str] | None = None,
+                  resamples: int = BOOT_RESAMPLES, seed: int = BOOT_SEED) -> dict:
+    """Phase 7's candidate report (plan §1.4) over the declared ``tasks``.
+
+    - **primary**: task success of ``candidate`` against ``baseline`` on one designated
+      attempt each (missing or aborted = failure): the 2x2 table, b and c, the paired
+      difference with a Newcombe method 10 interval, the two-sided exact McNemar p, the
+      power floor 2^(1-d) and the observed gate (candidate successes >= baseline's);
+    - **by_host**: the same table per host (``hosts``: task -> host), pooled above;
+    - **constraints**: per arm, the observed rate with a task-clustered bootstrap;
+    - **traps**: per arm over ``trap_suite``, code repeats and doubtful hits;
+    - **needles**: ``needle_gate`` at ``PHASE7_NEEDLE_GATE`` over (rows, expected);
+    - **exploratory** (never gates): McNemar on "kept every constraint", on "no trap
+      repeat" and the primary table per set (``sets``: task -> set name)."""
+    out = {"candidate": candidate, "baseline": baseline, "tasks": list(tasks),
+           "alpha": PHASE7_ALPHA, "seed": seed, "resamples": resamples,
+           "primary": paired_table(results, tasks, candidate, baseline)}
+    if hosts:
+        out["by_host"] = {h: paired_table(results, [t for t in tasks if hosts.get(t) == h],
+                                          candidate, baseline)
+                          for h in sorted(set(hosts[t] for t in tasks if t in hosts))}
+        out["no_host"] = [t for t in tasks if t not in hosts]
+    out["constraints"] = {arm: constraint_summary(results, tasks, arm, declared=constraints_declared,
+                                                  resamples=resamples, seed=seed)
+                          for arm in (candidate, baseline)}
+    if trap_suite is not None:
+        out["traps"] = {arm: trap_summary(results, trap_suite, arm) for arm in (candidate, baseline)}
+    if needles is not None:
+        out["needles"] = needle_gate(needles[0], needles[1], gate=PHASE7_NEEDLE_GATE)
+
+    def kept_all(t, arm):
+        held = _constraints_of(results.get((t, arm)), (constraints_declared or {}).get(t))
+        return bool(held) and all(held.values())
+
+    def no_repeat(t, arm):
+        kinds = trap_hit_kinds(results.get((t, arm)))
+        return kinds is not None and "code" not in kinds
+
+    ex = {"label": "exploratory",
+          "constraint_kept": _paired_binary(kept_all, tasks, candidate, baseline)}
+    if trap_suite is not None:
+        ex["trap_free"] = _paired_binary(no_repeat, trap_suite, candidate, baseline)
+    if sets:
+        ex["by_set"] = {s: paired_table(results, [t for t in tasks if sets.get(t) == s],
+                                        candidate, baseline)
+                        for s in sorted(set(sets[t] for t in tasks if t in sets))}
+    out["exploratory"] = ex
+    return out
+
+
+def _pct(x: float) -> str:
+    return f"{x:.1%}"
+
+
+def _table_lines(p: dict, candidate: str, baseline: str) -> list[str]:
+    lo, hi = p["newcombe"]
+    return [f"| | {baseline} success | {baseline} failure |", "|---|---|---|",
+            f"| {candidate} success | {p['a']} | {p['b']} |",
+            f"| {candidate} failure | {p['c']} | {p['d']} |",
+            f"successes: {candidate} {p['candidate_successes']}/{p['n']}, {baseline} "
+            f"{p['baseline_successes']}/{p['n']}; discordant b = {p['b']} ({candidate} only), "
+            f"c = {p['c']} ({baseline} only), discordant pairs b + c = {p['d_discordant']}",
+            f"paired difference {p['diff']:+.3f}, Newcombe (method 10) 95% interval "
+            f"{lo:+.3f} to {hi:+.3f}; two-sided exact McNemar p = {p['mcnemar_p']:.4g}"]
+
+
+def format_phase7(r: dict) -> list[str]:
+    """The Phase 7 report as lines of Markdown (plan §1.4 wording; no equivalence or
+    noninferiority claim is ever made)."""
+    cand, base = r["candidate"], r["baseline"]
+    p = r["primary"]
+    lines = [f"## Primary: task success, {cand} vs {base} ({p['n']} tasks, one designated "
+             f"attempt each; missing or aborted = failure)", ""]
+    lines += _table_lines(p, cand, base)
+    lines.append(f"missing attempts: {p['missing'] or 'none'}; aborted: {p['aborted'] or 'none'}")
+    lines.append(f"power floor: with d = {p['d_discordant']} discordant pairs the smallest "
+                 f"two-sided exact p any split can give is 2^(1-d) = {p['power_floor']:.4g} "
+                 f"(alpha {r['alpha']}). A nonsignificant result does not establish equivalence "
+                 f"or noninferiority.")
+    lines.append(f"Gate (observed): {cand} successes >= {base}'s: {p['candidate_successes']} vs "
+                 f"{p['baseline_successes']} -> {'PASS' if p['gate'] else 'FAIL'}")
+    if "by_host" in r:
+        for h, ph in r["by_host"].items():
+            lines += ["", f"### Host {h} ({ph['n']} tasks)"] + _table_lines(ph, cand, base)
+        if r.get("no_host"):
+            lines.append(f"tasks with no host in the schedule: {r['no_host']}")
+    lines += ["", "## Early constraints"]
+    for arm, c in r["constraints"].items():
+        lo, hi = c["bootstrap"]
+        gate = (f" -> {'PASS' if c['gate'] else 'FAIL'} (>= {PHASE7_CONSTRAINT_GATE:.0%})"
+                if arm == cand else " (reported)")
+        lines.append(f"{arm}: {c['held']}/{c['total']} held ({_pct(c['rate'])}), task-clustered "
+                     f"bootstrap 95% {_pct(lo)}-{_pct(hi)} ({r['resamples']} resamples, seed "
+                     f"{r['seed']}); failures {c['failures'] or 'none'}; unknown tasks "
+                     f"{c['unknown'] or 'none'}{gate}")
+    arms = list(r["constraints"])
+    lines += ["", "| Task | " + " | ".join(arms) + " |", "|---|" + "---|" * len(arms)]
+    for t in r["tasks"]:
+        lines.append(f"| {t} | " + " | ".join(
+            "{}/{}".format(*r["constraints"][a]["per_task"][t]) if t in r["constraints"][a]["per_task"]
+            else "n/a" for a in arms) + " |")
+    cids = sorted({k for a in arms for k in r["constraints"][a]["per_constraint"]})
+    lines += ["", "| Constraint | " + " | ".join(arms) + " |", "|---|" + "---|" * len(arms)]
+    for k in cids:
+        lines.append(f"| {k} | " + " | ".join(
+            "{}/{}".format(*r["constraints"][a]["per_constraint"].get(k, (0, 0))) for a in arms) + " |")
+    if "traps" in r:
+        lines += ["", "## Traps (declared suite)"]
+        for arm, t in r["traps"].items():
+            gate = (f" -> {'PASS' if t['gate'] else 'FAIL'} (<= {PHASE7_TRAP_GATE} repeats)"
+                    if arm == cand else " (reported)")
+            lo, hi = t["wilson"]
+            lines.append(f"{arm}: code repeats {t['repeats']}/{t['n']} (Wilson 95% {_pct(lo)}-"
+                         f"{_pct(hi)}); doubtful hits awaiting blind review {t['doubtful']}; "
+                         f"unscored {t['unscored'] or 'none'}{gate}")
+    if "needles" in r:
+        g = r["needles"]
+        lo, hi = g["wilson"]
+        blo, bhi = g["bootstrap"]
+        lines += ["", "## Needles (candidate)",
+                  f"loose exact {g['loose']}/{g['n']} ({_pct(g['rate'])}), Wilson 95% {_pct(lo)}-"
+                  f"{_pct(hi)}, history-clustered bootstrap {_pct(blo)}-{_pct(bhi)}; strict exact "
+                  f"{g['strict']}; missing {len(g['missing'])}, duplicates {g['duplicates']} -> "
+                  f"{'PASS' if g['pass'] else 'FAIL'} (observed >= {g['gate']:.0%}; no claim about "
+                  f"the lower bound)"]
+    ex = r["exploratory"]
+    lines += ["", "## Exploratory secondaries (not confirmatory; p-values are exploratory)"]
+    ck = ex["constraint_kept"]
+    lines.append(f"exploratory: per task any constraint lost: {cand} only kept all b = {ck['b']}, "
+                 f"{base} only c = {ck['c']}, exploratory McNemar p = {ck['mcnemar_p']:.4g}")
+    if "trap_free" in ex:
+        tf = ex["trap_free"]
+        lines.append(f"exploratory: per task trap repeat: {cand} only free b = {tf['b']}, {base} "
+                     f"only c = {tf['c']}, exploratory McNemar p = {tf['mcnemar_p']:.4g}")
+    for s, ps in (ex.get("by_set") or {}).items():
+        lines.append(f"exploratory: by set {s}: {cand} {ps['candidate_successes']}/{ps['n']} vs "
+                     f"{base} {ps['baseline_successes']}/{ps['n']}, b = {ps['b']}, c = {ps['c']}, "
+                     f"exploratory McNemar p = {ps['mcnemar_p']:.4g}")
+    return lines
+
+
+def load_phase7_results(run: Path, labels: list[str], designate: dict | None = None) -> tuple[dict, list[dict]]:
+    """{(task, label): result.json of the designated attempt} for each arm label (e.g.
+    ``a4-d77`` and ``a1``), and the superseded attempts. A designated attempt with no
+    ``result.json`` reads as aborted."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import attempts as att
+
+    manifest = att.load(run)
+    out, sup = {}, []
+    for label in labels:
+        override = {k.split(":")[0]: v for k, v in (designate or {}).items() if k.endswith(f":{label}")}
+        chosen, superseded = att.designate(manifest, "task", label, override)
+        sup += [{**x, "arm": label} for x in superseded]
+        for tid, a in chosen.items():
+            f = Path(a["records"]) / f"{tid}-{label}" / "result.json"
+            out[(tid, label)] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
+    return out, sup
+
+
+def expected_needles_in(folder: Path) -> dict[str, list[dict]]:
+    """``expected_needles`` for any folder of history files (one JSON per history)."""
+    out = {}
+    for f in sorted(Path(folder).glob("*.json")):
+        h = json.loads(f.read_text(encoding="utf-8"))
+        out[h["id"]] = [{"id": s["id"], "category": s["category"], "answer": s["answer"]}
+                        for s in h["steps"] if s["kind"] == "question"]
+    return out
+
+
+def print_phase7(a) -> int:
+    """``--phase7``: the report from a task run directory and, optionally, a needle run."""
+    schedule = json.loads(Path(a.schedule).read_text(encoding="utf-8")) if a.schedule else {}
+    hosts = schedule.get("task_host")
+    sets = schedule.get("task_set")
+    tasks = a.tasks.split(",") if a.tasks else sorted(hosts or {})
+    if not tasks:
+        print("error: --tasks or --schedule is required", file=__import__("sys").stderr)
+        return 2
+    designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
+    results, sup = load_phase7_results(a.phase7, [a.candidate, a.baseline], designate)
+    suite = None
+    if a.trap_suite:
+        names = a.trap_suite.split(",")
+        suite = [t for t in tasks if t in names or (sets or {}).get(t) in names]
+    needles = None
+    if a.needle_run:
+        expected = {}
+        for d in a.needle_dirs.split(","):
+            expected.update(expected_needles_in(Path(d)))
+        rows, _, _ = load(a.needle_run, a.candidate, None)
+        needles = (rows, expected)
+    r = phase7_report(results, tasks, candidate=a.candidate, baseline=a.baseline, trap_suite=suite,
+                      needles=needles, hosts=hosts, sets=sets, seed=a.seed)
+    if a.json:
+        print(json.dumps(r, indent=1, default=str))
+    else:
+        print("\n".join(format_phase7(r)))
+        for x in sup:
+            print(f"superseded: {x['id']} arm {x['arm']} attempt {x['attempt']} ({x['status']}) by attempt "
+                  f"{x['superseded_by']}: {x['reason']}")
+    return 0
+
+
 def sanitize(r: dict, run: Path) -> dict:
     keep = ["history", "config", "arm", "step", "category", "restart_before", "gold", "answer",
             "exact", "exact_loose", "contains", "partial", "parts_found", "parts_total",
@@ -624,7 +997,17 @@ def sanitize(r: dict, run: Path) -> dict:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("run", type=Path)
+    p.add_argument("run", type=Path, nargs="?")
+    p.add_argument("--phase7", type=Path, metavar="TASKRUN",
+                   help="Phase 7 report (plan §1.4) over a task run directory")
+    p.add_argument("--schedule", help="phase7_schedule.py JSON: tasks, task -> host and set")
+    p.add_argument("--tasks", help="T1,T2,...: the declared task list (else the schedule's)")
+    p.add_argument("--candidate", default=PHASE7_CANDIDATE)
+    p.add_argument("--baseline", default=PHASE7_BASELINE)
+    p.add_argument("--trap-suite", help="task ids or set names forming the declared trap suite")
+    p.add_argument("--needle-run", type=Path, help="needle run directory of the candidate")
+    p.add_argument("--needle-dirs", default="", help="DIR[,DIR]: the needle sets' history folders")
+    p.add_argument("--seed", type=int, default=BOOT_SEED, help="bootstrap seed (D115)")
     p.add_argument("--configs")
     p.add_argument("--fixtures", type=Path)
     p.add_argument("--json", action="store_true")
@@ -636,6 +1019,10 @@ def main() -> None:
     p.add_argument("--designate", help="ID=ATTEMPT[,...] (tasks: ID:aARM=ATTEMPT) instead of the latest")
     p.add_argument("--coding", action="store_true", help="RUN is a task run directory: the coding gate")
     a = p.parse_args()
+    if a.phase7:
+        raise SystemExit(print_phase7(a))
+    if a.run is None:
+        p.error("RUN is required")
     designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
     if a.coding:
         print_coding(a.run, designate, a.set)
