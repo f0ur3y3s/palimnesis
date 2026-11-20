@@ -48,6 +48,51 @@ The Phase 7 plan (`docs/plan/phases/phase7.md`) left five questions to the user 
      - Counting probes p04, p12, p14 and p15: every count equals the recorded fixtures. Two old p04 cases are no longer produced by the current probe; they are missing, not mismatched.
    - **One build.** Both hosts now run 0.1.58, so the pooled Phase 7 comparison does not span builds (item 6). Zeus still runs at 128K until the pilot relaunches it at 32K.
 
+## D112: The trap-design standard, as built for the S8 pilot (2026-11-19)
+
+R61 showed that 4A's traps separated nothing: neither arm repeated any of them in 30 runs. Phase 7's "0/20 repeated dead ends" gate means something only if the warned-off approach is a real temptation. This entry fixes the standard, and S8 tests it on development data before any held-out task is written (plan §1.2).
+
+1. **T1–T7** are the plan's criteria (plan §1.2): tempting, passes a quick check, needed late, independent of the constraints, detectable, a separate outcome, and out of view when needed. `eval/tasks/AUTHORING.md` gives authors the same rules as instructions, without results or rationale.
+2. **Module fields.** The task-module contract is in D114.2. S7 added:
+   - **`TRAP_WARNING`:** the exact warning sentence in `TURNS[0]`. The probe strips it and `TRAP`, and the lint requires it.
+   - **Trap patterns are alternatives.** At least one `TRAP_PATTERNS` entry must match the trap solution's code, and none may match the reference, the pre-trap stub or the trap turn's request. This is `--check-reference`'s pattern check, aligned with the lint.
+   - **Trap solutions also pass every `test_c*`.** That is stricter than required, and it supports T4: no constraint rules the trap out.
+3. **The temptation probe (T1, `eval/tasks/trap_probe.py`).**
+   - **What is sent.** The trap turn's request, sent directly to the upstream with no proxy, in a fresh conversation (a system message and one user message). It includes the workspace as it stands at that turn: every file from the reference except the files the trap solution replaces, which stay as stubs.
+   - **What is left out:** files over 8,000 characters (the long document and the big suite), any history, and the warning.
+   - **No sampling parameters** are sent. The model name comes from `/props`.
+   - **Scoring.** Three samples. T1 passes when D109's classifier finds trap code in at least 2 of them.
+   - **Consequence for authors:** the trap turn's code must live in its own file or files.
+   - **Never run live yet.** The S8 pilot is its first live run.
+4. **The pilot tasks, dev-t6..t10.** All five have `TRAP_TURN` 6, which is turn 7, after both suite runs. Each passes `--check-reference` on every check: contract, reference, stub, trap and patterns.
+
+   | Task | X, the warned-off approach | Y, why it fails |
+   |---|---|---|
+   | dev-t6 | `round()` for a whole-number percentage | 84.5 becomes 84, and the grade band drops |
+   | dev-t7 | `json.dump(..., indent=2)` without `ensure_ascii=False` | "Zürich" is written escaped |
+   | dev-t8 | `urllib.parse.quote(name)`, default `safe="/"` | "AC/DC" becomes two path segments |
+   | dev-t9 | `sorted(..., reverse=True)` for "most points first" | ties come out Z to A instead of A to Z |
+   | dev-t10 | `textwrap.wrap(text, width)` with hyphen breaks left on | "Weston-super-Mare" is split at a hyphen |
+
+5. **Validation (S8).** The pass conditions are the plan's V1–V3:
+   - V1: T1 passes on at least 4 of the 5 tasks;
+   - V2: T7 holds in every `a4-d77` and `a4-tr` run;
+   - V3: at least one D109 `code` repeat across `a4-tr` and arm 1.
+   If V1 or V3 fails, this standard is revised once and piloted again before any authoring starts.
+6. **Not yet built.** There is no tool for the independence check (no 4-word run shared with an earlier set); it is needed before S9. The needle `strata` field format is not pinned yet.
+7. **First pilot result: V1 failed, so the standard is revised once** (2026-11-19).
+   - **The probe.** Run on pythia and Zeus, both on Strata 0.1.58 at a real 32K, 3 samples per task. T1 passed on 1 of 5 tasks: dev-t7, 3/3. dev-t6, t8, t9 and t10 each scored 0/3.
+   - **What the model wrote instead:**
+     - dev-t6: `int(x + 0.5)`, which rounds half up correctly;
+     - dev-t8: `quote(name, safe="")`, also correct;
+     - dev-t10: its own word-wrapper, never `textwrap`;
+     - dev-t9: one sample was correct, but another wrote `rows.sort(key=lambda r: -r.points)`. That keeps ties in input order, a real variant of the trap, which the `reverse=True` pattern missed.
+   - **The lesson.** The model already knows the standard library's well-known pitfalls, so a trap built on one does not tempt it. The trap that worked (dev-t7) fails only because of a fact about the task: the data contains non-ASCII names, and nothing visible at the trap turn shows it.
+   - **The revision**, applied once (plan §1.2):
+     - **T1a.** X is the right approach for everything visible at the trap turn: the request, the workspace and the visible tests. Its failure Y depends on a task-specific fact (about the data, a consumer or the environment) that only the turn-1 warning states. It must not be general programming knowledge.
+     - **T5a.** `TRAP_PATTERNS` cover X's common variants, not only one spelling. dev-t9's miss shows why.
+   - **Next.** dev-t6, t8, t9 and t10 are rewritten under T1a and T5a, keeping their themes where they fit. Then the probe runs again. If V1 fails again, the pilot is reported as is, and authoring waits for the user's decision.
+
 ## D114: Phase 7 tooling as built (S1–S6, 2026-11-19)
 
 Red tests first for each slice: `tests/test_phase7_heldout.py`, `tests/test_phase7_traps.py`, `tests/test_eval_phase7.py`, `tests/test_eval_phase7_tooling.py`, `tests/test_serving_metrics_http.py` and `tests/test_eval_needle_strata.py`.
@@ -107,4 +152,4 @@ Red tests first for each slice: `tests/test_phase7_heldout.py`, `tests/test_phas
 7. **Held-out integrity (D96).** While building S1, one early search printed a few lines from the ho4 files:
    - `SET = "heldout4"` from `eval/tasks/ho4_t*.py`;
    - header lines of `eval/needle_gen_ho4.py`: output path, set name, earlier folders, a function name and a docstring line.
-   No task text, constraint, trap, needle, history or answer was shown. Every later search left those paths out. ho4 is still treated as unseen. The remedy is to keep tooling searches away from held-out paths: `eval/heldout.py` holds the set names, so nothing needs to search those paths again.
+   No task text, constraint, trap, needle, history or answer was shown. Every later search left those paths out. ho4 is still treated as unseen. While building S7, a repo-wide search for "four-word" also printed two comment lines from `eval/needle_gen_ho4.py`, about its phrasing bank and its check. No content was shown. The remedy is to keep tooling searches away from held-out paths: `eval/heldout.py` holds the set names, so nothing needs to search those paths again.

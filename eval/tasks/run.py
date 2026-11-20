@@ -37,8 +37,9 @@ clean tree. A registered task whose module is not present yet is skipped by
 (``trap_tests`` in the check). A task may define ``TRAP_TURN`` (0-based turn, at least 5,
 whose request needs the code the trap applies to) and ``TRAP_SOLUTION`` ({path: full file
 text} overlaid on ``REFERENCE``). ``--check-reference`` then also checks that the trap
-solution passes every visible test and ``test_f_*`` but fails a ``test_t_*``, and that every
-``TRAP_PATTERNS`` entry matches its code and none matches the reference.
+solution passes every visible test and ``test_f_*`` but fails a ``test_t_*``, and that at
+least one ``TRAP_PATTERNS`` entry (they are alternative forms) matches its code and none
+matches the reference (D112).
 
 **Attempts** (D44.7, ``eval/attempts.py``): each invocation is a new attempt of one task
 under one arm. Records go to ``RUN/records/attempt-NNN/``; the workspace, OpenCode home
@@ -487,7 +488,9 @@ def check_task_reference(task, python: str | None = None) -> dict:
         reference = "\n".join(task.REFERENCE.values())
         in_trap = [p.pattern for p in patterns if any(p.search(c) for c in trap_code)]
         in_ref = [p.pattern for p in patterns if p.search(reference)]
-        checks["patterns"] = bool(patterns) and len(in_trap) == len(patterns) and not in_ref
+        # Patterns are alternative forms of the trap (D112): one must match the trap solution's
+        # code, and none may match the reference.
+        checks["patterns"] = bool(in_trap) and not in_ref
         details["patterns"] = {"missing_in_trap": [p.pattern for p in patterns
                                                    if p.pattern not in in_trap],
                                "matching_reference": in_ref}

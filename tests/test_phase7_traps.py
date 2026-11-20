@@ -265,6 +265,14 @@ def test_check_reference_runs_trap_solution():
     # A pattern that also matches the reference fails the pattern check.
     r = task_run.check_task_reference(_check_task(TRAP_PATTERNS=(r"int\(",)), python=py)
     assert r["checks"]["patterns"] is False
+    # Patterns are alternative forms of the trap: one matching the trap solution is enough,
+    # as long as none matches the reference (D112).
+    r = task_run.check_task_reference(_check_task(
+        TRAP_PATTERNS=(r"int\(\s*float\(", r"Decimal\(\s*float\(")), python=py)
+    assert r["checks"]["patterns"] is True
+    r = task_run.check_task_reference(_check_task(
+        TRAP_PATTERNS=(r"Decimal\(\s*float\(",)), python=py)
+    assert r["checks"]["patterns"] is False
     # TRAP_TURN must be at least 5.
     r = task_run.check_task_reference(_check_task(TRAP_TURN=3), python=py)
     assert r["checks"]["contract"] is False
