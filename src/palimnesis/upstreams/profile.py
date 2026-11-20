@@ -53,6 +53,7 @@ class Usage:
     prompt_tokens: int
     cached_tokens: int
     prompt_ms: float | None
+    completion_tokens: int | None = None
 
 
 @dataclass(frozen=True)

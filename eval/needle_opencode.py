@@ -46,6 +46,9 @@ Per-step records keep the emulator's fields (``eval/report.py`` reads both), plu
 ``ttfvc_s`` runs from the start of the ``opencode run`` process (OpenCode start-up
 included) to the first visible content or tool-call delta at the upstream tap.
 
+``meta.json`` ``host_epochs`` holds, per history, the upstream's host epoch read before and
+after it and its flags (``gate_inputs.host_epoch``, ``epoch_summary``; Phase 7 S3).
+
 ``needle.py preflight --set heldout`` pushes every import through real OpenCode against
 the fake upstream (no proxy, no model, no Strata) and checks fidelity.
 """
@@ -305,7 +308,7 @@ def run(a) -> int:
             "driver": "opencode", "driver_version": DRIVER_VERSION, "opencode": "2.1.4",
             "set": a.set, "live": True, "upstream": a.upstream, "attempt": n_att,
             "provenance": gi.git_provenance(), "expect_n_ctx": a.expect_n_ctx,
-            "started": time.time(), "sessions": [], "imports": {}, "strata": [],
+            "started": time.time(), "sessions": [], "imports": {}, "strata": [], "host_epochs": {},
             "infra_failures": [], "not_run": [], "transcripts_root": str(troot) if troot else None}
     qlog = open(rec_dir / "questions.jsonl", "a", encoding="utf-8")
     clog = open(rec_dir / "calls.jsonl", "a", encoding="utf-8")
@@ -334,6 +337,7 @@ def run(a) -> int:
                 continue
             before_props = gi.strata_props(upstream)
             meta["strata"].append({"history": h["id"], "when": "before", **before_props})
+            epoch_before = gi.host_epoch(upstream)  # Phase 7 S3
             why = gi.check_n_ctx(before_props, a.expect_n_ctx)
             if why:
                 abort = f"strata_check: {why}"
@@ -411,6 +415,7 @@ def run(a) -> int:
                 misses(h, steps[done:], session, reason)
             after_props = gi.strata_props(upstream)
             meta["strata"].append({"history": h["id"], "when": "after", **after_props})
+            meta["host_epochs"][h["id"]] = gi.epoch_summary(epoch_before, gi.host_epoch(upstream))
             why = gi.check_n_ctx(after_props, a.expect_n_ctx)
             if why and not abort:
                 abort = f"strata_check: {why}"

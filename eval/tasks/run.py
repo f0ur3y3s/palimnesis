@@ -65,6 +65,15 @@ stub's own check result is recorded beside it.
 reachable from the workspace tree, and per call the upstream time (flagged over 600 s).
 Every turn also records the proxy's own statuses (front tap).
 
+**Serving metrics** (Phase 7 S2). Each turn and the run record ``totals``: upstream calls,
+prompt, completion and cached tokens and Strata's ``prompt_ms``, ``combined`` and split
+into ``main``, ``refresh`` (the proxy's notes refresh) and ``compaction`` (arm 1's own
+compaction requests). ``ttfvc_s`` is the time from the turn's start to the first visible
+content or tool-call delta of the client's stream (front tap), never an upstream call's.
+
+**Host epoch** (Phase 7 S3): ``host_epoch`` holds ``gate_inputs.host_epoch`` read before and
+after the run, and its flags (``gate_inputs.epoch_flags``).
+
 **Pi** (``--harness pi [--protocol chat|messages]``, Phase 4B S14, ``pi_task.py``): Pi 1.5.0
 in place of OpenCode, development tasks only, arm 4 as ``a4-d77`` (the adapter's
 ``contextWindow`` 1,000,000, ``compaction.enabled: false``) and arm 1 (``--passthrough``,
@@ -546,6 +555,90 @@ def compaction_calls(bodies: Path, calls: list[dict]) -> list[int]:
             if is_compaction(json.loads((bodies / f"{c['n']:04d}.json").read_bytes()))]
 
 
+# ---------------------------------------------------------------- serving metrics (Phase 7 S2)
+
+# The first words of every notes refresh prompt the proxy sends (``view.builder``, D72, D74).
+NOTES_MARKER = "[palimnesis notes request]"
+CALL_KINDS = ("main", "refresh", "compaction")
+TOTAL_FIELDS = ("calls", "prompt_tokens", "completion_tokens", "cached_tokens", "prompt_ms")
+
+
+def _last_user_text(body: dict) -> str:
+    """The last message's text if it is a user message (a string, or text blocks)."""
+    msgs = body.get("messages") or []
+    last = msgs[-1] if msgs else {}
+    if last.get("role") != "user":
+        return ""
+    content = last.get("content")
+    if isinstance(content, str):
+        return content
+    return "".join(b.get("text") or "" for b in content or [] if isinstance(b, dict))
+
+
+def is_refresh(body: dict) -> bool:
+    """The proxy's own notes refresh call (``<attempt>#notes``), by protocol shape."""
+    return _last_user_text(body).startswith(NOTES_MARKER)
+
+
+def call_kinds(bodies: Path, calls: list[dict], compaction=is_compaction) -> dict[int, str]:
+    """{tap n: ``main`` | ``refresh`` | ``compaction``} from each call's exact body: a
+    notes refresh, the harness's own compaction request (``compaction(body)``), or else
+    a main call. A body that cannot be read counts as main."""
+    out = {}
+    for c in calls:
+        try:
+            body = json.loads((bodies / f"{c['n']:04d}.json").read_bytes())
+        except (OSError, ValueError):
+            out[c["n"]] = "main"
+            continue
+        out[c["n"]] = ("refresh" if is_refresh(body) else
+                       "compaction" if compaction(body) else "main")
+    return out
+
+
+def call_totals(calls: list[dict], kinds: dict[int, str]) -> dict:
+    """Upstream-tap call records summed ``combined`` and split by kind (``CALL_KINDS``):
+    call count, prompt, completion and cached tokens, and Strata's ``prompt_ms``. Refresh
+    and compaction calls are calls the harness or the proxy made for the turn, so they
+    count in the combined totals (plan §3 Family 3)."""
+    def zero():
+        return {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0,
+                "prompt_ms": 0.0}
+
+    out = {"combined": zero(), **{k: zero() for k in CALL_KINDS}}
+    for c in calls:
+        for row in (out["combined"], out[kinds.get(c["n"], "main")]):
+            row["calls"] += 1
+            row["prompt_tokens"] += c.get("prompt_tokens") or 0
+            row["completion_tokens"] += c.get("completion_tokens") or 0
+            row["cached_tokens"] += c.get("cached_tokens") or 0
+            row["prompt_ms"] += (c.get("timings") or {}).get("prompt_ms") or 0
+    for row in out.values():
+        row["prompt_ms"] = round(row["prompt_ms"], 3)
+    return out
+
+
+def ttfvc(t0: float, front: list[dict]) -> float | None:
+    """Seconds from ``t0`` to the first visible content delta of the client's own stream
+    (the front tap's ``t_first_content``: text or a tool call, never reasoning). An
+    upstream call's content is not visible: a notes refresh streams its notes as
+    content, and the client never sees them."""
+    firsts = [c["t_first_content"] for c in front if c.get("t_first_content")]
+    return round(min(firsts) - t0, 3) if firsts else None
+
+
+def turn_metrics(calls: list[dict], front: list[dict], kinds: dict[int, str], t0: float) -> dict:
+    """One turn's serving fields: the combined sums (as before S2), the split totals and
+    the time to first visible content."""
+    totals = call_totals(calls, kinds)
+    combined = totals["combined"]
+    return {"prompt_tokens": combined["prompt_tokens"],
+            "max_prompt_tokens": max((c.get("prompt_tokens") or 0 for c in calls), default=0),
+            "completion_tokens": combined["completion_tokens"],
+            "cached_tokens": combined["cached_tokens"], "prompt_ms": combined["prompt_ms"],
+            "totals": totals, "ttfvc_s": ttfvc(t0, front)}
+
+
 def hidden_markers(task) -> list[str]:
     """Strings that only the hidden check contains: its class and test definitions."""
     out = ["class HiddenTests"] + list(task.HIDDEN)
@@ -631,6 +724,7 @@ def run(a) -> int:
            "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
            "upstream": a.upstream, "expect_n_ctx": a.expect_n_ctx, "strata": [{"when": "before", **props}],
            "started": time.time(), "turns": [], "aborted": None}
+    epoch_before = gi.host_epoch(upstream)  # Phase 7 S3: before and after each run
     ses = None
     try:
         for i, text in enumerate(task.TURNS):
@@ -656,19 +750,14 @@ def run(a) -> int:
             hidden = needle.hidden_by_tool(calls)
             lookups = sum(int(tools.is_lookup(t["name"] or "", t["input"] if isinstance(t["input"], dict) else {}))
                           for t in summ["tools"]) + sum(hidden.values())
-            firsts = [c for c in calls if c.get("t_first_content")]
+            kinds = call_kinds(out / "bodies", calls)
             rec = {"turn": i + 1, "restart_before": i == task.RESTART_BEFORE, "exit": turn["exit"],
                    "timeout_killed": bool(turn.get("timeout_killed")), "elapsed_s": turn["elapsed_s"],
                    "driver_wait_s": pre["waited_s"], "upstream_calls": len(calls),
                    "upstream_n": [c["n"] for c in calls], "front_n": [c["n"] for c in front],
                    **oc_stack.call_summary(calls, front),
                    "finishes": [c.get("finish") for c in calls],
-                   "prompt_tokens": sum(c.get("prompt_tokens") or 0 for c in calls),
-                   "max_prompt_tokens": max((c.get("prompt_tokens") or 0 for c in calls), default=0),
-                   "completion_tokens": sum(c.get("completion_tokens") or 0 for c in calls),
-                   "cached_tokens": sum(c.get("cached_tokens") or 0 for c in calls),
-                   "prompt_ms": sum((c.get("timings") or {}).get("prompt_ms") or 0 for c in calls),
-                   "ttfvc_s": round(firsts[0]["t_first_content"] - t0, 3) if firsts else None,
+                   **turn_metrics(calls, front, kinds, t0),
                    "tools": [{"name": t["name"], "status": t["status"], "output_chars": t["output_chars"]}
                              for t in summ["tools"]],
                    "lookups": lookups, "hidden_calls": hidden, "errors": summ["errors"],
@@ -687,6 +776,7 @@ def run(a) -> int:
         res["aborted"] = str(e) if isinstance(e, Abort) else f"slot_busy: {e}"
     finally:
         stack.stop()
+    res["host_epoch"] = gi.epoch_summary(epoch_before, gi.host_epoch(upstream))
     res["finished"] = time.time()
     res["opencode_session"] = ses
     res["proxy_starts"] = stack.proxy.starts
@@ -699,6 +789,8 @@ def run(a) -> int:
     res["completion_tokens"] = sum(c.get("completion_tokens") or 0 for c in calls)
     res["cached_tokens"] = sum(c.get("cached_tokens") or 0 for c in calls)
     res["max_prompt_tokens"] = max((c.get("prompt_tokens") or 0 for c in calls), default=0)
+    res["totals"] = call_totals(calls, call_kinds(out / "bodies", calls))
+    res["prompt_ms"] = res["totals"]["combined"]["prompt_ms"]
     res["slow_upstream_calls"] = [c["n"] for c in calls if (c.get("upstream_s") or 0) > oc_stack.SLOW_UPSTREAM_S]
     res["lookups"] = sum(t["lookups"] for t in res["turns"])
     res["hidden_calls"] = needle.hidden_by_tool(calls)
@@ -867,6 +959,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
            "restart_before": task.RESTART_BEFORE, "key_constraint": task.KEY_CONSTRAINT,
            "upstream": a.upstream, "expect_n_ctx": a.expect_n_ctx, "strata": [{"when": "before", **props}],
            "started": time.time(), "turns": [], "aborted": None}
+    epoch_before = gi.host_epoch(upstream)  # Phase 7 S3: before and after each run
     try:
         for i, text in enumerate(task.TURNS):
             if stack.tap.abort:
@@ -892,7 +985,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
             hidden = needle.hidden_by_tool(calls)
             lookups = sum(int(tools.is_lookup(t["name"] or "", t["input"] if isinstance(t["input"], dict) else {}))
                           for t in summ["tools"]) + sum(hidden.values())
-            firsts = [c for c in calls if c.get("t_first_content")]
+            kinds = call_kinds(out / "bodies", calls, pih.is_compaction_request)
             faithful = None
             if front:
                 body = json.loads((out / "front" / f"{front[0]['n']:04d}.json").read_bytes())
@@ -911,12 +1004,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
                    "upstream_n": [c["n"] for c in calls], "front_n": [c["n"] for c in front],
                    **oc_stack.call_summary(calls, front),
                    "finishes": [c.get("finish") for c in calls],
-                   "prompt_tokens": sum(c.get("prompt_tokens") or 0 for c in calls),
-                   "max_prompt_tokens": max((c.get("prompt_tokens") or 0 for c in calls), default=0),
-                   "completion_tokens": sum(c.get("completion_tokens") or 0 for c in calls),
-                   "cached_tokens": sum(c.get("cached_tokens") or 0 for c in calls),
-                   "prompt_ms": sum((c.get("timings") or {}).get("prompt_ms") or 0 for c in calls),
-                   "ttfvc_s": round(firsts[0]["t_first_content"] - t0, 3) if firsts else None,
+                   **turn_metrics(calls, front, kinds, t0),
                    "tools": pi_task.tool_rows(summ["tools"]),
                    "lookups": lookups, "hidden_calls": hidden, "errors": errors,
                    "answer": (summ["final"] or "")[:400],
@@ -936,6 +1024,7 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
         res["aborted"] = str(e) if isinstance(e, Abort) else f"slot_busy: {e}"
     finally:
         stack.stop()
+    res["host_epoch"] = gi.epoch_summary(epoch_before, gi.host_epoch(upstream))
     res["finished"] = time.time()
     res["pi_session"] = session
     res["proxy_starts"] = stack.proxy.starts
@@ -950,6 +1039,8 @@ def _run_pi(a, task, info, fields, upstream, fake) -> int:
     res["completion_tokens"] = sum(c.get("completion_tokens") or 0 for c in calls)
     res["cached_tokens"] = sum(c.get("cached_tokens") or 0 for c in calls)
     res["max_prompt_tokens"] = max((c.get("prompt_tokens") or 0 for c in calls), default=0)
+    res["totals"] = call_totals(calls, call_kinds(out / "bodies", calls, pih.is_compaction_request))
+    res["prompt_ms"] = res["totals"]["combined"]["prompt_ms"]
     res["slow_upstream_calls"] = [c["n"] for c in calls if (c.get("upstream_s") or 0) > oc_stack.SLOW_UPSTREAM_S]
     res["lookups"] = sum(t["lookups"] for t in res["turns"])
     res["hidden_calls"] = needle.hidden_by_tool(calls)

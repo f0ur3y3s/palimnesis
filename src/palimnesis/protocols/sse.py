@@ -94,6 +94,7 @@ class ChatStream:
     tool_calls: list[dict] = field(default_factory=list)
     finish_reason: str | None = None
     usage: dict | None = None
+    timings: dict | None = None  # the upstream's own timings (Strata's final chunk), if any
     error: dict | None = None
     done: bool = False
 
@@ -109,6 +110,8 @@ class ChatStream:
             return
         if chunk.get("usage"):
             self.usage = chunk["usage"]
+        if isinstance(chunk.get("timings"), dict):
+            self.timings = chunk["timings"]
         for choice in chunk.get("choices") or []:
             if choice.get("index", 0) != 0:
                 raise ValueError("only choice 0 is supported (n > 1 is rejected upstream)")

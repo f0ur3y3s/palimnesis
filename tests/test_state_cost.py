@@ -76,7 +76,8 @@ def test_explain_by_cause_reports_refresh_calls_apart(tmp_path):
     assert row["calls"] == len(refreshes) == 2
     assert row["reread_tokens"] == sum(x["input_tokens"] - x["lcp_tokens"]
                                        for x in refreshes if x["lcp_tokens"] is not None)
-    assert "completion_tokens" not in row  # never recorded on upstream_call events
+    # Recorded on upstream_call events since Phase 7 S2 (F2).
+    assert row["completion_tokens"] == sum(x["completion_tokens"] for x in refreshes) > 0
     assert row["prompt_tokens"] == sum(x["prompt_tokens"] for x in refreshes)
     assert row["cached_tokens"] == sum(x["cached_tokens"] or 0 for x in refreshes)
     assert row["prompt_ms"] == sum(x["prompt_ms"] or 0 for x in refreshes)

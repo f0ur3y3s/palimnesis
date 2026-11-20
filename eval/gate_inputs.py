@@ -4,6 +4,9 @@
 - ``strata_props`` / ``check_n_ctx``: Strata's ``/props`` ``n_ctx`` and build, read
   before and after each history and task; a run refuses to start or go on unless
   ``n_ctx`` is the expected value (32768 for the held-out step, D40).
+- ``host_epoch`` / ``epoch_summary`` / ``pair_split_across_epochs`` (Phase 7 S3): the
+  upstream's serving epoch read before and after each run, a run whose epoch changed or
+  whose counters went down is flagged, and so is a task pair split across epochs.
 - ``local_over_budget``: every upstream body counted with the pinned counter
   (``tokens.default().count_messages``), not taken from ``usage``.
 - ``explain_gate``: ``replay.py --explain`` must exit 0 and report one pair per upstream
@@ -37,6 +40,7 @@ import json
 import re
 import sqlite3
 import subprocess
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,6 +75,100 @@ def check_n_ctx(props: dict, expect: int) -> str | None:
     if props.get("n_ctx") != expect:
         return f"Strata n_ctx is {props.get('n_ctx')}, expected {expect} ({props.get('error', '')})"
     return None
+
+
+# ---------------------------------------------------------------- host epoch (Phase 7 S3, F3)
+
+EPOCH_KEYS = ("upstream", "build", "engine", "model", "n_ctx", "started")
+
+
+def host_epoch(upstream: str, client=None) -> dict:
+    """What identifies the upstream's serving process now, read over HTTP only (no ssh):
+    ``/props`` (``build_info``, ``n_ctx``, ``model_alias``) and ``/v1/status`` (``engine``,
+    ``model``, ``started``, ``uptime_s``, ``activity.requests``, ``machine.gpu`` memory;
+    field names from ``eval/probes/fixtures/v1_status.json``, Strata 0.1.48).
+
+    **The epoch rule.** ``epoch`` is the first 16 hex digits of the SHA-256 of the JSON of
+    ``EPOCH_KEYS`` (upstream URL, build, engine, model, ``n_ctx`` and the process start
+    time ``started``). A relaunch changes ``started``, so it changes the epoch, as does a
+    new build, model or context. Without a ``started`` field the epoch cannot see a
+    relaunch by itself; ``epoch_flags`` then still catches one from the counters: Strata's
+    ``activity.requests`` or ``uptime_s`` going down between two records means a restart.
+    A record that could not be read has ``epoch`` None and an ``error``."""
+    import hashlib
+
+    import httpx
+
+    base = upstream.rstrip("/")
+    rec: dict = {"at": time.time(), "upstream": base}
+    own = client is None
+    client = client or httpx.Client(timeout=10)
+    try:
+        p = client.get(f"{base}/props", timeout=10).json()
+        v = client.get(f"{base}/v1/status", timeout=10).json()
+    except Exception as e:  # recorded: an unread epoch is never equal to another
+        return {**rec, "epoch": None, "error": f"{type(e).__name__}: {e}"[:200]}
+    finally:
+        if own:
+            client.close()
+    gpu = (v.get("machine") or {}).get("gpu") or {}
+    started = v.get("started")
+    rec.update({
+        "build": p.get("build_info"), "engine": v.get("engine"),
+        "model": v.get("model") or p.get("model_alias"),
+        "n_ctx": (p.get("default_generation_settings") or {}).get("n_ctx"),
+        "started": started if isinstance(started, (int, float)) else None,
+        "uptime_s": v.get("uptime_s"),
+        "activity_requests": (v.get("activity") or {}).get("requests"),
+        "gpu_used_mib": gpu.get("used_mib"), "gpu_total_mib": gpu.get("total_mib")})
+    ident = json.dumps({k: rec[k] for k in EPOCH_KEYS}, sort_keys=True)
+    rec["epoch"] = hashlib.sha256(ident.encode()).hexdigest()[:16]
+    return rec
+
+
+def _dropped(earlier: dict, later: dict, key: str) -> bool:
+    a, b = earlier.get(key), later.get(key)
+    return isinstance(a, (int, float)) and isinstance(b, (int, float)) and b < a
+
+
+def epoch_flags(before: dict, after: dict) -> list[str]:
+    """Why two host-epoch records, ``before`` then ``after``, may not be one serving
+    process: ``unread`` (either has no epoch), ``epoch_changed``, ``activity_dropped`` or
+    ``uptime_dropped`` (a counter went down: a restart). Empty when nothing says so."""
+    flags = []
+    if before.get("epoch") is None or after.get("epoch") is None:
+        flags.append("unread")
+    elif before["epoch"] != after["epoch"]:
+        flags.append("epoch_changed")
+    if _dropped(before, after, "activity_requests"):
+        flags.append("activity_dropped")
+    if _dropped(before, after, "uptime_s"):
+        flags.append("uptime_dropped")
+    return flags
+
+
+def epoch_summary(before: dict, after: dict) -> dict:
+    """A run's ``host_epoch`` record: both readings and the flags; ``flagged`` when any."""
+    flags = epoch_flags(before, after)
+    return {"before": before, "after": after, "flags": flags, "flagged": bool(flags)}
+
+
+def pair_split_across_epochs(a_result: dict, b_result: dict) -> bool:
+    """True when two runs of one task (two arms) did not both run in one host epoch:
+    either run is flagged on its own, their epochs differ, a counter went down between
+    the earlier run's end and the later run's start, or either lacks a host-epoch record
+    (an unverifiable pair is flagged, never assumed whole). The report lists such pairs;
+    they are never rerun (plan §1.4)."""
+    ea, eb = a_result.get("host_epoch"), b_result.get("host_epoch")
+    if not ea or not eb or ea.get("flagged") or eb.get("flagged"):
+        return True
+    readings = [ea["before"], ea["after"], eb["before"], eb["after"]]
+    if any(r.get("epoch") is None for r in readings):
+        return True
+    if len({r["epoch"] for r in readings}) > 1:
+        return True
+    first, second = sorted((ea, eb), key=lambda e: e["before"].get("at") or 0)
+    return bool(epoch_flags(first["after"], second["before"]))
 
 
 def input_budget_for(n_ctx: int) -> int:

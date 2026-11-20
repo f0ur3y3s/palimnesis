@@ -274,6 +274,7 @@ def test_usage_parsed_through_profile():
     final = [e for e in events if e.startswith(b"data: {")][-1]
     p = profile.load(profile.DEFAULT_PROFILE, "http://127.0.0.1:1")
     usage = p.cross_check.usage(json.loads(final[len(b"data: "):]))
-    assert usage == profile.Usage(prompt_tokens=28, cached_tokens=21, prompt_ms=217.3)
+    assert usage == profile.Usage(prompt_tokens=28, cached_tokens=21, prompt_ms=217.3,
+                                  completion_tokens=4)
     assert p.cross_check.usage({"usage": {"prompt_tokens": 5}}) == profile.Usage(5, 0, None)
     assert p.cross_check.usage({"choices": []}) is None

@@ -558,7 +558,11 @@ class ArchiveHandler:
             raise
         finally:
             if call is not None:
-                usage = {"usage": stream.usage} if stream.usage else None
+                # The final chunk's usage and timings, as the client's own call passes
+                # them (Phase 7 F2: without timings the refresh recorded no prompt_ms).
+                usage = ({"usage": stream.usage,
+                          **({"timings": stream.timings} if stream.timings else {})}
+                         if stream.usage else None)
                 await self.accounts.finish(refresh_plan, call, usage, outcome)
         base_n = plan.view_n
         policy = self.views.view_policy

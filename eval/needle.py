@@ -1032,6 +1032,9 @@ def run_config(a) -> int:
             "max_completion_tokens": output_limit(cfg["arm"]),
             "emulator": EMULATOR_VERSION, "live": live, "upstream": a.upstream,
             "started": time.time(), "max_tools": MAX_TOOLS, "sessions": []}
+    import gate_inputs as gi
+
+    epoch_before = gi.host_epoch(upstream)  # Phase 7 S3: before and after the run
     qlog = open(out / "questions.jsonl", "a", encoding="utf-8")
     clog = open(out / "calls.jsonl", "a", encoding="utf-8")
     status = 0
@@ -1208,6 +1211,7 @@ def run_config(a) -> int:
         proxy.stop()
         tap_server.should_exit = True
         tap_thread.join(10)
+        meta["host_epoch"] = gi.epoch_summary(epoch_before, gi.host_epoch(upstream))
         stack.close()
         meta["finished"] = time.time()
         meta["gate_events"] = gate.events

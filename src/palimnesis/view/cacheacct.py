@@ -10,7 +10,9 @@ attribution), and starts tokenizing the body actually sent into a ``profile.Layo
 ``upstream_call`` event:
 
 - ``input_tokens`` (I, the view's exact count) and the upstream ``usage`` read through
-  ``profile.cross_check.usage``: ``prompt_tokens``, ``cached_tokens``, ``prompt_ms``;
+  ``profile.cross_check.usage``: ``prompt_tokens``, ``cached_tokens``, ``prompt_ms``,
+  ``completion_tokens`` (numbers only, never text; the notes refresh passes its final
+  chunk's usage and timings as the client's call does, Phase 7 S2);
 - ``lcp_tokens``: the token longest common prefix with the previous call on the branch.
   The previous call's tokens are held in memory; after a restart (or when the branch fell
   out of memory) they are rebuilt by re-planning that request at the archive position,
@@ -446,6 +448,7 @@ class Accountant:
         event = {**call.meta(), "outcome": outcome,
                  "prompt_tokens": usage.prompt_tokens if usage else None,
                  "cached_tokens": cached, "prompt_ms": usage.prompt_ms if usage else None,
+                 "completion_tokens": usage.completion_tokens if usage else None,
                  "prev_call_id": prev.call_id if prev else None,
                  "global_prev_call_id": call.global_prev_id,
                  "lcp_source": source if prev is not None else None,

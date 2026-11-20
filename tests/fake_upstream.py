@@ -4,7 +4,7 @@ Tests queue responses with ``respond_json``/``respond_sse`` and then inspect
 ``requests`` (what the upstream actually received) and ``closed_streams``
 (streams the upstream saw terminate early because the reader went away).
 
-``GET /props`` and ``GET /status`` are static: it answers from the recorded Strata ``props.json`` with the
+``GET /props``, ``GET /status`` and ``GET /v1/status`` are static: it answers from the recorded Strata ``props.json`` with the
 mutable ``props_*`` attributes applied, never consumes the response script and is
 counted in ``props_requests`` rather than ``requests``. When ``count_tokens_handler``
 is set (by default an exact local count, like Strata), ``POST /v1/messages/count_tokens``
@@ -101,6 +101,14 @@ class FakeUpstream:
     status_busy: bool = False
     status_queued: int = 0
     status_requests: int = 0
+    # Static GET /v1/status (Strata's shape, eval/probes/fixtures/v1_status.json; not
+    # scripted, not in ``requests``): ``activity.requests`` is ``status_activity``, or the
+    # requests received when None. Setting ``status_started`` lower ``status_activity``
+    # stands for a relaunch.
+    status_started: int = 1792871477
+    status_uptime_s: int = 18
+    status_activity: int | None = None
+    status_engine: str = "0.1.48"
 
     def respond_json(
         self,
@@ -144,6 +152,7 @@ class FakeUpstream:
         drift: int = 0,
         cached: int | Callable[[int], int] = 0,
         prompt_ms: float = 1.0,
+        completion_tokens: int = 1,
         stream: bool = True,
         tool_call: tuple[str, str, str] | None = None,
     ) -> None:
@@ -156,7 +165,8 @@ class FakeUpstream:
         def build(raw: bytes) -> list[bytes] | bytes:
             prompt = _chat_count(json.loads(raw)) + drift
             reused = cached(prompt) if callable(cached) else cached
-            usage = {"prompt_tokens": prompt, "completion_tokens": 1, "total_tokens": prompt + 1,
+            usage = {"prompt_tokens": prompt, "completion_tokens": completion_tokens,
+                     "total_tokens": prompt + completion_tokens,
                      "prompt_tokens_details": {"cached_tokens": reused}}
             timings = {"cache_n": reused, "prompt_n": prompt - reused, "prompt_ms": prompt_ms}
             if not stream:
@@ -234,6 +244,17 @@ class FakeUpstream:
                 return Response(json.dumps({"busy": self.status_busy,
                                             "queued": self.status_queued}).encode(),
                                 media_type="application/json")
+            if request.method == "GET" and request.url.path == "/v1/status":
+                with self._lock:
+                    activity = (len(self.requests) if self.status_activity is None
+                                else self.status_activity)
+                return Response(json.dumps({
+                    "service": "strata", "model": "qwen3.8-flash-next-iq3_xxs",
+                    "engine": self.status_engine, "started": self.status_started,
+                    "uptime_s": self.status_uptime_s,
+                    "activity": {"requests": activity, "in_flight": 0},
+                    "machine": {"gpu": {"used_mib": 11868.0, "total_mib": 12288.0}},
+                }).encode(), media_type="application/json")
             handler = self.count_tokens_handler
             if (
                 handler is not None

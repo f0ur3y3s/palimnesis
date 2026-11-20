@@ -134,11 +134,12 @@ def _by_cause(calls: list[dict]) -> dict:
     tokens re-read past the common prefix, the prompt time, and for a state commit its own
     share (``state_marginal_tokens``) and the rest (``with_state_tokens``: what the move
     made with it, such as a collapse, cost). The notes refresh calls (``#notes``) are
-    reported apart, as the proxy's own calls, with their own re-read. ``summary.pairs``
+    reported apart, as the proxy's own calls, with their own re-read, prompt time and
+    completion tokens (archives before Phase 7 S2 recorded neither). ``summary.pairs``
     counts those refresh pairs too, so it exceeds the pairs listed here."""
     rows: dict[str, dict] = {}
     refresh = {"calls": 0, "prompt_tokens": 0, "cached_tokens": 0, "reread_tokens": 0,
-               "prompt_ms": 0.0}
+               "prompt_ms": 0.0, "completion_tokens": 0}
     for x in calls:
         if x["call_id"].endswith("#notes"):
             refresh["calls"] += 1
@@ -147,6 +148,7 @@ def _by_cause(calls: list[dict]) -> dict:
             if x.get("lcp_tokens") is not None and x.get("input_tokens") is not None:
                 refresh["reread_tokens"] += x["input_tokens"] - x["lcp_tokens"]
             refresh["prompt_ms"] += x.get("prompt_ms") or 0
+            refresh["completion_tokens"] += x.get("completion_tokens") or 0  # Phase 7 S2
             continue
         if x["prev_call_id"] is None:
             continue

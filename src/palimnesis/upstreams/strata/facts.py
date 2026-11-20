@@ -303,8 +303,9 @@ async def run_canary(
 def parse_usage(payload: Mapping[str, Any]) -> Usage | None:
     """Usage from a Chat Completions response or final chunk.
 
-    Strata reports ``usage.prompt_tokens``, ``usage.prompt_tokens_details.cached_tokens``
-    and ``timings.prompt_ms`` (eval/probes/fixtures/sse_oa_include_usage.sse)."""
+    Strata reports ``usage.prompt_tokens``, ``usage.completion_tokens``,
+    ``usage.prompt_tokens_details.cached_tokens`` and ``timings.prompt_ms``
+    (eval/probes/fixtures/sse_oa_include_usage.sse)."""
     usage = payload.get("usage")
     if not isinstance(usage, Mapping) or not isinstance(usage.get("prompt_tokens"), int):
         return None
@@ -312,10 +313,12 @@ def parse_usage(payload: Mapping[str, Any]) -> Usage | None:
     cached = details.get("cached_tokens") if isinstance(details, Mapping) else None
     timings = payload.get("timings")
     prompt_ms = timings.get("prompt_ms") if isinstance(timings, Mapping) else None
+    completion = usage.get("completion_tokens")
     return Usage(
         prompt_tokens=usage["prompt_tokens"],
         cached_tokens=cached if isinstance(cached, int) else 0,
         prompt_ms=float(prompt_ms) if isinstance(prompt_ms, (int, float)) else None,
+        completion_tokens=completion if isinstance(completion, int) else None,
     )
 
 
