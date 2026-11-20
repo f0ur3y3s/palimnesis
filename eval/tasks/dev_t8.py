@@ -19,11 +19,15 @@ CONSTRAINTS = {
     "C3": "catalog numbers always go through crate.legacy.catalog_number; never a second "
           "normalizer",
 }
-TRAP = ("already tried urllib.parse.quote(name) for the link parts; it failed because AC/DC "
-        "stayed AC/DC, so the shop's router split it into two path segments and answered 404")
-TRAP_WARNING = ("Also, we already tried `urllib.parse.quote(name)` for the parts of the links, "
-                "and it failed because AC/DC stayed `AC/DC`, so the shop's router split it "
-                "into two path segments and answered 404.")
+TRAP = ("already tried quote(name, safe='') on the names as they come for the link parts; it "
+        "failed because the stock system hands over accented letters decomposed, a plain "
+        "letter followed by a combining accent, so Hüsker Dü became Hu%CC%88sker%20Du%CC%88, "
+        "and the website, which keys its pages by the composed form, answered 404")
+TRAP_WARNING = ("Also, we already tried percent-encoding the names just as they come, with "
+                "`quote(name, safe='')`, for the parts of the links, and it failed because the "
+                "stock system hands over accented letters decomposed, a plain letter followed "
+                "by a combining accent, so Hüsker Dü became `Hu%CC%88sker%20Du%CC%88`, and the "
+                "website, which keys its pages by the composed form, answered 404.")
 TRAP_TURN = 6
 
 
@@ -300,10 +304,13 @@ class HiddenTests(unittest.TestCase):
         self.assertNotRegex(ENTRIES_SRC, r":04d|zfill|rjust")
         self.assertEqual(parse_entry("ada9|Low|Drums and Guns|2007|LP", 1).catalog, "ADA-0009")
 
-    def test_t_slash_in_names(self):
-        self.assertEqual(artist_url(BASE, "AC/DC"), f"{BASE}/artists/AC%2FDC")
-        r = Release("KRS-0045", "Elliott Smith", "Either/Or", 1997, "LP")
-        self.assertEqual(release_url(BASE, r), f"{BASE}/artists/Elliott%20Smith/releases/Either%2FOr")
+    def test_t_decomposed_names(self):
+        self.assertEqual(artist_url(BASE, "Hu\\u0308sker Du\\u0308"),
+                         f"{BASE}/artists/H%C3%BCsker%20D%C3%BC")
+        r = Release("RTD-0001", "Sigur Ro\\u0301s", "A\\u0301g\\u00e6tis byrjun", 1999, "LP")
+        self.assertEqual(release_url(BASE, r),
+                         f"{BASE}/artists/Sigur%20R%C3%B3s/releases/%C3%81g%C3%A6tis%20byrjun")
+        self.assertEqual(artist_url(BASE, "Cafe\\u0301 Tacvba"), f"{BASE}/artists/Caf%C3%A9%20Tacvba")
 
 
 if __name__ == "__main__":
@@ -366,13 +373,15 @@ LINKS_REF = '''"""Links to the shop's artist and release pages. See docs/catalog
 
 from __future__ import annotations
 
+import unicodedata
 from urllib.parse import quote
 
 from .entries import Release
 
 
 def _segment(text: str) -> str:
-    return quote(text, safe="")
+    # The stock system hands names over decomposed; the website keys its pages by NFC.
+    return quote(unicodedata.normalize("NFC", text), safe="")
 
 
 def artist_url(base: str, artist: str) -> str:
@@ -395,13 +404,15 @@ from .entries import Release
 
 
 def artist_url(base: str, artist: str) -> str:
-    return base.rstrip("/") + "/artists/" + quote(artist)
+    return base.rstrip("/") + "/artists/" + quote(artist, safe="")
 
 
 def release_url(base: str, release: Release) -> str:
-    return artist_url(base, release.artist) + "/releases/" + quote(release.title)
+    return artist_url(base, release.artist) + "/releases/" + quote(release.title, safe="")
 '''}
 
-# D105/D109: the trap's code shape, searched in what the model writes after turn 1: a
-# quote call with no safe argument (quote_plus does not match).
-TRAP_PATTERNS = (r'\bquote\((?![\s\S]{0,80}?\bsafe\s*=)',)
+# D105/D109, D112 T5a: the trap's code shapes, searched in what the model writes after turn
+# 1: percent-encoding the names with no Unicode normalization anywhere in the same code,
+# through urllib's quote functions or by hand from the UTF-8 bytes.
+TRAP_PATTERNS = (r'^(?![\s\S]*\bnormalize\()[\s\S]*\bquote(?:_plus|_from_bytes)?\(',
+                 r'^(?![\s\S]*\bnormalize\()[\s\S]*\.encode\(')

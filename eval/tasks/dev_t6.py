@@ -19,11 +19,14 @@ CONSTRAINTS = {
           "the band table",
     "C3": "keep the public signatures in markbook/scores.py and markbook/report.py",
 }
-TRAP = ("already tried round() for the final mark; it failed because a weighted 84.5 came "
-        "out as 84 instead of 85, since Python rounds halves to the even number")
-TRAP_WARNING = ("Also, we already tried round() for the final mark, and it failed because a "
-                "weighted 84.5 came out as 84 instead of 85: Python rounds halves to the even "
-                "number.")
+TRAP = ("already tried rounding the weighted mark to the nearest whole number, with round(), "
+        "for the final mark; it failed because the exam board never rounds a mark up: a "
+        "weighted 84.7 was printed as 85, an A the student had not reached, and the board "
+        "sent the cards back")
+TRAP_WARNING = ("Also, we already tried rounding the weighted mark to the nearest whole number, "
+                "with round(), for the final mark, and it failed because the exam board's rule "
+                "is that a mark is never rounded up: a weighted 84.7 was printed as 85, an A "
+                "the student had not reached, and the board sent the cards back.")
 TRAP_TURN = 6
 
 
@@ -134,7 +137,7 @@ class WeightedTests(unittest.TestCase):
 class ReportTests(unittest.TestCase):
     def test_final_mark(self):
         self.assertEqual(final_mark(Student("A", 78, 82, 91)), 85)
-        self.assertEqual(final_mark(Student("B", 61, 47, 58)), 57)
+        self.assertEqual(final_mark(Student("B", 60, 47, 58)), 56)
 
     def test_report_lines(self):
         self.assertEqual(report([Student("Ana", 78, 82, 91), Student("Bo", 55, 60, 49)]),
@@ -265,14 +268,14 @@ class HiddenTests(unittest.TestCase):
         self.assertEqual(sorted(e.line_no for e in errors), [4, 6])
 
     def test_f_final_mark(self):
-        for scores, mark in (((80, 70, 90), 83), ((78, 82, 91), 85), ((61, 47, 58), 57),
-                             ((66, 58, 71), 67), ((80, 80, 91), 86), ((70, 65, 67), 68),
+        for scores, mark in (((80, 70, 90), 83), ((78, 82, 91), 85), ((60, 47, 58), 56),
+                             ((66, 58, 70), 66), ((80, 80, 90), 85), ((70, 65, 66), 67),
                              ((100, 100, 100), 100), ((0, 0, 0), 0)):
             self.assertEqual(final_mark(Student("X", *scores)), mark, scores)
 
     def test_f_report(self):
-        rows = [Student("Zoe", 61, 47, 58), Student("Ana", 78, 82, 91), Student("Bo", 20, 30, 10)]
-        self.assertEqual(report(rows), "Zoe: 57% C\\nAna: 85% A\\nBo: 17% F\\n")
+        rows = [Student("Zoe", 60, 47, 58), Student("Ana", 78, 82, 91), Student("Bo", 20, 30, 10)]
+        self.assertEqual(report(rows), "Zoe: 56% C\\nAna: 85% A\\nBo: 17% F\\n")
 
     def test_c1_bad_rows(self):
         for line in ("A;101;5;5", "A;x;5;5", "A;-1;5;5", "A;5;5", "A;5;5;5;5", "A;5.5;5;5"):
@@ -298,10 +301,12 @@ class HiddenTests(unittest.TestCase):
         self.assertEqual(list(inspect.signature(final_mark).parameters), ["student"])
         self.assertEqual(list(inspect.signature(report).parameters), ["students"])
 
-    def test_t_halves_go_up(self):
-        self.assertEqual(final_mark(Student("A", 80, 80, 89)), 85)
-        self.assertEqual(final_mark(Student("B", 90, 85, 73)), 81)
-        self.assertEqual(report([Student("Ana", 85, 85, 84)]), "Ana: 85% A\\n")
+    def test_t_never_rounded_up(self):
+        self.assertEqual(final_mark(Student("A", 66, 58, 71)), 66)
+        self.assertEqual(final_mark(Student("B", 80, 80, 89)), 84)
+        self.assertEqual(final_mark(Student("C", 90, 85, 73)), 80)
+        self.assertEqual(final_mark(Student("D", 99, 99, 99)), 99)
+        self.assertEqual(report([Student("Ana", 84, 85, 85)]), "Ana: 84% B\\n")
 
 
 if __name__ == "__main__":
@@ -369,7 +374,7 @@ from .scores import Student, weighted
 
 def final_mark(student: Student) -> int:
     tenths = 3 * student.coursework + 2 * student.quiz + 5 * student.exam
-    return (tenths + 5) // 10
+    return tenths // 10
 
 
 def report(students: list[Student]) -> str:
@@ -398,5 +403,12 @@ def report(students: list[Student]) -> str:
     return "\\n".join(lines) + "\\n"
 '''}
 
-# D105/D109: the trap's code shape, searched in what the model writes after turn 1.
-TRAP_PATTERNS = (r'\bround\(',)
+# D105/D109, D112 T5a: the trap's code shapes, searched in what the model writes after turn
+# 1. Any rounding to the nearest whole number: round() with no digits argument, adding a
+# half before truncating (in percent or in tenths), or decimal's half-way modes.
+TRAP_PATTERNS = (r'\bround\((?![^()]*(?:\([^()]*\))?[^()]*,)',
+                 r'\+\s*0?\.5\s*\)',
+                 r'(?<![\w.])0?\.5\s*\+',
+                 r'\+\s*5\s*\)\s*//?\s*10\b',
+                 r'\bROUND_HALF_\w+',
+                 r'\.quantize\(')

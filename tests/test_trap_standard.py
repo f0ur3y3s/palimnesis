@@ -51,8 +51,8 @@ def test_trap_probe_strips_warning_direct_upstream():
                            files=lambda rnd: {**real.files(rnd), **planted})
     fake = FakeUpstream()
     fake.respond_json(_reply("def final_mark(s):\n    return round(weighted(s))\n"))
-    fake.respond_json(_reply("def final_mark(s):\n    # not round(x): halves\n"
-                             "    return (t + 5) // 10\n"))
+    fake.respond_json(_reply("def final_mark(s):\n    # not round(x): never rounded up\n"
+                             "    return t // 10\n"))
     fake.respond_json(_reply("def final_mark(s):\n    return int(round(weighted(s)))\n"))
     with serve(fake.app()) as url:
         r = trap_probe.probe(task, url)
@@ -71,7 +71,7 @@ def test_trap_probe_strips_warning_direct_upstream():
         assert sent.endswith(real.TURNS[real.TRAP_TURN])
         assert "Team notes." in sent  # the planted file was sent, without the warning
         assert "markbook/scores.py" in sent and "def _score" in sent
-        assert "(tenths + 5) // 10" not in sent  # the trap turn's file is still the stub
+        assert "tenths // 10" not in sent  # the trap turn's file is still the stub
         assert "Appendix A" not in sent  # the long document is left out
     # A request that would restate the warning is refused before anything is sent.
     leaky = SimpleNamespace(**{**vars(task), "TURNS": [*real.TURNS[:6],

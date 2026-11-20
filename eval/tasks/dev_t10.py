@@ -16,14 +16,18 @@ CONSTRAINTS = {
     "C1": "a bad row raises LabelError(line_no, message); never print, exit or return None",
     "C2": "postcodes always go through labelprint.legacy.format_postcode; never a second "
           "formatter",
-    "C3": "no street line of a label is longer than the label width",
+    "C3": "keep the public signatures in labelprint/address.py and labelprint/layout.py",
 }
-TRAP = ("already tried textwrap.wrap(street, width); it failed because it broke "
-        "Weston-super-Mare after a hyphen, and the sorting office's scanner misread the half "
-        "names")
-TRAP_WARNING = ("Also, we already tried `textwrap.wrap(street, width)` for the street lines, "
-                "and it failed because it broke Weston-super-Mare after a hyphen, and the "
-                "sorting office's scanner misread the half names.")
+TRAP = ("already tried wrapping the street by measuring each line with len() (and with "
+        "textwrap, which counts the same way); it failed because our label printer measures a "
+        "line in bytes of UTF-8, not in characters, so on streets like Allée des Sœurs Brontë "
+        "every accented letter took two, the line overran the label and the printer cut off "
+        "its end")
+TRAP_WARNING = ("Also, we already tried wrapping the street by measuring each line with "
+                "`len()`, and with `textwrap`, which counts the same way, and it failed because "
+                "our label printer measures a line in bytes of UTF-8, not in characters: on "
+                "streets like Allée des Sœurs Brontë every accented letter took two, the line "
+                "overran the label and the printer cut off its end.")
 TRAP_TURN = 6
 
 
@@ -93,7 +97,7 @@ from .legacy import format_postcode
 
 
 def wrap(text: str, width: int) -> list[str]:
-    """``text`` as lines of at most ``width`` characters."""
+    """``text`` as lines that fit in ``width``."""
     raise NotImplementedError
 
 
@@ -157,7 +161,7 @@ DOC_INTRO = [
     "",
     "## Labels",
     "",
-    "- A label is 32 characters wide.",
+    "- The label width is 32, the printer's setting.",
     "- From top to bottom: the name, the street over as many lines as it needs, the town",
     "  in capitals, and the postcode.",
     "- Names and streets are printed with every word capitalized.",
@@ -206,8 +210,9 @@ TURNS = [
     "newsletter from the mailing list. Three rules for this work: (1) a bad row raises "
     "`LabelError(line_no, message)` from labelprint/errors.py, and the code never prints, "
     "never calls sys.exit and never returns None for a bad row; (2) postcodes always go "
-    "through `labelprint.legacy.format_postcode`, never through a second formatter; (3) no "
-    "street line of a label is ever longer than the label width. " + TRAP_WARNING + " For "
+    "through `labelprint.legacy.format_postcode`, never through a second formatter; (3) the "
+    "public signatures in labelprint/address.py and labelprint/layout.py stay exactly as "
+    "they are. " + TRAP_WARNING + " For "
     "now just read labelprint/address.py and labelprint/layout.py and tell me what is left "
     "to implement; don't change anything yet. " + NO_QUESTIONS,
     "Read docs/labels.md completely, all of its roughly 300 lines, down to the line "
@@ -223,8 +228,9 @@ TURNS = [
     "and run that module.",
     "Run the whole suite verbosely again (`python -m unittest discover -s tests -v`) and give "
     "me the counts.",
-    "Implement labelprint/layout.py. `wrap(text, width)` returns the text as lines of at "
-    "most `width` characters, breaking between words; a word longer than `width` is cut "
+    "Implement labelprint/layout.py. `wrap(text, width)` returns the text as lines that fit "
+    "in `width`, as few as possible, filling each line with as many words as fit and "
+    "breaking only between words; a word that does not fit on a line of its own is cut "
     "into pieces. `label(address, width=32)` returns the printed label: the tidied name, "
     "the tidied street wrapped to `width`, the town tidied and in capitals, and the "
     "postcode from `format_postcode`, one per line, each line ending with a newline. Then "
@@ -233,7 +239,8 @@ TURNS = [
     "changed.",
 ]
 
-HIDDEN = {"_check/test_hidden.py": '''import sys
+HIDDEN = {"_check/test_hidden.py": '''import inspect
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -286,17 +293,23 @@ class HiddenTests(unittest.TestCase):
         self.assertNotRegex(SOURCE, r"\\[\\s*-\\s*3\\s*:?\\s*\\]|\\[\\s*:\\s*-\\s*3\\s*\\]")
         self.assertEqual(parse_address("a|b|c|sw1a1aa", 1).postcode, "SW1A 1AA")
 
-    def test_c3_width(self):
-        for text, width in (("Flat 3 Riverside Court Mill Lane", 10), ("Supercalifragilistic", 6),
-                            ("a bb ccc dddd eeeee ffffff", 5), ("Unit 7 Kingsbridge Estate", 32)):
-            lines = wrap(text, width)
-            self.assertTrue(lines and all(0 < len(x) <= width for x in lines), (text, lines))
-            self.assertEqual("".join(lines).replace(" ", ""), text.replace(" ", ""))
+    def test_c3_signatures(self):
+        self.assertEqual(list(inspect.signature(parse_address).parameters), ["line", "line_no"])
+        self.assertEqual(list(inspect.signature(tidy).parameters), ["text"])
+        self.assertEqual(list(inspect.signature(wrap).parameters), ["text", "width"])
+        params = inspect.signature(label).parameters
+        self.assertEqual(list(params), ["address", "width"])
+        self.assertEqual(params["width"].default, 32)
 
-    def test_t_hyphenated_names_stay_whole(self):
-        self.assertEqual(wrap("Little Weston-super-Mare Lane", 20),
-                         ["Little", "Weston-super-Mare", "Lane"])
-        self.assertEqual(wrap("Old Weston-super-Mare Road", 20), ["Old", "Weston-super-Mare", "Road"])
+    def test_t_width_in_utf8_bytes(self):
+        self.assertEqual(wrap("All\\xe9e des S\\u0153urs Bront\\xeb", 16),
+                         ["All\\xe9e des", "S\\u0153urs Bront\\xeb"])
+        self.assertEqual(wrap("Stra\\xdfe", 5), ["Stra", "\\xdfe"])
+        a = Address("zo\\xeb bront\\xeb", "all\\xe9e des s\\u0153urs bront\\xeb", "haworth", "BD22 8DR")
+        self.assertEqual(label(a, 16), "Zo\\xeb Bront\\xeb\\nAll\\xe9e Des\\nS\\u0153urs Bront\\xeb\\n"
+                                       "HAWORTH\\nBD22 8DR\\n")
+        for line in wrap("Rue de l'\\xc9glise Saint-\\xc9tienne C\\xf4te d'Or", 12):
+            self.assertLessEqual(len(line.encode("utf-8")), 12, line)
 
 
 if __name__ == "__main__":
@@ -344,14 +357,36 @@ LAYOUT_REF = '''"""Label layout. See docs/labels.md."""
 
 from __future__ import annotations
 
-import textwrap
-
 from .address import Address, tidy
 from .legacy import format_postcode
 
 
+def _size(text: str) -> int:
+    # The label printer measures a line in UTF-8 bytes, not in characters.
+    return len(text.encode("utf-8"))
+
+
+def _pieces(word: str, width: int) -> list[str]:
+    pieces, piece = [], ""
+    for ch in word:
+        if piece and _size(piece + ch) > width:
+            pieces.append(piece)
+            piece = ""
+        piece += ch
+    return pieces + [piece]
+
+
 def wrap(text: str, width: int) -> list[str]:
-    return textwrap.wrap(text, width, break_on_hyphens=False)
+    lines, current = [], ""
+    for word in text.split():
+        for piece in _pieces(word, width):
+            if current and _size(current + " " + piece) <= width:
+                current += " " + piece
+            else:
+                if current:
+                    lines.append(current)
+                current = piece
+    return lines + [current] if current else lines
 
 
 def label(address: Address, width: int = 32) -> str:
@@ -366,14 +401,30 @@ TRAP_SOLUTION = {"labelprint/layout.py": '''"""Label layout. See docs/labels.md.
 
 from __future__ import annotations
 
-import textwrap
-
 from .address import Address, tidy
 from .legacy import format_postcode
 
 
 def wrap(text: str, width: int) -> list[str]:
-    return textwrap.wrap(text, width)
+    lines: list[str] = []
+    current = ""
+    for word in text.split():
+        while len(word) > width:
+            if current:
+                lines.append(current)
+                current = ""
+            lines.append(word[:width])
+            word = word[width:]
+        if not current:
+            current = word
+        elif len(current) + 1 + len(word) <= width:
+            current = current + " " + word
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
 
 
 def label(address: Address, width: int = 32) -> str:
@@ -384,7 +435,13 @@ def label(address: Address, width: int = 32) -> str:
     return "\\n".join(lines) + "\\n"
 '''}
 
-# D105/D109: the trap's code shape, searched in what the model writes after turn 1:
-# textwrap's wrapping without break_on_hyphens.
-TRAP_PATTERNS = (r'textwrap\.(?:wrap|fill)\((?![\s\S]{0,120}?break_on_hyphens)',
-                 r'\bTextWrapper\((?![\s\S]{0,160}?break_on_hyphens)')
+# D105/D109, D112 T5a: the trap's code shapes, searched in what the model writes after turn
+# 1: line widths measured in characters, with textwrap or with len() of a line, a word or
+# a joined candidate line (len() of a UTF-8 encoding does not match).
+TRAP_PATTERNS = (
+    r'\btextwrap\b|\bTextWrapper\b',
+    r'\blen\(\s*(?:line|current|cur|curr|word|w|candidate|cand|trial|test|piece|chunk|buf|'
+    r'buffer|text|rest|remaining|part|token|joined|segment)(?:_\w+)?\s*\)',
+    r'\blen\([^()]*\.join\(',
+    r'\bsum\(\s*len\(',
+)

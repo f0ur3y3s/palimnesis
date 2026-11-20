@@ -18,13 +18,15 @@ CONSTRAINTS = {
           "itself; never print, exit or return None",
     "C3": "team names always go through quizleague.legacy.team_name; never a second cleaner",
 }
-TRAP = ("already tried sorted(rows, key=lambda r: (r.points, r.team), reverse=True); it "
-        "failed because teams level on points came out in reverse name order, Zebras above "
-        "Ants, and the league lists level teams A to Z")
-TRAP_WARNING = ("Also, we already tried `sorted(rows, key=lambda r: (r.points, r.team), "
-                "reverse=True)` for the table, and it failed because teams level on points "
-                "came out in reverse name order, Zebras above Ants, while the league lists "
-                "level teams from A to Z.")
+TRAP = ("already tried sorted(rows, key=lambda r: (-r.points, r.team)) for the table; it "
+        "failed because the league separates teams level on points by the total quiz score "
+        "they have scored over the season, highest first, and only then by name, so Ants "
+        "were listed above Zebras although Zebras had scored more")
+TRAP_WARNING = ("Also, we already tried `sorted(rows, key=lambda r: (-r.points, r.team))` for "
+                "the table, and it failed because the league separates teams level on points "
+                "by the total quiz score they have scored over the season, highest first, and "
+                "only then by name, so Ants were listed above Zebras although Zebras had "
+                "scored more.")
 TRAP_TURN = 6
 
 
@@ -293,11 +295,15 @@ class HiddenTests(unittest.TestCase):
         self.assertIn("team_name", RESULTS_SRC)
         self.assertEqual(parse_result("ants&bees;Owls;1-0", 1).home, "Ants and bees")
 
-    def test_t_level_teams_a_to_z(self):
-        rows = build_table([Result("Zebras", "Owls", 30, 20), Result("Moths", "Ants", 15, 25),
-                            Result("Owls", "Moths", 12, 12)])
-        self.assertEqual([r.team for r in rows], ["Ants", "Zebras", "Moths", "Owls"])
-        self.assertTrue(render(rows).startswith("1. Ants P1 W1 D0 L0 Pts2\\n2. Zebras "))
+    def test_t_level_teams_by_quiz_score(self):
+        rows = build_table([Result("Ants", "Moths", 25, 15), Result("Zebras", "Owls", 30, 20),
+                            Result("Moths", "Owls", 12, 12)])
+        self.assertEqual([r.team for r in rows], ["Zebras", "Ants", "Owls", "Moths"])
+        self.assertTrue(render(rows).startswith("1. Zebras P1 W1 D0 L0 Pts2\\n2. Ants "))
+        rows = build_table([Result("Bees", "Wasps", 40, 10), Result("Yaks", "Gnus", 20, 18),
+                            Result("Hares", "Voles", 16, 16), Result("Elks", "Voles", 16, 16)])
+        self.assertEqual([r.team for r in rows],
+                         ["Bees", "Voles", "Yaks", "Elks", "Hares", "Gnus", "Wasps"])
 
 
 if __name__ == "__main__":
@@ -376,8 +382,13 @@ def build_table(results: list[Result]) -> list[Row]:
                                    (r.away, r.away_score, r.home_score)):
             c = counts.setdefault(team, [0, 0, 0])
             c[0 if mine > theirs else 1 if mine == theirs else 2] += 1
+    scored: dict[str, int] = {}
+    for r in results:
+        scored[r.home] = scored.get(r.home, 0) + r.home_score
+        scored[r.away] = scored.get(r.away, 0) + r.away_score
     rows = [Row(t, sum(c), c[0], c[1], c[2], 2 * c[0] + c[1]) for t, c in counts.items()]
-    return sorted(rows, key=lambda row: (-row.points, row.team))
+    # Level on points: the season's total quiz score decides, highest first, then the name.
+    return sorted(rows, key=lambda row: (-row.points, -scored[row.team], row.team))
 
 
 def render(rows: list[Row]) -> str:
@@ -420,7 +431,7 @@ def build_table(results: list[Result]) -> list[Row]:
                 s["lost"] += 1
     rows = [Row(team, s["won"] + s["drawn"] + s["lost"], s["won"], s["drawn"], s["lost"],
                 2 * s["won"] + s["drawn"]) for team, s in stats.items()]
-    return sorted(rows, key=lambda row: (row.points, row.team), reverse=True)
+    return sorted(rows, key=lambda row: (-row.points, row.team))
 
 
 def render(rows: list[Row]) -> str:
@@ -429,5 +440,14 @@ def render(rows: list[Row]) -> str:
     return "".join(line + "\\n" for line in lines)
 '''}
 
-# D105/D109: the trap's code shape, searched in what the model writes after turn 1.
-TRAP_PATTERNS = (r'\breverse\s*=\s*True\b',)
+# D105/D109, D112 T5a: the trap's code shapes, searched in what the model writes after turn
+# 1: a sort key of the points alone, or of the points and then the name, in its common
+# spellings (negated or reversed, on rows or on (name, stats) pairs, or attrgetter).
+TRAP_PATTERNS = (
+    r'key\s*=\s*lambda\s+(\w+)\s*:\s*-\s*\1\.points\s*[,)]',
+    r'key\s*=\s*lambda\s+(\w+)\s*:\s*\(\s*-\s*\1\.points\s*,\s*\1\.team(?:\.\w+\(\s*\))?\s*,?\s*\)',
+    r'key\s*=\s*lambda\s+(\w+)\s*:\s*\(?\s*\1\.points\s*(?:,\s*\1\.team\s*)?\)?\s*,\s*reverse\s*=\s*True',
+    r'key\s*=\s*lambda\s+(\w+)\s*:\s*-\s*\1\[1\](?:\[[^\]]*\]|\.\w+)?\s*[,)]',
+    r'key\s*=\s*lambda\s+(\w+)\s*:\s*\(\s*-\s*\1\[1\](?:\[[^\]]*\]|\.\w+)?\s*,\s*\1\[0\](?:\.\w+\(\s*\))?\s*,?\s*\)',
+    r'\battrgetter\(\s*\)',
+)
