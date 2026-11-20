@@ -32,39 +32,19 @@ This file says where the work stands. Delete it once its open items are closed.
 - `captures/collect-phase7-pilot.py` prints the per-run table to stdout. It does not rewrite `captures/phase7-pilot-summary.json`, which is stale.
 - Both pilot follow-ups are done (D112.9): dev-t10's patterns are tightened, and `report.py --phase7` counts a repeat only when a `code` hit and a failed `test_t_*` agree. A disputed run needs `--trap-reviews`.
 
-## S9: held-out authoring, in progress
+## S9: done (D113.8–12)
 
-- **Done:**
-  - D113.1: the independence check `eval/independence.py`;
-  - D113.2: the needle `strata` format pinned, with `needle_strata.py --check` and `--coverage`;
-  - D113.3: Pi's task driver accepts ho4 on Chat once unlocked.
-  - `AUTHORING.md` updated (§2 strata keys, §4 checks).
-  - `8c49692` closes three validation gaps. Template wording is exempt only where prescribed, trap reference checks enforce constraints, and OpenCode preflight fails on an empty selection. The 90 focused tests pass.
-  - The full suite on a clean pythia checkout at `8c49692` passed with 2,110 passing and 6 skipped tests.
-  - Both hosts report Strata 0.1.58, 32,768 context, process start, uptime, request count and GPU memory through the host-epoch reader. Retired `ho3-h1` passed real OpenCode 2.1.4 import preflight with 101/101 messages.
-- **Wave 1 is in probe and independence validation.** All 20 task files exist. The first recorded probe outcomes passed 18/20. Subsequent probe outcomes apply only to the tested request and detector revisions. Recheck tasks whose payload or patterns changed during independence cleanup. Keep only per-task pass/fail and sample counts.
-
-  | Author | Tasks | Domain | Format examples | Probe host |
-  |---|---|---|---|---|
-  | A | ho5-t1..t5 | farming, gardening, bees, orchards, weather stations | dev-t9, dev-t10 | pythia |
-  | B | ho5-t6..t10 | libraries, museums, archives | dev-t6, dev-t8 | pythia |
-  | C | ho5-t11..t15 | clinic, pharmacy, veterinary admin | dev-t7, dev-t9 | Zeus |
-  | D | ho5-t16..t20 | municipal and civic services | dev-t8, dev-t10 | Zeus |
-
-  If those sessions are lost, start new author sessions with the same assignments. A new session reads only the brief, `common.py` and its two format examples. It finishes any file still failing its checks, but never reads another author's files.
-- **Wave 2: the 180 needles (18 histories, `heldout5`).** Representatives `ho5-h1`, `ho5-h6` and `ho5-h11` passed OpenCode's fake-upstream import fidelity check. The full preflight is due at S10.
-  - Split A h1–h5, B h6–h10, C h11–h14, D h15–h18. Each author writes its own generator, `eval/needle_gen_ho5_<a|b|c|d>.py`.
-  - Seeds: A 7100+, B 7200+, C 7300+, D 7400+.
-  - The `strata` declarations must pass `--check`. The lead runs `--coverage` over all 18 histories: at least 30 per level.
-  - The 18 draft histories passed the declared-strata check, with 180 questions and at least 35 per level. Repeat this check on the final files before sealing.
-  - Keep every individual paste below the candidate's input budget. Group B split its oversized paste turns into smaller consecutive turns while preserving the depth strata.
-- **Wave 3: the ho6 reserve, 10 tasks.** A ho6-t1..t3, B t4..t6, C t7..t8, D t9..t10, each author in its own domain.
-- **Then the seal (D113):**
-  - the cross-author independence check: each author's files with `--also` the others', pass/fail only;
-  - commit by path without reading;
-  - `heldout.py seal`;
-  - a hash and shape test;
-  - D113 records who wrote what.
+- `a647c79` committed the 52 held-out files: ho5-t1..t20, ho6-t1..t10, the four generators and 18 histories. They were committed by path, without reading.
+- `eval/heldout_hashes.json` seals them. `tests/test_phase7_heldout.py::test_phase7_seal_covers_authored_files_and_history_shape` checks the hashes and shapes.
+- **Pre-seal checks, all passing:**
+  - `--check-reference` on all 30 tasks;
+  - each generator's `--check`;
+  - declared strata, and coverage of at least 35 per level;
+  - independence from the earlier sets;
+  - T1 probes. Revised tasks had to pass two consecutive runs.
+- **Cross-author overlap** is recorded in D113.11, not gated (user decision).
+- **Exposures to the lead:** parts of ho6-t9 and the old ho6-t8, which was replaced. Both are reserve tasks (D113.12).
+- **Never edit a sealed file.** Any change breaks `verify` and needs a decision entry.
 
 ## After S9
 

@@ -1,7 +1,4 @@
-"""Phase 7 S1: unseen held-out sets, their unlock and their sealed hashes (``eval/heldout.py``).
-
-Never reads unseen data: every check here is a refusal, a registry or a shape, and the
-hashes are tested on synthetic temporary files."""
+"""Phase 7 unseen-set controls and the sealed dataset's hashes and shape."""
 
 from __future__ import annotations
 
@@ -18,6 +15,7 @@ sys.path[:0] = [str(ROOT / "eval"), str(ROOT / "eval" / "tasks")]
 import heldout  # noqa: E402
 import needle  # noqa: E402
 import needle_opencode  # noqa: E402
+import needle_strata  # noqa: E402
 import report  # noqa: E402
 import run as task_run  # noqa: E402
 import state_eval  # noqa: E402
@@ -152,3 +150,31 @@ def test_heldout5_shape_and_hashes(tmp_path, capsys):
     mf.write_text(json.dumps(m), encoding="utf-8")
     assert heldout.verify(mf, root=tmp_path)["ok"] is False
     assert "SECRET" not in json.dumps(r) + capsys.readouterr().out
+
+
+def test_phase7_seal_covers_authored_files_and_history_shape():
+    from palimnesis.upstreams.strata import tokens
+
+    history_ids = [f"ho5-h{i}" for i in range(1, 19)]
+    history_paths = [f"eval/needles/heldout5/{hid}.json" for hid in history_ids]
+    task_paths = {
+        f"eval/tasks/{tid.replace('-', '_')}.py"
+        for name in ("heldout5", "heldout6")
+        for tid in heldout.TASKS[name]
+    }
+    generators = {f"eval/needle_gen_ho5_{author}.py" for author in "abcd"}
+    expected_paths = task_paths | generators | set(history_paths)
+    manifest = json.loads((ROOT / heldout.HASHES_FILE).read_text(encoding="utf-8"))
+    assert set(manifest["files"]) == expected_paths
+    result = heldout.verify(manifest, root=ROOT)
+    assert result["ok"], result
+
+    histories = [json.loads((ROOT / path).read_text(encoding="utf-8")) for path in history_paths]
+    for hid, history in zip(history_ids, histories, strict=True):
+        assert history["id"] == hid and history["set"] == "heldout5", hid
+        questions = [step for step in history["steps"] if step["kind"] == "question"]
+        assert [step["qid"] for step in questions] == [f"Q{i}" for i in range(1, 11)], hid
+        assert [step["qid"] for step in questions if step.get("restart_before")] == ["Q9"], hid
+        assert [step["qid"] for step in questions if "mid_task" in step] == ["Q7"], hid
+        assert all(tokens.count(step["text"]) < needle_strata.B_IN_32K for step in history["steps"]), hid
+    assert not needle_strata.coverage_gaps(needle_strata.coverage(histories))

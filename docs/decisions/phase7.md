@@ -203,3 +203,46 @@ Red tests first: `tests/test_independence.py` and `tests/test_eval_needle_strata
 5. **Wave 2 can cover the strata without using ho4 labels.** Each of the 18 histories keeps ten questions and the existing paste and restart positions. The second identifier question asks for a current identifier that replaced an earlier value, so it is also scored in the superseded category. One superseded item per history would cap ho5 coverage for that level at 18. Two make the minimum of 30 possible before the protocol freeze, when the ho4 labels are still unavailable.
 6. **The fixed trap warning has two exempt four-word runs.** The author brief specifies “Also, we already tried X, and it failed because Y.” The independence check exempts “also we already tried” and “and it failed because” as prescribed wording. Runs that include the approach or failure remain subject to the check.
 7. **OpenCode preflight requires at least one selected history.** A set-qualified selector such as `ho3-h1` previously returned success for zero histories. An empty selection now fails, and `--histories h1` imported the retired history faithfully at 101/101 messages using OpenCode 2.1.4.
+8. **Who wrote what.** Four author sessions, each in its own domain, wrote the held-out files. Later sessions with the same assignments fixed them under the same reading rules: the brief, `common.py`, their format examples and their own files only.
+
+   | Author | Domain | ho5 tasks | ho6 tasks | Generator and histories |
+   |---|---|---|---|---|
+   | A | farming, gardening, bees, orchards, weather stations | t1–t5 | t1–t3 | `needle_gen_ho5_a.py`, h1–h5 |
+   | B | libraries, museums, archives | t6–t10 | t4–t6 | `needle_gen_ho5_b.py`, h6–h10 |
+   | C | clinic, pharmacy, veterinary admin | t11–t15 | t7–t8 | `needle_gen_ho5_c.py`, h11–h14 |
+   | D | municipal and civic services | t16–t20 | t9–t10 | `needle_gen_ho5_d.py`, h15–h18 |
+9. **Pre-seal checks (2026-11-20).** The lead ran these on a clean checkout of `2d29048` plus the uncommitted files and saw only pass/fail and counts.
+   - **`--check-reference`:** all 30 tasks pass.
+   - **The four generators' `--check`:** each reproduces its files byte for byte.
+   - **Declared strata:** all 18 histories pass.
+   - **Coverage:** at least 35 needles per level, against a floor of 30.
+   - **Independence from earlier sets:** four tasks failed, each with one four-word run: ho5-t17, ho6-t3, ho6-t9 and ho6-t10.
+     - In three of them the run was the prescribed “it failed because” plus the article that began Y. The D113.6 exemption covers “and it failed because” but not that run.
+     - The authors reworded the Y clauses (ho6-t3: the short-form `TRAP` text).
+     - After the fixes, every file passes.
+10. **The probe re-run, and a stricter bar for revisions.** Every task was probed again: A and B on pythia, C and D on Zeus (driven from pythia over the LAN). Both hosts run 0.1.58 at 32K with the same model.
+    - **The first round failed eight tasks:** ho5-t4, ho5-t11, ho5-t12, ho6-t4, ho6-t5, ho6-t6, ho6-t8 and ho6-t9.
+    - **Why the bar changed.** The first revision of ho5-t4 passed 2/3 for its author, then 0/3 on the lead's rerun. A single 2/3 pass can be chance.
+    - **The new bar:** a revised task must pass two consecutive probe runs on the same final revision.
+    - **ho5-t4:** revision 2 passed 3/3 and 2/3 for its author and 3/3 for the lead. Its `TRAP_PATTERNS` gained other spellings of the same approach. Scoring still needs a failed `test_t_*` as well (D112.9), so wider patterns alone cannot count a repeat.
+    - **ho5-t11 and ho5-t12:** 2/3 on each of two runs. ho5-t12's change runs through the stub, document, tests, reference and trap solution.
+    - **ho6-t9:** 3/3 for its author and 3/3 for the lead.
+    - **ho6-t8:** still 1/3 after three revisions, and one of those revisions narrowed its patterns. It was replaced by a new task in a new theme, written by a fresh Author C session that never read the old file. The new task passed 3/3 on each of two runs.
+    - **ho6-t4..t6:** a fresh Author B session revised all three. Each passed 3/3 on two consecutive runs.
+      - ho6-t4 needed three revisions and ho6-t6 four, the last one allowed. ho6-t5 needed one.
+      - The changes: an already-written helper or module in the initial repository, a reworded trap-turn request, and new example values in the visible tests and the matching functional test.
+      - Their trap patterns and hidden trap tests are unchanged.
+    - **The tasks never revised** passed their single run at 2/3 or better.
+11. **Cross-author overlap is reported, not gated (user decision, 2026-11-20).**
+    - On the final files, the cross-author check (each author's files with `--also` the others') fails 20 task files, with 69 four-word runs and 4 identifiers in all.
+      - The new ho6-t8 accounts for 16 of those runs.
+      - No needle file or generator fails it.
+    - Plan §1.1 requires independence from the earlier sets only.
+    - The matches are sealed, so authors could reword only blindly. Many matches likely come from the brief's own fixed phrasing.
+    - The counts are recorded here, and the check does not block the seal.
+12. **What reached the lead (exposures).**
+    - **ho6-t3.** While fixing it, Author A bisected its own module against the sealed ho4 match. That session learned only that one of its own four-word runs occurs in ho4. No ho4 text was printed.
+    - **ho6-t9.** Author D's fix report named ho6-t9's package and module, the topic of the trap-turn request, and the helper it added. The lead now knows part of ho6-t9's trap setup.
+    - **ho6-t8.** Author C's report described the old ho6-t8's trap, which has since been replaced.
+    - Both ho6-t9 and ho6-t8 are in the Phase 8 reserve, not in the Phase 7 scoring set.
+    - Later author briefs limit reports to pass/fail, counts and a fixed list of generic location words.
