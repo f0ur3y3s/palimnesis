@@ -177,12 +177,67 @@ def test_trap_repeat_found_in_final_source_files_not_tests(tmp_path):
     assert r["trap_repeated"] is True and r["trap_doubtful"] == 1
 
 
+@pytest.mark.parametrize("tool, args", [
+    # OpenCode: write/edit with filePath; multiedit's edits.
+    ("write", {"filePath": SOURCE, "content": "c = int(float(p) * 100)\n"}),
+    ("edit", {"filePath": SOURCE, "oldString": "c = 0", "newString": "c = int(float(p) * 100)"}),
+    ("multiedit", {"filePath": SOURCE, "edits": [
+        {"oldString": "a = 1", "newString": "a = 2"},
+        {"oldString": "c = 0", "newString": "c = int(float(p) * 100)"}]}),
+    # Pi 1.5.0: edit with edits[{oldText, newText}].
+    ("edit", {"path": SOURCE, "edits": [{"oldText": "c = 0", "newText": "c = int(float(p))"}]}),
+    # Claude Code: Write/Edit with file_path.
+    ("Write", {"file_path": SOURCE, "content": "c = int(float(p))\n"}),
+    ("Edit", {"file_path": SOURCE, "old_string": "c = 0", "new_string": "c = int(float(p))"}),
+])
+def test_every_harness_write_shape_is_read(tmp_path, tool, args):
+    """Harness neutrality: the trap written through any harness's write or edit counts."""
+    db = _session(tmp_path, 4, trap_call=(tool, args))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is True and r["trap_hits"][0]["kind"] == "code"
+
+
+@pytest.mark.parametrize("tool, args", [
+    ("edit", {"path": SOURCE, "edits": [{"oldText": "c = int(float(p))", "newText": "c = 0"}]}),
+    ("multiedit", {"filePath": SOURCE, "edits": [
+        {"oldString": "c = int(float(p))", "newString": "c = to_cents(p)"}]}),
+])
+def test_old_text_in_an_edit_list_is_removal_not_a_repeat(tmp_path, tool, args):
+    db = _session(tmp_path, 4, trap_call=(tool, args))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is False and r["trap_hits"][0]["kind"] == "doubtful"
+
+
+def test_a_trap_split_across_lines_is_found(tmp_path):
+    """The arguments are JSON: a pattern spanning a newline is searched in the decoded
+    text, not the escaped ``\\n``."""
+    db = _session(tmp_path, 4, trap_call=("write", {"path": SOURCE,
+                                                   "content": "c = int(\n    float(p) * 100)\n"}))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is True
+
+
+@pytest.mark.parametrize("path", ["pkg/../../oc/tmp/probe.py", "../ws2/pkg/parse.py",
+                                  str(RUN_WS / "pkg" / ".." / ".." / "oc" / "probe.py"),
+                                  "pkg/conftest.py", "pkg/parse_test.py"])
+def test_paths_outside_the_workspace_or_test_files_are_not_source(tmp_path, path):
+    db = _session(tmp_path, 4, trap_call=("write", {"path": path, "content": "c = int(float(p))\n"}))
+    [r] = state_eval.evaluate(db, FAKE, run_ws=RUN_WS)
+    assert r["trap_repeated"] is False
+
+
 def test_code_outside_comments_and_strings():
     code = state_eval.code_only
     assert "int(float(" in code("x = int(float(p) * 100)  # int(float( again\n")
     assert "int(float(" not in code("# int(float(p))\ns = 'int(float(p))'\n")
     assert "int(float(" not in code('"""\nint(float(p))\n"""\n')
-    assert "int(float(" not in code("f'{int(float(p))}'\n") or sys.version_info < (3, 12)
+    # An f-string's text is a string; the code in its replacement fields runs.
+    assert "int(float(" in code("c = f'{int(float(p) * 100)}'\n")
+    assert "int(float(" not in code("c = f'never int(float(p)) {x}'\n")
+    # Offsets follow the tokenizer's lines, so a form feed or a lone CR in a comment
+    # does not shift later spans.
+    assert "int(float(" not in code("# a\x0cb\rc\ns = 'int(float(p))'\n")
+    assert "int(float(" in code("# a\x0cb\rc\ns = int(float(p))\n")
     # A fragment that does not tokenize (an edit's newString) still loses its comments
     # and complete strings.
     assert "int(float(" in code("    return int(float(p) * 100\n")

@@ -146,3 +146,30 @@ D107.1 says nothing restarts Strata during a comparison, and that a busy host or
 3. **Comments and strings** are blanked with Python's tokenizer. A fragment that does not tokenize, such as an edit's new text, falls back to a scan for comments and complete literals.
 4. **Rejected: stricter patterns.** Every hit would still need its context, and a demonstration (`print(int(float('0.29') * 100))`) is the same code as a repeat. Where the code is written decides it.
 5. **Effect on S10.** 0 `code` hits and 6 `doubtful` hits over both arms. All 6 were read by hand and none is a repeat (R61).
+6. **Review fixes** (independent S11 review, 2026-11-19; tests first):
+   - **Harness neutrality.** A write is read in every supported harness's shape:
+     - OpenCode `write`, `edit` and `multiedit` (`filePath` or `path`);
+     - Pi 1.5.0 `edit` with `edits[{oldText, newText}]`;
+     - Claude Code `Write` and `Edit` (`file_path`, `new_string`).
+     Tool names are matched without case. The old text in an edit list stays removal, not repetition.
+   - **Strings.** An f-string's literal text is a string, but the code in its replacement fields runs, so it is kept as code.
+   - **Encoding.** Patterns are searched in the decoded argument strings too, so a trap split across lines is found.
+   - **Offsets.** They follow the tokenizer's lines, which are LF only, so a form feed or lone CR in a comment no longer shifts later spans.
+   - **Paths.** They are normalized, so `pkg/../../x.py` is outside the workspace. `conftest.py` and `*_test.py` are not source.
+   - **Effect on S10.** The S10 result is unchanged: 0 `code` hits and 6 `doubtful`.
+   - **Known limits.**
+     - Trap code that starts in the middle of an edit fragment, inside an open docstring, is blanked.
+     - A `patch` tool's diff is not parsed.
+     - Both are covered by the final-file scan, except for a trap that was written and then reverted.
+
+## D110: The Pi neutrality smoke ran at a smaller emulated budget (S11, 2026-11-19)
+
+The plan's smoke (§4) is `a4-d77` dev-t1 on Pi Messages, gated on the D44.6 inputs and at least one committed state version. D107.10 had left it for later; it ran in S11 on Zeus.
+
+1. **Attempt 1, at the S10 budget (`--input-budget 24320`).** It passed every D44.6 input, and the task passed. But Pi's prompts peaked at 16,111 tokens, so the view never moved and no refresh ran. The gate cannot be met when nothing triggers a state.
+2. **Attempt 2, at `--input-budget 12000`.**
+   - This is not an infrastructure rerun. It changes the run's conditions so that the behaviour under test happens, and the reason is recorded in `attempts.json`.
+   - Development data may emulate any budget (O2, D107.3), and the smoke compares nothing.
+   - Attempt 2 met the gate (R62).
+3. **Rejected: picking a longer task.** dev-t1 is the plan's smoke task, and a lower budget keeps the task fixed.
+4. **The record.** Both attempts are reported. Attempt 1 is evidence that Pi's dev-t1 fits in 24K without a view move.

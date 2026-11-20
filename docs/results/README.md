@@ -75,3 +75,6 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R58 | OMP builds TINY TANK WAR at 64K through Palimnesis in 1 h 41 min; with its own compaction, 4 h 16 min and 14 failed handoffs; both pages pass 10/10 (2026-11-08) | [phase4b.md](phase4b.md) |
 | R59 | OMP's live gates through Palimnesis (smoke, transcript gate, restarts, cancel); OpenCode's faults through the archive-mode proxy (2026-11-18) | [phase4b.md](phase4b.md) |
 | R60 | Phase 4B gate summary (2026-11-18) | [phase4b.md](phase4b.md) |
+| R61 | S10: with the pinned state, 14/15 tasks and 44/45 constraints against 10/15 and 36/45 without (one attempt each; relaunch confound), 57% of the calls and 54% of the re-reads; 0 trap repeats; priority cut deferred (2026-11-19) | [phase4a.md](phase4a.md) |
+| R62 | The pinned state on Pi through Messages: 5 committed versions, D44.6 inputs clean (2026-11-19) | [phase4a.md](phase4a.md) |
+| R63 | Phase 4A gate summary (2026-11-19) | [phase4a.md](phase4a.md) |

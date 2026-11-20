@@ -32,6 +32,7 @@ import argparse
 import importlib
 import io
 import json
+import posixpath
 import re
 import sqlite3
 import sys
@@ -86,7 +87,13 @@ def _moves_after(conn: sqlite3.Connection, branch: str, since: float) -> tuple[i
 _LITERAL = re.compile(
     r'[rRbBuUfF]{0,2}(?:"""[\s\S]*?"""' + r"|'''[\s\S]*?'''" + r'|"(?:\\.|[^"\\\n])*"'
     + r"|'(?:\\.|[^'\\\n])*')" + r"|#[^\n]*")
-_WRITES = {"write": ("content",), "edit": ("newString", "content")}
+# Write and edit argument shapes of every supported harness (lower-cased tool names):
+# OpenCode write/edit/multiedit (filePath or path), Pi 1.5.0 edit with edits[{oldText,
+# newText}], Claude Code Write/Edit (file_path). Old text is never what was written.
+LF = "\n"
+_WRITE_TOOLS = ("write", "edit", "multiedit")
+_PATH_KEYS = ("path", "filePath", "file_path")
+_NEW_KEYS = ("content", "newString", "new_string", "newText")
 
 
 def _blank(text: str, spans) -> str:
@@ -99,30 +106,26 @@ def _blank(text: str, spans) -> str:
 
 
 def code_only(text: str) -> str:
-    """``text`` with Python comments and string literals (f-strings whole) blanked, so a
-    trap named in a comment, a docstring or a printed message is not code. A fragment
+    """``text`` with Python comments and string literals blanked, so a trap named in a
+    comment, a docstring or a printed message is not code. An f-string's literal text is
+    blanked and the code in its replacement fields kept, since that code runs. A fragment
     that does not tokenize (an edit's new text) falls back to a scan for comments and
     complete literals."""
     starts, pos = [], 0
-    for line in text.splitlines(keepends=True):
+    for line in text.split(LF):  # the tokenizer's lines: split on LF only
         starts.append(pos)
-        pos += len(line)
-    starts.append(pos)
+        pos += len(line) + 1
 
     def offset(rc):
-        return starts[rc[0] - 1] + rc[1] if rc[0] - 1 < len(starts) else len(text)
+        return min(starts[rc[0] - 1] + rc[1], len(text)) if rc[0] - 1 < len(starts) else len(text)
 
-    spans, fstring = [], []
+    literal = {tokenize.COMMENT, tokenize.STRING} | {
+        getattr(tokenize, n) for n in ("FSTRING_START", "FSTRING_MIDDLE", "FSTRING_END")
+        if hasattr(tokenize, n)}
+    spans = []
     try:
-        for tok in tokenize.generate_tokens(io.StringIO(text).readline):
-            name = tokenize.tok_name.get(tok.type, "")
-            if name == "FSTRING_START":
-                fstring.append(offset(tok.start))
-            elif name == "FSTRING_END" and fstring:
-                start = fstring.pop()
-                if not fstring:
-                    spans.append((start, offset(tok.end)))
-            elif not fstring and tok.type in (tokenize.COMMENT, tokenize.STRING):
+        for tok in tokenize.generate_tokens(io.StringIO(text, newline=LF).readline):
+            if tok.type in literal:
                 spans.append((offset(tok.start), offset(tok.end)))
     except (tokenize.TokenError, IndentationError, SyntaxError):
         spans = [m.span() for m in _LITERAL.finditer(text)]
@@ -130,9 +133,11 @@ def code_only(text: str) -> str:
 
 
 def _source(rel: str) -> bool:
-    """A task source file: Python, not a test and not the checker's copy."""
+    """A task source file: Python, not a test, a pytest file or the checker's copy."""
+    name = rel.rsplit("/", 1)[-1]
     return (rel.endswith(".py") and not rel.startswith(("tests/", "_check/", "../"))
-            and "/tests/" not in rel and not rel.rsplit("/", 1)[-1].startswith("test_"))
+            and "/tests/" not in rel and not name.startswith("test_")
+            and not name.endswith("_test.py") and name != "conftest.py")
 
 
 def _relative(path: str, run_ws: Path | None) -> str | None:
@@ -140,11 +145,35 @@ def _relative(path: str, run_ws: Path | None) -> str | None:
         return None
     path = path.replace("\\", "/")
     if not re.match(r"[A-Za-z]:|/|~", path):  # relative: the harness resolves it in run_ws
-        while path.startswith("./"):
-            path = path[2:]
-        return None if path.startswith("../") else path
-    root = str(run_ws).replace("\\", "/").rstrip("/") + "/"
-    return path[len(root):] if path.lower().startswith(root.lower()) else None
+        rel = posixpath.normpath(path)
+    else:
+        root = posixpath.normpath(str(run_ws).replace("\\", "/"))
+        path = posixpath.normpath(path)
+        if not path.lower().startswith(root.lower() + "/"):
+            return None
+        rel = path[len(root) + 1:]
+    return None if rel == ".." or rel.startswith("../") or rel == "." else rel
+
+
+def _strings(value) -> list[str]:
+    """Every string in decoded JSON arguments, so a pattern spanning a newline matches."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in _strings(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in _strings(v)]
+    return []
+
+
+def _new_text(args: dict) -> str | None:
+    """What a write or edit puts into the file: its content or new text, including each
+    entry of an ``edits`` list. Old text is what the edit removes."""
+    texts = [args[k] for k in _NEW_KEYS if isinstance(args.get(k), str)]
+    for e in args.get("edits") or ():
+        if isinstance(e, dict):
+            texts += [e[k] for k in _NEW_KEYS if isinstance(e.get(k), str)]
+    return LF.join(texts) if texts else None
 
 
 def _trap_hits(conn, branch: str, after_seq: int, patterns, workspace: Path | None,
@@ -166,12 +195,13 @@ def _trap_hits(conn, branch: str, after_seq: int, patterns, workspace: Path | No
             except ValueError:
                 args = None
             rel, written = None, None
-            if isinstance(args, dict) and tool in _WRITES:
-                rel = _relative(str(args.get("path") or args.get("filePath") or ""), run_ws)
-                written = next((args[k] for k in _WRITES[tool] if isinstance(args.get(k), str)),
-                               None)
+            if isinstance(args, dict) and str(tool).lower() in _WRITE_TOOLS:
+                path = next((args[k] for k in _PATH_KEYS if isinstance(args.get(k), str)), "")
+                rel = _relative(path, run_ws)
+                written = _new_text(args)
+            searched = LF.join([arguments, *_strings(args)])
             for p in compiled:
-                if not p.search(arguments):
+                if not p.search(searched):
                     continue
                 code = (rel is not None and _source(rel) and written is not None
                         and p.search(code_only(written)) is not None)
