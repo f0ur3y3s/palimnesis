@@ -37,3 +37,13 @@ The Phase 7 plan (`docs/plan/phases/phase7.md`) left five questions to the user 
      - **Both:** every run records the host epoch (plan S3).
    - **Timing.** The hosts differ in speed, so latency and prompt time are compared within a host only.
    - **Cost.** About 5 days of slot time, spread over two hosts.
+7. **Zeus moved to Strata 0.1.58 (2026-11-19, user request), accepted by its counts (D102).**
+   - **How.** `strata update` offers only the newest release (0.1.62). Pointing it at the v0.2.12 release feed, which lists 0.1.58, is refused, because Zeus had already accepted a newer feed and the updater blocks replays. The replay protection was left in place. Instead:
+     - **Engine 0.1.58** (`windows-x86_64-cuda-cuda13`) went in through `strata components install-file`. The package came from release v0.2.12 and its SHA-256 matched `SHA256SUMS.txt`. The installer checked its signature and every file, then test-started it: the model loaded and answered one token before the switch.
+     - **Control 0.1.58** was unpacked from the same release's zip into `E:\Strata-0.2.11\terminal\0.1.58`, and the `current` junction now points there (`strata --version`: build 0.1.58).
+     - **Rollback.** 0.1.57 stays installed: `strata components use 0.1.57`, and repoint `current` at `terminal\0.1.57`.
+   - **Acceptance.**
+     - `/props`: `build_info` "Strata 0.1.58", `n_ctx` 131,072, one slot, and the pinned chat template (`12827f24…`), the same as pythia.
+     - `palimnesis check`: PASS upstream, PASS bounded views (`canary`).
+     - Counting probes p04, p12, p14 and p15: every count equals the recorded fixtures. Two old p04 cases are no longer produced by the current probe; they are missing, not mismatched.
+   - **One build.** Both hosts now run 0.1.58, so the pooled Phase 7 comparison does not span builds (item 6). Zeus still runs at 128K until the pilot relaunches it at 32K.
