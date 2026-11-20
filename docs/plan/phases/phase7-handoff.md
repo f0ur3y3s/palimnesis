@@ -1,4 +1,4 @@
-# Phase 7 handoff (state on 2026-11-20, 00:30 EST)
+# Phase 7 handoff (state on 2026-11-20)
 
 For whoever continues Phase 7. Read `CLAUDE.md`, then `docs/plan/phases/phase7.md` (the plan) and `docs/decisions/phase7.md`:
 - D111: the user's scope, host and size decisions, and Zeus on 0.1.58;
@@ -30,17 +30,39 @@ This file says where the work stands. Delete it once its open items are closed.
 
 - V1 5/5, V2 10/10 and V3 met: 2 genuine repeats, both in `a4-tr` (dev-t6, dev-t8). See `docs/results/phase7.md`.
 - `captures/collect-phase7-pilot.py` prints the per-run table to stdout. It does not rewrite `captures/phase7-pilot-summary.json`, which is stale.
-- **Open from the pilot, before S9 authoring:**
-  - tighten dev-t10's patterns, which fired on correct code;
-  - add the rule to D112/`AUTHORING.md` that a `code` hit disagreeing with `test_t_*` is reviewed by hand before it counts.
+- Both pilot follow-ups are done (D112.9): dev-t10's patterns are tightened, and `report.py --phase7` counts a repeat only when a `code` hit and a failed `test_t_*` agree. A disputed run needs `--trap-reviews`.
 
-## After the pilot
+## S9: held-out authoring, in progress
 
-- **S9: held-out authoring** by four separate author sessions, from `AUTHORING.md`.
-  - First build the independence check (no 4-word run shared with an earlier set); it does not exist yet (D112.6).
-  - Pin the needle `strata` field format.
-  - Unlock ho4 for Pi (D114.1).
-  - Seal everything (D113).
+- **Done:**
+  - D113.1: the independence check `eval/independence.py`;
+  - D113.2: the needle `strata` format pinned, with `needle_strata.py --check` and `--coverage`;
+  - D113.3: Pi's task driver accepts ho4 on Chat once unlocked.
+  - `AUTHORING.md` updated (§2 strata keys, §4 checks).
+- **Wave 1 (running, 2026-11-20): four author sessions write the 20 ho5 tasks.** Each reports only pass/fail per task.
+
+  | Author | Tasks | Domain | Format examples | Probe host |
+  |---|---|---|---|---|
+  | A | ho5-t1..t5 | farming, gardening, bees, orchards, weather stations | dev-t9, dev-t10 | pythia |
+  | B | ho5-t6..t10 | libraries, museums, archives | dev-t6, dev-t8 | pythia |
+  | C | ho5-t11..t15 | clinic, pharmacy, veterinary admin | dev-t7, dev-t9 | Zeus |
+  | D | ho5-t16..t20 | municipal and civic services | dev-t8, dev-t10 | Zeus |
+
+  If those sessions are lost, start new author sessions with the same assignments. A new session reads only the brief, `common.py` and its two format examples. It finishes any file still failing its checks, but never reads another author's files.
+- **Wave 2: the 180 needles (18 histories, `heldout5`).**
+  - Split A h1–h5, B h6–h10, C h11–h14, D h15–h18. Each author writes its own generator, `eval/needle_gen_ho5_<a|b|c|d>.py`.
+  - Seeds: A 7100+, B 7200+, C 7300+, D 7400+.
+  - The `strata` declarations must pass `--check`. The lead runs `--coverage` over all 18 histories: at least 30 per level.
+- **Wave 3: the ho6 reserve, 10 tasks.** A ho6-t1..t3, B t4..t6, C t7..t8, D t9..t10, each author in its own domain.
+- **Then the seal (D113):**
+  - the cross-author independence check: each author's files with `--also` the others', pass/fail only;
+  - commit by path without reading;
+  - `heldout.py seal`;
+  - a hash and shape test;
+  - D113 records who wrote what.
+
+## After S9
+
 - **S10:** the dress rehearsal on retired ho3, including real arm-1 captures through the bodies trap path. Check the `/v1/status` field names on 0.1.58. Then freeze the protocol (D115).
 - **S11:** the held-out runs, following the seeded schedule.
 
