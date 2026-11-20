@@ -4,6 +4,7 @@ OpenCode, a proxy or a model, and no held-out data is read (task ids are synthet
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -108,6 +109,48 @@ def test_per_host_and_pooled_tables():
     assert (r["primary"]["b"], r["primary"]["c"]) == (1, 1)
     assert (r["by_host"]["pythia"]["b"], r["by_host"]["pythia"]["c"]) == (1, 0)
     assert (r["by_host"]["zeus"]["a"], r["by_host"]["zeus"]["c"]) == (1, 1)
+
+
+def test_phase7_cli_pools_disjoint_task_runs(tmp_path, monkeypatch, capsys):
+    for name, task in (("pythia", "x-t1"), ("zeus", "x-t2")):
+        root = tmp_path / name
+        attempts = []
+        for number, label in enumerate((CAND, BASE), start=1):
+            records = root / f"attempt-{number}"
+            result = records / f"{task}-{label}" / "result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps(_ok(True)), encoding="utf-8")
+            attempts.append({"attempt": number, "kind": "task", "config": label,
+                             "ids": [task], "records": str(records)})
+        (root / "attempts.json").write_text(json.dumps({"attempts": attempts}), encoding="utf-8")
+
+    command = ["report.py", "--phase7", str(tmp_path / "pythia"), "--tasks", "x-t1,x-t2", "--json"]
+    monkeypatch.setattr(sys, "argv", [*command, "--pool", str(tmp_path / "zeus")])
+    with pytest.raises(SystemExit) as exc:
+        report.main()
+    assert exc.value.code == 0
+    assert json.loads(capsys.readouterr().out)["primary"]["a"] == 2
+
+    monkeypatch.setattr(sys, "argv", [*command, "--pool", str(tmp_path / "pythia")])
+    with pytest.raises(SystemExit) as exc:
+        report.main()
+    assert exc.value.code == 2
+    assert "multiple task run directories" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("extra", [
+    ["--tasks", "ho4-t1"],
+    ["--tasks", "x-t1", "--needle-run", "unused", "--needle-dirs", "eval/needles/heldout5"],
+])
+def test_phase7_cli_refuses_locked_sets_before_loading_data(extra, monkeypatch, capsys):
+    monkeypatch.setattr(report.heldout, "unlock_problem",
+                        lambda name: f"locked: {name}" if name in report.heldout.UNSEEN_SETS else None)
+    monkeypatch.setattr(report, "load_phase7_results", lambda *args: pytest.fail("loaded task results"))
+    monkeypatch.setattr(sys, "argv", ["report.py", "--phase7", "unused", *extra])
+    with pytest.raises(SystemExit) as exc:
+        report.main()
+    assert exc.value.code == 2
+    assert "locked: heldout" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------- constraints
@@ -247,6 +290,22 @@ def test_needle_gate_counts_a_missing_needle_as_a_miss():
     assert (g["loose"], g["n"], g["pass"]) == (285, 300, True)
     g = report.needle_gate(rows[:-16], expected, gate=0.95)
     assert (g["loose"], g["pass"]) == (284, False)
+
+
+def test_phase7_cli_pools_needle_runs(tmp_path, monkeypatch, capsys):
+    rows, expected = _needles(285)
+    paths = [tmp_path / "needles1", tmp_path / "needles2"]
+    by_run = dict(zip(paths, (rows[:120], rows[120:]), strict=True))
+    monkeypatch.setattr(report, "expected_needles_in", lambda folder: expected)
+    monkeypatch.setattr(report, "load", lambda run, *args: (by_run[run], {}, {}))
+    monkeypatch.setattr(sys, "argv", ["report.py", "--phase7", str(tmp_path / "tasks"),
+                                     "--tasks", "x-t1", "--json", "--needle-dirs", str(tmp_path),
+                                     "--needle-run", str(paths[0]), "--needle-run", str(paths[1])])
+    with pytest.raises(SystemExit) as exc:
+        report.main()
+    assert exc.value.code == 0
+    needles = json.loads(capsys.readouterr().out)["needles"]
+    assert (needles["loose"], needles["n"], needles["pass"]) == (285, 300, True)
 
 
 # ---------------------------------------------------------------- exploratory

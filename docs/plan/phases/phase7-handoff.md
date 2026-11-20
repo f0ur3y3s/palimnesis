@@ -39,7 +39,10 @@ This file says where the work stands. Delete it once its open items are closed.
   - D113.2: the needle `strata` format pinned, with `needle_strata.py --check` and `--coverage`;
   - D113.3: Pi's task driver accepts ho4 on Chat once unlocked.
   - `AUTHORING.md` updated (§2 strata keys, §4 checks).
-- **Wave 1 (running, 2026-11-20): four author sessions write the 20 ho5 tasks.** Each reports only pass/fail per task.
+  - `8c49692` closes three validation gaps. Template wording is exempt only where prescribed, trap reference checks enforce constraints, and OpenCode preflight fails on an empty selection. The 90 focused tests pass.
+  - The full suite on a clean pythia checkout at `8c49692` passed with 2,110 passing and 6 skipped tests.
+  - Both hosts report Strata 0.1.58, 32,768 context, process start, uptime, request count and GPU memory through the host-epoch reader. Retired `ho3-h1` passed real OpenCode 2.1.4 import preflight with 101/101 messages.
+- **Wave 1 is in probe and independence validation.** All 20 task files exist. The first recorded probe outcomes passed 18/20. Subsequent probe outcomes apply only to the tested request and detector revisions. Recheck tasks whose payload or patterns changed during independence cleanup. Keep only per-task pass/fail and sample counts.
 
   | Author | Tasks | Domain | Format examples | Probe host |
   |---|---|---|---|---|
@@ -49,10 +52,12 @@ This file says where the work stands. Delete it once its open items are closed.
   | D | ho5-t16..t20 | municipal and civic services | dev-t8, dev-t10 | Zeus |
 
   If those sessions are lost, start new author sessions with the same assignments. A new session reads only the brief, `common.py` and its two format examples. It finishes any file still failing its checks, but never reads another author's files.
-- **Wave 2: the 180 needles (18 histories, `heldout5`).**
+- **Wave 2: the 180 needles (18 histories, `heldout5`).** Representatives `ho5-h1`, `ho5-h6` and `ho5-h11` passed OpenCode's fake-upstream import fidelity check. The full preflight is due at S10.
   - Split A h1–h5, B h6–h10, C h11–h14, D h15–h18. Each author writes its own generator, `eval/needle_gen_ho5_<a|b|c|d>.py`.
   - Seeds: A 7100+, B 7200+, C 7300+, D 7400+.
   - The `strata` declarations must pass `--check`. The lead runs `--coverage` over all 18 histories: at least 30 per level.
+  - The 18 draft histories passed the declared-strata check, with 180 questions and at least 35 per level. Repeat this check on the final files before sealing.
+  - Keep every individual paste below the candidate's input budget. Group B split its oversized paste turns into smaller consecutive turns while preserving the depth strata.
 - **Wave 3: the ho6 reserve, 10 tasks.** A ho6-t1..t3, B t4..t6, C t7..t8, D t9..t10, each author in its own domain.
 - **Then the seal (D113):**
   - the cross-author independence check: each author's files with `--also` the others', pass/fail only;
@@ -64,7 +69,7 @@ This file says where the work stands. Delete it once its open items are closed.
 ## After S9
 
 - **S10:** the dress rehearsal on retired ho3, including real arm-1 captures through the bodies trap path. Check the `/v1/status` field names on 0.1.58. Then freeze the protocol (D115).
-- **S11:** the held-out runs, following the seeded schedule.
+- **S11:** the held-out runs, following the seeded schedule. Write separate attempt manifests per host. Use `report.py --phase7 ... --pool ...` for the task runs and repeat `--needle-run` for separate needle runs.
 
 ## Rules that must not slip
 

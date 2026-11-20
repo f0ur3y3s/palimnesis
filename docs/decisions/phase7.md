@@ -168,6 +168,8 @@ Red tests first for each slice: `tests/test_phase7_heldout.py`, `tests/test_phas
    - header lines of `eval/needle_gen_ho4.py`: output path, set name, earlier folders, a function name and a docstring line.
    No task text, constraint, trap, needle, history or answer was shown. Every later search left those paths out. ho4 is still treated as unseen. While building S7, a repo-wide search for "four-word" also printed two comment lines from `eval/needle_gen_ho4.py`, about its phrasing bank and its check. No content was shown. The remedy is to keep tooling searches away from held-out paths: `eval/heldout.py` holds the set names, so nothing needs to search those paths again.
 
+8. **Phase 7 reports combine independent host run directories.** Keep one task attempt manifest per host so simultaneous writes cannot race. `report.py --phase7` accepts another task run directory through `--pool` and rejects a task recorded in multiple directories. Repeat `--needle-run` to combine separate history runs. The report enforces the unlock for declared task sets, attempt task IDs and needle directories before using sealed results or scoring keys.
+
 ## D113: Held-out authoring and seal (S9, from 2026-11-20)
 
 Red tests first: `tests/test_independence.py` and `tests/test_eval_needle_strata.py`. This replaces D112.6's "not yet built".

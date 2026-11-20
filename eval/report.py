@@ -5,7 +5,7 @@
     python eval/report.py --coding RUN [--designate ho-t3:a4=2,...]
     python eval/report.py --coding RUN --set heldout2      # Phase 3B: arm 5 (a5-d64) vs arm 1
     python eval/report.py --phase7 TASKRUN --schedule plan.json [--trap-suite ho5]
-        [--needle-run RUN --needle-dirs DIR,DIR] [--seed N] [--json]   # Phase 7 (plan §1.4)
+        [--pool OTHER_TASKRUN] [--needle-run RUN --needle-dirs DIR,DIR] [--seed N] [--json]
 
 A run directory with ``attempts.json`` (``eval/attempts.py``; the OpenCode driver and
 the task runner) is read per history or task from its designated attempt, the latest by
@@ -986,6 +986,7 @@ def load_phase7_results(run: Path, labels: list[str], designate: dict | None = N
         chosen, superseded = att.designate(manifest, "task", label, override)
         sup += [{**x, "arm": label} for x in superseded]
         for tid, a in chosen.items():
+            heldout.require_unlocked(heldout.set_of_task(tid))
             f = Path(a["records"]) / f"{tid}-{label}" / "result.json"
             out[(tid, label)] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
     return out, sup
@@ -996,6 +997,7 @@ def expected_needles_in(folder: Path) -> dict[str, list[dict]]:
     out = {}
     for f in sorted(Path(folder).glob("*.json")):
         h = json.loads(f.read_text(encoding="utf-8"))
+        heldout.require_unlocked(h.get("set"))
         out[h["id"]] = [{"id": s["id"], "category": s["category"], "answer": s["answer"]}
                         for s in h["steps"] if s["kind"] == "question"]
     return out
@@ -1008,20 +1010,43 @@ def print_phase7(a) -> int:
     sets = schedule.get("task_set")
     tasks = a.tasks.split(",") if a.tasks else sorted(hosts or {})
     if not tasks:
-        print("error: --tasks or --schedule is required", file=__import__("sys").stderr)
+        print("error: --tasks or --schedule is required", file=sys.stderr)
         return 2
+    for set_name in sorted({heldout.set_of_task(t) for t in tasks} - {None}):
+        heldout.require_unlocked(set_name)
+
+    needle_dirs = [Path(d) for d in a.needle_dirs.split(",") if d] if a.needle_run else []
+    if a.needle_run and not needle_dirs:
+        print("error: --needle-dirs is required with --needle-run", file=sys.stderr)
+        return 2
+    for folder in needle_dirs:
+        heldout.require_unlocked(folder.resolve().name)
+
     designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
-    results, sup = load_phase7_results(a.phase7, [a.candidate, a.baseline], designate)
+    task_runs = [a.phase7] + [Path(d) for d in (a.pool or "").split(",") if d]
+    results, sup, seen_tasks = {}, [], set()
+    for run in task_runs:
+        host_results, superseded = load_phase7_results(run, [a.candidate, a.baseline], designate)
+        host_tasks = {tid for tid, _ in host_results}
+        if duplicates := seen_tasks & host_tasks:
+            print(f"error: tasks in multiple task run directories: {', '.join(sorted(duplicates))}",
+                  file=sys.stderr)
+            return 2
+        seen_tasks.update(host_tasks)
+        results.update(host_results)
+        sup.extend(superseded)
     suite = None
     if a.trap_suite:
         names = a.trap_suite.split(",")
         suite = [t for t in tasks if t in names or (sets or {}).get(t) in names]
     needles = None
     if a.needle_run:
-        expected = {}
-        for d in a.needle_dirs.split(","):
-            expected.update(expected_needles_in(Path(d)))
-        rows, _, _ = load(a.needle_run, a.candidate, None)
+        expected, rows = {}, []
+        for folder in needle_dirs:
+            expected.update(expected_needles_in(folder))
+        for run in a.needle_run:
+            run_rows, _, _ = load(run, a.candidate, None)
+            rows.extend(run_rows)
         needles = (rows, expected)
     r = phase7_report(results, tasks, candidate=a.candidate, baseline=a.baseline, trap_suite=suite,
                       needles=needles, hosts=hosts, sets=sets, seed=a.seed,
@@ -1076,14 +1101,15 @@ def main() -> None:
     p.add_argument("--trap-suite", help="task ids or set names forming the declared trap suite")
     p.add_argument("--trap-reviews", type=Path,
                    help='JSON {"task:arm": {"repeat": bool, "note": str}}: hand verdicts (D112.9)')
-    p.add_argument("--needle-run", type=Path, help="needle run directory of the candidate")
+    p.add_argument("--needle-run", type=Path, action="append",
+                   help="needle run directory of the candidate (repeat for multiple directories)")
     p.add_argument("--needle-dirs", default="", help="DIR[,DIR]: the needle sets' history folders")
     p.add_argument("--seed", type=int, default=BOOT_SEED, help="bootstrap seed (D115)")
     p.add_argument("--configs")
     p.add_argument("--fixtures", type=Path)
     p.add_argument("--json", action="store_true")
     p.add_argument("--drift", action="store_true", help="recount every upstream body locally")
-    p.add_argument("--pool", help="RUN2[,RUN3...]: pool these run dirs with RUN for --pair")
+    p.add_argument("--pool", help="RUN2[,RUN3...]: additional run directories for --pair or --phase7")
     p.add_argument("--pair", help="A,B: paired per-needle table and exact McNemar, pooled")
     p.add_argument("--set", choices=sorted(NEEDLE_FOLDERS),
                    help="print the needle gate over the whole committed set (missing = miss)")
@@ -1094,7 +1120,10 @@ def main() -> None:
     if locked:  # unseen sets are analysed only once unlocked (D96, plan §1.1)
         p.error(locked)
     if a.phase7:
-        raise SystemExit(print_phase7(a))
+        try:
+            raise SystemExit(print_phase7(a))
+        except heldout.Locked as exc:
+            p.error(str(exc))
     if a.run is None:
         p.error("RUN is required")
     designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
