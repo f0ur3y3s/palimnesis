@@ -23,7 +23,8 @@ the client leak scan, as in ``eval/needle_pi.py``. Compactions are counted from 
 ``compaction_start``/``compaction_end`` events; the summarizer requests the upstream tap
 saw are listed beside them.
 
-Held-out tasks are refused: no held-out set runs through Pi in 4B (O-4B-11; D96 keeps
+Held-out tasks are refused except ho4, which Pi runs on Chat once unlocked (D111.3, reported
+only; the unlock and the clean tree are `run.task_refusal`'s). In 4B no held-out set ran (O-4B-11; D96 keeps
 ``ho4`` for Phase 7). The ho2 tasks run: ho2 is development data since D69.
 
 **Fake upstream** (``--upstream fake``, Chat; a plumbing check, not a result): the stack
@@ -56,8 +57,15 @@ ADAPTER_CONTEXT_WINDOW = 1_000_000
 def refusals(task_set: str, arm: int, config: str | None, protocol: str, upstream: str) -> list[str]:
     """Why a Pi task run must not start (empty when it may)."""
     out = []
-    if task_set != "development" and task_set not in needle.RETIRED_SETS:
-        out.append(f"Pi runs development tasks only in Phase 4B (O-4B-11, D96), not {task_set}")
+    if task_set == "heldout4":
+        # D111.3: reported only, on Chat. The unlock and the clean tree are checked
+        # before this (run.task_refusal -> heldout.run_refusal).
+        if protocol != "chat":
+            out.append("Pi runs ho4 on Chat only (D111.3)")
+        if upstream == "fake":
+            out.append("ho4 never runs against the fake upstream")
+    elif task_set != "development" and task_set not in needle.RETIRED_SETS:
+        out.append(f"Pi runs development tasks, retired sets and ho4 only (D111.3, D96), not {task_set}")
     if arm not in (1, 4):
         out.append(f"Pi runs arm 4 ({ARM4_CONFIG}) and arm 1 (native compaction), not arm {arm}")
     if arm == 4 and config not in (None, ARM4_CONFIG):

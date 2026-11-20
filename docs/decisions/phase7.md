@@ -119,7 +119,7 @@ Red tests first for each slice: `tests/test_phase7_heldout.py`, `tests/test_phas
      - the unlock file is committed (tracked, and clean in `git status`).
    - **Who checks what.** Analysis tools (`state_eval`, `report.py`) refuse a locked set; their message keeps "D96". Run drivers also need a clean tree.
    - **Seal.** `heldout.py seal` and `verify` record and check the SHA-256 of each sealed file in `eval/heldout_hashes.json`, printing only paths and pass or fail.
-   - **Pi.** Pi's drivers still refuse every held-out set that is not retired. Unlocking ho4 for Pi (D111.3) is a separate change before S11.
+   - **Pi.** At S1, Pi's drivers refused every held-out set that was not retired. D113.3 lets Pi's task driver run ho4.
 2. **Traps for any arm (S4, `eval/state_eval.py`, `eval/tasks/run.py`).**
    - **Captured bodies.** Trap hits are also read from the captured upstream request bodies, by protocol: Chat `tool_calls[].function`, and Messages `tool_use` blocks. Calls are deduplicated by id, or by position, name and arguments when there is no id. This covers arm 1, which has no archive. The archive path and the bodies path share D109's classifier.
    - **Need-turn eligibility.** The trap counts only if the warning had left the view when the trap turn's request arrived. Results report `trap_eligible_at_need` and `trap_repeat_at_need`.
@@ -193,3 +193,7 @@ Red tests first: `tests/test_independence.py` and `tests/test_eval_needle_strata
    - **The author check.** `--check` (`check_declared`) requires each declared level to equal the computed one, so the per-level counts measure the files, not intent. A depth between bins must be moved into one.
    - **The lead's check.** `--coverage [MIN]` counts declared needles per level over a set and fails below 30 (plan §1.3).
    - **The brief.** `AUTHORING.md` §2 gives the exact keys, levels and token bounds: 12,160, 24,320–48,640 and 72,960, which are 0.5x, 1–2x and 3x of B_in. These replace the rounded figures it had before.
+3. **Pi may run ho4's tasks (D111.3)** (`eval/tasks/pi_task.py`).
+   - It runs them on Chat only, never against the fake upstream, with `a4-d77` and Pi's own compaction. The results are reported only.
+   - The unlock and the clean tree are still checked first, by `run.task_refusal` (`heldout.run_refusal`), so a locked ho4 is refused before Pi's own rules.
+   - heldout5 and heldout6 stay refused for Pi. Pi's needle driver is unchanged: Pi runs no held-out needles.

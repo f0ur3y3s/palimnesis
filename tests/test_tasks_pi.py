@@ -39,9 +39,26 @@ def test_development_tasks_run_both_arms():
     assert pi_task.refusals("development", 1, None, "messages", "http://u") == []
 
 
-@pytest.mark.parametrize("task_set", ["heldout", "heldout4"])
-def test_every_held_out_set_is_refused(task_set):
+@pytest.mark.parametrize("task_set", ["heldout", "heldout5", "heldout6"])
+def test_held_out_sets_other_than_ho4_are_refused(task_set):
     assert pi_task.refusals(task_set, 4, None, "chat", "http://u")
+
+
+def test_ho4_runs_on_chat_only_and_never_against_the_fake():
+    """D111.3: Pi runs ho4 on Chat, a4-d77 and its own compaction, reported only. The
+    unlock and the clean tree are ``run.task_refusal``'s (``heldout.run_refusal``)."""
+    assert pi_task.refusals("heldout4", 4, None, "chat", "http://u") == []
+    assert pi_task.refusals("heldout4", 1, None, "chat", "http://u") == []
+    assert any("Chat" in p for p in pi_task.refusals("heldout4", 4, None, "messages", "http://u"))
+    assert any("fake" in p for p in pi_task.refusals("heldout4", 4, None, "chat", "fake"))
+
+
+def test_locked_ho4_is_refused_before_pi(monkeypatch):
+    """The locked set is refused by ``run.task_refusal`` whatever Pi allows."""
+    import heldout
+
+    monkeypatch.setattr(heldout, "unlock_problem", lambda s, **kw: "locked (D96)")
+    assert "D96" in (task_run.task_refusal("ho4-t1") or "")
 
 
 def test_ho2_runs_as_development_data():
@@ -65,7 +82,7 @@ def test_run_pi_refuses_before_touching_an_upstream(capsys):
     a = Namespace(task="ho4-t1", arm=4, config=None, protocol="chat", upstream="http://127.0.0.1:1",
                   pi_keep_recent_tokens=None, expect_n_ctx=32768, input_budget=None)
     assert task_run.run_pi(a) == 2
-    assert "development tasks only" in capsys.readouterr().err
+    assert "D96" in capsys.readouterr().err  # locked: refused by the unlock check
     b = Namespace(**{**vars(a), "task": "dev-t1", "pi_keep_recent_tokens": 2000})
     assert task_run.run_pi(b) == 2
     assert "arm 1" in capsys.readouterr().err
