@@ -1,54 +1,64 @@
-# Phase 7 handoff (state on 2026-11-19, evening)
+# Phase 7 handoff (state on 2026-11-19, 20:40 EST)
 
-For whoever continues Phase 7. Read `CLAUDE.md`, then `docs/plan/phases/phase7.md` (the plan) and `docs/decisions/phase7.md` (D111: the user's scope, host and size decisions). This file says where the work stands. Delete it once its open items are closed.
+For whoever continues Phase 7. Read `CLAUDE.md`, then `docs/plan/phases/phase7.md` (the plan) and `docs/decisions/phase7.md`:
+- D111: the user's scope, host and size decisions, and Zeus on 0.1.58;
+- D112: the trap standard, the first pilot result and its revision;
+- D114: the tooling as built.
 
-## Done
+This file says where the work stands. Delete it once its open items are closed.
 
-| Item | Where |
-|---|---|
-| Phase 4A closed, tag `phase-4a` | `a6301d0`; R61–R63 in `docs/results/phase4a.md`; D108–D110 |
-| Test cleanup: 16 redundant tests dropped, 3 merged | `ba3b992`; suite 2,035 passed, 3 skipped |
-| Phase 7 plan and D111 | `864c3c6` |
-| Zeus moved to Strata 0.1.58, accepted by its counts | `2775624` (D111.7) |
-| S0: `capabilities.md` names hidden tools as experimental and the harness scope of quality claims | `b2bff9a` |
+## Done (all on `main`, pushed)
 
-## In flight when this was written
+- Phase 4A closed and tagged `phase-4a`.
+- The test cleanup, the Phase 7 plan and D111.
+- Zeus moved to Strata 0.1.58.
+- S0.
+- **S1–S7 merged**:
+  - unseen-set unlock and seal (`eval/heldout.py`);
+  - traps for any arm, with need-turn eligibility;
+  - serving metrics: refresh calls now record `prompt_ms` and `completion_tokens` (a proxy change, protocol-reviewed, with contracts §10 corrected);
+  - the host epoch;
+  - `report.py --phase7` and `eval/phase7_schedule.py`;
+  - `eval/needle_strata.py`;
+  - `AUTHORING.md`, `trap_probe.py` and dev-t6..t10.
+- The full suite passes except one known flake, `test_admission_http.py::test_fifo_one_dispatch_across_sessions`. It asserts the order in which clients see responses finish, and it fails about 1 run in 5 on this machine, before Phase 7 too. It is timing-sensitive, not a regression.
+- **Both hosts run Strata 0.1.58 at a real 32K, and both pass `palimnesis check`.**
+  - pythia was switched from 64K with `~/strata-start.sh`. Switch it back to 64K after S11 with `~/strata-start-64k.sh`.
+  - Zeus was relaunched with `--context 32k`. Windows Update on Zeus is paused until 2026-12-20 (registry pause keys).
 
-Four tooling agents were building S1–S7 in separate git worktrees. Run `git worktree list` and `git branch` to find their branches; each was told to commit on its branch and not push.
-- **S1 + S4 (DONE on branch `worktree-agent-a1c947b0278290ff5`, commit `d9c13a3`; cherry-pick conflicts with merged S5/S6 in `eval/report.py` (SET_SHAPE region) — resolve by hand. Record in D114: an early grep by that agent printed `SET = "heldout4"` and header lines of `needle_gen_ho4.py` (no content, answers or needles); D96 integrity note. Pi drivers still refuse ho4):** an unseen-set registry and the unlock file (`eval/heldout_unlock.json` naming D115); a SHA-256 seal manifest; trap hits read from captured bodies by protocol (Chat `tool_calls`, Messages `tool_use`) so arm 1 is covered; need-turn eligibility; `test_t_*` scored apart from success; `--check-reference` runs `TRAP_SOLUTION`.
-- **S2 + S3 (DONE on branch `worktree-agent-a4144e2b650e7092e`, commit `2cdb9dd`, not merged: changes `src/` (refresh timings + `completion_tokens` in events, contracts §10), so merge, then run the full suite and a protocol review):** diagnose and fix the missing `prompt_ms` and `completion_tokens` on notes-refresh calls (tap or proxy; the S0 goldens must stay byte-identical); totals include refresh and compaction calls; a host-epoch record before and after each run; a flag for a pair split across epochs.
-- **S5 + S6 (MERGED to main as `a43031e`; 31 tests pass):** `report.py --phase7` (2×2 table, McNemar, Newcombe interval, constraint task-bootstrap, needle gate at 0.95, traps, per-host breakdown); `eval/phase7_schedule.py` (seeded host draw, task order, arm order, 5 repeats); `eval/needle_strata.py`.
-- **S7:** `eval/tasks/AUTHORING.md` (the author brief), `eval/tasks/trap_probe.py` (the temptation probe), and dev-t6..t10 written to the trap standard.
+## S8 pilot: in progress
 
-**The trap contract both S4 and S7 implement:**
-- `TRAP_TURN`: a 0-based index into `TURNS`, at least 5. That request does not restate the warning.
-- `TRAP_SOLUTION`: path → content, an overlay on `REFERENCE`. It passes the visible tests and `test_f_*`, and fails at least one hidden `test_t_*`.
-- `test_t_*`: never counts toward success or constraints.
-- `TRAP_PATTERNS`: D109's rule.
+- **Probe 1 failed V1:** 1 of 5 tasks tempting (D112.7). The standard was revised once, adding T1a and T5a.
+- **The rewrite of dev-t6, t8, t9 and t10** is being done by an agent in a worktree (`git worktree list`, branch `worktree-agent-a9e8a811ebe107d99`). When it lands:
+  1. Review it, and check `run.py --check-reference --task dev-tN`.
+  2. Merge it.
+  3. Re-probe all five: `eval/tasks/trap_probe.py --task dev-tN --upstream <host> --out <scratch file>`.
+  4. If V1 fails again (fewer than 4 of 5), report the pilot as it stands and ask the user before authoring (D112.7).
+- **dev-t7's three arms are running on pythia:** `captures/run-phase7-pilot-t7.ps1`, log `captures/phase7-pilot-t7.log`, records in `captures/phase7-pilot-487add0/`.
+- **Still to do:**
+  - run the other four tasks × three arms, split across both hosts, at a clean commit;
+  - check V2 (T7 held in every `a4-d77` and `a4-tr` run) and V3 (at least one `code` repeat across `a4-tr` and arm 1), using `state_eval` and `trap_hits_from_bodies` for arm 1;
+  - write R64 in a new `docs/results/phase7.md`.
 
-## Next steps
+## After the pilot
 
-1. **Review and merge each branch into `main`.** The S1/S4 and S2/S3 branches both touch `eval/tasks/run.py`. Run the full suite after merging (about 12 minutes on Windows: `.venv/Scripts/python.exe -m pytest -q -p no:cacheprovider`). Commit and push to main directly; there are no long-lived branches. Stage explicit paths. Commits never mention AI tools.
-2. **Write D112** (the trap standard T1–T7, as built) and **D114** (the Phase 7 tooling) in `docs/decisions/phase7.md`, and add their rows to `docs/decisions/README.md`.
-3. **S8 pilot.** Relaunch both hosts at a real 32K. Run the temptation probe, then `a4-d77`, `a4-tr` and arm 1 on dev-t6..t10. Pass conditions V1–V3 are in plan §1.2. If V1 or V3 fails, revise D112 once and re-pilot. Write R64.
-4. **Then S9:** held-out authoring by four separate author sessions. Seal (D113) and freeze (D115) before any held-out run (S10, S11).
-
-## Hosts
-
-- **pythia** (`ssh pythia`, Linux): Strata 0.1.58 at 64K, started by `~/strata-start.sh` (32K preset). The 64K start script is `strata-start-64k.sh`; see memory and D76/D103. Phase 7 needs it at a real 32K for S8–S11, then back to 64K.
-- **Zeus** (`ssh zeus`, Windows, 192.168.1.19:8080): Strata 0.1.58 since D111.7, currently at 128K.
-  - **Relaunch:** run `strata launch` (command in D108 and memory) detached through `Invoke-CimMethod Win32_Process Create`, or it dies when ssh closes. For 32K, pass `--context 32k`.
-  - **Windows Update:** it restarted Zeus mid-run once (D108). Pause it for the whole run window.
-  - **Accepting a build:** `palimnesis check --upstream http://192.168.1.19:8080`, plus probes p04, p12, p14 and p15 with `STRATA_URL` set. Revert the fixture files afterwards.
+- **S9: held-out authoring** by four separate author sessions, from `AUTHORING.md`.
+  - First build the independence check (no 4-word run shared with an earlier set); it does not exist yet (D112.6).
+  - Pin the needle `strata` field format.
+  - Unlock ho4 for Pi (D114.1).
+  - Seal everything (D113).
+- **S10:** the dress rehearsal on retired ho3, including real arm-1 captures through the bodies trap path. Check the `/v1/status` field names on 0.1.58. Then freeze the protocol (D115).
+- **S11:** the held-out runs, following the seeded schedule.
 
 ## Rules that must not slip
 
-- **ho4 is never opened** (D96): not `eval/tasks/ho4_*`, `eval/needles/heldout4/` or `eval/needle_gen_ho4.py`. Nor is any heldout5/6 data, once it exists, until D115 is committed and the unlock file names the set.
-- **Reruns only for infrastructure failures**, with `--reason` (D44.7). Every deviation from the plan gets a decision entry.
-- **Reviewers report; they never edit.** Haiku-tier reviews were about 30% wrong on test redundancy, so verify every claim before acting on it.
+- **ho4 is never opened** (D96): not `eval/tasks/ho4_*`, `eval/needles/heldout4/` or `eval/needle_gen_ho4.py`. Exclude these paths from every grep; two agents leaked header and comment lines that way (D114.7). The same applies to heldout5/6 data until D115 and the unlock.
+- **Reruns only for infrastructure failures**, with `--reason`. Every deviation from the plan gets a decision entry. Commit and push to main; stage explicit paths; commits never mention AI tools.
+- **Verify agent and reviewer claims before acting on them.**
 
-## Known loose ends
+## Hosts
 
-- `palimnesis setup omp` needs rerunning for `~/.omp/agent` (it is the user's local config).
-- The 64K report run from 4A was dropped; Phase 7 reports 64K instead (D111).
-- Reviewer merges that were not applied: the cross-file eval merges, the `test_transcript.py` omission cases, the heading-style tests (they run at different budgets), and the CLI negative-flag tests. All are cosmetic.
+- **pythia:** `ssh pythia`; Strata from `~/.local/share/strata/components/control/0.1.58`, started by the scripts above.
+- **Zeus:** `ssh zeus`.
+  - **Relaunch:** stop it, then `strata launch ... --context 32k`, detached through `Invoke-CimMethod Win32_Process Create` (D108, memory).
+  - **Rollback to 0.1.57:** in D111.7.
