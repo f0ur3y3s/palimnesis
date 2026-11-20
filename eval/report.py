@@ -857,6 +857,20 @@ def phase7_report(results: dict, tasks: list[str], *, candidate: str = PHASE7_CA
                         for arm in (candidate, baseline)}
     if needles is not None:
         out["needles"] = needle_gate(needles[0], needles[1], gate=PHASE7_NEEDLE_GATE)
+    failures = [t for t in tasks if not arm_inputs_ok(results.get((t, candidate)) or {}, 4)]
+    out["archive_gates"] = {"n": len(tasks), "passed": len(tasks) - len(failures),
+                            "failures": failures, "gate": not failures}
+    split, unknown = [], []
+    for t in tasks:
+        pair = [(results.get((t, arm)) or {}).get("host_epoch") for arm in (candidate, baseline)]
+        if not all(pair):
+            unknown.append(t)
+        elif (any(e.get("flagged") for e in pair)
+              or len({(e.get(k) or {}).get("epoch") for e in pair for k in ("before", "after")}) > 1):
+            split.append(t)
+    out["epochs"] = {"split": split, "unknown": unknown,
+                     "without_split": paired_table(results, [t for t in tasks if t not in split],
+                                                   candidate, baseline)}
 
     def kept_all(t, arm):
         held = _constraints_of(results.get((t, arm)), (constraints_declared or {}).get(t))
@@ -913,6 +927,18 @@ def format_phase7(r: dict) -> list[str]:
             lines += ["", f"### Host {h} ({ph['n']} tasks)"] + _table_lines(ph, cand, base)
         if r.get("no_host"):
             lines.append(f"tasks with no host in the schedule: {r['no_host']}")
+    e = r["epochs"]
+    lines += ["", "### Host epochs (D115.6: a split pair is flagged, never rerun)",
+              f"pairs split across host epochs or flagged: {e['split'] or 'none'}; pairs with an "
+              f"arm missing its host epoch: {e['unknown'] or 'none'}"]
+    if e["split"]:
+        lines += [f"sensitivity without split pairs ({e['without_split']['n']} tasks):"]
+        lines += _table_lines(e["without_split"], cand, base)
+    g = r["archive_gates"]
+    lines += ["", f"## Per-archive gates ({cand}; D44.6: 0 over budget, 0 excerpt or state leaks, "
+              f"--explain clean, transcripts verify)",
+              f"{g['passed']}/{g['n']} archives pass; failing or missing "
+              f"{g['failures'] or 'none'} -> {'PASS' if g['gate'] else 'FAIL'}"]
     lines += ["", "## Early constraints"]
     for arm, c in r["constraints"].items():
         lo, hi = c["bootstrap"]
@@ -970,10 +996,29 @@ def format_phase7(r: dict) -> list[str]:
     return lines
 
 
-def load_phase7_results(run: Path, labels: list[str], designate: dict | None = None) -> tuple[dict, list[dict]]:
+def trap_scan(attempt: Path, tid: str, result: dict) -> list[dict]:
+    """``state_eval``'s trap scan of one task attempt (D109, D112.9): from its archive, or
+    from the captured upstream bodies when it has none (arm 1). ``run.py`` does not run
+    it, so the Phase 7 report does, on each designated trap-suite attempt (S10, D115)."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import state_eval as se
+
+    task = se.task_module(tid)
+    kw = {"check": result.get("check"), "workspace": attempt / "check" / "ws",
+          "run_ws": se.attempt_run_ws(attempt, result)}
+    if (attempt / "archive.db").exists():
+        return se.evaluate(attempt / "archive.db", task, **kw)
+    return [se.evaluate_bodies(attempt / "bodies", task, **kw)]
+
+
+def load_phase7_results(run: Path, labels: list[str], designate: dict | None = None,
+                        scan: set[str] | frozenset = frozenset()) -> tuple[dict, list[dict]]:
     """{(task, label): result.json of the designated attempt} for each arm label (e.g.
     ``a4-d77`` and ``a1``), and the superseded attempts. A designated attempt with no
-    ``result.json`` reads as aborted."""
+    ``result.json`` reads as aborted. A usable result of a task in ``scan`` (the trap
+    suite) without a ``state_eval`` gets one from ``trap_scan``."""
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -988,7 +1033,10 @@ def load_phase7_results(run: Path, labels: list[str], designate: dict | None = N
         for tid, a in chosen.items():
             heldout.require_unlocked(heldout.set_of_task(tid))
             f = Path(a["records"]) / f"{tid}-{label}" / "result.json"
-            out[(tid, label)] = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
+            r = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {"aborted": "no result.json"}
+            if tid in scan and _usable(r) and "state_eval" not in r:
+                r["state_eval"] = trap_scan(f.parent, tid, r)
+            out[(tid, label)] = r
     return out, sup
 
 
@@ -1023,10 +1071,15 @@ def print_phase7(a) -> int:
         heldout.require_unlocked(folder.resolve().name)
 
     designate = {k: int(v) for k, v in (x.split("=") for x in a.designate.split(","))} if a.designate else None
+    suite = None
+    if a.trap_suite:
+        names = a.trap_suite.split(",")
+        suite = [t for t in tasks if t in names or (sets or {}).get(t) in names]
     task_runs = [a.phase7] + [Path(d) for d in (a.pool or "").split(",") if d]
     results, sup, seen_tasks = {}, [], set()
     for run in task_runs:
-        host_results, superseded = load_phase7_results(run, [a.candidate, a.baseline], designate)
+        host_results, superseded = load_phase7_results(run, [a.candidate, a.baseline], designate,
+                                                       scan=set(suite or ()))
         host_tasks = {tid for tid, _ in host_results}
         if duplicates := seen_tasks & host_tasks:
             print(f"error: tasks in multiple task run directories: {', '.join(sorted(duplicates))}",
@@ -1035,10 +1088,6 @@ def print_phase7(a) -> int:
         seen_tasks.update(host_tasks)
         results.update(host_results)
         sup.extend(superseded)
-    suite = None
-    if a.trap_suite:
-        names = a.trap_suite.split(",")
-        suite = [t for t in tasks if t in names or (sets or {}).get(t) in names]
     needles = None
     if a.needle_run:
         expected, rows = {}, []

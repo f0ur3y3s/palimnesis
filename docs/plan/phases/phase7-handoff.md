@@ -46,14 +46,31 @@ This file says where the work stands. Delete it once its open items are closed.
 - **Exposures to the lead:** parts of ho6-t9 and the old ho6-t8, which was replaced. Both are reserve tasks (D113.12).
 - **Never edit a sealed file.** Any change breaks `verify` and needs a decision entry.
 
-## After S9
+## S10: done (D115)
 
-- **S10:** the dress rehearsal on retired ho3, including real arm-1 captures through the bodies trap path. Check the `/v1/status` field names on 0.1.58. Then freeze the protocol (D115).
-- **S11:** the held-out runs, following the seeded schedule. Write separate attempt manifests per host. Use `report.py --phase7 ... --pool ...` for the task runs and repeat `--needle-run` for separate needle runs.
+- **The rehearsal** ran on retired ho3 at `a892e4a`. It exercised the pipeline end to end, and the proxy showed no defect.
+- **Report gaps it found,** now fixed test-first in `eval/report.py`: the trap scan runs inside the report, the per-archive gates are shown, and pairs split across host epochs are flagged with a sensitivity table.
+- **D115 freezes the protocol.** The freeze commit F carries D115, `eval/phase7_schedule_d115.json` and `eval/heldout_unlock.json` (heldout4 and heldout5; heldout6 stays locked). After F, only `eval/` and `docs/` may change.
+
+## Next: S11, the held-out runs (D115)
+
+- **Before starting:**
+  - pause Windows Update on Zeus and on the driver workstation;
+  - turn off automatic reboots on pythia;
+  - check free disk space on every host.
+- **Run one stream per host from the workstation,** on a clean tree at F:
+  - `captures/run-phase7-s11.ps1 -HostName pythia -Upstream http://192.168.1.173:8080`
+  - `captures/run-phase7-s11.ps1 -HostName zeus -Upstream http://192.168.1.19:8080`
+  - Each stream runs needles, then tasks, then repeats.
+  - **If a stream stops,** decide whether the stop was an infrastructure failure. If it was, rerun that step with `-Start N -Reason TEXT`. If not, resume with `-Start N+1`. Record either choice.
+- **Report:**
+  - `report.py --phase7 captures/phase7-s11-<F>/pythia/tasks --pool captures/phase7-s11-<F>/zeus/tasks --schedule eval/phase7_schedule_d115.json --trap-suite ho5`;
+  - `--needle-run` once for each of the four `needles-heldout{4,5}` directories, with `--needle-dirs eval/needles/heldout4,eval/needles/heldout5`.
+- **Then Pi on ho4** (D115.8).
 
 ## Rules that must not slip
 
-- **ho4 is never opened** (D96): not `eval/tasks/ho4_*`, `eval/needles/heldout4/` or `eval/needle_gen_ho4.py`. Exclude these paths from every grep; two agents leaked header and comment lines that way (D114.7). The same applies to heldout5/6 data until D115 and the unlock.
+- **ho4 is never opened** (D96): not `eval/tasks/ho4_*`, `eval/needles/heldout4/` or `eval/needle_gen_ho4.py`. Exclude these paths from every grep; two agents leaked header and comment lines that way (D114.7). heldout5 data gets the same care until its runs finish, and heldout6 stays sealed for Phase 8.
 - **Reruns only for infrastructure failures**, with `--reason`. Every deviation from the plan gets a decision entry. Commit and push to main; stage explicit paths; commits never mention AI tools.
 - **Verify agent and reviewer claims before acting on them.**
 

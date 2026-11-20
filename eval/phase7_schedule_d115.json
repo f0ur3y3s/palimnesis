@@ -1,0 +1,340 @@
+{
+ "seed": 115,
+ "tasks": [
+  "ho4-t1",
+  "ho4-t2",
+  "ho4-t3",
+  "ho4-t4",
+  "ho4-t5",
+  "ho5-t1",
+  "ho5-t10",
+  "ho5-t11",
+  "ho5-t12",
+  "ho5-t13",
+  "ho5-t14",
+  "ho5-t15",
+  "ho5-t16",
+  "ho5-t17",
+  "ho5-t18",
+  "ho5-t19",
+  "ho5-t2",
+  "ho5-t20",
+  "ho5-t3",
+  "ho5-t4",
+  "ho5-t5",
+  "ho5-t6",
+  "ho5-t7",
+  "ho5-t8",
+  "ho5-t9"
+ ],
+ "hosts": {
+  "pythia": [
+   {
+    "task": "ho5-t19",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t5",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t10",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho4-t1",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t1",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t9",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t14",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t18",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho4-t4",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t13",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho4-t3",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t6",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t20",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   }
+  ],
+  "zeus": [
+   {
+    "task": "ho5-t7",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho4-t2",
+    "set": "ho4",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t11",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t2",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t3",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t8",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho4-t5",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t4",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t12",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t17",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t15",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t16",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   }
+  ]
+ },
+ "task_host": {
+  "ho4-t1": "pythia",
+  "ho4-t2": "zeus",
+  "ho4-t3": "pythia",
+  "ho4-t4": "pythia",
+  "ho4-t5": "zeus",
+  "ho5-t1": "pythia",
+  "ho5-t10": "pythia",
+  "ho5-t11": "zeus",
+  "ho5-t12": "zeus",
+  "ho5-t13": "pythia",
+  "ho5-t14": "pythia",
+  "ho5-t15": "zeus",
+  "ho5-t16": "zeus",
+  "ho5-t17": "zeus",
+  "ho5-t18": "pythia",
+  "ho5-t19": "pythia",
+  "ho5-t2": "zeus",
+  "ho5-t20": "pythia",
+  "ho5-t3": "zeus",
+  "ho5-t4": "zeus",
+  "ho5-t5": "pythia",
+  "ho5-t6": "pythia",
+  "ho5-t7": "zeus",
+  "ho5-t8": "zeus",
+  "ho5-t9": "pythia"
+ },
+ "task_set": {
+  "ho4-t1": "ho4",
+  "ho4-t2": "ho4",
+  "ho4-t3": "ho4",
+  "ho4-t4": "ho4",
+  "ho4-t5": "ho4",
+  "ho5-t1": "ho5",
+  "ho5-t10": "ho5",
+  "ho5-t11": "ho5",
+  "ho5-t12": "ho5",
+  "ho5-t13": "ho5",
+  "ho5-t14": "ho5",
+  "ho5-t15": "ho5",
+  "ho5-t16": "ho5",
+  "ho5-t17": "ho5",
+  "ho5-t18": "ho5",
+  "ho5-t19": "ho5",
+  "ho5-t2": "ho5",
+  "ho5-t20": "ho5",
+  "ho5-t3": "ho5",
+  "ho5-t4": "ho5",
+  "ho5-t5": "ho5",
+  "ho5-t6": "ho5",
+  "ho5-t7": "ho5",
+  "ho5-t8": "ho5",
+  "ho5-t9": "ho5"
+ },
+ "repeats": [
+  {
+   "task": "ho5-t6",
+   "host": "pythia",
+   "arms": [
+    "a1",
+    "a4-d77"
+   ]
+  },
+  {
+   "task": "ho4-t2",
+   "host": "zeus",
+   "arms": [
+    "a4-d77",
+    "a1"
+   ]
+  },
+  {
+   "task": "ho5-t2",
+   "host": "zeus",
+   "arms": [
+    "a1",
+    "a4-d77"
+   ]
+  },
+  {
+   "task": "ho5-t10",
+   "host": "pythia",
+   "arms": [
+    "a4-d77",
+    "a1"
+   ]
+  },
+  {
+   "task": "ho4-t4",
+   "host": "pythia",
+   "arms": [
+    "a4-d77",
+    "a1"
+   ]
+  }
+ ],
+ "arms": [
+  "a4-d77",
+  "a1"
+ ],
+ "host_names": [
+  "pythia",
+  "zeus"
+ ]
+}

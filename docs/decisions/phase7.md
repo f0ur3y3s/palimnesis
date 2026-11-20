@@ -246,3 +246,99 @@ Red tests first: `tests/test_independence.py` and `tests/test_eval_needle_strata
     - **ho6-t8.** Author C's report described the old ho6-t8's trap, which has since been replaced.
     - Both ho6-t9 and ho6-t8 are in the Phase 8 reserve, not in the Phase 7 scoring set.
     - Later author briefs limit reports to pass/fail, counts and a fixed list of generic location words.
+
+## D115: The frozen held-out protocol (S10, 2026-11-20)
+
+This entry is the protocol of plan §1.4, fixed before any held-out run. It inherits D111. Nothing in it may change after the first held-out run. A defect stops the runs (D44.8).
+
+1. **What is compared.**
+   - **The freeze commit F** is the commit that carries this entry.
+     - The candidate is `a4-d77`, `serve`'s defaults (D78), at F.
+     - After F, commits may change only `eval/` and `docs/`. The S0 goldens guard the upstream bytes.
+   - **The baseline** is arm 1: `serve --passthrough`, OpenCode's own compaction, `limit.context` 32,768 (D44.1).
+   - **Both arms:**
+     - OpenCode 2.1.4;
+     - `limit.output` 8,192;
+     - a fresh git workspace, archive and OpenCode home per attempt (`run.materialize`, D45.9.3);
+     - a 30-minute turn limit (D44, D77.5), with kills reported per arm.
+2. **Hosts and the run streams.**
+   - **The hosts.** pythia (192.168.1.173) and Zeus (192.168.1.19). Both run Strata 0.1.58 at a real `n_ctx` of 32,768 with one slot, the same model and no emulated budget (O2). Zeus's build was accepted by its counts (D111.7).
+   - **The driver.** Each host is driven from the lead's Windows workstation, as in the S8 pilot. There is one run stream per host, and each writes its own attempt manifest (D114.8).
+   - **The host epoch** (`gate_inputs.host_epoch`) is recorded before and after every run.
+   - **Before S11:**
+     - automatic reboots are off on pythia;
+     - Windows Update is paused on Zeus (until 2026-12-20) and on the driver workstation;
+     - every host has free disk space.
+3. **Schedule.** `eval/phase7_schedule.py --seed 115` over ho4-t1..t5 and ho5-t1..t20, committed as `eval/phase7_schedule_d115.json`.
+   - **Split.** pythia runs 13 tasks (3 ho4, 10 ho5) and Zeus runs 12 (2 ho4, 10 ho5). Both arms of a task run back to back, on its host, in the listed order.
+   - **Repeats.** ho5-t6, ho4-t2, ho5-t2, ho5-t10 and ho4-t4 run on their listed hosts after all primary runs. They are descriptive only and never counted as pairs. Attempt 1 is the designated attempt.
+   - **Needles come first,** on `a4-d77` only.
+     - pythia runs the odd-numbered histories of each set: ho4-h1, h3 … h11 and ho5-h1, h3 … h17.
+     - Zeus runs the even-numbered ones.
+     - Each host writes its own needle run directory, and `report.py --needle-run` is repeated to combine them.
+   - **Run directories (from the rehearsal).** Each host has one task run directory, and its attempt manifest holds both arms of every primary task. The manifest designates the latest attempt, so the repeats go in a separate run directory and never supersede a primary attempt. Each host writes one needle run directory per set. The report pools the two hosts' task directories with `--pool` and lists all four needle directories with `--needle-run`.
+   - **The driver** (`captures/run-phase7-s11.ps1 -HostName H -Upstream U`) prints the host's numbered plan and runs it in order. It stops on any nonzero exit. The lead then either reruns that step for an infrastructure failure (`-Start N -Reason TEXT`, D44.7) or resumes at the next step (`-Start N+1`), and the choice is recorded.
+4. **Primary comparison and gate.**
+   - **What is compared.** Task success means every `test_f_*` passes. It is measured per task on the designated attempt of each arm, over 25 tasks.
+   - **The gate (mandatory):** `a4-d77`'s successes must be at least arm 1's, on the observed counts.
+   - **What is reported:**
+     - the full 2×2 table, with b and c;
+     - the paired difference, with a Newcombe paired 95% interval;
+     - a two-sided exact McNemar at α = 0.05. This is the one confirmatory test.
+   - **What is not claimed:** equivalence or noninferiority. A nonsignificant result is not equivalence.
+   - **Missing data.** A missing, aborted or killed attempt counts as a failure.
+5. **Secondary gates and reports.** Their p-values are labelled exploratory.
+   - **Constraints.** Observed ≥ 90% for `a4-d77`, over every constraint of every task. An ineligible constraint is not dropped; its eligibility is reported. Per-constraint and per-task tables are reported, with a task-clustered bootstrap (10,000 resamples, seed 44).
+   - **Traps.** The declared trap suite is ho5 (`--trap-suite ho5`). `a4-d77` must have 0 of the 20 ho5 tasks with a `code` repeat. The report runs `state_eval`'s trap scan on each designated attempt: from its archive, or from the captured bodies for arm 1. A repeat counts only when a `code` hit and a failed `test_t_*` agree (D112.9). A disputed hit is reviewed blind to arm, with arm labels stripped, and the review is recorded (`--trap-reviews`). Arm 1's repeats and ho4's traps are reported only.
+   - **Needles.** Loose exact ≥ 95% over all 300 (R19, D111.5). Reported with:
+     - the count;
+     - a Wilson interval;
+     - a history-clustered bootstrap (10,000 resamples, seed 44);
+     - strict exact;
+     - per-stratum tables, with ho4's strata computed after the unlock.
+     No claim is made that the lower bound exceeds 95%.
+   - **Per-archive gates**, on every candidate archive (D44.6):
+     - 0 calls over budget;
+     - 0 excerpt or state leaks;
+     - `--explain` with 0 unexplained changes;
+     - `transcripts verify` passing.
+   - **Exploratory comparisons:** per task "any constraint lost"; per task trap repeat; ho4 against ho5; per host.
+   - **Serving numbers are informational.** Latency and prompt time are compared within a host only, and no practical tolerance is used.
+6. **Reruns, stopping and defects.**
+   - **Reruns** only for infrastructure failure (D44.7), each with `--reason`.
+   - **Relaunch.** Strata may be relaunched with the identical command between runs (D108). A pair split across host epochs is flagged, never rerun. A sensitivity analysis without split pairs is reported.
+   - **Sample size and stopping.** N is fixed, with no extension inside Phase 7. An inconclusive result (|b − c| ≤ 1) goes to Phase 8 with the sealed reserve ho6.
+   - **Defects** follow D44.8: stop, fix, and rerun the whole held-out set on the fixed commit. There are no waivers.
+7. **Reproducibility.**
+   - No seed is sent: OpenCode sends none, and Strata's seed support is unverified.
+   - Sampling is 1.0 / 0.95 / 20 (D48.3).
+   - Each run records:
+     - the commit and versions;
+     - the hardware;
+     - the host epoch;
+     - every upstream call, including refresh and compaction calls.
+8. **Pi (D111.3, D113.3)** runs ho4's 5 tasks on Chat, `a4-d77` against its own compaction, after the OpenCode runs. Pi is reported only.
+9. **Unlock.** `eval/heldout_unlock.json` names heldout4 and heldout5 with D115. heldout6 stays locked for Phase 8.
+10. **The S10 dress rehearsal** on retired ho3 at `a892e4a`, 2026-11-20, from the driver workstation at real 32K. The aim was to exercise the whole pipeline: needles first, then both arms back to back, then the pooled report. The results are development data and say nothing about the held-out comparison.
+    - **What ran.**
+      - pythia: needle history ho3-h1 on `a4-d77`, then ho3-t1 with `a4-d77` first, then arm 1.
+      - Zeus: ho3-t2 with arm 1 first, then `a4-d77`.
+    - **Preflights.** Before the rehearsal, `needle.py preflight --driver opencode` was faithful on heldout4 (12/12) and heldout5 (18/18). `gate_inputs.host_epoch` filled every field from `/props` and `/v1/status` on both hosts.
+    - **Results.**
+      - ho3-t1, both arms: success (4/4 functional tests), constraints 3/3.
+      - ho3-t2: arm 1 passed. `a4-d77` failed (2/3 functional tests). Both arms lost C2 (constraints 2/3).
+      - Traps: no `code` hit on any of the 4 attempts. ho3-t2 has no trap patterns, so it is a manual task.
+      - Needles: ho3-h1 10/10 loose exact; `--explain` 21/21 pairs; 0 leaks.
+      - Per-archive gates: both `a4-d77` archives pass (0 over budget, 0 leaks, `--explain` clean, transcripts verify).
+      - Host epochs: no split pair.
+    - **Turn kills and time.**
+      - ho3-t1 `a4-d77` on pythia: 3 of 8 turns killed at 30 minutes (turns 6–8); 204 calls; 8,569 s of latency; max prompt 23,888.
+      - ho3-t1 arm 1 on pythia: 1 kill (turn 7); 110 calls; 3,764 s; 19 compaction calls. Its turn 1 also exited 1 after 508 s, which is not a kill. The run went on and the check passed.
+      - ho3-t2 on Zeus took 22 minutes for arm 1 and 18 minutes for `a4-d77`.
+      - These counts are recorded, not gated. Kills count per arm, as declared in item 1.
+    - **What the rehearsal changed (no defect in the proxy).**
+      - **Trap scan.** `run.py` does not run `state_eval`'s trap scan, so the Phase 7 report marked every suite run "unscored" and failed the trap gate. The report now runs the scan on each designated suite attempt that has none (`report.trap_scan`).
+      - **Missing report sections.** The report did not show the item 5 per-archive gates or the item 6 epoch split. Both are now sections of `report.py --phase7`, and split pairs get a sensitivity table without them.
+      - **Run layout.** The rehearsal driver wrote one manifest per arm, which `--pool` cannot read as host streams. The rehearsal was reported through merged per-host manifests. The S11 driver uses the layout in item 3.
+      - The three report changes landed test-first (`tests/test_eval_phase7.py`) before F. With them, the pooled report over the rehearsal printed every section.
+      - The rehearsal's success, constraint and needle gates read FAIL only because of its size: 2 tasks and 1 of 12 needle histories, against a denominator of all 120 ho3 needles. That is expected.

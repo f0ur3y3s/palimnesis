@@ -365,3 +365,88 @@ def test_schedule_cli_writes_json(tmp_path):
     assert phase7_schedule.main(["--seed", "3", "--tasks", ",".join(TASKS), "--out", str(out)]) == 0
     import json
     assert json.loads(out.read_text(encoding="utf-8")) == phase7_schedule.make_schedule(TASKS, seed=3)
+
+
+# ---------------------------------------------------------------- S10 rehearsal gaps (D115)
+
+def test_phase7_cli_scans_traps_of_suite_runs(tmp_path, monkeypatch, capsys):
+    """run.py does not carry the state_eval trap scan; the report runs it (archive, or
+    bodies for arm 1) on each designated suite attempt that has none, and keeps one it has."""
+    root = tmp_path / "pythia"
+    attempts = []
+    for number, (task, label) in enumerate((("x-t1", CAND), ("x-t1", BASE),
+                                            ("x-t2", CAND), ("x-t2", BASE)), start=1):
+        records = root / f"attempt-{number}"
+        r = _trap(passed=(task, label) != ("x-t1", CAND))  # carries an empty state_eval
+        if (task, label) != ("x-t2", BASE):
+            del r["state_eval"]  # as run.py writes it: no trap scan
+        result = records / f"{task}-{label}" / "result.json"
+        result.parent.mkdir(parents=True)
+        result.write_text(json.dumps(r), encoding="utf-8")
+        attempts.append({"attempt": number, "kind": "task", "config": label,
+                         "ids": [task], "records": str(records)})
+    (root / "attempts.json").write_text(json.dumps({"attempts": attempts}), encoding="utf-8")
+    scanned = []
+
+    def fake_scan(attempt, tid, result):
+        scanned.append((Path(attempt).name, tid))
+        return [{"trap_hits": [{"kind": "code"}]}] if attempt.name == f"x-t1-{CAND}" else []
+
+    monkeypatch.setattr(report, "trap_scan", fake_scan)
+    monkeypatch.setattr(sys, "argv", ["report.py", "--phase7", str(root), "--tasks", "x-t1,x-t2",
+                                      "--trap-suite", "x-t1,x-t2", "--json"])
+    with pytest.raises(SystemExit) as exc:
+        report.main()
+    assert exc.value.code == 0
+    t = json.loads(capsys.readouterr().out)["traps"]
+    assert sorted(scanned) == [(f"x-t1-{BASE}", "x-t1"), (f"x-t1-{CAND}", "x-t1"),
+                               (f"x-t2-{CAND}", "x-t2")]
+    assert (t[CAND]["repeats"], t[CAND]["unscored"]) == (1, [])
+    assert (t[BASE]["repeats"], t[BASE]["unscored"]) == (0, [])
+
+
+def _gates(ok=True, **over) -> dict:
+    """The D44.6 per-archive inputs of one candidate run, all passing unless overridden."""
+    r = {"explain_gate": {"ok": ok}, "verify": {"exit": 0}, "over_budget": {"ok": True},
+         "excerpt_scan": {"client": {"leaks": 0}, "transcripts": {"leaks": 0}}}
+    return {**r, **over}
+
+
+def test_phase7_per_archive_gates_on_every_candidate_run():
+    """D115.5: 0 over budget, 0 leaks, --explain clean and transcripts verify, per archive."""
+    tasks = ["x-t1", "x-t2", "x-t3"]
+    results = {("x-t1", CAND): _ok(True, **_gates()),
+               ("x-t2", CAND): _ok(True, **_gates(excerpt_scan={"client": {"leaks": 1},
+                                                                "transcripts": {"leaks": 0}})),
+               ("x-t1", BASE): _ok(True), ("x-t2", BASE): _ok(True)}
+    g = report.phase7_report(results, tasks, candidate=CAND, baseline=BASE)["archive_gates"]
+    assert (g["passed"], g["n"], g["failures"], g["gate"]) == (1, 3, ["x-t2", "x-t3"], False)
+    ok = {**results, ("x-t2", CAND): _ok(True, **_gates()), ("x-t3", CAND): _ok(False, **_gates())}
+    g = report.phase7_report(ok, tasks, candidate=CAND, baseline=BASE)["archive_gates"]
+    assert (g["passed"], g["failures"], g["gate"]) == (3, [], True)
+    text = "\n".join(report.format_phase7(report.phase7_report(results, tasks, candidate=CAND,
+                                                               baseline=BASE)))
+    assert "Per-archive gates" in text and "x-t2" in text
+
+
+def _epoch(before, after=None, flagged=False) -> dict:
+    return {"host_epoch": {"before": {"epoch": before}, "after": {"epoch": after or before},
+                           "flagged": flagged}}
+
+
+def test_phase7_flags_pairs_split_across_host_epochs_and_reports_without_them():
+    """D115.6: a pair whose arms ran under different host epochs (or a flagged epoch) is
+    flagged, never rerun; the primary table is also reported without split pairs."""
+    tasks = ["x-t1", "x-t2", "x-t3", "x-t4"]
+    results = {("x-t1", CAND): _ok(True, **_epoch("e1")), ("x-t1", BASE): _ok(False, **_epoch("e1")),
+               ("x-t2", CAND): _ok(True, **_epoch("e1")), ("x-t2", BASE): _ok(False, **_epoch("e1", "e2")),
+               ("x-t3", CAND): _ok(False, **_epoch("e2", flagged=True)), ("x-t3", BASE): _ok(True, **_epoch("e2")),
+               ("x-t4", CAND): _ok(True), ("x-t4", BASE): _ok(True, **_epoch("e3"))}
+    r = report.phase7_report(results, tasks, candidate=CAND, baseline=BASE)
+    e = r["epochs"]
+    assert (e["split"], e["unknown"]) == (["x-t2", "x-t3"], ["x-t4"])
+    s = e["without_split"]
+    assert (s["n"], s["b"], s["c"]) == (2, 1, 0)
+    assert r["primary"]["n"] == 4
+    text = "\n".join(report.format_phase7(r))
+    assert "split across host epochs" in text and "x-t2" in text
