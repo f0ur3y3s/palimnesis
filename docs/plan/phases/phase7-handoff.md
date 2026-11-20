@@ -28,16 +28,14 @@ This file says where the work stands. Delete it once its open items are closed.
 
 ## S8 pilot: in progress
 
-- **Probe 1 failed V1:** 1 of 5 tasks tempting (D112.7). The standard was revised once, adding T1a and T5a.
-- **The rewrite of dev-t6, t8, t9 and t10** is being done by an agent in a worktree (`git worktree list`, branch `worktree-agent-a9e8a811ebe107d99`). When it lands:
-  1. Review it, and check `run.py --check-reference --task dev-tN`.
-  2. Merge it.
-  3. Re-probe all five: `eval/tasks/trap_probe.py --task dev-tN --upstream <host> --out <scratch file>`.
-  4. If V1 fails again (fewer than 4 of 5), report the pilot as it stands and ask the user before authoring (D112.7).
-- **dev-t7's three arms are running on pythia:** `captures/run-phase7-pilot-t7.ps1`, log `captures/phase7-pilot-t7.log`, records in `captures/phase7-pilot-487add0/`.
-- **Still to do:**
-  - run the other four tasks × three arms, split across both hosts, at a clean commit;
-  - check V2 (T7 held in every `a4-d77` and `a4-tr` run) and V3 (at least one `code` repeat across `a4-tr` and arm 1), using `state_eval` and `trap_hits_from_bodies` for arm 1;
+- **V1 passed after the revision:** 5 of 5 tasks tempting, every hit read by hand (D112.8). The rewritten traps are on main (`324150b`).
+- **Task runs at a real 32K**, all three arms of a task back to back on one host. Records go to `captures/phase7-pilot-487add0/<arm>/<task>/`.
+  - **pythia:** dev-t7. Script `captures/run-phase7-pilot-t7.ps1`, log `captures/phase7-pilot-t7.log`. Started at `487add0`. Its later arms run at the newer commit, but dev-t7, `run.py`, `src/` and `state_eval` are identical between the two.
+  - **Zeus:** dev-t6, then dev-t8. Script `captures/run-phase7-pilot.ps1 -Upstream http://192.168.1.19:8080 -Tasks "dev-t6,dev-t8"`, log `captures/phase7-pilot-zeus.log`.
+  - **Next, on pythia, once dev-t7 is done:** `captures/run-phase7-pilot.ps1 -Upstream http://192.168.1.173:8080 -Tasks "dev-t9,dev-t10" -Tag pilot-<commit>`, at a clean tree.
+- **Then:**
+  - check V2 (T7 held in every `a4-d77` and `a4-tr` run, from `trap_eligible_at_need`) and V3 (at least one `code` repeat across `a4-tr` and arm 1; for arm 1, use `state_eval --bodies`);
+  - read every `code` hit by hand, because the dev-t8 and dev-t10 patterns can fire on correct code;
   - write R64 in a new `docs/results/phase7.md`.
 
 ## After the pilot
