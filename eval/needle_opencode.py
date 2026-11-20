@@ -206,11 +206,15 @@ def do_import(home: oc.Home, doc: dict, where: Path) -> dict:
 def preflight(a) -> int:
     """Every history's import through real OpenCode against the fake upstream: the first
     request must equal the history plus Q1. No proxy, no model, no Strata."""
+    histories = needle.select_histories(a)
+    if not histories:
+        print(f"No histories selected for {a.set}. Use unprefixed IDs such as h1,h2.", file=sys.stderr)
+        return 1
+
     sys.path.insert(0, str(needle.ROOT))
     from tests.fake_upstream import FakeUpstream
     from tests.servers import serve
 
-    histories = needle.select_histories(a)
     bad = 0
     fake = FakeUpstream()
     with serve(fake.app()) as base, tempfile.TemporaryDirectory(prefix="preflight-") as tmp:

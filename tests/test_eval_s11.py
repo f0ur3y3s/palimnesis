@@ -8,6 +8,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -23,6 +24,12 @@ sys.path.remove(str(ROOT / "eval" / "tasks"))
 
 
 # ---------------------------------------------------------------- needle sets
+
+def test_preflight_rejects_an_empty_selection(monkeypatch, capsys):
+    monkeypatch.setattr(needle_opencode.needle, "select_histories", lambda args: [])
+    assert needle_opencode.preflight(SimpleNamespace(set="heldout3")) == 1
+    assert "No histories selected" in capsys.readouterr().err
+
 
 @pytest.mark.parametrize("i", range(6))
 def test_development_set_regenerates_byte_identically(i):

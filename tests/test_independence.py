@@ -93,6 +93,14 @@ def test_exempt_fixed_turn_wording(tmp_path):
     assert independence.check([new], {"dev": [earlier]}, exempt=exempt)[str(new)]["pass"] is True
 
 
+def test_only_fixed_trap_warning_wording_is_exempt():
+    scaffold = {("also", "we", "already", "tried"), ("and", "it", "failed", "because")}
+    warning = "Also, we already tried clipping the chart datum, and it failed because depths shifted."
+    exempt = independence.default_exempt()
+    assert scaffold <= exempt
+    assert not (independence.grams([warning]) - scaffold) & exempt
+
+
 def _history(user: str, answer: str) -> dict:
     return {"id": "h", "import": [{"role": "user", "content": user},
                                   {"role": "assistant", "content": "Noted, carrying on now."},

@@ -10,8 +10,9 @@ every earlier set:
   a test module) contributes only its own comments, docstrings and string literals. For a
   history it is the user and assistant text and the steps' text (not tool output), as in
   ``needle_gen_ho2._grams``. Words are letters only. A path, an identifier, a number or a
-  backtick code span breaks a run. Runs in ``eval/tasks/common.py`` and in the fixed
-  request wording of turns 1, 3, 5 and 7 of dev-t6..t10 are exempt (``AUTHORING.md`` §3);
+  backtick code span breaks a run. The exempt wording comes from ``eval/tasks/common.py``,
+  turns 1, 3, 5 and 7 of dev-t6..t10, and the fixed parts of the trap warning template
+  (``AUTHORING.md`` §1.3 and §3);
 - **no defined identifier**: a package, module, function or class that the module's
   embedded code defines, matched case-sensitively as a whole token in any earlier file;
 - **no planted needle value**: an answer or part with a letter that occurs in an earlier
@@ -234,8 +235,9 @@ def default_sets(names=None) -> dict[str, list[Path]]:
 
 
 def default_exempt() -> set:
-    """Runs anyone may reuse: ``common.py`` and the fixed wording of turns 1, 3, 5 and 7."""
+    """The wording authors are told to reuse in the requests and trap warning."""
     texts = prose_of_module((TASKS / "common.py").read_text(encoding="utf-8"))
+    texts.extend(("Also, we already tried", "and it failed because"))
     sys.path.insert(0, str(TASKS))
     try:
         for m in FORMAT_TASKS:

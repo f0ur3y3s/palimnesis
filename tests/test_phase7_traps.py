@@ -262,6 +262,11 @@ def test_check_reference_runs_trap_solution():
     r = task_run.check_task_reference(_check_task(TRAP_SOLUTION={"pkg/money.py": TRAP.replace(
         "return", "return 1 + ")}), python=py)
     assert r["checks"]["trap"] is False
+    # A trap solution must pass the constraint checks too (T2).
+    r = task_run.check_task_reference(_check_task(TRAP_SOLUTION={
+        "pkg/money.py": TRAP.replace("text", "amount")}), python=py)
+    assert r["checks"]["patterns"] is True
+    assert r["checks"]["trap"] is False and not r["ok"]
     # A pattern that also matches the reference fails the pattern check.
     r = task_run.check_task_reference(_check_task(TRAP_PATTERNS=(r"int\(",)), python=py)
     assert r["checks"]["patterns"] is False

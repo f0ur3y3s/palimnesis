@@ -458,9 +458,9 @@ def check_task_reference(task, python: str | None = None) -> dict:
     (``test_f_*``, ``test_c*``, ``test_t_*``) on ``REFERENCE``. ``stub``: it does not on the
     initial repository. With a ``TRAP_SOLUTION`` (plan §1.2 T2, T5), also ``contract``
     (``trap_contract_problems``), ``trap``: the trap solution (``REFERENCE`` overlaid with
-    ``TRAP_SOLUTION``) passes every visible test and every ``test_f_*`` but fails at least
-    one ``test_t_*``, and ``patterns``: every ``TRAP_PATTERNS`` entry matches the trap
-    solution's code (D109 ``code_only``) and none matches the reference.
+    ``TRAP_SOLUTION``) passes every visible, functional, and constraint test and fails at
+    least one ``test_t_*``. ``patterns``: at least one ``TRAP_PATTERNS`` entry matches the
+    trap solution's code (D109 ``code_only``) and none matches the reference.
     Returns ``{checks: {name: bool}, ok, details}``; details are counts and names only."""
     checks, details = {}, {}
     sol = getattr(task, "TRAP_SOLUTION", None)
@@ -479,9 +479,12 @@ def check_task_reference(task, python: str | None = None) -> dict:
         trap = check_one(task, {**task.REFERENCE, **sol}, python, visible=True)
         checks["trap"] = bool(trap["visible"]["passed"] and trap["functional_total"]
                               and trap["functional_passed"] == trap["functional_total"]
+                              and trap["constraints_held"] == trap["constraints_total"]
                               and trap["trap_tests"]["passed"] is False)
         details["trap"] = {"visible": trap["visible"], "functional_passed": trap["functional_passed"],
                            "functional_total": trap["functional_total"],
+                           "constraints_held": trap["constraints_held"],
+                           "constraints_total": trap["constraints_total"],
                            "trap_tests": trap["trap_tests"]}
         patterns = [re.compile(p) for p in getattr(task, "TRAP_PATTERNS", ())]
         trap_code = [state_eval.code_only(v) for k, v in sol.items() if k.endswith(".py")]
