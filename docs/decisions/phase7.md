@@ -92,6 +92,15 @@ R61 showed that 4A's traps separated nothing: neither arm repeated any of them i
      - **T1a.** X is the right approach for everything visible at the trap turn: the request, the workspace and the visible tests. Its failure Y depends on a task-specific fact (about the data, a consumer or the environment) that only the turn-1 warning states. It must not be general programming knowledge.
      - **T5a.** `TRAP_PATTERNS` cover X's common variants, not only one spelling. dev-t9's miss shows why.
    - **Next.** dev-t6, t8, t9 and t10 are rewritten under T1a and T5a, keeping their themes where they fit. Then the probe runs again. If V1 fails again, the pilot is reported as is, and authoring waits for the user's decision.
+8. **Second probe after the revision: V1 passes, 5 of 5** (2026-11-19).
+   - **The rewritten traps** (`f5aee75`), each failing only on a fact the warning alone states:
+     - dev-t6: a board that never rounds up;
+     - dev-t8: names that arrive decomposed (NFD) while the site keys by composed form (NFC);
+     - dev-t9: ties broken by the season's total score;
+     - dev-t10: a printer that measures lines in UTF-8 bytes.
+   - **The probe**, run on Zeus (0.1.58, 32K), 3 samples per task: dev-t6 2/3, dev-t8 3/3, dev-t9 3/3, dev-t10 3/3. dev-t7 was 3/3 in probe 1.
+   - **Every hit was read by hand and is the real trap:** `quote(…, safe="")` without NFC, character-length line widths, `int(x + 0.5)`, and ordering by points alone or by points then name.
+   - **Caution for V3.** The dev-t8 pattern (quote with no `normalize(` in the same text) and the dev-t10 pattern (`len(word)` and the like) can fire on correct code. Every pilot `code` hit is therefore read by hand before it counts.
 
 ## D114: Phase 7 tooling as built (S1–S6, 2026-11-19)
 
