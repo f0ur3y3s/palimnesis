@@ -356,3 +356,17 @@ This entry is the protocol of plan §1.4, fixed before any held-out run. It inhe
     - **Run layout.** One task run directory, `zeus/tasks`, plus `zeus/repeats`, `pythia/needles-heldout4` and `pythia/needles-heldout5`. The report needs no `--pool`.
     - **Given up.** Per-host task tables, which were exploratory. Zeus also becomes the only task host, so a Zeus outage stalls every task run. Pausing Windows Update on Zeus is therefore required.
     - Every other item stands as written.
+12. **Zeus sampled at temperature 0.6; fixed to 1.0 before any held-out run (user decision, 2026-11-20).**
+    - **Found.** The pre-S11 checks found the difference in Zeus's `/props`: temperature 0.6, against pythia's 1.0. OpenCode sends no sampling fields (checked in the rehearsal's captured bodies), so the server's default applied.
+      - `strata launch` writes the Qwen family's sampling block (0.6 / 0.95 / 20) into `%LOCALAPPDATA%\Strata\launch\iq3_xxs-32k.json` on every start, and an edit to that file is overwritten.
+      - pythia's config has no sampling block, so it serves the 1.0 / 0.95 / 20 recorded since Phase 3 (D48.3).
+    - **Affected (development data, not rerun).** Every Zeus run since its 0.1.58 launch on 2026-11-19: the D111.7 acceptance counts, the S8 pilot's Zeus tasks (R64) and the rehearsal's ho3-t2 (item 10) all sampled at 0.6. Their results stand as recorded, with this caveat.
+    - **The fix.**
+      - A separate config, `iq3_xxs-32k-t1.json`: the launch config with `sampling` set to 1.0 / 0.95 / 20 and nothing else changed.
+      - Strata is started without `strata launch`, the way pythia is: `python -m serve.server --engine strata --config ...\iq3_xxs-32k-t1.json --host 0.0.0.0 --port 8080 --parallel 1 --no-api-key`, from `E:\Strata-0.2.11	erminal .1.58`, detached through `Invoke-CimMethod Win32_Process Create`.
+      - This is now the identical relaunch command of item 6 (D108). The old file is kept as `iq3_xxs-32k.json.bak-t06-20261120`.
+    - **Checked after the restart:**
+      - `/props` shows 1.0 / 0.95 / 20, Strata 0.1.58, `n_ctx` 32,768 and one slot;
+      - the chat template hash `12827f24` is the same as pythia's;
+      - the engine arguments are unchanged.
+    - **Speed at 1.0.** Measured on the same prompt, 3 runs of 1,500 tokens, server-reported: Zeus about 95 tokens/s and pythia about 41. Item 11's rationale holds.
