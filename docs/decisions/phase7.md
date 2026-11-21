@@ -342,3 +342,17 @@ This entry is the protocol of plan §1.4, fixed before any held-out run. It inhe
       - **Run layout.** The rehearsal driver wrote one manifest per arm, which `--pool` cannot read as host streams. The rehearsal was reported through merged per-host manifests. The S11 driver uses the layout in item 3.
       - The three report changes landed test-first (`tests/test_eval_phase7.py`) before F. With them, the pooled report over the rehearsal printed every section.
       - The rehearsal's success, constraint and needle gates read FAIL only because of its size: 2 tasks and 1 of 12 needle histories, against a denominator of all 120 ho3 needles. That is expected.
+11. **Amendment before any held-out run: tasks on Zeus only, needles on pythia (user decision, 2026-11-20).** This replaces the host split in items 2 and 3. No held-out run had started.
+    - **Why.** The rehearsal's per-call rates show that pythia is the slower host by a wide margin.
+      - Uncached prompt processing: about 330–350 tokens/s on pythia, against 1,300–1,900 on Zeus.
+      - Generation: 41–45 tokens/s on pythia, against 95–110 on Zeus.
+      - Generation dominates a turn, so pythia is about 2.3–2.5× slower.
+    - **The turn limit.** The 30-minute limit (item 1) is wall-clock time, so on pythia it kills turns that finish on Zeus. That turns real differences between the arms into shared failures, which costs discordant pairs. It also costs `a4-d77` more, because it makes more calls, including refresh calls. In the rehearsal on pythia, `a4-d77` had 3 turn kills and arm 1 had 1.
+    - **Wall-clock time.** Two streams finish when pythia's 13 tasks do, which takes about as long as 30–33 tasks on Zeus. Zeus alone runs all 25 tasks in about the same time or less.
+    - **The schedule.** `eval/phase7_schedule.py --seed 115 --hosts zeus`, replacing `eval/phase7_schedule_d115.json` (the two-host version is at `d77720d`).
+      - All 25 tasks run on Zeus. The seeded arm order puts `a4-d77` first in 14 of them and arm 1 first in 11.
+      - The repeats are the same five tasks, run on Zeus after the primaries.
+    - **Needles.** All 30 histories of heldout4 and heldout5 run on `a4-d77` on pythia, which has one needle run directory per set. Needle recall has no turn limit, and its gate does not depend on host speed.
+    - **Run layout.** One task run directory, `zeus/tasks`, plus `zeus/repeats`, `pythia/needles-heldout4` and `pythia/needles-heldout5`. The report needs no `--pool`.
+    - **Given up.** Per-host task tables, which were exploratory. Zeus also becomes the only task host, so a Zeus outage stalls every task run. Pausing Windows Update on Zeus is therefore required.
+    - Every other item stands as written.

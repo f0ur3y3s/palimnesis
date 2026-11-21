@@ -28,115 +28,9 @@
   "ho5-t9"
  ],
  "hosts": {
-  "pythia": [
-   {
-    "task": "ho5-t19",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t5",
-    "set": "ho5",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t10",
-    "set": "ho5",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho4-t1",
-    "set": "ho4",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t1",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t9",
-    "set": "ho5",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t14",
-    "set": "ho5",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t18",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho4-t4",
-    "set": "ho4",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t13",
-    "set": "ho5",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho4-t3",
-    "set": "ho4",
-    "arms": [
-     "a4-d77",
-     "a1"
-    ]
-   },
-   {
-    "task": "ho5-t6",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t20",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   }
-  ],
   "zeus": [
    {
-    "task": "ho5-t7",
+    "task": "ho5-t16",
     "set": "ho5",
     "arms": [
      "a1",
@@ -144,31 +38,7 @@
     ]
    },
    {
-    "task": "ho4-t2",
-    "set": "ho4",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t11",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t2",
-    "set": "ho5",
-    "arms": [
-     "a1",
-     "a4-d77"
-    ]
-   },
-   {
-    "task": "ho5-t3",
+    "task": "ho5-t4",
     "set": "ho5",
     "arms": [
      "a4-d77",
@@ -192,23 +62,63 @@
     ]
    },
    {
-    "task": "ho5-t4",
+    "task": "ho5-t14",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho4-t1",
+    "set": "ho4",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t11",
     "set": "ho5",
     "arms": [
      "a4-d77",
      "a1"
+    ]
+   },
+   {
+    "task": "ho5-t1",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t5",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho4-t2",
+    "set": "ho4",
+    "arms": [
+     "a1",
+     "a4-d77"
     ]
    },
    {
     "task": "ho5-t12",
     "set": "ho5",
     "arms": [
-     "a4-d77",
-     "a1"
+     "a1",
+     "a4-d77"
     ]
    },
    {
-    "task": "ho5-t17",
+    "task": "ho5-t18",
     "set": "ho5",
     "arms": [
      "a4-d77",
@@ -224,7 +134,95 @@
     ]
    },
    {
-    "task": "ho5-t16",
+    "task": "ho5-t17",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t13",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t2",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t10",
+    "set": "ho5",
+    "arms": [
+     "a1",
+     "a4-d77"
+    ]
+   },
+   {
+    "task": "ho5-t19",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t7",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho4-t4",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t3",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t9",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho4-t3",
+    "set": "ho4",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t6",
+    "set": "ho5",
+    "arms": [
+     "a4-d77",
+     "a1"
+    ]
+   },
+   {
+    "task": "ho5-t20",
     "set": "ho5",
     "arms": [
      "a1",
@@ -234,31 +232,31 @@
   ]
  },
  "task_host": {
-  "ho4-t1": "pythia",
+  "ho4-t1": "zeus",
   "ho4-t2": "zeus",
-  "ho4-t3": "pythia",
-  "ho4-t4": "pythia",
+  "ho4-t3": "zeus",
+  "ho4-t4": "zeus",
   "ho4-t5": "zeus",
-  "ho5-t1": "pythia",
-  "ho5-t10": "pythia",
+  "ho5-t1": "zeus",
+  "ho5-t10": "zeus",
   "ho5-t11": "zeus",
   "ho5-t12": "zeus",
-  "ho5-t13": "pythia",
-  "ho5-t14": "pythia",
+  "ho5-t13": "zeus",
+  "ho5-t14": "zeus",
   "ho5-t15": "zeus",
   "ho5-t16": "zeus",
   "ho5-t17": "zeus",
-  "ho5-t18": "pythia",
-  "ho5-t19": "pythia",
+  "ho5-t18": "zeus",
+  "ho5-t19": "zeus",
   "ho5-t2": "zeus",
-  "ho5-t20": "pythia",
+  "ho5-t20": "zeus",
   "ho5-t3": "zeus",
   "ho5-t4": "zeus",
-  "ho5-t5": "pythia",
-  "ho5-t6": "pythia",
+  "ho5-t5": "zeus",
+  "ho5-t6": "zeus",
   "ho5-t7": "zeus",
   "ho5-t8": "zeus",
-  "ho5-t9": "pythia"
+  "ho5-t9": "zeus"
  },
  "task_set": {
   "ho4-t1": "ho4",
@@ -290,7 +288,7 @@
  "repeats": [
   {
    "task": "ho5-t6",
-   "host": "pythia",
+   "host": "zeus",
    "arms": [
     "a1",
     "a4-d77"
@@ -314,7 +312,7 @@
   },
   {
    "task": "ho5-t10",
-   "host": "pythia",
+   "host": "zeus",
    "arms": [
     "a4-d77",
     "a1"
@@ -322,7 +320,7 @@
   },
   {
    "task": "ho4-t4",
-   "host": "pythia",
+   "host": "zeus",
    "arms": [
     "a4-d77",
     "a1"
@@ -334,7 +332,6 @@
   "a1"
  ],
  "host_names": [
-  "pythia",
   "zeus"
  ]
 }

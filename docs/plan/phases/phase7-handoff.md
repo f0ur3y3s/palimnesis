@@ -55,17 +55,16 @@ This file says where the work stands. Delete it once its open items are closed.
 ## Next: S11, the held-out runs (D115)
 
 - **Before starting:**
-  - pause Windows Update on Zeus and on the driver workstation;
+  - pause Windows Update on Zeus (now the only task host) and on the driver workstation;
   - turn off automatic reboots on pythia;
   - check free disk space on every host.
-- **Run one stream per host from the workstation,** on a clean tree at F:
-  - `captures/run-phase7-s11.ps1 -HostName pythia -Upstream http://192.168.1.173:8080`
-  - `captures/run-phase7-s11.ps1 -HostName zeus -Upstream http://192.168.1.19:8080`
-  - Each stream runs needles, then tasks, then repeats.
+- **Run one stream per host from the workstation,** on a clean tree. D115.11 put the tasks on Zeus only and the needles on pythia:
+  - `captures/run-phase7-s11.ps1 -HostName zeus -Upstream http://192.168.1.19:8080` runs the 25 task pairs, then the repeats;
+  - `captures/run-phase7-s11.ps1 -HostName pythia -Upstream http://192.168.1.173:8080` runs all 30 needle histories.
   - **If a stream stops,** decide whether the stop was an infrastructure failure. If it was, rerun that step with `-Start N -Reason TEXT`. If not, resume with `-Start N+1`. Record either choice.
 - **Report:**
-  - `report.py --phase7 captures/phase7-s11-<F>/pythia/tasks --pool captures/phase7-s11-<F>/zeus/tasks --schedule eval/phase7_schedule_d115.json --trap-suite ho5`;
-  - `--needle-run` once for each of the four `needles-heldout{4,5}` directories, with `--needle-dirs eval/needles/heldout4,eval/needles/heldout5`.
+  - `report.py --phase7 captures/phase7-s11-<sha>/zeus/tasks --schedule eval/phase7_schedule_d115.json --trap-suite ho5`;
+  - `--needle-run` once for each of `pythia/needles-heldout4` and `pythia/needles-heldout5`, with `--needle-dirs eval/needles/heldout4,eval/needles/heldout5`.
 - **Then Pi on ho4** (D115.8).
 
 ## Rules that must not slip
