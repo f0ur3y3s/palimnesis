@@ -363,7 +363,7 @@ This entry is the protocol of plan §1.4, fixed before any held-out run. It inhe
     - **Affected (development data, not rerun).** Every Zeus run since its 0.1.58 launch on 2026-11-19: the D111.7 acceptance counts, the S8 pilot's Zeus tasks (R64) and the rehearsal's ho3-t2 (item 10) all sampled at 0.6. Their results stand as recorded, with this caveat.
     - **The fix.**
       - A separate config, `iq3_xxs-32k-t1.json`: the launch config with `sampling` set to 1.0 / 0.95 / 20 and nothing else changed.
-      - Strata is started without `strata launch`, the way pythia is: `python -m serve.server --engine strata --config ...\iq3_xxs-32k-t1.json --host 0.0.0.0 --port 8080 --parallel 1 --no-api-key`, from `E:\Strata-0.2.11	erminal .1.58`, detached through `Invoke-CimMethod Win32_Process Create`.
+      - Strata is started without `strata launch`, the way pythia is: `python -m serve.server --engine strata --config ...\iq3_xxs-32k-t1.json --host 0.0.0.0 --port 8080 --parallel 1 --no-api-key`, from `E:\Strata-0.2.11\terminal\0.1.58`, detached through `Invoke-CimMethod Win32_Process Create`.
       - This is now the identical relaunch command of item 6 (D108). The old file is kept as `iq3_xxs-32k.json.bak-t06-20261120`.
     - **Checked after the restart:**
       - `/props` shows 1.0 / 0.95 / 20, Strata 0.1.58, `n_ctx` 32,768 and one slot;
