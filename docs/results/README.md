@@ -79,3 +79,6 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R62 | The pinned state on Pi through Messages: 5 committed versions, D44.6 inputs clean (2026-11-19) | [phase4a.md](phase4a.md) |
 | R63 | Phase 4A gate summary (2026-11-19) | [phase4a.md](phase4a.md) |
 | R64 | S8 pilot: V1 5/5, V2 10/10, V3 met; trap repeats 0/5 with notes, 2/5 without, 0/5 native compaction; one false `code` hit on dev-t10 (2026-11-20) | [phase7.md](phase7.md) |
+| R65 | S11 held-out, OpenCode: 19 vs 18 tasks (b 3, c 2; inconclusive), constraints 92% vs 84%, per-archive 25/25; traps 3/20 both arms (notes rewrites dropped the warning); needles 75% (question phrasing; heldout4 95%); repeats flip 4/10 (2026-11-22) | [phase7.md](phase7.md) |
+| R66 | Pi on ho4: 4/5 each, constraints 15/15 vs 13/15, per-archive 5/5; Pi native compaction failed repeatedly at 32K (2026-11-22) | [phase7.md](phase7.md) |
+| R67 | Phase 7 gate summary: primary inconclusive, constraints and per-archive pass, traps and needles fail; Phase 8 carry-forward (2026-11-22) | [phase7.md](phase7.md) |

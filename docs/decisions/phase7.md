@@ -392,3 +392,20 @@ D115.5 requires a blind review of each disputed trap run before it counts. The S
    - `a4-d77` has 3/20 repeats: ho5-t2, ho5-t4 and ho5-t13. In each, the `code` hit and the failed test agree, so none needed review. The trap gate (0) **fails**.
    - Arm 1 also has 3/20: ho5-t2, ho5-t5 and ho5-t11.
    - The exploratory per-task comparison gives b = 2, c = 2.
+
+## D117: Phase 7 close-out: classifications and the Phase 8 carry-forward (2026-11-22)
+
+1. **The Pi run order.** D115.8 did not fix one. Pi ran ho4's tasks in the schedule's order (ho4-t5, t1, t2, t4, t3), with each task's listed arm order, on pythia, as one stream (`captures/run-phase7-pi.ps1`). Nothing was rerun.
+2. **The trap failure is a mechanism weakness, not a D44.8 defect.**
+   - The archive, recall and per-archive gates behaved as specified.
+   - The notes the model wrote lost the warning in a later rewrite, and no contract requires notes to keep a user-stated failure.
+   - The protocol is not rerun. The 3/20 stands, and the gate fails.
+3. **The needle gate stands as FAIL, scored as frozen** (loose exact, D115.5). The shortfall follows the needle generators' question phrasing (R65).
+   - No re-scoring is adopted.
+   - The "gold value in the answer" count is reported as post hoc only.
+   - The lead's authoring standard (D113) is responsible: it never required an answer-format instruction or checked answer shape before the seal.
+4. **The primary result is inconclusive (D115.6).** b = 3 and c = 2, so the question goes to Phase 8 with the sealed reserve ho6. ho4 and ho5 are spent: they have been opened and analysed, so they cannot be held out again.
+5. **Carried into Phase 8:**
+   - **Notes keep user-stated failures.** Either they are carried verbatim, or they go in a pinned "tried and failed" section that a rewrite cannot drop. This lands as a red fake-upstream test first.
+   - **Needle authoring.** Every question ends with a fixed answer-format instruction. A pre-seal probe checks answer shape on the model; it does not score recall.
+   - **Attempts.** S11's repeats flipped success in 4 of 10 arm-runs. Phase 8 sizes for more than one attempt per task, or more tasks, and fixes the rule before any run.

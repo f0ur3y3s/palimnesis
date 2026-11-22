@@ -52,20 +52,24 @@ This file says where the work stands. Delete it once its open items are closed.
 - **Report gaps it found,** now fixed test-first in `eval/report.py`: the trap scan runs inside the report, the per-archive gates are shown, and pairs split across host epochs are flagged with a sensitivity table.
 - **D115 freezes the protocol.** The freeze commit F carries D115, `eval/phase7_schedule_d115.json` and `eval/heldout_unlock.json` (heldout4 and heldout5; heldout6 stays locked). After F, only `eval/` and `docs/` may change.
 
-## Next: S11, the held-out runs (D115)
+## S11 and Pi: done (R65–R67, D116, D117)
 
-- **Before starting:**
-  - pause Windows Update on Zeus (now the only task host) and on the driver workstation;
-  - turn off automatic reboots on pythia;
-  - check free disk space on every host.
-- **Run one stream per host from the workstation,** on a clean tree. D115.11 put the tasks on Zeus only and the needles on pythia:
-  - `captures/run-phase7-s11.ps1 -HostName zeus -Upstream http://192.168.1.19:8080` runs the 25 task pairs, then the repeats;
-  - `captures/run-phase7-s11.ps1 -HostName pythia -Upstream http://192.168.1.173:8080` runs all 30 needle histories.
-  - **If a stream stops,** decide whether the stop was an infrastructure failure. If it was, rerun that step with `-Start N -Reason TEXT`. If not, resume with `-Start N+1`. Record either choice.
-- **Report:**
-  - `report.py --phase7 captures/phase7-s11-<sha>/zeus/tasks --schedule eval/phase7_schedule_d115.json --trap-suite ho5`;
-  - `--needle-run` once for each of `pythia/needles-heldout4` and `pythia/needles-heldout5`, with `--needle-dirs eval/needles/heldout4,eval/needles/heldout5`.
-- **Then Pi on ho4** (D115.8).
+- **Runs:** S11 ran at `617ff65`. The tasks ran on Zeus and the needles on pythia, with records in `captures/phase7-s11-617ff65/`. Pi ran at `7d9d534`, with records in `captures/phase7-pi-7d9d534/`.
+- **Gates:**
+  - Primary: 19 vs 18, inconclusive (D115.6).
+  - Constraints: pass.
+  - Per-archive: pass.
+  - Traps: fail, 3/20. The notes rewrites dropped the warning.
+  - Needles: fail, 75%. The cause is question phrasing.
+- **Classifications and Phase 8 carry-forward:** in D117. ho4 and ho5 are spent; ho6 is the only sealed set.
+
+## Next: Phase 8
+
+- Plan Phase 8 from `docs/plan/v1_plan.md` and D117.5:
+  - notes keep user-stated failures (test-first);
+  - needle answer-format rule plus an answer-shape probe;
+  - attempts per task fixed before any run;
+  - ho6 for the confirmatory run.
 
 ## Rules that must not slip
 
