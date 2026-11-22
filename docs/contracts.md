@@ -64,6 +64,16 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
       - A reply with no text is committed from its reasoning when the reasoning holds a draft of the notes: a run of headings in which at least three distinct sections have a line under them. A draft ends where a section repeats; the last such draft is taken, from its first heading to the end. It is recorded with reason `from_reasoning`. Reasoning never rescues a failed stream.
       - An unknown format is refused at startup.
       - The view's `policy_version` ends `+notes{S}n2`.
+    - **Format n3** (D121, `--notes-format n3`): n2, with three changes so that a failure the user reported, once recorded, is not lost on a rewrite.
+      - **The prompt.** Its Dead ends section asks the model to record there, in the user's own words, everything the user said was already tried and failed, and to carry forward every earlier Dead ends entry. Its "they replace any earlier notes" clause makes the same exception.
+      - **The carry.** Before the cut, every non-blank Dead-ends line of the notes version in force that the reply lacks is appended at the end of the reply's Dead ends section.
+        - A line counts as present when it matches after normalizing whitespace and case.
+        - When the reply has no Dead ends heading, one is added at the end.
+        - The carried lines are capped at S/3 tokens. Past the cap, the newest carried lines are left out, so the earliest recorded failure goes last. Lines the model wrote are never displaced.
+        - With no notes in force, the reply is unchanged.
+      - **The cut.** Dead ends is kept whole while the other sections are cut to k first lines, as in n2. When that does not fit even at k = 1, n2's rule applies to every section.
+      - Reasoning drafts are taken as in n2.
+      - The view's `policy_version` ends `+notes{S}n3`.
     - **Header h2** (D75, `--notes-header h2`; the default since D78, h1 with `--notes-header h1`): the block's header ends "the user's messages win. When you quote a value from these notes, write it out in full, exactly as recorded". Fitting to S counts the header in use. An unknown header is refused at startup. `policy_version` adds `h2` after the format (`+notes{S}h2`, `+notes{S}n2h2`).
     - The builder itself makes no upstream calls.
 
@@ -304,11 +314,12 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 - **Provenance.** Every refresh that streamed keeps its whole output in an immutable `notes_outputs` row. A failed refresh that streamed is kept too. The row holds:
   - the reply and the reasoning, each whole, stored as WTF-8 bytes so a lone surrogate from a split emoji survives, and the reply's hash;
-  - the source the version was taken from (`reply`, or `from_reasoning` under n2);
+  - the source the version was taken from (`reply`, or `from_reasoning` under n2 and n3);
   - the refresh call id (`<attempt>#notes`);
   - the archive cutoff: the highest seq among the messages the refresh rendered;
   - the prompt format and header it was written under;
-  - `dropped`: the non-blank lines the cut left out, or null when the cut never ran (a failed refresh). They are indexed in the text the cut was applied to: the reply stripped, or the reasoning's draft. A line the cut shortened counts.
+  - `dropped`: the non-blank lines the cut left out, or null when the cut never ran (a failed refresh). They are indexed in the text the cut was applied to: the reply stripped, or the reasoning's draft. A line the cut shortened counts. Under n3 they index the reply's own lines only. Carried lines that the cut or the cap leaves out are not listed, since the previous version holds them.
+  - Under n3 the version text is the merged text, and the `notes_version` event counts the carried lines (`carried`). The reply stays whole in this row.
 
   A refresh that got no stream (an HTTP status, a transport error, a timeout before the stream, or `over_budget`) has a version row only.
 - **Provenance never vetoes a version** (D106).

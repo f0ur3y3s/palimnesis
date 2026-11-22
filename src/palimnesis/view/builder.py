@@ -44,7 +44,11 @@ Mechanisms (docs/papers.md):
   current step second and for a length sized to S, and ``fit_notes`` then cuts every
   section to its first lines instead of cutting the text to a prefix. A reply with no
   text whose reasoning holds a draft of the notes is committed from that draft
-  (``notes_from_reasoning``).
+  (``notes_from_reasoning``). Notes format n3 (D121, R68) follows the structured
+  note-taking of the context-engineering cookbook (docs/papers.md), whose notes persist
+  across resets. The adaptation: the model still rewrites its notes, so
+  ``carry_dead_ends`` deterministically carries forward the earlier Dead-ends lines a
+  rewrite leaves out (capped at S/3, earliest kept), and ``fit_notes`` keeps Dead ends whole.
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable
@@ -111,20 +115,32 @@ NOTES_SECTIONS = ("Objective", "Current step and next move", "Requirements and c
                   "Decisions", "Done so far", "Dead ends")
 _SECTION_KEYS = ("Objective", "Current step", "Requirements", "Decisions", "Done so far",
                  "Dead ends")
-NOTES_FORMATS = ("n1", "n2")
+NOTES_FORMATS = ("n1", "n2", "n3")
+SECTIONED_FORMATS = ("n2", "n3")  # D74: section headings, reasoning drafts, per-section cut
+DEAD_ENDS = "Dead ends"
 
 
 def notes_prompt(policy: "ViewPolicy") -> str:
-    """The refresh prompt of ``policy``'s notes format: n1 is D72's ``NOTES_PROMPT``."""
+    """The refresh prompt of ``policy``'s notes format: n1 is D72's ``NOTES_PROMPT``; n3
+    (D121) is n2 with user-stated failures recorded and carried under Dead ends."""
     if policy.notes_format not in NOTES_FORMATS:
         raise ValueError(f"unknown notes format {policy.notes_format!r}")
     if policy.notes_format == "n1":
         return NOTES_PROMPT
     words = max(100, round(policy.notes_tokens * 0.3, -2))
+    if policy.notes_format == "n3":
+        replace_rule = ("they replace any earlier notes, except that you carry forward every "
+                        "earlier Dead ends entry")
+        dead_ends = ("Dead ends (what was tried and failed, and why. Record here, in the "
+                     "user's own words, everything the user said was already tried and "
+                     "failed, and carry forward every earlier Dead ends entry)\n")
+    else:
+        replace_rule = "they replace any earlier notes"
+        dead_ends = "Dead ends (what was tried and failed, and why)\n"
     return (
         "[palimnesis notes request] Older messages of this conversation are about to leave "
         "your view. They stay archived exactly. Rewrite your working notes so that you can "
-        "continue the task without them; they replace any earlier notes. Use these "
+        f"continue the task without them; {replace_rule}. Use these "
         "sections, in this order:\n"
         "Objective\n"
         "Current step and next move\n"
@@ -132,7 +148,7 @@ def notes_prompt(policy: "ViewPolicy") -> str:
         "and formats from documents and specs)\n"
         "Decisions\n"
         "Done so far (files and functions changed, the latest test results)\n"
-        "Dead ends (what was tried and failed, and why)\n"
+        f"{dead_ends}"
         f"Write plain text, at most about {words:.0f} words, as your reply, not in your "
         "reasoning. Do not call tools, and do not continue the task in this reply.")
 
@@ -176,10 +192,57 @@ def notes_from_reasoning(text: str) -> str | None:
     return None
 
 
-def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
+def _norm_line(line: str) -> str:
+    return " ".join(line.split()).casefold()
+
+
+def carry_dead_ends(previous: str, reply: str, fits_carried: Callable[[list[str]], bool]
+                    ) -> tuple[str, list[int | None], int, int]:
+    """Notes format n3's carry (D121): ``reply`` with every Dead-ends line of ``previous``
+    that it lacks (whitespace and case aside) appended at the end of its Dead ends section,
+    whose heading is added at the end when the reply has none.
+
+    The carried lines are the longest prefix, in their earlier order, that
+    ``fits_carried`` accepts: the earliest recorded failure is the last to go. Lines the
+    model wrote are never displaced. Returns (merged text, the reply line index of each
+    merged line or None for a carried line, carried count, count left out by the cap)."""
+    reply_lines = reply.split("\n")
+    identity: list[int | None] = list(range(len(reply_lines)))
+    have = {_norm_line(x) for x in reply_lines}
+    wanted, inside = [], False
+    for line in previous.split("\n") if previous else ():
+        key = _section_key(line)
+        if key:
+            inside = key == DEAD_ENDS
+        elif inside and line.strip() and _norm_line(line) not in have:
+            have.add(_norm_line(line))
+            wanted.append(line)
+    k = len(wanted)
+    while k and not fits_carried(wanted[:k]):
+        k -= 1
+    carried, over = wanted[:k], len(wanted) - k
+    if not carried:
+        return reply, identity, 0, over
+    start = next((i for i, x in enumerate(reply_lines) if _section_key(x) == DEAD_ENDS), None)
+    if start is None:
+        merged = [*reply_lines, DEAD_ENDS, *carried]
+        return "\n".join(merged), [*identity, None, *([None] * k)], k, over
+    end = next((i for i in range(start + 1, len(reply_lines)) if _section_key(reply_lines[i])),
+               len(reply_lines))
+    while end > start + 1 and not reply_lines[end - 1].strip():
+        end -= 1
+    merged = [*reply_lines[:end], *carried, *reply_lines[end:]]
+    origin = [*identity[:end], *([None] * k), *identity[end:]]
+    return "\n".join(merged), origin, k, over
+
+
+def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool,
+              keep: tuple[str, ...] = ()) -> str:
     """``text`` cut so ``fits`` holds (D72, D74). With ``sections`` every section keeps
     its heading and its first k non-blank lines, the largest k that fits; otherwise, or
-    when the headings alone do not fit, the text is cut at a line."""
+    when the headings alone do not fit, the text is cut at a line. Sections named in
+    ``keep`` (n3: Dead ends, D121) stay whole while the others are cut; when that does not
+    fit even at one line per other section, the rule above applies to all."""
     if fits(text):
         return text
     lines = text.split("\n")
@@ -190,11 +253,15 @@ def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
                 parts.append((line, []))
             elif line.strip():
                 parts[-1][1].append(line)
+        whole = {i for i, (head, _) in enumerate(parts) if head and _section_key(head) in keep}
 
         def render(k: int) -> str:
-            return "\n".join(line for head, body in parts
-                             for line in ([head] if head else []) + body[:k])
+            return "\n".join(line for i, (head, body) in enumerate(parts)
+                             for line in ([head] if head else [])
+                             + (body if i in whole else body[:k]))
 
+        if whole and not fits(render(1)):
+            return fit_notes(text, fits, sections=sections)
         if fits(render(1)):  # headings alone are no notes: then cut at a line
             lo, hi = 1, max(len(body) for _, body in parts)
             while lo < hi:  # the most first lines per section that fit (binary search)
@@ -219,11 +286,11 @@ def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool) -> str:
 
 
 def fit_notes_report(text: str, fits: Callable[[str], bool], *,
-                     sections: bool) -> tuple[str, list[int]]:
+                     sections: bool, keep: tuple[str, ...] = ()) -> tuple[str, list[int]]:
     """``fit_notes``'s result and the indices of ``text``'s non-blank lines it left out
     (D105.4): the archive keeps the whole reply, so a cut line stays retrievable. A line
     the cut shortened counts as left out. The rule itself is ``fit_notes``'s, unchanged."""
-    kept = fit_notes(text, fits, sections=sections)
+    kept = fit_notes(text, fits, sections=sections, keep=keep)
     lines = text.split("\n")
     kept_lines = kept.split("\n") if kept else []
     matched, j = set(), 0

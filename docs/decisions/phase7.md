@@ -457,3 +457,19 @@ R68 found that a carry of Dead-ends lines alone misses ho5-t4 and ho5-t13, becau
 2. **The cap keeps the earliest recorded lines** (U2, revised). Past S/3, the *newest* carried lines go to `dropped`, so a turn-1 warning is the last thing to go. Lines the model writes itself are never displaced by the carry.
 3. **The S3 pilot has two candidate arms:** n3 alone, and n3 with D65's pinned instructions. The pilot runs on dev-t6..t10 and retired ho5-t2, t4 and t13. The arm that meets V-n1 and V-n2 with fewer note tokens and no needle early stops becomes the candidate (D123).
 4. **What the S3 pilot checks besides repeats:** whether the model files the warning under Dead ends under the n3 prompt. `notes_audit.py` reports the section of each hit.
+
+## D122: Notes format n3 as built (Phase 8 S2, 2026-11-22)
+
+1. **What it is.** `serve --notes-format n3` (contracts §2 and §17, `tests/test_notes_n3.py`): the n2 prompt, plus the Dead-ends instruction from D121.
+   - `builder.carry_dead_ends` appends every Dead-ends line of the notes in force that the reply leaves out.
+   - `fit_notes(..., keep=("Dead ends",))` keeps that section whole while it cuts the others.
+   - n1 and n2 are byte-for-byte unchanged, and their goldens pass.
+2. **The cap.** Carried lines are capped at S/3 tokens, counted by the slot's counter, so 682 at S = 2,048. The longest prefix of carried lines, in their earlier order, that fits is kept, so the earliest recorded failure goes last. Lines the model wrote are never displaced.
+3. **Provenance.**
+   - `notes_outputs.content` keeps the raw reply. The version text is the merged text.
+   - `dropped` indexes the reply's own lines only. Carried lines that the cut or the cap leaves out are not listed, since the previous version holds them.
+   - The `notes_version` event gains `carried`, a count. No schema change and no migration were needed.
+4. **Fallback.** When Dead ends kept whole does not fit at one line per other section, n2's rule applies to every section, so a very long Dead-ends section can still be cut.
+5. **Not yet the default.** `serve` still defaults to n2. D123 decides after the S3 pilot. `policy_version` names it `+notes{S}n3`.
+6. **Citation.** The builder docstring and `docs/papers.md` add the context-engineering cookbook's structured note-taking, with the carry as the adaptation.
+7. **Tests.** The full suite passed locally (Windows) at this commit: 2,142 passed, 3 skipped. It is run again on Zeus at the S3 run commit (the run-readiness gate, item 1).

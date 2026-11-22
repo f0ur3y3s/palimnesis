@@ -686,6 +686,7 @@ class NotesOutput:
     reasoning: str
     source: str  # "reply" or "from_reasoning" (D74)
     dropped: tuple[int, ...] | None = None  # None: the cut never ran (a failed refresh)
+    carried: int = 0  # n3 (D121): earlier Dead-ends lines carried in; counted, not stored
 
 
 def _wtf8(text: str) -> bytes:
@@ -719,7 +720,8 @@ def record_notes(conn: sqlite3.Connection, plan: Plan, *, base_view_n: int, text
                           hashlib.sha256(content).hexdigest(), output.source,
                           json.dumps(None if output.dropped is None else list(output.dropped))))
             extra = {"call_id": output.call_id, "archive_seq": output.archive_seq,
-                     "cut_lines": None if output.dropped is None else len(output.dropped)}
+                     "cut_lines": None if output.dropped is None else len(output.dropped),
+                     "carried": output.carried}
         if status == "committed" and turns is not None:
             record_state_sources(conn, plan, notes_id, text, turns)
         conn.execute("RELEASE SAVEPOINT provenance")

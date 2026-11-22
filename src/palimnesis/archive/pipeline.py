@@ -63,7 +63,8 @@ from palimnesis.view.budget import BudgetError
 from palimnesis.protocols.assemble import ChatAssembler
 from palimnesis.protocols.sse import ChatStream, SSEParser
 from palimnesis.archive.turns import is_instruction
-from palimnesis.view.builder import fit_notes_report, notes_block, notes_from_reasoning
+from palimnesis.view.builder import (DEAD_ENDS, SECTIONED_FORMATS, carry_dead_ends,
+                                     fit_notes_report, notes_block, notes_from_reasoning)
 from palimnesis.view.engine import EXCERPT_FORMAT, VIEW_FORMAT, ViewEngine
 from palimnesis.archive.store import Store
 
@@ -505,7 +506,7 @@ class ArchiveHandler:
         call = (self.accounts.begin(refresh_plan, self.views.mode, f"{plan.attempt_id}#notes")
                 if self.accounts is not None else None)
         stream, reason, status, outcome = ChatStream(), None, None, "ok"
-        streamed, dropped = False, []
+        streamed, dropped, carried = False, [], 0
         try:
             with anyio.move_on_after(NOTES_REFRESH_S) as window:
                 request = self._request(scope, api_path, headers, refresh_plan.upstream_body)
@@ -540,7 +541,7 @@ class ArchiveHandler:
             if window.cancelled_caught:
                 reason = "timeout"
             written, source = stream.content.strip(), None
-            if (not written and self.views.view_policy.notes_format == "n2"
+            if (not written and self.views.view_policy.notes_format in SECTIONED_FORMATS
                     and (drafted := notes_from_reasoning(stream.reasoning))):
                 written, source = drafted, "from_reasoning"  # D74
             if reason is None:
@@ -549,7 +550,9 @@ class ArchiveHandler:
                           else "empty" if not written else None)
             text = ""
             if not reason:
-                text, dropped = await anyio.to_thread.run_sync(self._fit_notes, written)
+                previous = next(iter(plan.notes.values()))[1] if plan.notes else ""
+                text, dropped, carried = await anyio.to_thread.run_sync(
+                    self._fit_notes, written, previous)
             if reason is None and not text:
                 reason = "too_long"
             outcome = reason or "ok"
@@ -574,7 +577,8 @@ class ArchiveHandler:
             prompt_format=policy.notes_format, header=policy.notes_header,
             content=stream.content, reasoning=stream.reasoning,
             source=source or "reply",
-            dropped=None if reason else tuple(dropped)) if streamed else None
+            dropped=None if reason else tuple(dropped),
+            carried=0 if reason else carried) if streamed else None
         # The request's highest turn, counted here rather than inside the write
         # transaction (D106): turn files the state cites are checked against it.
         turns = _highest_turn(plan.items) if not reason else None
@@ -598,9 +602,11 @@ class ArchiveHandler:
         evicted = tuple(dict.fromkeys((*view.evicted_now, *rebuilt.evicted_now)))
         return replace(rebuilt, moved=True, evicted_now=evicted)
 
-    def _fit_notes(self, text: str) -> tuple[str, list[int]]:
-        """``text`` cut so its rendered block fits the notes slot (D72, D74), and the
-        lines the cut left out (D105.4)."""
+    def _fit_notes(self, text: str, previous: str = "") -> tuple[str, list[int], int]:
+        """``text`` cut so its rendered block fits the notes slot (D72, D74), the lines of
+        ``text`` the cut left out (D105.4), and the lines carried in. Format n3 (D121) first
+        carries the Dead-ends lines of ``previous`` (the notes in force) that ``text``
+        leaves out, at most a third of the slot, then keeps Dead ends whole in the cut."""
         policy = self.views.view_policy
         # The header is counted at a 6-digit version, never below the real one.
         limit = policy.notes_tokens - 8  # the message's own template tokens
@@ -609,7 +615,20 @@ class ArchiveHandler:
         def fits(t: str) -> bool:
             return count(notes_block(999_999, t, policy.notes_header)) <= limit
 
-        return fit_notes_report(text, fits, sections=policy.notes_format == "n2")
+        sections = policy.notes_format in SECTIONED_FORMATS
+        if policy.notes_format != "n3":
+            kept, dropped = fit_notes_report(text, fits, sections=sections)
+            return kept, dropped, 0
+        cap = policy.notes_tokens // 3
+
+        def fits_carried(lines: list[str]) -> bool:
+            return count("\n".join(lines)) <= cap
+
+        merged, origin, carried, _ = carry_dead_ends(previous, text, fits_carried)
+        kept, cut = fit_notes_report(merged, fits, sections=sections, keep=(DEAD_ENDS,))
+        # ``dropped`` indexes the reply's own lines (D105.4): carried lines are already
+        # in the previous version, which the archive keeps.
+        return kept, [origin[i] for i in cut if origin[i] is not None], carried
 
     async def _expired(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
         """Deadline D passed after acceptance; the upstream is already closed."""
