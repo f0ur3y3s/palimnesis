@@ -152,6 +152,7 @@ Seams: P pure · H fake-upstream HTTP · X subprocess · C CLI · E eval · L li
 | S0 | Preconditions: full suite green on Zeus | — | D120 (scope; ho4 and ho5 retired; Zeus only; Linux plan; Update pause extended) |
 | S1 | Diagnose the notes loss on retired ho5: model omission or `fit_notes` cut; counterfactual n3 merge over the recorded replies; added notes tokens | `eval/notes_audit.py` tests on a literal fixture archive (P) | R68; D121 (U1) |
 | S2 | Notes n3 | H: v1 has the line, the v2 reply lacks it, and the next upstream notes block still has it verbatim; P: carried lines survive the cut, the merge dedupes, overflow goes to `dropped`, `policy_version`; a failed refresh keeps the previous version; new n3 golden with n2 goldens unchanged; the event carries counts only | §2 and §17; D122 |
+| S2h | **Headless runner** (user requirement, 2026-11-22): long runs never depend on a Claude Code session or the workstation. The driver runs on Zeus itself against `127.0.0.1:8080`, as a Windows Scheduled Task (runs whether or not anyone is logged on); Strata also starts from a startup task with the `-t1` config. The plan and a per-step state file live in the run directory. After a reboot or a crash, the task resumes at the first unfinished step; an attempt cut off by the host (no `result.json`) is rerun automatically with `--reason host-restart`, which is the D44.7 infrastructure case, and a pair split across host epochs is flagged (D115.6). Any other nonzero exit stops the stream and writes `STOPPED` with the step and error. `run-status` prints progress from the state file over ssh. Every S3, S13 and S14 run uses it. | P: plan and resume logic (the next step, the rerun reason, stop on a real error) on a fake step runner. L: a short run survives closing Claude Code and a forced Zeus reboot mid-step | its own decision entry |
 | S3 | Choose the candidate (dev-t6..t10, retired ho5 traps): `a4-d77` against n3 (plus pins if S1 says so), 2 attempts each on ho5-t2, t4 and t13 | — (L) | R69; D123 flips the default and names `a8` |
 | S4 | Needle instrument: format rule and shape probe | P: format lint; H: the probe sends the evidence and question direct to upstream; P: it uses the frozen scorer and prints counts only | R70 (ho5 validation); D124 |
 | S5 | Streaming idempotent replay (Chat and Messages), no re-run of hidden tools, replay after a restart, partial stream → 409, conflicts, resume unsupported → 400 | H | §5 and §6; D125 (U7) |
@@ -168,7 +169,7 @@ Seams: P pure · H fake-upstream HTTP · X subprocess · C CLI · E eval · L li
 
 **Order:**
 1. S0.
-2. Two parallel tracks: S1 → S2 → S3, and S4 → S12.
+2. Two parallel tracks: S1 → S2 → S2h → S3, and S4 → S12. S2h must pass its reboot test before any long live run.
 3. S5–S10 alongside both. None is model-facing.
 4. S11 after S2 and S5–S9.
 5. S13 once every `src/` slice is merged and S12 is sealed.
