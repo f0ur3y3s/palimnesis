@@ -409,3 +409,14 @@ D115.5 requires a blind review of each disputed trap run before it counts. The S
    - **Notes keep user-stated failures.** Either they are carried verbatim, or they go in a pinned "tried and failed" section that a rewrite cannot drop. This lands as a red fake-upstream test first.
    - **Needle authoring.** Every question ends with a fixed answer-format instruction. A pre-seal probe checks answer shape on the model; it does not score recall.
    - **Attempts.** S11's repeats flipped success in 4 of 10 arm-runs. Phase 8 sizes for more than one attempt per task, or more tasks, and fixes the rule before any run.
+
+## D118: Test expectations brought in line with the D115 unlock, after the held-out runs (2026-11-22)
+
+- **The problem.** Since F (`d77720d`), 4 tests have failed because they assumed the repository's unlock file listed no set. D115.9 unlocked heldout4 and heldout5. The lead ran the full suite before F, not after it, so the failures were first seen in the Zeus run on 2026-11-22: 2,117 passed, 4 failed.
+- **The deviation.** D115.1 allows only `eval/` and `docs/` to change after F. This change touches `tests/` only: `test_phase7_heldout.py`, `test_state_eval.py` and `test_tasks_pi.py`. Every held-out run (R65, R66) had already finished, so none of them is affected.
+- **The change.**
+  - The repository-file refusals are now tested on heldout6, the set that is still locked.
+  - A new test pins the committed unlock file to heldout4 and heldout5 by D115, and checks that heldout6 is still locked.
+  - The lock logic keeps its own coverage, through the temporary unlock roots the tests build.
+  - No code changed.
+- **Where the suite runs.** The user asked that only Zeus be used for now, so the full suite ran on Zeus (Windows) instead of pythia (D76).

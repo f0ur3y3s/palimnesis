@@ -79,7 +79,7 @@ def test_fake_upstream_is_chat_only_on_the_passthrough_arm():
 
 
 def test_run_pi_refuses_before_touching_an_upstream(capsys):
-    a = Namespace(task="ho4-t1", arm=4, config=None, protocol="chat", upstream="http://127.0.0.1:1",
+    a = Namespace(task="ho6-t1", arm=4, config=None, protocol="chat", upstream="http://127.0.0.1:1",
                   pi_keep_recent_tokens=None, expect_n_ctx=32768, input_budget=None)
     assert task_run.run_pi(a) == 2
     assert "D96" in capsys.readouterr().err  # locked: refused by the unlock check

@@ -51,8 +51,17 @@ def test_unseen_sets_refused_without_unlock(tmp_path, set_name, task_id):
     with pytest.raises(heldout.Locked, match="D96"):
         heldout.require_unlocked(set_name, root=root, committed=True)
     assert "D96" in heldout.run_refusal(set_name, CLEAN, root=root, committed=True)
-    # The repository's own unlock file lists nothing yet: every analysis tool refuses,
+    # Seen and retired sets are not unseen sets.
+    for s in ("development", "heldout", "heldout2", "heldout3"):
+        assert heldout.unlock_problem(s, root=root) is None
+    assert task_run.task_refusal("ho3-t1", CLEAN) is None
+
+
+@pytest.mark.parametrize("set_name, task_id", [("heldout6", "ho6-t10")])
+def test_sets_the_repository_still_locks_are_refused_by_every_tool(set_name, task_id):
+    # The repository's own unlock file does not list the set: every analysis tool refuses,
     # before anything of the set is read.
+    assert not heldout.is_unlocked(set_name)
     with pytest.raises(ValueError, match="D96"):
         state_eval.task_module(task_id)
     assert state_eval.main(["nowhere", "--task", task_id]) == 2
@@ -63,10 +72,15 @@ def test_unseen_sets_refused_without_unlock(tmp_path, set_name, task_id):
     a = argparse.Namespace(set=set_name, config=needle.A4_HELDOUT3, questions=None,
                            input_budget=None, resume=False)
     assert any("D96" in p for p in needle_opencode.refusals(a, [Path(f"{task_id}.json")]))
-    # Seen and retired sets are not unseen sets.
-    for s in ("development", "heldout", "heldout2", "heldout3"):
-        assert heldout.unlock_problem(s, root=root) is None
-    assert task_run.task_refusal("ho3-t1", CLEAN) is None
+
+
+def test_repository_unlocks_heldout4_and_heldout5_by_d115_only():
+    # D115.9: the frozen protocol unlocked heldout4 and heldout5; heldout6 stays sealed
+    # for Phase 8 (D117.4).
+    raw = json.loads((ROOT / heldout.UNLOCK_FILE).read_text(encoding="utf-8"))
+    assert raw == {"unlocked": {"heldout4": "D115", "heldout5": "D115"}}
+    assert heldout.is_unlocked("heldout4") and heldout.is_unlocked("heldout5")
+    assert not heldout.is_unlocked("heldout6")
 
 
 def test_unlock_needs_committed_protocol(tmp_path):

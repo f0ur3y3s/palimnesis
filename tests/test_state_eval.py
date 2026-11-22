@@ -52,10 +52,11 @@ def test_rules_and_trap_are_stated_in_the_first_turn(task_id):
     assert not any("already tried" in t for t in task.TURNS[1:])
 
 
-def test_state_tools_refuse_heldout4():
+def test_state_tools_refuse_a_locked_heldout_set():
+    # heldout6 stays locked (D115.9, D117.4); heldout4 and heldout5 were unlocked by D115.
     with pytest.raises(ValueError, match="D96"):
-        state_eval.task_module("ho4-t1")
-    assert state_eval.main(["nowhere", "--task", "ho4-t2"]) == 2
+        state_eval.task_module("ho6-t1")
+    assert state_eval.main(["nowhere", "--task", "ho6-t2"]) == 2
 
 
 FAKE = SimpleNamespace(ID="fake-t1", TRAP_PATTERNS=(r"int\(\s*float\(",))
