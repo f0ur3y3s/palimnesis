@@ -135,3 +135,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D116 | S11 blind trap review: 8 disputed runs (code hit, trap test passed) reviewed blind by a fresh agent from arm-stripped packets; all 8 not repeats; a4-d77 3/20 repeats, trap gate fails; arm 1 3/20 | [phase7.md](phase7.md) |
 | D117 | Phase 7 close-out: Pi run order; trap failure a notes weakness (not a D44.8 defect); needle gate stands as scored (authoring standard at fault); primary inconclusive, ho4/ho5 spent; Phase 8 carry-forward (notes keep failures, needle answer format, more attempts) | [phase7.md](phase7.md) |
 | D118 | Tests updated for the D115 unlock after the held-out runs (4 failures since F, tests/ only; repository-file refusals now on heldout6); suite runs on Zeus for now | [phase7.md](phase7.md) |
+| D119 | Admission FIFO test: perf_counter timing; assert B and C finish after A, not their client-side order (Windows flake, tests/ only) | [phase7.md](phase7.md) |

@@ -420,3 +420,12 @@ D115.5 requires a blind review of each disputed trap run before it counts. The S
   - The lock logic keeps its own coverage, through the temporary unlock roots the tests build.
   - No code changed.
 - **Where the suite runs.** The user asked that only Zeus be used for now, so the full suite ran on Zeus (Windows) instead of pythia (D76).
+
+## D119: A timing test that flaked on Windows (2026-11-22)
+
+- **The flake.** `test_admission_http.py::test_fifo_one_dispatch_across_sessions` failed in 1 of 5 runs on Zeus. Its last assertion required B to finish before C on the client's clock. Two things break that:
+  - `time.monotonic()` ticks about every 15 ms on Windows;
+  - B and C both finish almost at once after A, so thread scheduling decides which client sees its end first.
+- **The change.** It touches `tests/` only, after the held-out runs, under the same deviation as D118.
+  - `Call` now times with `time.perf_counter()`.
+  - The assertion now checks what the proxy guarantees: B and C finish after A, whose slot they waited for. FIFO dispatch stays covered by the existing checks of in-flight count and upstream arrival order.

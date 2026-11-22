@@ -61,17 +61,17 @@ class Call:
         self.headers_at = self.done_at = None
         self.response = self.error = None
         self.body = b""
-        self.t0 = time.monotonic()
+        self.t0 = time.perf_counter()
 
         def run():
             try:
                 with httpx.stream("POST", f"{url}/s/{session}{path}", content=payload,
                                   timeout=timeout) as r:
-                    self.headers_at = time.monotonic() - self.t0
+                    self.headers_at = time.perf_counter() - self.t0
                     self.response = r
                     for piece in r.iter_raw():
                         self.body += piece
-                self.done_at = time.monotonic() - self.t0
+                self.done_at = time.perf_counter() - self.t0
             except Exception as e:  # noqa: BLE001 - surfaced by the test
                 self.error = e
 
@@ -110,7 +110,10 @@ def test_fifo_one_dispatch_across_sessions(tmp_path):
     assert [json.loads(r.body)["messages"][-1]["content"] for r in fake.requests] == [
         "first", "second", "third"]
     assert all(call.response.status_code == 200 for call in (a, b, c))
-    assert a.t0 + a.done_at < b.t0 + b.done_at < c.t0 + c.done_at
+    # B and C finish after A, whose slot they waited for. Their own client-side finish order
+    # is not the proxy's to fix (both are near-instant; thread scheduling decides it, D119):
+    # FIFO dispatch is the arrival order above.
+    assert a.t0 + a.done_at < min(b.t0 + b.done_at, c.t0 + c.done_at)
 
 
 def test_queue_full_429_retry_after(tmp_path):
