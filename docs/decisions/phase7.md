@@ -370,3 +370,25 @@ This entry is the protocol of plan §1.4, fixed before any held-out run. It inhe
       - the chat template hash `12827f24` is the same as pythia's;
       - the engine arguments are unchanged.
     - **Speed at 1.0.** Measured on the same prompt, 3 runs of 1,500 tokens, server-reported: Zeus about 95 tokens/s and pythia about 41. Item 11's rationale holds.
+
+## D116: S11 blind trap review (2026-11-21)
+
+D115.5 requires a blind review of each disputed trap run before it counts. The S11 trap scan left 8 disputed runs: 4 per arm, over ho5-t3, t13, t15, t17 and t18. In every one the scan found a `code` hit while the run's `test_t_*` passed. No run had a failed trap test without a `code` hit.
+
+1. **Reviewer.** The lead had already seen which arm each run came from, so a fresh agent reviewed instead. It got only the packets and was told not to open anything else.
+2. **Packets.** One per run, shuffled with seed 11502. Each held:
+   - the task's `TRAP` and `TRAP_WARNING`;
+   - its `TRAP_PATTERNS`;
+   - the `test_t_*` source and outcome;
+   - the scan hits, without tool names (the arms recover calls differently);
+   - the final task sources, tests excluded.
+   - The packets carried no arm, config, attempt or archive detail. The packet-to-run key was kept apart from the reviewer.
+3. **The question:** does the final source repeat the trap approach in a way that produces the described failure?
+4. **Verdicts:** all 8 are not repeats, each with high confidence.
+   - The `code` hits were: a `key=` on the line after `sorted(`; a pattern inside a docstring; a float conversion used only for output; and a correct use of the trapped expression (for example `- timedelta(days=1)`, then stepping back past the weekend).
+   - The lead spot-checked P2 and P4 against the source before using the verdicts.
+   - The verdicts are recorded in `eval/phase7_trap_reviews_s11.json` (`--trap-reviews`).
+5. **Result.**
+   - `a4-d77` has 3/20 repeats: ho5-t2, ho5-t4 and ho5-t13. In each, the `code` hit and the failed test agree, so none needed review. The trap gate (0) **fails**.
+   - Arm 1 also has 3/20: ho5-t2, ho5-t5 and ho5-t11.
+   - The exploratory per-task comparison gives b = 2, c = 2.

@@ -1,0 +1,50 @@
+{
+ "ho5-t13:a1": {
+  "repeat": false,
+  "packet": "P1",
+  "confidence": "high",
+  "note": "specimenrack/racking.py:24-25 (packet line 94-95) calls sorted() with key=(row letter, int(column)), so it sorts naturally and A10 comes after A2. The regex fired only because the key= sits on the next line. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t3:a4-d77": {
+  "repeat": false,
+  "packet": "P2",
+  "confidence": "high",
+  "note": "soilcard/report.py plot_ph (packet lines 422-431) adds up 10**-ph per plot and returns -log10(ion_sum/count), which is pooling by concentration. The only 'mean(' is in the docstring (line 19). (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t17:a4-d77": {
+  "repeat": false,
+  "packet": "P3",
+  "confidence": "high",
+  "note": "binround/trips.py plan_trips (packet lines 187-200) adds up whole integer grams via Decimal(str(...)). The one float() call is a final display conversion in trip_weights (line 213) and is never used for accumulating or comparing against capacity. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t15:a4-d77": {
+  "repeat": false,
+  "packet": "P4",
+  "confidence": "high",
+  "note": "visitnudge/nudges.py:18-20 (packet lines 414-417) does subtract timedelta(days=1), but then steps back past Saturday and Sunday, so a Monday visit goes in the Friday batch. The described Sunday-batch failure cannot happen. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t15:a1": {
+  "repeat": false,
+  "packet": "P5",
+  "confidence": "high",
+  "note": "visitnudge/nudges.py:35-38 (packet lines 281-284) subtracts one day and then loops back while the date falls on a weekend, so Monday visits land on Friday. This is a correct use of the same expression. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t18:a4-d77": {
+  "repeat": false,
+  "packet": "P6",
+  "confidence": "high",
+  "note": "permitdesk/zones.py:95 (packet line 542) sorts on _collated(label), which casefolds and then maps a/o/u umlauts and ss to ae/oe/ue/ss (lines 459-504). Ährenweg, Ölmühle and Überfahrt therefore sort with A, O and U, not after Zwinger. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t18:a1": {
+  "repeat": false,
+  "packet": "P7",
+  "confidence": "high",
+  "note": "permitdesk/zones.py:50 (packet line 214) sorts on _sheet_key, which casefolds and then expands umlauts to ae/oe/ue/ss (lines 177-185), so this is not a plain lower-case code-point key. The other hit, sorted(DURATIONS) in applications.py:50, only formats an error message. (blind review, S11; arm labels stripped)"
+ },
+ "ho5-t3:a1": {
+  "repeat": false,
+  "packet": "P8",
+  "confidence": "high",
+  "note": "soilcard/report.py _plot_ph_raw (packet lines 399-403) runs sum(values)/len(values) over the 10**-ph concentrations, not over the pH values, and then takes -log10. That is the lab's method; the regex hit is a false positive. (blind review, S11; arm labels stripped)"
+ }
+}
