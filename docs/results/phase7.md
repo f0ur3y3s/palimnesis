@@ -118,3 +118,26 @@
   - every needle question needs a fixed answer-format instruction, plus a pre-seal check of answer shape;
   - more than one attempt per task, or more tasks;
   - ho6 is the only remaining sealed set.
+
+## R68: Phase 8 S1: where the warning left the notes (2026-11-22)
+
+- **What was audited:** `eval/notes_audit.py` over the 20 retired ho5 `a4-d77` archives from S11, at `617ff65`.
+  - The warning is detected by the code it puts in backticks. ho5-t3, t5 and t19 have none, so they can't be judged.
+  - ho5-t2 (`.date()`) and t18 (`sorted()`) use generic fragments, so their results are unreliable. R65's hand trace stands for t2.
+  - That leaves 15 tasks with a usable reading.
+- **Loss mechanism: the model, not the cut.** In the 7 tasks where the notes in force at the trap turn had lost the warning, every loss was an omission by the model's rewrite (`omitted`), not a `fit_notes` cut. The tasks are ho5-t4, t6, t10, t13, t14, t16 and t20.
+  - Only ho5-t6 ever lost it to a cut (at v8), and by the trap turn it was an omission there too.
+  - 3 of the 7 omissions became trap repeats (t4, t13 and, from R65, t2).
+- **Counterfactual: carry Dead ends only (plan §1.1).**
+  - It keeps the warning in 5 of the 7: t6, t10, t14, t16 and t20.
+  - It misses **ho5-t4 and ho5-t13**, two of the three repeats. There the model recorded the warning under Requirements, Decisions or Objective, never under Dead ends.
+  - ho5-t2's hand trace also puts it under Current step and Decisions.
+- **Counterfactual: carry Dead ends, Requirements and Decisions.** It keeps the warning in all 7 but adds 7,900–34,500 characters, far beyond the 2,048-token notes slot.
+- **Size.** The Dead-ends carry alone adds up to 8,143 characters (about 2,000 tokens, an estimate), and the largest replies are already 4,700–7,600 characters.
+  - A cap is needed.
+  - A cap that evicts the oldest lines first would evict a turn-1 warning first.
+- **What it means for U1 (decided in D121):**
+  - The planned Dead-ends carry is necessary but not sufficient.
+  - The prompt must also make the model put user-stated failures under Dead ends.
+  - The cap must keep the earliest recorded lines.
+  - Pinned instructions (D65) remain the alternative arm for the S3 pilot.
