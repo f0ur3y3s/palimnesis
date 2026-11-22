@@ -196,44 +196,118 @@ def _norm_line(line: str) -> str:
     return " ".join(line.split()).casefold()
 
 
-def carry_dead_ends(previous: str, reply: str, fits_carried: Callable[[list[str]], bool]
-                    ) -> tuple[str, list[int | None], int, int]:
-    """Notes format n3's carry (D121): ``reply`` with every Dead-ends line of ``previous``
-    that it lacks (whitespace and case aside) appended at the end of its Dead ends section,
-    whose heading is added at the end when the reply has none.
+_PLACEHOLDERS = {"", "none", "none yet", "none new", "none so far", "nothing", "nothing yet",
+                 "nothing new", "n/a", "na", "-"}
 
-    The carried lines are the longest prefix, in their earlier order, that
-    ``fits_carried`` accepts: the earliest recorded failure is the last to go. Lines the
-    model wrote are never displaced. Returns (merged text, the reply line index of each
-    merged line or None for a carried line, carried count, count left out by the cap)."""
-    reply_lines = reply.split("\n")
-    identity: list[int | None] = list(range(len(reply_lines)))
-    have = {_norm_line(x) for x in reply_lines}
-    wanted, inside = [], False
-    for line in previous.split("\n") if previous else ():
+
+def _carry_key(line: str) -> str:
+    """A Dead-ends line compared for the carry: whitespace, case, a leading bullet and a
+    trailing period aside."""
+    bare = _norm_line(line)
+    bare = re.sub(r"^[-*+•]\s*", "", bare)
+    return bare.rstrip(".").strip()
+
+
+def _dead_ends(text: str) -> list[str]:
+    lines, inside = [], False
+    for line in text.split("\n"):
         key = _section_key(line)
         if key:
             inside = key == DEAD_ENDS
-        elif inside and line.strip() and _norm_line(line) not in have:
-            have.add(_norm_line(line))
-            wanted.append(line)
-    k = len(wanted)
-    while k and not fits_carried(wanted[:k]):
-        k -= 1
-    carried, over = wanted[:k], len(wanted) - k
-    if not carried:
-        return reply, identity, 0, over
+        elif inside and line.strip():
+            lines.append(line)
+    return lines
+
+
+def carry_dead_ends(history: list[str], reply: str, fits_carried: Callable[[list[str]], bool],
+                    fits_merged: Callable[[str], bool] | None = None
+                    ) -> tuple[str, list[int | None], int, int]:
+    """Notes format n3's carry (D121, D123): ``reply`` with every Dead-ends line of the
+    notes in force (``history[-1]``; ``history`` is the branch's committed versions, oldest
+    first) that it lacks, appended at the end of its Dead ends section. The heading is
+    added at the end when the reply has none.
+
+    - A line is present when the reply's Dead ends holds it, after whitespace, case, a
+      leading bullet and a trailing period are set aside. Placeholders ("None", "N/A", "Nothing yet") are never
+      carried.
+    - Carried lines are ordered by age: the version that first recorded them, then their
+      place in the notes in force. The carry keeps the most of them, oldest first, that
+      ``fits_carried`` accepts and with which the merged text still ``fits_merged``: the
+      earliest recorded failure goes last, and the carry never makes the cut drop a line
+      the model wrote in Dead ends.
+    - A reply with CRLF line ends gets CRLF on the lines added.
+
+    Returns (merged text, the reply line index of each merged line or None for an added
+    line, carried count, count left out)."""
+    reply_lines = reply.split("\n")
+    identity: list[int | None] = list(range(len(reply_lines)))
+    # Present means present in the reply's Dead ends: a warning moved to a section the cut
+    # trims is carried back (cache audit of eee9146).
+    have = {_carry_key(x) for x in _dead_ends(reply)}
+    first: dict[str, int] = {}
+    for v, text in enumerate(history):
+        for line in _dead_ends(text):
+            first.setdefault(_carry_key(line), v)
+    wanted, seen = [], set()
+    for pos, line in enumerate(_dead_ends(history[-1]) if history else ()):
+        key = _carry_key(line)
+        if key in _PLACEHOLDERS or key in have or key in seen:
+            continue
+        seen.add(key)
+        wanted.append((first.get(key, len(history)), pos, line.rstrip("\r")))
+    wanted = [line for *_, line in sorted(wanted)]
+    crlf = any(x.endswith("\r") for x in reply_lines)
     start = next((i for i, x in enumerate(reply_lines) if _section_key(x) == DEAD_ENDS), None)
-    if start is None:
-        merged = [*reply_lines, DEAD_ENDS, *carried]
-        return "\n".join(merged), [*identity, None, *([None] * k)], k, over
-    end = next((i for i in range(start + 1, len(reply_lines)) if _section_key(reply_lines[i])),
-               len(reply_lines))
-    while end > start + 1 and not reply_lines[end - 1].strip():
-        end -= 1
-    merged = [*reply_lines[:end], *carried, *reply_lines[end:]]
-    origin = [*identity[:end], *([None] * k), *identity[end:]]
-    return "\n".join(merged), origin, k, over
+
+    def merge(k: int) -> tuple[list[str], list[int | None]]:
+        added = wanted[:k] if start is not None else [DEAD_ENDS, *wanted[:k]]
+        if start is None:
+            at = len(reply_lines)
+        else:
+            at = next((i for i in range(start + 1, len(reply_lines))
+                       if _section_key(reply_lines[i])), len(reply_lines))
+            while at > start + 1 and not reply_lines[at - 1].strip():
+                at -= 1
+        if crlf:  # every added line but one that ends the text gets the reply's CR
+            last = at == len(reply_lines)
+            added = [x + "\r" if not (last and j == len(added) - 1) else x
+                     for j, x in enumerate(added)]
+            if at and not reply_lines[at - 1].endswith("\r"):
+                head = [*reply_lines[:at - 1], reply_lines[at - 1] + "\r"]
+            else:
+                head = reply_lines[:at]
+        else:
+            head = reply_lines[:at]
+        return ([*head, *added, *reply_lines[at:]],
+                [*identity[:at], *([None] * len(added)), *identity[at:]])
+
+    k = len(wanted)
+    while k and not (fits_carried(wanted[:k])
+                     and (fits_merged is None or fits_merged("\n".join(merge(k)[0])))):
+        k -= 1
+    if not k:
+        return reply, identity, 0, len(wanted)
+    lines, origin = merge(k)
+    return "\n".join(lines), origin, k, len(wanted) - k
+
+
+def fits_keeping(text: str, fits: Callable[[str], bool], *, keep: tuple[str, ...]) -> bool:
+    """Whether ``fit_notes(text, fits, sections=True, keep=keep)`` can keep the ``keep``
+    sections whole: the text fits, or it does at one first line per other section."""
+    if fits(text):
+        return True
+    lines = text.split("\n")
+    parts: list[tuple[str | None, list[str]]] = [(None, [])]
+    for line in lines:
+        if _section_key(line):
+            parts.append((line, []))
+        elif line.strip():
+            parts[-1][1].append(line)
+    if len(parts) == 1:
+        return False
+    return fits("\n".join(line for head, body in parts
+                          for line in ([head] if head else [])
+                          + (body if head and _section_key(head) in keep else body[:1])))
 
 
 def fit_notes(text: str, fits: Callable[[str], bool], *, sections: bool,

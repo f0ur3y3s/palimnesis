@@ -673,6 +673,14 @@ def notes_for(conn: sqlite3.Connection, notes_id: str | None) -> dict:
     return {notes_id: (row[0], row[1])} if row else {}
 
 
+def notes_history(conn: sqlite3.Connection, branch_id: str, upto_n: int) -> list[str]:
+    """The branch's committed notes texts up to version ``upto_n``, oldest first (n3's
+    carry orders carried lines by the version that first recorded them, D123)."""
+    return [text for (text,) in conn.execute(
+        "SELECT text FROM notes_versions WHERE branch_id = ? AND status = 'committed'"
+        " AND n <= ? ORDER BY n", (branch_id, upto_n))]
+
+
 @dataclass(frozen=True)
 class NotesOutput:
     """What a notes refresh streamed and how it was asked (D105.4): kept whole, so the
@@ -687,6 +695,7 @@ class NotesOutput:
     source: str  # "reply" or "from_reasoning" (D74)
     dropped: tuple[int, ...] | None = None  # None: the cut never ran (a failed refresh)
     carried: int = 0  # n3 (D121): earlier Dead-ends lines carried in; counted, not stored
+    carry_left_out: int = 0  # n3 (D123): lines the carry left out (the cap or the fit)
 
 
 def _wtf8(text: str) -> bytes:
@@ -721,7 +730,7 @@ def record_notes(conn: sqlite3.Connection, plan: Plan, *, base_view_n: int, text
                           json.dumps(None if output.dropped is None else list(output.dropped))))
             extra = {"call_id": output.call_id, "archive_seq": output.archive_seq,
                      "cut_lines": None if output.dropped is None else len(output.dropped),
-                     "carried": output.carried}
+                     "carried": output.carried, "carry_left_out": output.carry_left_out}
         if status == "committed" and turns is not None:
             record_state_sources(conn, plan, notes_id, text, turns)
         conn.execute("RELEASE SAVEPOINT provenance")

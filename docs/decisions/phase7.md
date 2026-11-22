@@ -473,3 +473,23 @@ R68 found that a carry of Dead-ends lines alone misses ho5-t4 and ho5-t13, becau
 5. **Not yet the default.** `serve` still defaults to n2. D123 decides after the S3 pilot. `policy_version` names it `+notes{S}n3`.
 6. **Citation.** The builder docstring and `docs/papers.md` add the context-engineering cookbook's structured note-taking, with the carry as the adaptation.
 7. **Tests.** The full suite passed locally (Windows) at this commit: 2,142 passed, 3 skipped. It is run again on Zeus at the S3 run commit (the run-readiness gate, item 1).
+
+## D123: n3 fixes from the S2 reviews (2026-11-22)
+
+Two reviews of `eee9146` (protocol review and cache audit; reviewers report, never edit). The cache audit found no unexplained prefix change, and n1 and n2 are byte-identical apart from the new event counts. The protocol review found the following, all fixed test-first in `tests/test_notes_n3.py`:
+
+1. **High: past v2, the cap dropped the oldest failure first.**
+   - **Why:** the carry appends old lines after the model's new ones, so from the second carry on, text order no longer follows age. A cap that kept the first lines in text order could keep a newer line and drop the turn-1 warning.
+   - **Fix:** `carry_dead_ends` now takes the branch's committed versions (`ledger.notes_history`) and orders carried lines by the version that first recorded them. It keeps the oldest.
+   - **Test:** a three-version chain where the cap fits one line.
+2. **Medium: carried lines could make the cut drop the model's own Dead-ends lines.** The carry now keeps only as many lines as still let the cut keep Dead ends whole (`builder.fits_keeping`). Other sections may keep fewer first lines; the contract now says so.
+3. **Low:**
+   - **A lost carry was invisible.** The `notes_version` event gains `carry_left_out`, a count.
+   - **Placeholders.** Lines like "None new" or "N/A" are not carried.
+   - **Bullets.** A leading bullet and a trailing period no longer stop a match.
+   - **Line endings.** A CRLF reply keeps CRLF on the added lines.
+   - **CLI help.** It names n3.
+4. **From the cache audit:** "present" now means present in the reply's own Dead ends section. A warning the model moved to a section the cut trims is carried back. An n3 session now has a permanent `--explain` test (0 unexplained, with `state_refresh` and `state_commit` present), plus a committed, failed, committed chain through the proxy.
+5. **Record corrections.**
+   - D121.2 said lines past the cap "go to `dropped`". As built (D122.3, contracts §17), `dropped` lists the reply's own lines only.
+   - The decision numbers the Phase 8 plan had reserved from D123 move up by one: the S3 candidate decision is now D124.

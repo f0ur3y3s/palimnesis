@@ -66,14 +66,15 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
       - The view's `policy_version` ends `+notes{S}n2`.
     - **Format n3** (D121, `--notes-format n3`): n2, with three changes so that a failure the user reported, once recorded, is not lost on a rewrite.
       - **The prompt.** Its Dead ends section asks the model to record there, in the user's own words, everything the user said was already tried and failed, and to carry forward every earlier Dead ends entry. Its "they replace any earlier notes" clause makes the same exception.
-      - **The carry.** Before the cut, every non-blank Dead-ends line of the notes version in force that the reply lacks is appended at the end of the reply's Dead ends section.
-        - A line counts as present when it matches after normalizing whitespace and case.
-        - When the reply has no Dead ends heading, one is added at the end.
-        - The carried lines are capped at S/3 tokens. Past the cap, the newest carried lines are left out, so the earliest recorded failure goes last. Lines the model wrote are never displaced.
+      - **The carry** (D121, D123). Before the cut, every non-blank Dead-ends line of the notes version in force that the reply's own Dead ends section lacks is appended at the end of that section.
+        - A line counts as present when it matches after whitespace, case, a leading bullet (`-`, `*`, `+`, `•`) and a trailing period are set aside. A line the model moved to another section is carried back.
+        - Placeholders ("None", "None yet", "None new", "Nothing yet", "N/A" and the like) are never carried.
+        - When the reply has no Dead ends heading, one is added at the end. A reply with CRLF line ends gets CRLF on the lines added.
+        - **Order and cap.** Carried lines are ordered by age: the committed version of the branch that first recorded them, then their place in the notes in force. The carry keeps the most of them, oldest first, within S/3 tokens and while the merged text still lets the cut keep Dead ends whole. So the earliest recorded failure goes last, and a carried line never makes the cut drop a Dead-ends line the model wrote. Other sections may keep fewer first lines because of the carry.
         - With no notes in force, the reply is unchanged.
-      - **The cut.** Dead ends is kept whole while the other sections are cut to k first lines, as in n2. When that does not fit even at k = 1, n2's rule applies to every section.
+      - **The cut.** Dead ends is kept whole while the other sections are cut to k first lines, as in n2. When that does not fit even at k = 1 (only when the reply's own Dead ends is that long), n2's rule applies to every section.
       - Reasoning drafts are taken as in n2.
-      - The view's `policy_version` ends `+notes{S}n3`.
+      - The view's `policy_version` ends `+notes{S}n3`, followed by the header when it is not h1 (`+notes{S}n3h2` under the default header).
     - **Header h2** (D75, `--notes-header h2`; the default since D78, h1 with `--notes-header h1`): the block's header ends "the user's messages win. When you quote a value from these notes, write it out in full, exactly as recorded". Fitting to S counts the header in use. An unknown header is refused at startup. `policy_version` adds `h2` after the format (`+notes{S}h2`, `+notes{S}n2h2`).
     - The builder itself makes no upstream calls.
 
@@ -319,7 +320,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - the archive cutoff: the highest seq among the messages the refresh rendered;
   - the prompt format and header it was written under;
   - `dropped`: the non-blank lines the cut left out, or null when the cut never ran (a failed refresh). They are indexed in the text the cut was applied to: the reply stripped, or the reasoning's draft. A line the cut shortened counts. Under n3 they index the reply's own lines only. Carried lines that the cut or the cap leaves out are not listed, since the previous version holds them.
-  - Under n3 the version text is the merged text, and the `notes_version` event counts the carried lines (`carried`). The reply stays whole in this row.
+  - Under n3 the version text is the merged text, and the `notes_version` event counts the lines carried (`carried`) and the lines the carry left out (`carry_left_out`). n1 and n2 events carry both as 0. The reply stays whole in this row.
 
   A refresh that got no stream (an HTTP status, a transport error, a timeout before the stream, or `over_budget`) has a version row only.
 - **Provenance never vetoes a version** (D106).

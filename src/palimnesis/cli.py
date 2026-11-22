@@ -73,7 +73,7 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
                        help="working notes of up to this many tokens, refreshed by one "
                             "upstream call at each collapse (D72); 0 is off (default 2048, D78)")
     serve.add_argument("--notes-format", choices=["n1", "n2", "n3"], default="n2",
-                       help="working-notes format: n2 by section (D74, the default), or n1")
+                       help="working-notes format: n2 by section (D74, the default), n1, or n3 (n2 that carries Dead ends forward, D121)")
     serve.add_argument("--notes-header", choices=["h1", "h2"], default="h2",
                        help="working-notes header: h2 asking for values in full (D75, the "
                             "default), or h1")
