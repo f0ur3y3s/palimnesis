@@ -60,12 +60,16 @@ def _sha(obj) -> str:
 
 
 def write_plan(d: Path, steps: list[dict], *, commit: str, config: str,
-               server: dict | None = None) -> dict:
+               server: dict | None = None, env: dict | None = None) -> dict:
     """Write ``plan.json`` once; a plan already there is never replaced. ``server`` is the
-    upstream every step needs (``server_problem``), checked before each step."""
+    upstream every step needs (``server_problem``), checked before each step. ``env`` is
+    added to every step's environment (for example ``OPENCODE_EXE`` on a host whose
+    OpenCode is not where ``eval/oc_harness.py`` looks)."""
     d.mkdir(parents=True, exist_ok=True)
     path = d / "plan.json"
     body = {"commit": commit, "config": config, "steps": steps, "server": server}
+    if env:
+        body["env"] = env
     plan = {**body, "sha": _sha(body)}
     with open(path, "x", encoding="utf-8") as f:  # FileExistsError if a plan exists
         json.dump(plan, f, indent=1)
@@ -75,6 +79,8 @@ def write_plan(d: Path, steps: list[dict], *, commit: str, config: str,
 def read_plan(d: Path) -> dict:
     plan = json.loads((d / "plan.json").read_text(encoding="utf-8"))
     body = {k: plan.get(k) for k in ("commit", "config", "steps", "server")}
+    if plan.get("env"):
+        body["env"] = plan["env"]
     if plan.get("sha") != _sha(body):
         raise ValueError("plan.json does not match its own SHA-256")
     return plan
@@ -204,13 +210,14 @@ def wait_for_server(want: dict, probe, *, poll_s: float = 30, wait_s: float = 36
         time.sleep(poll_s)
 
 
-def _default_runner(log: Path) -> Callable[[list[str]], int]:
+def _default_runner(log: Path, extra_env: dict | None = None) -> Callable[[list[str]], int]:
     def run(argv: list[str]) -> int:
         with open(log, "a", encoding="utf-8") as out:
             out.write(f"\n=== {time.strftime('%Y-%m-%dT%H:%M:%S')} {' '.join(argv)}\n")
             out.flush()
             return subprocess.call(argv, cwd=ROOT, stdout=out, stderr=subprocess.STDOUT,
-                                    env={**os.environ, "PYTHONUNBUFFERED": "1"})
+                                    env={**os.environ, "PYTHONUNBUFFERED": "1",
+                                         **(extra_env or {})})
     return run
 
 
@@ -259,7 +266,7 @@ def run(d: Path, runner: Callable[[list[str]], int] | None = None, *,
     if problem := _ready_problem(d, plan):
         print(f"refused: {problem}", file=sys.stderr)
         return 2
-    runner = runner or _default_runner(d / "runner.log")
+    runner = runner or _default_runner(d / "runner.log", plan.get("env"))
     with _Lock(d / "runner.lock"):
         while True:
             try:
@@ -308,7 +315,7 @@ def status(d: Path) -> dict:
 
 
 def _task_name(d: Path) -> str:
-    return f"{TASK_PREFIX} {d.resolve().name}"
+    return f"{TASK_PREFIX} {d.resolve().parent.name} {d.resolve().name}"
 
 
 def install_script(d: Path, python: str) -> str:
@@ -343,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.command == "plan":
         spec = json.loads(a.spec.read_text(encoding="utf-8-sig"))
         plan = write_plan(a.run_dir, spec["steps"], commit=a.commit, config=spec["config"],
-                          server=spec.get("server"))
+                          server=spec.get("server"), env=spec.get("env"))
         print(f"wrote {a.run_dir / 'plan.json'}: {len(plan['steps'])} steps, sha {plan['sha'][:12]}")
         for i, s in enumerate(plan["steps"], 1):
             print(f"  {i}: {s['name']}")

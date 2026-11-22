@@ -244,3 +244,16 @@ def test_the_plan_command_writes_a_plan_from_a_spec_file(tmp_path):
     plan = headless.read_plan(d)
     assert (plan["commit"], plan["config"], plan["steps"], plan["server"]) == (
         "abc1234", "cfg1", STEPS, SERVER)
+
+
+def test_plan_env_reaches_the_steps_and_is_part_of_the_plan(tmp_path):
+    d = tmp_path / "run"
+    step = {"name": "env", "argv": [sys.executable, "-c",
+                                    "import os; print('X=' + os.environ['PALIMNESIS_X'])"]}
+    plan = headless.write_plan(d, [step], commit="abc1234", config="cfg1",
+                               env={"PALIMNESIS_X": "seen"})
+    other = headless.write_plan(tmp_path / "other", [step], commit="abc1234", config="cfg1")
+    assert plan["sha"] != other["sha"] and headless.read_plan(d)["env"] == {"PALIMNESIS_X": "seen"}
+    _ready(d)
+    assert headless.run(d) == 0
+    assert "X=seen" in (d / "runner.log").read_text(encoding="utf-8")
