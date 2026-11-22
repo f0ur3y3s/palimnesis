@@ -233,3 +233,14 @@ def test_after_a_server_stop_a_recorded_retry_resumes_the_same_step(tmp_path):
     fake = Fake([0])
     assert headless.run(d, runner=fake, probe=lambda url: PROPS, poll_s=0) == 0
     assert fake.ran == [STEPS[0]["argv"]]  # never started, so no reason is passed
+
+
+def test_the_plan_command_writes_a_plan_from_a_spec_file(tmp_path):
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps({"config": "cfg1", "server": SERVER, "steps": STEPS}),
+                    encoding="utf-8")
+    d = tmp_path / "run"
+    assert headless.main(["plan", str(d), "--spec", str(spec), "--commit", "abc1234"]) == 0
+    plan = headless.read_plan(d)
+    assert (plan["commit"], plan["config"], plan["steps"], plan["server"]) == (
+        "abc1234", "cfg1", STEPS, SERVER)

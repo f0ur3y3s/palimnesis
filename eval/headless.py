@@ -1,5 +1,6 @@
 """Phase 8 S2h: headless runs that need no Claude Code session and resume by themselves.
 
+    python eval/headless.py plan RUN_DIR --spec SPEC.json --commit SHA   # once
     python eval/headless.py run RUN_DIR        # what the scheduled task runs
     python eval/headless.py status RUN_DIR     # progress, from the state file
     python eval/headless.py install RUN_DIR    # register the Windows scheduled task (Zeus)
@@ -330,11 +331,23 @@ def install_script(d: Path, python: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["run", "status", "install", "uninstall", "rerun", "skip"])
+    p.add_argument("command",
+                   choices=["plan", "run", "status", "install", "uninstall", "rerun", "skip"])
     p.add_argument("run_dir", type=Path)
     p.add_argument("--step", type=int, help="rerun/skip: the stopped step (1-based)")
     p.add_argument("--reason", default="", help="rerun/skip: why (recorded)")
+    p.add_argument("--spec", type=Path,
+                   help="plan: JSON with config, server and steps [{name, argv}]")
+    p.add_argument("--commit", help="plan: the commit the plan runs at")
     a = p.parse_args(argv)
+    if a.command == "plan":
+        spec = json.loads(a.spec.read_text(encoding="utf-8-sig"))
+        plan = write_plan(a.run_dir, spec["steps"], commit=a.commit, config=spec["config"],
+                          server=spec.get("server"))
+        print(f"wrote {a.run_dir / 'plan.json'}: {len(plan['steps'])} steps, sha {plan['sha'][:12]}")
+        for i, s in enumerate(plan["steps"], 1):
+            print(f"  {i}: {s['name']}")
+        return 0
     if a.command in ("rerun", "skip"):
         decide(a.run_dir, step=a.step, action=a.command, reason=a.reason)
         print(f"recorded {a.command} of step {a.step}; record it in a decision entry too")
