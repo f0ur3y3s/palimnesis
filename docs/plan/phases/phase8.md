@@ -202,6 +202,8 @@ Seams: P pure · H fake-upstream HTTP · X subprocess · C CLI · E eval · L li
 
 ## 6. Open decisions (the user's)
 
+Decided by the user on 2026-11-22 (D120): **U1** (a), **U3** D, **U11** pending, **U12** as recommended. The rest follow the recommendation unless the user changes them.
+
 | # | Decision | Recommendation |
 |---|---|---|
 | U1 | Notes fix: (a) n3 prompt plus a deterministic carry; (b) prompt only; (c) verbatim pinned instructions on by default | (a). Add (c) as a pilot arm only if S1 finds a v1 that missed the warning |

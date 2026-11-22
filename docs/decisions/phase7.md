@@ -429,3 +429,20 @@ D115.5 requires a blind review of each disputed trap run before it counts. The S
 - **The change.** It touches `tests/` only, after the held-out runs, under the same deviation as D118.
   - `Call` now times with `time.perf_counter()`.
   - The assertion now checks what the proxy guarantees: B and C finish after A, whose slot they waited for. FIFO dispatch stays covered by the existing checks of in-flight count and upstream arrival order.
+
+## D120: Phase 8 scope (2026-11-22)
+
+The plan is `docs/plan/phases/phase8.md`. Its §6 lists the open decisions.
+
+1. **User decisions:**
+   - **U1, the notes fix:** n3, meaning the prompt plus a deterministic carry of earlier Dead-ends lines.
+   - **U3, size:** option D, ho6 plus a new 20-task heldout7, 3 attempts per arm, with a majority-of-3 task outcome and 300 new needles.
+   - **U11, Linux:** POSIX-only tests and the Linux clean-install check stay **pending** while pythia is unavailable, so Linux is not claimed until they run.
+   - **U12, release claims:**
+     - OpenCode gets the quality claim.
+     - Pi and OMP get protocol and lifecycle claims only.
+     - Hidden tools stay experimental, Claude Code stays backlogged, and Phases 5 and 6 stay skipped.
+2. **Run as the plan recommends, unless the user changes them:** U2, U4–U10 and U13. Each is fixed in the decision entry of its slice.
+3. **ho4 and ho5 are retired to development data** (D117.4). ho6 and heldout7 are confirmatory only.
+4. **Hosts:** Zeus only, until the user lifts it. The Windows Update pause on Zeus ends 2026-12-20 and must be extended before S14.
+5. **S0 is met.** The full suite passed on Zeus at `45a92e2` (2,123 passed, 3 skipped). Since then only docs have changed.
