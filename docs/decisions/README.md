@@ -137,3 +137,4 @@ Material choices, their reasons and rejected alternatives, newest last. New entr
 | D118 | Tests updated for the D115 unlock after the held-out runs (4 failures since F, tests/ only; repository-file refusals now on heldout6); suite runs on Zeus for now | [phase7.md](phase7.md) |
 | D119 | Admission FIFO test: perf_counter timing; assert B and C finish after A, not their client-side order (Windows flake, tests/ only) | [phase7.md](phase7.md) |
 | D120 | Phase 8 scope: n3 notes (prompt + carry), option D (ho6 + 20-task ho7, 3 attempts, majority; 300 new needles), Linux pending, OpenCode quality claim with Pi/OMP protocol only; ho4/ho5 retired; Zeus only; S0 met | [phase7.md](phase7.md) |
+| D121 | Notes fix after S1: n3 prompt (user-stated failures go under Dead ends, quoted) plus a carry capped to keep the earliest lines; S3 pilots n3 alone against n3 with pinned instructions | [phase7.md](phase7.md) |

@@ -446,3 +446,14 @@ The plan is `docs/plan/phases/phase8.md`. Its §6 lists the open decisions.
 3. **ho4 and ho5 are retired to development data** (D117.4). ho6 and heldout7 are confirmatory only.
 4. **Hosts:** Zeus only, until the user lifts it. The Windows Update pause on Zeus ends 2026-12-20 and must be extended before S14.
 5. **S0 is met.** The full suite passed on Zeus at `45a92e2` (2,123 passed, 3 skipped). Since then only docs have changed.
+
+## D121: The notes fix after S1 (2026-11-22)
+
+R68 found that a carry of Dead-ends lines alone misses ho5-t4 and ho5-t13, because the model recorded the warning under other sections. ho5-t2's hand trace (R65) shows the same, so the carry alone would likely have prevented none of the 3 repeats. The user chose:
+
+1. **n3 = prompt plus capped carry.**
+   - The n3 prompt tells the model to record, under Dead ends, everything the user said was already tried and failed, quoting the user's words, and to carry forward every earlier Dead-ends entry.
+   - The deterministic carry (plan §1.1) appends every previous Dead-ends line the reply leaves out.
+2. **The cap keeps the earliest recorded lines** (U2, revised). Past S/3, the *newest* carried lines go to `dropped`, so a turn-1 warning is the last thing to go. Lines the model writes itself are never displaced by the carry.
+3. **The S3 pilot has two candidate arms:** n3 alone, and n3 with D65's pinned instructions. The pilot runs on dev-t6..t10 and retired ho5-t2, t4 and t13. The arm that meets V-n1 and V-n2 with fewer note tokens and no needle early stops becomes the candidate (D123).
+4. **What the S3 pilot checks besides repeats:** whether the model files the warning under Dead ends under the n3 prompt. `notes_audit.py` reports the section of each hit.
