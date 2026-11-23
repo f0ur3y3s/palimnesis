@@ -39,9 +39,14 @@ def test_development_tasks_run_both_arms():
     assert pi_task.refusals("development", 1, None, "messages", "http://u") == []
 
 
-@pytest.mark.parametrize("task_set", ["heldout", "heldout5", "heldout6"])
+@pytest.mark.parametrize("task_set", ["heldout", "heldout6"])
 def test_held_out_sets_other_than_ho4_are_refused(task_set):
     assert pi_task.refusals(task_set, 4, None, "chat", "http://u")
+
+
+def test_retired_ho5_runs_like_development_data():
+    """D125.1: heldout5 is retired (D117.4), so Pi runs it as it runs heldout2 and 3."""
+    assert pi_task.refusals("heldout5", 4, None, "chat", "http://u") == []
 
 
 def test_ho4_runs_on_chat_only_and_never_against_the_fake():

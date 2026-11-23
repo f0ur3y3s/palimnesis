@@ -137,7 +137,7 @@ def test_heldout5_shape_and_hashes(tmp_path, capsys):
     assert needle.SETS["heldout5"] == ("heldout5", "ho5")
     assert needle.SETS["heldout6"] == ("heldout6", "ho6")
     assert {"heldout5", "heldout6"} <= set(needle.HELDOUT_SETS)
-    assert not {"heldout4", "heldout5", "heldout6"} & set(needle.RETIRED_SETS)
+    assert not {"heldout4", "heldout6"} & set(needle.RETIRED_SETS)  # heldout5 retired (D117.4)
     # Task registries name the ids; the modules need not exist yet.
     assert [t for t in task_run.TASKS if t.startswith("ho5-")] == [f"ho5-t{i}" for i in range(1, 21)]
     assert [t for t in task_run.TASKS if t.startswith("ho6-")] == [f"ho6-t{i}" for i in range(1, 11)]

@@ -510,3 +510,39 @@ Two reviews of `eee9146` (protocol review and cache audit; reviewers report, nev
    - The four tracebacks in `runner.log` all precede the rerun header. They are the proxy losing its upstream as the host went down.
 4. **Evidence.** `captures/phase8-s2h-5e4eca2/survival` on Zeus is the survival evidence for gate item 7. S2h's remaining gate evidence (rehearsal, report and so on) comes with S3.
 5. **Numbering.** The decision numbers the Phase 8 plan had reserved from D124 move up by one again: the S3 candidate decision is now D125.
+
+## D125: S3 pilot, choosing the notes candidate (protocol fixed before the run, 2026-11-22)
+
+The plan's S3 row and D121.3 named the arms and tasks but did not define V-n1 or V-n2. They are defined here, before any pilot run. The outcome is appended to this entry after the run, and it names the candidate (`a8-…`) or says there is none.
+
+1. **ho5 is retired in code too.** D117.4 retired ho5 to development data, but `needle.RETIRED_SETS` still listed heldout2 and heldout3 only, so `run.py` would have refused a new configuration on ho5. heldout5 is added. heldout4 is retired as well but is never opened, so it stays out of the list. heldout6 stays sealed. Tested in `tests/test_phase8_pilot.py`.
+2. **Arms** (`eval/needle.py`):
+   - `a4-d77` is the control, with notes n2.
+   - `a4-n3` is `a4-d77` with `notes_format="n3"`.
+   - `a4-n3p` adds D65's pinned instructions (`pin_tokens=4096`).
+   - Pilot labels stay `a4-…`. The `a8` name is given only to the winner, when the default flips.
+3. **Schedule** (`eval/pilot_s3.py`, seeded):
+   - Round 1 runs dev-t6..t10 and ho5-t2, t4 and t13 once per arm.
+   - Round 2 runs ho5-t2, t4 and t13 once more per arm.
+   - That is 33 task attempts. Each round has its own run directory, so every attempt is designated.
+   - Within a round the task order is seeded, and each task's three arms run back to back in seeded order.
+   - The control is rerun in the same pilot rather than borrowed from S11, so all three arms share a commit, a host and a period.
+   - No needle runs: D121.3's "no needle early stops" is not part of S3. n3's needle behavior is measured by the S13 rehearsal and S14.
+4. **Measures**, per attempt:
+   - the trap verdict (`report.trap_verdict`; disputed attempts are settled only by a blind review, as in D116);
+   - task success;
+   - early constraints held;
+   - the state of the notes in force at the trap turn (`notes_audit.audit_run`);
+   - the mean length in characters of the committed notes versions.
+5. **Selection:**
+   - **V-n1, retention:** the warning is `kept` at the trap turn in all four ho5-t4 and t13 attempts. ho5-t2's detector is unreliable (R68), so its attempts are read by hand and reported, not counted.
+   - **V-n2, no repeat:** 0 repeats over the arm's 11 attempts, with none disputed or unscored. S14's trap gate allows 0 repeats over three attempts per task, so a pilot repeat predicts a gate failure.
+   - **No regression:** successes and constraints held are each at least the control's, in this pilot, minus 1.
+   - Of two eligible arms, the smaller mean notes length wins; on a tie, `a4-n3`.
+   - With no eligible arm, the default does not flip and the user decides.
+6. **Estimated duration**, from measured `a4-d77` times on Zeus (R64, S11):
+   - dev-t6..t10: 7.1 + 17.6 + 7.1 + 43.9 + 6.1 = 81.8 min;
+   - ho5-t2, t4 and t13: about 21 (the mean of 14.5 and 27.7) + 13.6 + 7.1 = 41.7 min per round;
+   - about 165 min per arm, 8.3 h for three arms;
+   - readiness uses 12 h, allowing for n3's longer refreshes and server waits.
+7. **Gate.** The full readiness gate (items 1–9) runs at the pilot commit. The rehearsal (item 5) is dev-t6 on each arm through the headless runner, reported with `pilot_s3.py report --tasks dev-t6`. The survival evidence (item 7) is D124's.

@@ -96,7 +96,10 @@ SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2":
 HELDOUT_SETS = ("heldout", "heldout2", "heldout3", "heldout4", "heldout5", "heldout6")
 # Judged held-out sets, now development data (D69): they take any configuration, and keep
 # the other held-out rules (real OpenCode, every question, a clean tree, no resume).
-RETIRED_SETS = ("heldout2", "heldout3")  # judged, now development data (D69, D105.10)
+# Judged held-out sets, now development data: heldout2 and heldout3 (D69, D105.10) and
+# heldout5 (D117.4). heldout4 is retired too but is never opened, so it is left out;
+# heldout6 stays sealed.
+RETIRED_SETS = ("heldout2", "heldout3", "heldout5")
 INPUT_BUDGET = 24_320
 MAX_TOOLS = 8
 MAX_ROUNDS = 12
@@ -140,6 +143,10 @@ CONFIGS["a4-trn2h"] = dict(CONFIGS["a4-trn2"], notes_header="h2")  # notes heade
 # D77: the arm frozen for the heldout3 gate, a4-trn2h under its held-out name.
 A4_HELDOUT3 = "a4-d77"
 CONFIGS[A4_HELDOUT3] = dict(CONFIGS["a4-trn2h"])
+# Phase 8 S3 pilot arms (D121, D122): a4-d77 with notes format n3, alone and with D65's
+# pinned instructions. D125 names the winner as the candidate.
+CONFIGS["a4-n3"] = dict(CONFIGS[A4_HELDOUT3], notes_format="n3")
+CONFIGS["a4-n3p"] = dict(CONFIGS["a4-n3"], pin_tokens=4096)
 
 # The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for: D64 froze a5-Dp
 # (R30), a5-D with pinned instructions.
