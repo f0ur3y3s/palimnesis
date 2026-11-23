@@ -57,14 +57,14 @@ The upstream silently clamps oversized output limits, so Palimnesis enforces bot
       - nothing fitting the slot, not even the block's header (`too_long`);
       - a refresh that cannot fit `B_in` even with every unmasked result stubbed: no call is sent (`over_budget`, R42).
     - A notes defect never fails the request.
-    - **Format n2** (D74, `--notes-format n2`; the default since D78, n1 with `--notes-format n1`):
+    - **Format n2** (D74, `--notes-format n2`; the default from D78 to D126, n1 with `--notes-format n1`):
       - The prompt asks for the current step second, and for at most about 0.3 words per slot token, rounded to 100 and at least 100, as the reply.
       - Notes longer than S keep every section's heading and the same number k ≥ 1 of first non-blank lines in each section, the most that fits. Text before the first heading counts as a section without a heading. Text without section headings, or where not even one line per section fits, is cut at a line as in n1.
       - A heading is a line holding only a section's name (or its short key, such as *Current step*), in any case, optionally after Markdown heading marks, a number or bold, and before a parenthetical and a colon. Bullets and sentences are not headings.
       - A reply with no text is committed from its reasoning when the reasoning holds a draft of the notes: a run of headings in which at least three distinct sections have a line under them. A draft ends where a section repeats; the last such draft is taken, from its first heading to the end. It is recorded with reason `from_reasoning`. Reasoning never rescues a failed stream.
       - An unknown format is refused at startup.
       - The view's `policy_version` ends `+notes{S}n2`.
-    - **Format n3** (D121, `--notes-format n3`): n2, with three changes so that a failure the user reported, once recorded, is not lost on a rewrite.
+    - **Format n3** (D121, `--notes-format n3`; the default since D126): n2, with three changes so that a failure the user reported, once recorded, is not lost on a rewrite.
       - **The prompt.** Its Dead ends section asks the model to record there, in the user's own words, everything the user said was already tried and failed, and to carry forward every earlier Dead ends entry. Its "they replace any earlier notes" clause makes the same exception.
       - **The carry** (D121, D123). Before the cut, every non-blank Dead-ends line of the notes version in force that the reply's own Dead ends section lacks is appended at the end of that section.
         - A line counts as present when it matches after whitespace, case, a leading bullet (`-`, `*`, `+`, `•`) and a trailing period are set aside. A line the model moved to another section is carried back.

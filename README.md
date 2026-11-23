@@ -154,7 +154,7 @@ Prefix each with `uv run`. The inspection commands are read-only and take `--db 
 | `--protect-turn` / `--no-protect-turn` | on | Collapse the current turn's own work last, so the model keeps sight of the steps it just took. |
 | `--capture-dir DIR` | off | Store raw request and response bodies, for debugging and replay. **This writes conversation content to disk.** |
 
-`--query-policy`, `--excerpt-renderer`, `--addendum`, `--retrieval`, `--notes-format` and `--notes-header` select variants for evaluation. Their defaults are the configuration the held-out run R41 passed (D43, D78), so leave them alone.
+`--query-policy`, `--excerpt-renderer`, `--addendum`, `--retrieval`, `--notes-format` and `--notes-header` select variants for evaluation. Their defaults are the candidate configuration `a8` (D126): the one the held-out run R41 passed (D43, D78) with notes format n3. Leave them alone.
 
 ## Where data lives
 

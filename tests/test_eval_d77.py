@@ -87,12 +87,14 @@ def test_opencode_kill_reaches_the_whole_process_group_on_posix():
         pytest.fail("the shell's child survived the kill")
 
 
-def test_serve_defaults_are_a4_d77_d78(tmp_path):
-    # D78 ships a4-d77: `serve` with no flags runs every proxy setting the arm froze.
+def test_serve_with_notes_format_n2_is_a4_d77_d78(tmp_path):
+    # D78 shipped a4-d77; D126 moved the default notes format to n3 (a8). `serve
+    # --notes-format n2` still runs every proxy setting a4-d77 froze.
     from palimnesis.cli import serve_settings
     from palimnesis.config import Settings
 
-    served = serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db")])
+    served = serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db"),
+                             "--notes-format", "n2"])
     base = Settings(upstream_base_url="http://u:8080")
     frozen = needle.CONFIGS["a4-d77"]
     assert {k: getattr(served, k) for k in needle.PROXY_KEYS} == {

@@ -147,6 +147,8 @@ CONFIGS[A4_HELDOUT3] = dict(CONFIGS["a4-trn2h"])
 # pinned instructions. D125 names the winner as the candidate.
 CONFIGS["a4-n3"] = dict(CONFIGS[A4_HELDOUT3], notes_format="n3")
 CONFIGS["a4-n3p"] = dict(CONFIGS["a4-n3"], pin_tokens=4096)
+# D126: the S3 pilot's candidate, a4-n3, under its Phase 8 name; `serve` ships it.
+CONFIGS["a8"] = dict(CONFIGS["a4-n3"])
 
 # The held-out name of arm 5 (plan §2.9) and the matrix arm it stands for: D64 froze a5-Dp
 # (R30), a5-D with pinned instructions.

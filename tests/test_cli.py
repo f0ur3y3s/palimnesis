@@ -190,6 +190,7 @@ def test_serve_pin_instructions_defaults_off_and_rejects_negative_values(tmp_pat
 
 SHIPPED_D78 = dict(protect_turn=True, retrieval="r2", notes_tokens=2048, notes_format="n2",
                    notes_header="h2")
+SHIPPED_D126 = dict(SHIPPED_D78, notes_format="n3")  # a8: a4-d77 with notes format n3
 BASE_D43 = dict(protect_turn=False, retrieval="r1", notes_tokens=0, notes_format="n1",
                 notes_header="h1")
 
@@ -198,12 +199,15 @@ def _fields(s, keys):
     return {k: getattr(s, k) for k in keys}
 
 
-def test_serve_ships_the_arm_d77_froze_d78(tmp_path):
+def test_serve_ships_a8_d126(tmp_path):
     from palimnesis.cli import serve_settings
 
     s = serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db")])
 
-    assert _fields(s, SHIPPED_D78) == SHIPPED_D78
+    assert _fields(s, SHIPPED_D126) == SHIPPED_D126
+    d78 = serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db"),
+                          "--notes-format", "n2"])
+    assert _fields(d78, SHIPPED_D78) == SHIPPED_D78
     assert (s.recall, s.query_policy, s.excerpt_renderer, s.addendum, s.stub, s.hidden_tools,
             s.pin_tokens, s.transcripts_enabled) == ("fts", "q1", "x2", "a3", "s1", None, 0, True)
 

@@ -1,0 +1,12 @@
+{
+ "r2:ho5-t2:a4-n3p": {"repeat": false, "note": "P1: observing_day() moves readings before 09:00 back one day; hilltop_extremes uses only it (blind, high)"},
+ "r1:ho5-t2:a4-n3": {"repeat": false, "note": "P2: observing_day() subtracts a day before DAY_START 09:00; every reading booked through it (blind, high)"},
+ "r1:dev-t6:a4-d77": {"repeat": false, "note": "P3: round() only in final_mark's docstring; code floor-divides (30c+20q+50e)//100 (blind, high)"},
+ "r2:ho5-t13:a4-n3p": {"repeat": false, "note": "P4: both sorted() calls pass key=well_pick_key (numeric column); scanner lookahead stopped at an inner ')' (blind, high; lead spot-checked)"},
+ "r1:dev-t10:a4-d77": {"repeat": false, "note": "P5: textwrap only in tool calls; layout measures UTF-8 bytes (blind, high)"},
+ "r2:ho5-t13:a4-n3": {"repeat": false, "note": "P6: pick_list_wells sorts key=(row, int(column)) (blind, high)"},
+ "r1:ho5-t13:a4-n3": {"repeat": false, "note": "P7: sorted(..., key=_well_in_pick_order); plain sorted() only in a docstring (blind, high)"},
+ "r1:ho5-t13:a4-n3p": {"repeat": false, "note": "P8: both sorts use key=_pick_order; bare sorted() in a docstring (blind, high)"},
+ "r1:ho5-t4:a4-n3p": {"repeat": false, "note": "P9: round( only in tests; _pickup_counts floor-divides then gives leftovers by largest remainder (blind, high; lead spot-checked)"},
+ "r2:ho5-t13:a4-d77": {"repeat": false, "note": "P10: pick_list_wells sorts key=_well_order (int column); other hits are tool-call scans (blind, high)"}
+}

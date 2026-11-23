@@ -1,0 +1,10 @@
+{
+ "r1:ho5-t4:a4-d77": {"kept": false, "note": "notes v8 in force hold nothing of the warning: no round(), no shares adding up, no remainder"},
+ "r1:ho5-t13:a4-d77": {"kept": true, "note": "paraphrased as a rule: 'Pick lists must sort row-major with NUMERIC columns (A1...A10 ...), never plain sorted()'; the failure story is gone"},
+ "r1:ho5-t2:a4-d77": {"kept": true, "note": "paraphrase: 'Bug fix per user: observing day runs from 09:00 ...; frost at 05:40 on 14 January belongs to the night of the 13th'"},
+ "r2:ho5-t2:a4-d77": {"kept": false, "note": "only a description of existing code (DAY_START, observing_day subtracting a day) and a remark on test_extremes; no record that .date() was tried and failed"},
+ "r1:ho5-t2:a4-n3": {"kept": true, "note": "user's words verbatim under Dead ends"},
+ "r2:ho5-t2:a4-n3": {"kept": true, "note": "user's words verbatim under Dead ends (repeated 4-5 times by the carry)"},
+ "r1:ho5-t2:a4-n3p": {"kept": true, "note": "user's words verbatim under Dead ends (repeated by the carry)"},
+ "r2:ho5-t2:a4-n3p": {"kept": true, "note": "user's words verbatim under Dead ends, twice"}
+}

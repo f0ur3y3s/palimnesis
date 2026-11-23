@@ -105,9 +105,16 @@ def test_selection_rules():
     # V-n1: one lost warning at the trap turn.
     s = _select(**{"a4-n3": _arm(retention=(3, 4))})
     assert s["checks"]["a4-n3"]["V-n1"] is False and s["candidate"] == "a4-n3p"
-    # V-n2: a single repeat, a disputed or an unscored attempt.
+    # V-n2 (D126): a repeat with the warning lost, a disputed or an unscored attempt.
     for bad in (_arm(repeats=1), _arm(disputed=["r2:ho5-t4"]), _arm(unscored=["r1:dev-t9"])):
         assert _select(**{"a4-n3": bad, "a4-n3p": bad})["candidate"] is None
+    # A repeat made with the warning held in the notes does not fail V-n2; D125's rule,
+    # reported beside it, does.
+    held = {**_arm(repeats=1), "repeats_lost": [], "repeats_held": ["r2:ho5-t4"]}
+    s = _select(**{"a4-n3": held, "a4-n3p": held})
+    assert s["candidate"] == "a4-n3" and s["checks"]["a4-n3"]["V-n2 (D125)"] is False
+    lost = {**_arm(repeats=1), "repeats_lost": ["r2:ho5-t4"], "repeats_held": []}
+    assert _select(**{"a4-n3": lost, "a4-n3p": lost})["candidate"] is None
     # No regression: more than one success or constraint below the control.
     assert _select(**{"a4-n3": _arm(successes=10)})["candidate"] == "a4-n3"
     s = _select(**{"a4-n3": _arm(successes=9), "a4-n3p": _arm(constraints=(28, 33))})
@@ -197,3 +204,40 @@ def test_the_rehearsal_is_round_one_of_dev_t6_and_ho5_t13_in_spec_and_report(tmp
 def test_an_unknown_round_is_refused():
     with pytest.raises(SystemExit, match="unknown rounds"):
         pilot_s3.main(["report", "x", "--rounds", "r3"])
+
+
+def test_repeats_split_by_whether_the_notes_held_the_warning():
+    rows = [_row(rd, t, a) for rd, t, a in pilot_s3.schedule(1)]
+    def put(rd, t, a, **kw):
+        i = next(k for k, r in enumerate(rows) if (r["round"], r["task"], r["arm"]) == (rd, t, a))
+        rows[i] = {**_row(rd, t, a, **{k: v for k, v in kw.items() if k != "verdict"}),
+                   "verdict": kw.get("verdict", "clean")}
+    put("r2", "ho5-t4", "a4-n3", verdict="repeat")                       # held: kept
+    put("r1", "ho5-t4", "a4-d77", verdict="repeat", at_need="omitted")   # lost, unread
+    put("r2", "ho5-t2", "a4-d77", verdict="repeat", review=False)        # hand read: lost
+    put("r1", "ho5-t2", "a4-n3p", verdict="repeat", at_need="kept", review=False)  # hand read wins
+    rep = pilot_s3.pilot_report(rows)
+    assert rep["arms"]["a4-n3"]["repeats_held"] == ["r2:ho5-t4"]
+    assert rep["arms"]["a4-n3"]["repeats_lost"] == []
+    assert rep["arms"]["a4-d77"]["repeats_lost"] == ["r1:ho5-t4", "r2:ho5-t2"]
+    assert rep["arms"]["a4-n3p"]["repeats_lost"] == ["r1:ho5-t2"]
+    assert rep["selection"]["candidate"] == "a4-n3"
+    text = "\n".join(pilot_s3.format_report(rep))
+    assert "a4-n3: repeats with the warning lost none; with the warning held r2:ho5-t4" in text
+
+
+# --- D126: the S3 candidate is named a8 and `serve` ships it ---------------------------
+
+def test_a8_is_a4_n3_and_serve_ships_it(tmp_path):
+    from palimnesis.cli import serve_settings
+    from palimnesis.config import Settings
+
+    assert needle.CONFIGS["a8"] == needle.CONFIGS["a4-n3"]
+    served = serve_settings(["--upstream", "http://u:8080", "--db", str(tmp_path / "a.db")])
+    base = Settings(upstream_base_url="http://u:8080")
+    a8 = needle.CONFIGS["a8"]
+    assert {k: getattr(served, k) for k in needle.PROXY_KEYS} == {
+        k: a8.get(k, getattr(base, k)) for k in needle.PROXY_KEYS}
+    # a8 is a4-d77 (D78's default) with notes format n3 and nothing else.
+    d77 = needle.CONFIGS["a4-d77"]
+    assert {k for k in set(a8) | set(d77) if a8.get(k) != d77.get(k)} == {"notes_format"}

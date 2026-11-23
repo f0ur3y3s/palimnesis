@@ -547,7 +547,7 @@ The plan's S3 row and D121.3 named the arms and tasks but did not define V-n1 or
    - about 165 min per arm, 8.3 h for three arms;
    - readiness uses 12 h, allowing for n3's longer refreshes and server waits.
 7. **Gate.** The full readiness gate (items 1–9) runs at the pilot commit. The survival evidence (item 7) is D124's.
-   - **Rehearsal (item 5):** dev-t6 and ho5-t13 on each arm through the headless runner, reported with `pilot_s3.py report --tasks dev-t6,ho5-t13`. ho5-t13 exercises the heldout5 unlock and clean-tree checks, and the trap-turn retention column.
+   - **Rehearsal (item 5):** dev-t6 and ho5-t13 on each arm through the headless runner, reported with `pilot_s3.py report --tasks dev-t6,ho5-t13 --rounds r1` (D125.9). ho5-t13 exercises the heldout5 unlock and clean-tree checks, and the trap-turn retention column.
    - **Separate roots.** The rehearsal and the pilot use separate roots (`.../rehearsal`, `.../pilot`). In a shared round directory, a second attempt of the same task and arm needs `--reason`, so the step would exit 1 and the run would stop.
    - **Where the report runs.** It runs on Zeus, in the clone that ran the pilot, because `attempts.json` stores absolute records paths.
 8. **Independent review (item 9), at `6b637a2`.** Verdict: "ready after fixes". It found four should-fix issues, all fixed before any pilot attempt:
@@ -570,3 +570,36 @@ The plan's S3 row and D121.3 named the arms and tasks but did not define V-n1 or
      
      Each record's settings equal `needle.CONFIGS` for its arm (`a4-n3p` has `pin_tokens` 4096). dev-t6's state is always `absent` because its warning names no backticked code, so the detector has no fragment. dev tasks do not count toward V-n1.
    - **Estimate revised.** The measured attempts were dev-t6 545–755 s (mean 10.6 min) and ho5-t13 845–973 s (mean 15.3 min). Putting these in place of item 6's 7.1 min each gives about 185 min per arm, 9.3 h in all. If every task runs 1.5 times its R64 time, as dev-t6 did, that becomes 12.4 h. Readiness uses 16 h, and the update pause still has more than three weeks of margin.
+
+## D126: S3 outcome: V-n2 amended after the run, `a8` = `a4-n3`, `serve` ships n3 (2026-11-23)
+
+The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns and no stops (`captures/phase8-s3-64fc02e/pilot-run`). Under D125's rules as fixed, neither n3 arm qualified: each had one trap repeat, and V-n2 allowed none. D125.5 leaves the choice to the user. The user asked for an investigation first, then chose the amendment below (2026-11-23). Results are in R69.
+
+1. **What the investigation found** (`captures/phase8-s3-64fc02e/investigation/`):
+   - The three arms' only shared repeat is round-2 ho5-t4. Its trap turn asks for `household_share(total, hours, household)` "one name at a time … the whole-crate count closest to it", which is `round()` in other words.
+   - Both n3 repeats had the warning in the prompt at the trap turn, quoted in the user's words under Dead ends (and pinned, in `a4-n3p`). The models chose the instruction knowingly:
+     - `a4-n3` had earlier offered "a largest-remainder split (that avoids the `round()` shortfall you hit)";
+     - `a4-n3p`'s docstring states the conflict ("needs a single allocation across every household at once (largest remainder), which a one-name-at-a-time lookup cannot express") and then follows the instruction.
+   - The control's round-2 ho5-t4 repeat also had the warning, paraphrased. Its other two repeats (r1 ho5-t4, r2 ho5-t2) had lost it.
+   - Over all 33 attempts, the trap turn's first request held the warning nearly verbatim in 21 of 22 n3 attempts. For the control, a word-window match found it in 2 of 11, and the hand reads add paraphrases.
+2. **The amendment (post hoc).** V-n2 now counts only repeats whose notes in force at the trap turn did not hold the warning: detected `kept`, or a hand read in `--retention-reviews`, which wins where recorded. A repeat made with the warning held is reported, not gated. D125's V-n2 is printed beside it as `V-n2 (D125)`.
+   - **Why.** Notes can fix forgetting. They cannot stop a model from following a later instruction that contradicts what it remembers. A rule that counts both cannot tell a notes format that works from one that does not.
+   - **Caveats, stated as such.** The rule changed after the data was seen. The split rests on 2 ho5-t4 attempts per arm. S14's trap gate is unchanged and counts every repeat, so a repeat of this kind on ho6 still fails the gate. The sealed ho6 run is the confirmation that counts.
+   - `pilot_s3.py`: `repeats_lost` and `repeats_held`; a hand read overrides the detector. Tests in `tests/test_phase8_pilot.py`.
+3. **Blind review of the 10 disputed attempts** (as in D116). The packets were shuffled with seed 12501 and carried no arm, config or tool names. A fresh agent saw only the packets; the key is `captures/phase8-s3-64fc02e/blind/key.json`.
+   - All 10 are not repeats, each with high confidence. The hits were docstrings, keyed sorts the scanner's lookahead misread, tool-call-only matches, and a largest-remainder split.
+   - The lead spot-checked P4 and P9 against the source.
+   - The verdicts are in `eval/phase8_trap_reviews_s3.json`.
+4. **Hand reads** (`eval/phase8_retention_reviews_s3.json`):
+   - the control's two non-kept ho5 states: r1 ho5-t4 lost; r1 ho5-t13 kept as a paraphrased rule;
+   - the six ho5-t2 attempts: all four n3 attempts verbatim; the control's r1 paraphrased, its r2 lost (a description of existing code only).
+5. **Outcome.** `a4-n3` and `a4-n3p` both pass V-n1 (4/4), the amended V-n2 (0 repeats with the warning lost, nothing disputed or unscored) and no-regression. By D125.5, `a4-n3` wins.
+   - **It is named `a8`** (`needle.CONFIGS["a8"]`, equal to `a4-n3`): `a4-d77` with notes format n3.
+6. **The default flips.** `serve --notes-format` now defaults to n3, so `serve` with no flags runs `a8`. `--notes-format n2` runs `a4-d77`.
+   - As in D78, `Settings`' defaults do not move.
+   - Tests: `tests/test_cli.py` (`SHIPPED_D126`), `tests/test_eval_d77.py`, `tests/test_phase8_pilot.py`.
+   - Contract text: `docs/contracts.md` n2 and n3. Also updated: `docs/capabilities.md`, `docs/glossary.md` and the README.
+7. **Open defect: n3 repeats reworded Dead-ends lines.** The carry keeps an earlier line that the reply rewords (a different lead-in, such as "User, in their own words" against "User (their own words)"), so the same warning piles up. One pilot attempt held it 4–5 times, and the model remarked "recorded four times, identical wording". n3 notes averaged 5,531 characters against n2's 4,736.
+   - Not fixed here: a fix changes the mechanism just chosen.
+   - Before F8, a fix needs its own decision and fake-upstream tests, and either the S13 rehearsal's evidence or a short pilot. It should probably match on the quoted span or its backticked code.
+8. **Also open, not tested:** whether n3's header line "the user's messages win" pushes the model toward a later conflicting instruction.

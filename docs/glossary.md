@@ -19,7 +19,9 @@ The variant is either a decision number or a development name.
 - **Frozen for a held-out run:**
   - `a4-d43`: Phase 3, frozen by D43;
   - `a5-d64`: Phase 3B, frozen by D64;
-  - `a4-d77`: the ho3 run, frozen by D77; `serve`'s default since D78.
+  - `a4-d77`: the ho3 run, frozen by D77; `serve`'s default from D78 to D126.
+- **The Phase 8 candidate:** `a8` (D126) is `a4-n3`, chosen by the S3 pilot (R69): `a4-d77` with notes format n3. `serve`'s default since D126.
+  - S3 pilot arms: `a4-n3` (`a4-d77` with notes n3) and `a4-n3p` (plus pinned instructions, D65).
 - **Development variants**, built up a letter at a time:
   - `a4-tr`: `a4-d43` plus the current **t**urn collapsed last (D70) and **r**etrieval r2 (D71);
   - `a4-trn`: plus working **n**otes (D72);

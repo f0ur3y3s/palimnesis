@@ -37,9 +37,13 @@ every round has one designated attempt per task and arm. The spec feeds
   in ``--retention-reviews`` (keyed ``round:task:arm``, ``{"kept": bool}``) before V-n1
   is settled. ho5-t2's detector is unreliable (R68), so its attempts are read by hand and
   reported, not counted.
-- **V-n2, no repeat:** 0 trap repeats over all of the arm's attempts, none disputed or
-  unscored. S14's trap gate is 0 repeats over three attempts per task, so a pilot repeat
-  predicts a gate failure.
+- **V-n2, no repeat of a lost warning (D126; D125 fixed it as 0 repeats of any kind):**
+  0 trap repeats whose notes in force at the trap turn did not hold the warning, over all
+  of the arm's attempts, none disputed or unscored. A repeat made with the warning in the
+  notes is the model following a later instruction that contradicts it, which no notes
+  format can prevent; it is reported (``repeats with the warning held``), not gated here.
+  S14's trap gate still counts every repeat. D125's rule is printed beside it as
+  ``V-n2 (D125)``, for information.
 - **No regression:** successes, and early constraints held, each at least the control's
   in this pilot minus 1.
 - An n3 arm meeting all three is eligible. ``a4-n3`` wins when it is eligible; ``a4-n3p``
@@ -182,11 +186,14 @@ def collect(root: Path, reviews: dict[str, bool] | None = None,
 
 
 def _kept(r: dict) -> bool | None:
-    """Retention at the trap turn: True when detected as kept, else the hand review's
-    verdict, or None while a non-kept state awaits its hand read."""
+    """Retention at the trap turn: the hand read's verdict when one is recorded (ho5-t2's
+    detector is unreliable, R68), else True when detected as kept, or None while a
+    non-kept state awaits its hand read."""
+    if r.get("retention_review") is not None:
+        return r["retention_review"]
     if r["notes"] and r["notes"]["at_need"] == "kept":
         return True
-    return r.get("retention_review")
+    return None
 
 
 def pilot_report(rows: list[dict]) -> dict:
@@ -198,6 +205,12 @@ def pilot_report(rows: list[dict]) -> dict:
         arms[arm] = {
             "attempts": len(mine),
             "repeats": sum(r["verdict"] == "repeat" for r in mine),
+            # D126: a repeat whose notes at the trap turn did not hold the warning (or
+            # whose state is not settled) counts against V-n2; one made with it held does not.
+            "repeats_lost": [f"{r['round']}:{r['task']}" for r in mine
+                             if r["verdict"] == "repeat" and _kept(r) is not True],
+            "repeats_held": [f"{r['round']}:{r['task']}" for r in mine
+                             if r["verdict"] == "repeat" and _kept(r) is True],
             "disputed": [f"{r['round']}:{r['task']}" for r in mine if r["verdict"] == "disputed"],
             "unscored": [f"{r['round']}:{r['task']}" for r in mine if r["verdict"] is None],
             "successes": sum(r["success"] for r in mine),
@@ -219,10 +232,12 @@ def select(arms: dict) -> dict:
         a = arms[arm]
         v1 = (a["retention"][1] > 0 and a["retention"][0] == a["retention"][1]
               and not a.get("retention_pending"))
-        v2 = a["repeats"] == 0 and not a["disputed"] and not a["unscored"]
+        settled = not a["disputed"] and not a["unscored"]
+        v2 = not a.get("repeats_lost", [None] * a["repeats"]) and settled  # D126
+        v2_d125 = a["repeats"] == 0 and settled
         nr = (a["successes"] >= ctl["successes"] - 1
               and a["constraints"][0] >= ctl["constraints"][0] - 1)
-        checks[arm] = {"V-n1": v1, "V-n2": v2, "no_regression": nr}
+        checks[arm] = {"V-n1": v1, "V-n2": v2, "no_regression": nr, "V-n2 (D125)": v2_d125}
         if v1 and v2 and nr:
             eligible.append(arm)
     eligible.sort(key=CANDIDATES.index)  # a4-n3 first: no pins (D125.5)
@@ -231,7 +246,7 @@ def select(arms: dict) -> dict:
 
 
 def format_report(rep: dict) -> list[str]:
-    out = ["S3 pilot (plan S3, D125)", ""]
+    out = ["S3 pilot (plan S3, D125, V-n2 as amended by D126)", ""]
     out.append(f"{'arm':8} {'repeats':>8} {'success':>8} {'constr':>8} {'retain':>7} {'notes ch':>9}")
     for arm, a in rep["arms"].items():
         nc = "n/a" if a["notes_chars_mean"] is None else f"{a['notes_chars_mean']:.0f}"
@@ -243,6 +258,8 @@ def format_report(rep: dict) -> list[str]:
         out.append(f"{arm}: disputed {', '.join(a['disputed']) or 'none'}; "
                    f"retention to hand-read {', '.join(a.get('retention_pending') or []) or 'none'}; "
                    f"ho5-t2 read by hand {', '.join(a['hand']) or 'none'}")
+        out.append(f"{arm}: repeats with the warning lost {', '.join(a['repeats_lost']) or 'none'}; "
+                   f"with the warning held {', '.join(a['repeats_held']) or 'none'}")
     unscored = [f"{arm}:{x}" for arm, a in rep["arms"].items() for x in a["unscored"]]
     out.append(f"unscored {', '.join(unscored) or 'none'}")  # run_ready.py reads this form
     out.append(f"missing attempts: {', '.join(rep['missing']) or 'none'}")
@@ -258,7 +275,8 @@ def format_report(rep: dict) -> list[str]:
     out.append("")
     s = rep["selection"]
     for arm, c in s["checks"].items():
-        out.append(f"{arm}: " + ", ".join(f"{k} {'pass' if v else 'FAIL'}" for k, v in c.items()))
+        out.append(f"{arm}: " + ", ".join(f"{k} {'pass' if v else 'FAIL'}" for k, v in c.items())
+                   + " (V-n2 (D125) is not gating)")
     out.append(f"candidate: {s['candidate'] or 'none (the default does not flip; the user decides)'}")
     return out
 

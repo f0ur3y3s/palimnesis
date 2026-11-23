@@ -1,8 +1,8 @@
 """Phase 4A S0: the shipped a4-d77 configuration's upstream bytes do not change.
 
 Phase 4A adds provenance, retrievability and measurement to the working notes (D105), not
-model-facing behaviour. Two scripted sessions run ``palimnesis serve``'s defaults (a4-d77,
-D78) with a small input budget, each call through a fresh proxy process on the same
+model-facing behaviour. Two scripted sessions run ``palimnesis serve``'s D78 defaults (a4-d77;
+``--notes-format n2`` since D126 moved the default to n3) with a small input budget, each call through a fresh proxy process on the same
 archive (restarts):
 
 - ``plain``: three notes refreshes and a refresh that cannot fit ``B_in``;
@@ -142,7 +142,7 @@ def run(tmp_path: Path, *, rich: bool = False, calls: int = 4, words: int = 1500
         # No transcript files: their root, a temporary folder, would put a path of varying
         # length into the system message and so move token counts and excerpt cuts.
         argv = ["--upstream", upstream, "--db", str(db), "--input-budget", str(BUDGET),
-                "--no-transcripts"]
+                "--no-transcripts", "--notes-format", "n2"]  # a4-d77; serve's default is a8 (D126)
         for k in range(calls):
             with serve(create_app(serve_settings(argv)), palimnesis=True) as url:
                 for _ in range(2):
