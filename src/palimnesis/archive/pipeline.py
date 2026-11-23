@@ -36,6 +36,7 @@ import copy
 import json
 import logging
 import os
+import time
 import sqlite3
 import threading
 
@@ -101,9 +102,18 @@ def _masked(state) -> bool:
 
 
 def crash_point(name: str) -> None:
-    """Deterministic process death for crash-recovery tests (``PALIMNESIS_CRASH_AT``)."""
+    """Deterministic process death for crash-recovery tests (``PALIMNESIS_CRASH_AT``), or a
+    pause for an external kill (``PALIMNESIS_PAUSE_AT``, S7): the process writes
+    ``PALIMNESIS_PAUSE_FILE`` and stops there until it is killed from outside."""
     if os.environ.get("PALIMNESIS_CRASH_AT") == name:
         os._exit(CRASH_EXIT_CODE)
+    if os.environ.get("PALIMNESIS_PAUSE_AT") == name:
+        marker = os.environ.get("PALIMNESIS_PAUSE_FILE")
+        if marker:
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write(name)
+        while True:
+            time.sleep(3600)
 
 
 def _with_no_retry(headers: list[tuple[bytes, bytes]]) -> list[tuple[bytes, bytes]]:
@@ -454,6 +464,8 @@ class ArchiveHandler:
                 log.exception("excerpt selection could not be stored; continuing without")
                 selected = None
                 block_id, plan.view_id, plan.view_n = await self.store.write(commit)
+            if view.moved:
+                crash_point("after_view_record")
             crash_point("after_excerpt_commit")
             if selected is not None and selected[1]:
                 plan.items = [replace(i, excerpt=(block_id, selected[1], selected[2]))
@@ -602,7 +614,9 @@ class ArchiveHandler:
                                        reason=f"{reason}:{status}" if status
                                        else reason or source, output=output, turns=turns)
 
+        crash_point("before_notes_commit")
         notes_id, n = await self.store.write(record)
+        crash_point("after_notes_commit")
         if reason:
             return view
         notes = {notes_id: (n, text)}
@@ -838,6 +852,8 @@ class ArchiveHandler:
                         usage=state["usage"], message_id=getattr(gen.emitter, "message_id", None))
 
             await self.store.write(commit)
+            if terminal:
+                crash_point("after_terminal_commit")
             # Encoded only once committed: a stateful emitter must not have produced (and
             # then lost) message_stop when the commit fails (protocol review, D95).
             data = gen.emitter.feed(b"".join(e.raw for e in batch))
@@ -1197,6 +1213,7 @@ class ArchiveHandler:
                 usage=usage, message_id=getattr(gen.emitter, "message_id", None))
 
         await self.store.write(commit)
+        crash_point("after_terminal_commit")
         data = gen.emitter.feed(data)
         await send({"type": "http.response.body", "body": data, "more_body": True})
         gen.forwarded += len(data)

@@ -66,6 +66,10 @@ from palimnesis.archive.turns import turn_numbers
 log = logging.getLogger(__name__)
 
 STAGING = ".staging"
+# Written (holding the session id) before a publication changes a session directory and
+# removed once it completes (D131): a session whose publication a crash cut short is
+# published again at the next start, even if nothing in it changes.
+PUBLISHING = ".publishing"
 REPLACE_RETRIES = 3
 REPLACE_DELAY = 0.05
 CRASH_POINTS = ("publish_staged", "publish_after_files", "publish_after_manifest",
@@ -429,6 +433,8 @@ def publish(root: Path | str, snapshot: Snapshot, *, added_tokens: Sequence[str]
     root = Path(root)
     directory = session_dir(root, snapshot.session_id)
     _mkdir(directory)
+    marker = directory / PUBLISHING
+    marker.write_text(snapshot.session_id, encoding="utf-8")
     cache = {} if cache is None else cache
     writer = _Writer(root, directory)
     published: list[Published] = []
@@ -479,8 +485,20 @@ def publish(root: Path | str, snapshot: Snapshot, *, added_tokens: Sequence[str]
         rel = path.relative_to(directory).as_posix()
         if path.is_file() and _REVISIONED.match(rel) and rel not in keep:
             _unlink(path)
+    _unlink(marker)
     return PublishResult(snapshot.generation, revision, len(published), writer.written,
                          writer.bytes)
+
+
+def interrupted_sessions(root: Path | str) -> list[str]:
+    """Sessions whose last publication did not complete (a ``.publishing`` marker left)."""
+    out = []
+    for marker in sorted(Path(root).glob(f"*/{PUBLISHING}")):
+        try:
+            out.append(marker.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+    return out
 
 
 def read_published(directory: Path) -> Callable[[str], bytes]:
@@ -520,6 +538,8 @@ class Projector:
     _cache: dict[str, dict[int, Published]] = field(default_factory=dict)
 
     def start(self) -> None:
+        for session in interrupted_sessions(self.root):
+            self.trigger(session)  # a publication a crash cut short (D131)
         self._thread = threading.Thread(target=self._work, name="palimnesis-projector",
                                         daemon=True)
         self._thread.start()

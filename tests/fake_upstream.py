@@ -147,7 +147,7 @@ class FakeUpstream:
 
     def respond_counted(
         self,
-        text: str = "ok",
+        text: str | Callable[[dict], str] = "ok",
         *,
         drift: int = 0,
         cached: int | Callable[[int], int] = 0,
@@ -163,7 +163,9 @@ class FakeUpstream:
         ``tool_call=(id, name, arguments)`` the answer is that one call (streaming only)."""
 
         def build(raw: bytes) -> list[bytes] | bytes:
-            prompt = _chat_count(json.loads(raw)) + drift
+            doc = json.loads(raw)
+            reply = text(doc) if callable(text) else text  # a function of the request body
+            prompt = _chat_count(doc) + drift
             reused = cached(prompt) if callable(cached) else cached
             usage = {"prompt_tokens": prompt, "completion_tokens": completion_tokens,
                      "total_tokens": prompt + completion_tokens,
@@ -171,12 +173,12 @@ class FakeUpstream:
             timings = {"cache_n": reused, "prompt_n": prompt - reused, "prompt_ms": prompt_ms}
             if not stream:
                 return json.dumps({"choices": [{"index": 0, "finish_reason": "stop", "message": {
-                    "role": "assistant", "content": text}}], "usage": usage,
+                    "role": "assistant", "content": reply}}], "usage": usage,
                     "timings": timings}).encode()
             finish = "tool_calls" if tool_call else "stop"
             final = {"choices": [{"index": 0, "delta": {}, "finish_reason": finish}],
                      "usage": usage, "timings": timings}
-            delta = {"choices": [{"index": 0, "delta": {"content": text}}]}
+            delta = {"choices": [{"index": 0, "delta": {"content": reply}}]}
             if tool_call:
                 call_id, name, arguments = tool_call
                 delta = {"choices": [{"index": 0, "delta": {"tool_calls": [{
@@ -284,10 +286,12 @@ class FakeUpstream:
             if scripted.build is not None:
                 built = scripted.build(body)
                 if isinstance(built, bytes):
-                    scripted = _Scripted(scripted.status, scripted.headers, body=built)
-                else:
+                    scripted = _Scripted(scripted.status, scripted.headers, body=built,
+                                         delay=scripted.delay)
+                else:  # a delay set on a built answer waits before its first chunk
                     scripted = _Scripted(scripted.status, scripted.headers,
-                                         chunks=[(0.0, c) for c in built])
+                                         chunks=[(scripted.delay if i == 0 else 0.0, c)
+                                                 for i, c in enumerate(built)])
             if scripted.chunks is None:
                 if not await self._work(request, scripted.delay):
                     return Response(status_code=499)

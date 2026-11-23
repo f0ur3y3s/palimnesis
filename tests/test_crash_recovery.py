@@ -163,6 +163,23 @@ def test_crash_after_a_batch_commit_keeps_the_partial_and_refuses_silent_regener
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "ambiguous_retry"
     assert len(fake.requests) == 1  # no second generation
+    # The abandoned partial is indexed like any terminal turn: the index equals a rebuild
+    # (D131; eval/kill_trials.py found it unindexed).
+    from palimnesis.archive import integrity
+
+    deadline = time.monotonic() + 10
+    while True:  # Windows may hold the stopped process's handles for a moment
+        c = sqlite3.connect(db)
+        try:
+            problems = integrity.check(c)
+            break
+        except sqlite3.OperationalError as e:
+            if "disk I/O error" not in str(e) or time.monotonic() > deadline:
+                raise
+        finally:
+            c.close()
+        time.sleep(0.2)
+    assert problems == []
 
 
 def test_crash_after_prepared_response_replays_it_by_key_without_inference(upstream, tmp_path):

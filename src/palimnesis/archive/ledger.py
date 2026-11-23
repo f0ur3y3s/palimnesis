@@ -1336,7 +1336,8 @@ def fork_session(conn: sqlite3.Connection, source: str, at_turn: int, session: s
                          " WHERE block_id = ? ORDER BY seq", (nb, block_id))
         conn.execute("INSERT INTO fork_occurrences VALUES (?, ?)", (new, old))
         issue_alias(conn, session, new)
-        search.index_occurrence(conn, new)
+        if src_kind != "internal_tool":  # hidden recall results are never indexed (D60)
+            search.index_occurrence(conn, new)
     for vis, off, ln, internal, ioff in conn.execute(
             "SELECT v.visible_block_id, v.offset, v.len, v.internal_block_id, v.internal_offset"
             " FROM visible_map v JOIN blocks b ON b.block_id = v.visible_block_id"
@@ -1516,6 +1517,14 @@ def _abandon(conn, branch_id: str, request_id: str, reason: str) -> None:
     ).fetchone()
     _event(conn, request_id, attempt[0] if attempt else None, "attempt_abandoned", reason=reason)
     _set_active(conn, branch_id, None)
+    if attempt:
+        # Output archived before the crash is indexed as a terminal event would have
+        # indexed it, so the index equals a rebuild (D131; found by eval/kill_trials.py).
+        for (occ_id,) in conn.execute(
+                "SELECT o.occ_id FROM occurrences o JOIN generations g ON g.generation_id ="
+                " o.generation_id WHERE g.attempt_id = ? AND o.source = 'generated'",
+                (attempt[0],)).fetchall():
+            search.index_occurrence(conn, occ_id)
 
 
 # --- excerpt blocks (amendment A1) -------------------------------------------

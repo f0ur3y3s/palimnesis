@@ -226,7 +226,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 ## 11. Durability and isolation
 
-**[enforced]** Process-crash recovery is tested at three crash points (`tests/test_crash_recovery.py`). Power-loss durability is not claimed until separately tested (Ph8).
+**[enforced]** Process-crash recovery is tested at every commit boundary (`tests/test_crash_recovery.py`, `tests/test_crash_matrix.py`, D131): a process exit at the input, batch, notes, view, excerpt, terminal and transcript-publication boundaries, with a second session's request waiting for the slot; and an external kill (TerminateProcess or SIGKILL) at 10 boundaries for each client protocol. 50 kills at random times during a stream are in R71 (`eval/kill_trials.py`). After a restart, the archive passes `palimnesis.archive.integrity.check`: SQLite integrity and foreign keys, no branch left active, exactly one terminal event per attempt, and full-text indexes equal to a rebuild. The transcripts verify, and the client's keyed resend gets the answer, or `ambiguous_retry` when the kill left partial output. Power-loss durability is not claimed (U9).
 
 - SQLite runs with `journal_mode=WAL` and `synchronous=FULL`, both read back on every connection. `NORMAL` is an explicit, reported option and never carries the power-loss claim.
 - **Commit order.**
@@ -235,7 +235,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - Turn-completion markers are separate, so a crash leaves an explicit incomplete turn.
 - No write transaction is held across inference. Blocking database work runs off the event loop.
 - Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Immutable tables include `notes_versions`, `notes_outputs` and `notes_sources` (§17). Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
-- An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically.
+- An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically. Output it archived before the crash is indexed then, as a terminal event would have indexed it (D131).
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.
 - **Excerpt blocks** (A1).
   - **Storage.** Blocks are immutable rows (`excerpt_blocks`, `excerpt_items`), one per genuine user instruction. Each is committed with its selection before inference, and retries and restarts reuse the stored rendering.
@@ -268,6 +268,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
 
 - **What it is.** Per session, a derived transcript directory (D32) in format t1 (D33). It is a rebuildable projection of the archive, not part of it.
 - **Exactness.** Every archived block appears once, verbatim after reversible escaping or as a linked exact-bytes file, verified by SHA-256. `palimnesis transcripts verify` checks the directory against the archive; `palimnesis transcripts rebuild` reproduces it byte for byte without inference. **[enforced]**
+- **Recovery.** A publication a crash cut short is published again at the next start, even if nothing in its session changes: a `.publishing` marker naming the session is written first and removed once the publication completes (D131). **[enforced]**
 - **Consistency.** Publication follows D34 as amended by D63: `index.md` never names an incomplete file, every file `manifest.json` lists is write-once and matches it after a crash at any step, and the in-progress turn keeps its final name `turn-NNNN.md` (named `live` in the manifest) while it grows. Incomplete turns are marked in progress, cancelled, abandoned, failed or superseded. Turn 0's index line says it is the system prompt. **[enforced]**
 - **Hidden results** (§15) appear in their turn as internal tool results, flagged `internal`. **[enforced]**
 - **Isolation.** Projection runs off the request path, holds no write lock, makes no upstream call, and logs only counts and directory hashes. **[enforced]**
