@@ -95,9 +95,13 @@ def _select(**arms):
 
 
 def test_selection_rules():
-    # Both eligible: the smaller notes win; on a tie, a4-n3 (no pins).
-    assert _select(**{"a4-n3p": _arm(chars=2000.0)})["candidate"] == "a4-n3p"
+    # Both eligible: a4-n3 (no pins), whatever the notes lengths; a4-n3p only alone.
+    assert _select(**{"a4-n3p": _arm(chars=2000.0)})["candidate"] == "a4-n3"
     assert _select()["candidate"] == "a4-n3"
+    assert _select(**{"a4-n3": _arm(repeats=1)})["candidate"] == "a4-n3p"
+    # A non-kept state awaiting its hand read leaves V-n1 unsettled.
+    pend = {**_arm(), "retention_pending": ["r2:ho5-t13"]}
+    assert _select(**{"a4-n3": pend})["checks"]["a4-n3"]["V-n1"] is False
     # V-n1: one lost warning at the trap turn.
     s = _select(**{"a4-n3": _arm(retention=(3, 4))})
     assert s["checks"]["a4-n3"]["V-n1"] is False and s["candidate"] == "a4-n3p"
@@ -149,3 +153,28 @@ def test_the_rehearsal_spec_is_the_pilot_spec_cut_to_its_task():
                              only={"dev-t6"})
     assert reh["steps"] == [s for s in full["steps"] if " dev-t6 " in s["name"]]
     assert len(reh["steps"]) == 3 and reh["config"] != full["config"]
+
+
+def _row(rd, t, a, at_need="kept", review=None):
+    return {"round": rd, "task": t, "arm": a, "present": True, "usable": True, "aborted": None,
+            "verdict": "clean", "reviewed": False, "success": True, "constraints": (3, 3),
+            "notes": {"at_need": at_need, "versions": 5, "sections": [], "notes_chars_mean": 2500.0},
+            "retention_review": review}
+
+
+def test_a_non_kept_state_waits_for_its_hand_read_and_the_read_settles_it():
+    rows = [_row(rd, t, a) for rd, t, a in pilot_s3.schedule(1)]
+    i = next(k for k, r in enumerate(rows)
+             if (r["round"], r["task"], r["arm"]) == ("r2", "ho5-t13", "a4-n3"))
+    rows[i] = _row("r2", "ho5-t13", "a4-n3", at_need="omitted")
+    rep = pilot_s3.pilot_report(rows)
+    assert rep["arms"]["a4-n3"]["retention"] == (3, 4)
+    assert rep["arms"]["a4-n3"]["retention_pending"] == ["r2:ho5-t13"]
+    assert "retention to hand-read r2:ho5-t13" in "\n".join(pilot_s3.format_report(rep))
+    assert rep["selection"]["candidate"] == "a4-n3p"
+    rows[i] = _row("r2", "ho5-t13", "a4-n3", at_need="omitted", review=True)  # paraphrased, kept
+    rep = pilot_s3.pilot_report(rows)
+    assert rep["arms"]["a4-n3"]["retention"] == (4, 4)
+    assert rep["selection"]["candidate"] == "a4-n3"
+    rows[i] = _row("r2", "ho5-t13", "a4-n3", at_need="omitted", review=False)
+    assert pilot_s3.pilot_report(rows)["arms"]["a4-n3"]["retention"] == (3, 4)

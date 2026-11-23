@@ -515,7 +515,7 @@ Two reviews of `eee9146` (protocol review and cache audit; reviewers report, nev
 
 The plan's S3 row and D121.3 named the arms and tasks but did not define V-n1 or V-n2. They are defined here, before any pilot run. The outcome is appended to this entry after the run, and it names the candidate (`a8-…`) or says there is none.
 
-1. **ho5 is retired in code too.** D117.4 retired ho5 to development data, but `needle.RETIRED_SETS` still listed heldout2 and heldout3 only, so `run.py` would have refused a new configuration on ho5. heldout5 is added. heldout4 is retired as well but is never opened, so it stays out of the list. heldout6 stays sealed. Tested in `tests/test_phase8_pilot.py`.
+1. **ho5 is retired in code too.** D117.4 retired ho5 to development data, but `needle.RETIRED_SETS` still listed heldout2 and heldout3 only, so `run.py` would have refused a new configuration on ho5. heldout5 is added. heldout4 is retired as well but is never opened, so it stays out of the list. heldout6 stays sealed. Tested in `tests/test_phase8_pilot.py`. `eval/heldout.py` still treats heldout5 as an unseen set: a run needs its unlock (`eval/heldout_unlock.json`, heldout5 → D115, committed) and a clean tree.
 2. **Arms** (`eval/needle.py`):
    - `a4-d77` is the control, with notes n2.
    - `a4-n3` is `a4-d77` with `notes_format="n3"`.
@@ -538,11 +538,26 @@ The plan's S3 row and D121.3 named the arms and tasks but did not define V-n1 or
    - **V-n1, retention:** the warning is `kept` at the trap turn in all four ho5-t4 and t13 attempts. ho5-t2's detector is unreliable (R68), so its attempts are read by hand and reported, not counted.
    - **V-n2, no repeat:** 0 repeats over the arm's 11 attempts, with none disputed or unscored. S14's trap gate allows 0 repeats over three attempts per task, so a pilot repeat predicts a gate failure.
    - **No regression:** successes and constraints held are each at least the control's, in this pilot, minus 1.
-   - Of two eligible arms, the smaller mean notes length wins; on a tie, `a4-n3`.
+   - **Hand reads before V-n1 counts.** The detector matches the warning's backticked code exactly, so a paraphrase reads as lost. Every ho5-t4 and t13 attempt whose state is not `kept` is read by hand and recorded in `--retention-reviews`.
+   - `a4-n3` wins when it is eligible. `a4-n3p` wins only when it alone is eligible. Both arms run the same notes mechanism, so notes length cannot separate them, and the pins cost up to about 4K tokens of every view.
    - With no eligible arm, the default does not flip and the user decides.
 6. **Estimated duration**, from measured `a4-d77` times on Zeus (R64, S11):
    - dev-t6..t10: 7.1 + 17.6 + 7.1 + 43.9 + 6.1 = 81.8 min;
    - ho5-t2, t4 and t13: about 21 (the mean of 14.5 and 27.7) + 13.6 + 7.1 = 41.7 min per round;
    - about 165 min per arm, 8.3 h for three arms;
    - readiness uses 12 h, allowing for n3's longer refreshes and server waits.
-7. **Gate.** The full readiness gate (items 1–9) runs at the pilot commit. The rehearsal (item 5) is dev-t6 on each arm through the headless runner, reported with `pilot_s3.py report --tasks dev-t6`. The survival evidence (item 7) is D124's.
+7. **Gate.** The full readiness gate (items 1–9) runs at the pilot commit. The survival evidence (item 7) is D124's.
+   - **Rehearsal (item 5):** dev-t6 and ho5-t13 on each arm through the headless runner, reported with `pilot_s3.py report --tasks dev-t6,ho5-t13`. ho5-t13 exercises the heldout5 unlock and clean-tree checks, and the trap-turn retention column.
+   - **Separate roots.** The rehearsal and the pilot use separate roots (`.../rehearsal`, `.../pilot`). In a shared round directory, a second attempt of the same task and arm needs `--reason`, so the step would exit 1 and the run would stop.
+   - **Where the report runs.** It runs on Zeus, in the clone that ran the pilot, because `attempts.json` stores absolute records paths.
+8. **Independent review (item 9), at `6b637a2`.** Verdict: "ready after fixes". It found four should-fix issues, all fixed before any pilot attempt:
+   - the rehearsal never exercised the ho5 path;
+   - the notes-length tie-break could not separate the arms;
+   - the retention detector is exact-match;
+   - a shared root would stop the run.
+   
+   Its notes are recorded here:
+   - R65 had 8 disputed traps in 50 runs, so a blind review (as in D116) of disputed pilot attempts is a planned step after the run, before V-n2 is read.
+   - Exit 3 (`slot_busy`, `no_session`, `second_session`, `strata_check`) and any exception in `run.py` stop the run. R65 had none in 25 `a4-d77` tasks. Stopping stays the rule, since most such causes are Strata failing.
+   - Turns are capped at 30 min, so nothing hangs without bound.
+   - `notes_audit.read_versions` has no branch filter, and `need_time` takes the version in force when the trap-turn request arrived. Both apply to every arm alike.

@@ -1,7 +1,12 @@
 """Phase 8 S3 pilot: choose the notes candidate (plan S3, D121.3, D125).
 
     python eval/pilot_s3.py spec --seed N --root DIR --ws-root DIR --opencode EXE --out SPEC.json [--tasks T,...]
-    python eval/pilot_s3.py report ROOT [--tasks T,...] [--trap-reviews FILE] [--json]
+    python eval/pilot_s3.py report ROOT [--tasks T,...] [--trap-reviews FILE]
+        [--retention-reviews FILE] [--json]
+
+Run the report on Zeus, in the clone that ran the pilot: ``attempts.json`` stores absolute
+records paths. The rehearsal and the pilot need separate roots (an attempt of the same
+task and arm in one round directory needs ``--reason``, and the step would stop).
 
 **Arms.** ``a4-d77`` (the Phase 7 candidate, notes n2) is the control. ``a4-n3`` is
 ``a4-d77`` with notes format n3 (D122, D123); ``a4-n3p`` adds D65's pinned instructions.
@@ -26,15 +31,19 @@ every round has one designated attempt per task and arm. The spec feeds
 **Selection** (``select``; D125 records the outcome):
 
 - **V-n1, retention:** in every ho5-t4 and ho5-t13 attempt, the notes in force at the trap
-  turn hold the warning. ho5-t2's detector is unreliable (R68), so its attempts are read
-  by hand and recorded with the hand check, not counted here.
+  turn hold the warning. The detector matches the warning's backticked code exactly, so a
+  paraphrase reads as lost: every state other than ``kept`` is read by hand and recorded
+  in ``--retention-reviews`` (keyed ``round:task:arm``, ``{"kept": bool}``) before V-n1
+  is settled. ho5-t2's detector is unreliable (R68), so its attempts are read by hand and
+  reported, not counted.
 - **V-n2, no repeat:** 0 trap repeats over all of the arm's attempts, none disputed or
   unscored. S14's trap gate is 0 repeats over three attempts per task, so a pilot repeat
   predicts a gate failure.
 - **No regression:** successes, and early constraints held, each at least the control's
   in this pilot minus 1.
-- An n3 arm meeting all three is eligible. Of two eligible arms the one with the smaller
-  mean notes length wins, then ``a4-n3`` (no pins: fewer moving parts). With none
+- An n3 arm meeting all three is eligible. ``a4-n3`` wins when it is eligible; ``a4-n3p``
+  wins only when it alone is (its pins cost up to about 4K tokens of every view, and the
+  two arms' notes mechanism is the same, so notes length cannot separate them). With none
   eligible there is no candidate: the default does not flip and the user decides.
 
 The report prints ``unscored ...`` and ``missing attempts: ...`` lines that
@@ -136,12 +145,14 @@ def _audit(d: Path | None, task_id: str) -> dict | None:
 
 
 def collect(root: Path, reviews: dict[str, bool] | None = None,
-            only: set[str] | None = None) -> list[dict]:
+            only: set[str] | None = None,
+            retention_reviews: dict[str, bool] | None = None) -> list[dict]:
     """One row per planned (round, task, arm), loaded from ``root``. ``only`` keeps the
     listed tasks (the rehearsal runs dev-t6 alone); rounds left empty are skipped."""
     import report
 
     reviews = reviews or {}
+    retention_reviews = retention_reviews or {}
     rows = []
     for rd, planned in ROUNDS.items():
         tasks = tuple(t for t in planned if only is None or t in only)
@@ -160,8 +171,17 @@ def collect(root: Path, reviews: dict[str, bool] | None = None,
                     "reviewed": key in reviews,
                     "success": report.task_success(r),
                     "constraints": (sum(held.values()), len(held)),
-                    "notes": _audit(d, t) if report._usable(r) else None})
+                    "notes": _audit(d, t) if report._usable(r) else None,
+                    "retention_review": retention_reviews.get(key)})
     return rows
+
+
+def _kept(r: dict) -> bool | None:
+    """Retention at the trap turn: True when detected as kept, else the hand review's
+    verdict, or None while a non-kept state awaits its hand read."""
+    if r["notes"] and r["notes"]["at_need"] == "kept":
+        return True
+    return r.get("retention_review")
 
 
 def pilot_report(rows: list[dict]) -> dict:
@@ -178,8 +198,8 @@ def pilot_report(rows: list[dict]) -> dict:
             "successes": sum(r["success"] for r in mine),
             "constraints": (sum(r["constraints"][0] for r in mine),
                             sum(r["constraints"][1] for r in mine)),
-            "retention": (sum(bool(r["notes"]) and r["notes"]["at_need"] == "kept" for r in ret),
-                          len(ret)),
+            "retention": (sum(_kept(r) is True for r in ret), len(ret)),
+            "retention_pending": [f"{r['round']}:{r['task']}" for r in ret if _kept(r) is None],
             "notes_chars_mean": sum(chars) / len(chars) if chars else None,
             "hand": [f"{r['round']}:{r['task']}" for r in mine if r["task"] in HAND],
         }
@@ -192,14 +212,15 @@ def select(arms: dict) -> dict:
     checks, eligible = {}, []
     for arm in CANDIDATES:
         a = arms[arm]
-        v1 = a["retention"][1] > 0 and a["retention"][0] == a["retention"][1]
+        v1 = (a["retention"][1] > 0 and a["retention"][0] == a["retention"][1]
+              and not a.get("retention_pending"))
         v2 = a["repeats"] == 0 and not a["disputed"] and not a["unscored"]
         nr = (a["successes"] >= ctl["successes"] - 1
               and a["constraints"][0] >= ctl["constraints"][0] - 1)
         checks[arm] = {"V-n1": v1, "V-n2": v2, "no_regression": nr}
         if v1 and v2 and nr:
             eligible.append(arm)
-    eligible.sort(key=lambda x: (arms[x]["notes_chars_mean"] or 0.0, CANDIDATES.index(x)))
+    eligible.sort(key=CANDIDATES.index)  # a4-n3 first: no pins (D125.5)
     return {"checks": checks, "eligible": eligible,
             "candidate": eligible[0] if eligible else None}
 
@@ -215,7 +236,8 @@ def format_report(rep: dict) -> list[str]:
     out.append("")
     for arm, a in rep["arms"].items():
         out.append(f"{arm}: disputed {', '.join(a['disputed']) or 'none'}; "
-                   f"hand-read retention {', '.join(a['hand']) or 'none'}")
+                   f"retention to hand-read {', '.join(a.get('retention_pending') or []) or 'none'}; "
+                   f"ho5-t2 read by hand {', '.join(a['hand']) or 'none'}")
     unscored = [f"{arm}:{x}" for arm, a in rep["arms"].items() for x in a["unscored"]]
     out.append(f"unscored {', '.join(unscored) or 'none'}")  # run_ready.py reads this form
     out.append(f"missing attempts: {', '.join(rep['missing']) or 'none'}")
@@ -253,6 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--trap-reviews", type=Path, help='{"r1:ho5-t2:a4-n3": {"repeat": bool}}')
     r.add_argument("--json", action="store_true")
     r.add_argument("--tasks", help="T1,T2: report these tasks only (the rehearsal)")
+    r.add_argument("--retention-reviews", type=Path,
+                   help='{"r1:ho5-t4:a4-n3": {"kept": bool, "note": ...}}: hand reads of non-kept states')
     a = p.parse_args(argv)
     if a.cmd == "spec":
         spec = make_spec(seed=a.seed, python=a.python, root=a.root, ws_root=a.ws_root,
@@ -267,7 +291,9 @@ def main(argv: list[str] | None = None) -> int:
 
     reviews = report.load_trap_reviews(a.trap_reviews) if a.trap_reviews else None
     only = set(a.tasks.split(",")) if a.tasks else None
-    rep = pilot_report(collect(a.root, reviews, only))
+    ret = ({k: bool(v["kept"]) for k, v in json.loads(a.retention_reviews.read_text(encoding="utf-8")).items()}
+           if a.retention_reviews else None)
+    rep = pilot_report(collect(a.root, reviews, only, ret))
     print(json.dumps(rep, indent=1, default=str) if a.json else "\n".join(format_report(rep)))
     return 0
 
