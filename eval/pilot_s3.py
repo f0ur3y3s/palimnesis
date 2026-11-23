@@ -1,7 +1,8 @@
 """Phase 8 S3 pilot: choose the notes candidate (plan S3, D121.3, D125).
 
-    python eval/pilot_s3.py spec --seed N --root DIR --ws-root DIR --opencode EXE --out SPEC.json [--tasks T,...]
-    python eval/pilot_s3.py report ROOT [--tasks T,...] [--trap-reviews FILE]
+    python eval/pilot_s3.py spec --seed N --root DIR --ws-root DIR --opencode EXE --out SPEC.json
+        [--tasks T,...] [--rounds R,...]
+    python eval/pilot_s3.py report ROOT [--tasks T,...] [--rounds R,...] [--trap-reviews FILE]
         [--retention-reviews FILE] [--json]
 
 Run the report on Zeus, in the clone that ran the pilot: ``attempts.json`` stores absolute
@@ -90,17 +91,19 @@ def schedule(seed: int) -> list[tuple[str, str, str]]:
 
 def make_spec(*, seed: int, python: str, root: str, ws_root: str, opencode: str,
               upstream: str = "http://127.0.0.1:8080", n_ctx: int = 32768,
-              only: set[str] | None = None) -> dict:
-    """The headless spec; ``only`` keeps the listed tasks' steps, in schedule order."""
+              only: set[str] | None = None, rounds: set[str] | None = None) -> dict:
+    """The headless spec; ``only`` keeps the listed tasks' steps and ``rounds`` the listed
+    rounds' steps (the rehearsal: dev-t6 and ho5-t13 in r1), in schedule order."""
     steps = []
     for rd, t, arm in schedule(seed):
-        if only is not None and t not in only:
+        if (only is not None and t not in only) or (rounds is not None and rd not in rounds):
             continue
         steps.append({"name": f"{rd} {t} {arm}", "argv": [
             python, "eval/tasks/run.py", "--task", t, "--arm", "4", "--config", arm,
             "--out", f"{root}/{rd}", "--ws-root", f"{ws_root}\\{rd}",
             "--upstream", upstream, "--expect-n-ctx", str(n_ctx), "--tag", TAG]})
-    name = f"s3-pilot-seed{seed}" + (f"-{'+'.join(sorted(only))}" if only else "")
+    name = (f"s3-pilot-seed{seed}" + (f"-{'+'.join(sorted(only))}" if only else "")
+            + (f"-{'+'.join(sorted(rounds))}" if rounds else ""))
     return {"config": name, "seed": seed, "steps": steps,
             "server": {"props": f"{upstream}/props", "n_ctx": n_ctx, "slots": 1,
                        "build": "Strata 0.1.58", "temperature": 1.0, "top_p": 0.95,
@@ -146,9 +149,11 @@ def _audit(d: Path | None, task_id: str) -> dict | None:
 
 def collect(root: Path, reviews: dict[str, bool] | None = None,
             only: set[str] | None = None,
-            retention_reviews: dict[str, bool] | None = None) -> list[dict]:
+            retention_reviews: dict[str, bool] | None = None,
+            rounds: set[str] | None = None) -> list[dict]:
     """One row per planned (round, task, arm), loaded from ``root``. ``only`` keeps the
-    listed tasks (the rehearsal runs dev-t6 alone); rounds left empty are skipped."""
+    listed tasks and ``rounds`` the listed rounds (the rehearsal); rounds left empty are
+    skipped."""
     import report
 
     reviews = reviews or {}
@@ -156,7 +161,7 @@ def collect(root: Path, reviews: dict[str, bool] | None = None,
     rows = []
     for rd, planned in ROUNDS.items():
         tasks = tuple(t for t in planned if only is None or t in only)
-        if not tasks:
+        if not tasks or (rounds is not None and rd not in rounds):
             continue
         got = _load_round(root / rd, tasks)
         for t in tasks:
@@ -258,6 +263,15 @@ def format_report(rep: dict) -> list[str]:
     return out
 
 
+def _rounds(arg: str | None) -> set[str] | None:
+    if not arg:
+        return None
+    got = set(arg.split(","))
+    if not got <= set(ROUNDS):
+        raise SystemExit(f"unknown rounds {sorted(got - set(ROUNDS))}; known {list(ROUNDS)}")
+    return got
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -270,18 +284,21 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--opencode", required=True)
     s.add_argument("--out", type=Path, required=True)
     s.add_argument("--tasks", help="T1,T2: these tasks' steps only (the rehearsal)")
+    s.add_argument("--rounds", help="r1,r2: these rounds' steps only (the rehearsal)")
     r = sub.add_parser("report")
     r.add_argument("root", type=Path)
     r.add_argument("--trap-reviews", type=Path, help='{"r1:ho5-t2:a4-n3": {"repeat": bool}}')
     r.add_argument("--json", action="store_true")
     r.add_argument("--tasks", help="T1,T2: report these tasks only (the rehearsal)")
+    r.add_argument("--rounds", help="r1,r2: report these rounds only (the rehearsal)")
     r.add_argument("--retention-reviews", type=Path,
                    help='{"r1:ho5-t4:a4-n3": {"kept": bool, "note": ...}}: hand reads of non-kept states')
     a = p.parse_args(argv)
     if a.cmd == "spec":
         spec = make_spec(seed=a.seed, python=a.python, root=a.root, ws_root=a.ws_root,
                          opencode=a.opencode,
-                         only=set(a.tasks.split(",")) if a.tasks else None)
+                         only=set(a.tasks.split(",")) if a.tasks else None,
+                         rounds=_rounds(a.rounds))
         a.out.write_text(json.dumps(spec, indent=1), encoding="utf-8")
         for i, st in enumerate(spec["steps"], 1):
             print(f"{i:3}: {st['name']}")
@@ -293,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     only = set(a.tasks.split(",")) if a.tasks else None
     ret = ({k: bool(v["kept"]) for k, v in json.loads(a.retention_reviews.read_text(encoding="utf-8")).items()}
            if a.retention_reviews else None)
-    rep = pilot_report(collect(a.root, reviews, only, ret))
+    rep = pilot_report(collect(a.root, reviews, only, ret, rounds=_rounds(a.rounds)))
     print(json.dumps(rep, indent=1, default=str) if a.json else "\n".join(format_report(rep)))
     return 0
 

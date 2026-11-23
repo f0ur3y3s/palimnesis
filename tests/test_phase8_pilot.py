@@ -178,3 +178,22 @@ def test_a_non_kept_state_waits_for_its_hand_read_and_the_read_settles_it():
     assert rep["selection"]["candidate"] == "a4-n3"
     rows[i] = _row("r2", "ho5-t13", "a4-n3", at_need="omitted", review=False)
     assert pilot_s3.pilot_report(rows)["arms"]["a4-n3"]["retention"] == (3, 4)
+
+
+def test_the_rehearsal_is_round_one_of_dev_t6_and_ho5_t13_in_spec_and_report(tmp_path):
+    full = pilot_s3.make_spec(seed=8125, python="py", root="r", ws_root="w", opencode="o")
+    reh = pilot_s3.make_spec(seed=8125, python="py", root="r", ws_root="w", opencode="o",
+                             only={"dev-t6", "ho5-t13"}, rounds={"r1"})
+    assert reh["config"] == "s3-pilot-seed8125-dev-t6+ho5-t13-r1"
+    assert reh["steps"] == [s for s in full["steps"] if s["name"].startswith("r1 ")
+                            and s["name"].split()[1] in ("dev-t6", "ho5-t13")]
+    assert len(reh["steps"]) == 6
+    rep = pilot_s3.pilot_report(pilot_s3.collect(tmp_path / "nothing", only={"dev-t6", "ho5-t13"},
+                                                 rounds={"r1"}))
+    assert sorted(rep["missing"]) == sorted(f"r1:{t}:{a}" for t in ("dev-t6", "ho5-t13")
+                                            for a in pilot_s3.ARMS)
+
+
+def test_an_unknown_round_is_refused():
+    with pytest.raises(SystemExit, match="unknown rounds"):
+        pilot_s3.main(["report", "x", "--rounds", "r3"])
