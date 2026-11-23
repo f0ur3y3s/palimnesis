@@ -141,3 +141,27 @@
   - The prompt must also make the model put user-stated failures under Dead ends.
   - The cap must keep the earliest recorded lines.
   - Pinned instructions (D65) remain the alternative arm for the S3 pilot.
+
+## R69: Phase 8 S3 pilot: choosing the notes candidate (2026-11-23)
+
+- **What ran:** D125's protocol, headless on Zeus at `8b4da2f`.
+  - 33 attempts: dev-t6..t10 and the retired ho5-t2, t4 and t13 in round 1; the three ho5 tasks again in round 2.
+  - Each attempt was run on three arms: `a4-d77` (control, notes n2), `a4-n3`, and `a4-n3p` (n3 plus pinned instructions).
+  - It took 6.3 h: 33 of 33 steps, no reruns, no stops (`captures/phase8-s3-64fc02e/pilot-run`).
+- **Report** (`pilot_s3.py report`, the D126 rule, with `eval/phase8_trap_reviews_s3.json` and `eval/phase8_retention_reviews_s3.json`):
+
+  | arm | trap repeats | warning lost | warning held | success | constraints | kept at need (ho5-t4, t13) | notes chars |
+  |---|---|---|---|---|---|---|---|
+  | `a4-d77` | 3/11 | r1 ho5-t4, r2 ho5-t2 | r2 ho5-t4 | 11/11 | 30/33 | 3/4 | 4,736 |
+  | `a4-n3` | 1/11 | none | r2 ho5-t4 | 10/11 | 31/33 | 4/4 | 5,531 |
+  | `a4-n3p` | 1/11 | none | r2 ho5-t4 | 10/11 | 33/33 | 4/4 | 5,306 |
+
+  - The 10 disputed attempts (3 control, 3 `a4-n3`, 4 `a4-n3p`) were all judged not repeats in a blind review (D126.3).
+  - ho5-t2 was read by hand. The n3 arms quoted the warning verbatim in all four attempts; the control paraphrased it once and lost it once (D126.4).
+- **Retention.** n3 kept the warning at every trap turn read. At the trap turn's first request, the warning sat in the notes block almost word for word in 21 of 22 n3 attempts. The control lost it, paraphrased it or kept it as a rule without the failure story.
+- **The shared repeat is not forgetting.** Round-2 ho5-t4's trap turn asks for each household's "whole-crate count closest to it", one name at a time. All three arms wrote `round()`, two of them with the warning quoted in their notes. One wrote the conflict into its docstring and followed the instruction anyway. Notes cannot prevent that. S14's gate still counts it.
+- **Selection.** Under D125 as fixed, no arm qualified (V-n2 allowed 0 repeats). Under D126's amendment (post hoc; see its caveats), both n3 arms pass V-n1, V-n2 and no-regression, and `a4-n3` wins by D125.5. It is named **`a8`**, and `serve` defaults to n3.
+- **Costs and open points:**
+  - n3 notes are 12–17% longer, partly because the carry repeats reworded Dead-ends lines (D126.7, open).
+  - The two n3 task failures were r2 ho5-t2 (`a4-n3`) and dev-t9 (`a4-n3p`), one each, within the no-regression margin.
+  - 2 ho5-t4 attempts per arm is a small sample. The confirmation is the sealed ho6 run (S14).

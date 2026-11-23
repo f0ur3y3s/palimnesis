@@ -83,3 +83,4 @@ Measured results, append-only. Each entry names its commit (or "uncommitted" wit
 | R66 | Pi on ho4: 4/5 each, constraints 15/15 vs 13/15, per-archive 5/5; Pi native compaction failed repeatedly at 32K (2026-11-22) | [phase7.md](phase7.md) |
 | R67 | Phase 7 gate summary: primary inconclusive, constraints and per-archive pass, traps and needles fail; Phase 8 carry-forward (2026-11-22) | [phase7.md](phase7.md) |
 | R68 | Phase 8 S1 notes audit (ho5): warnings lost by model omission, not the cut; a Dead-ends-only carry saves 5 of 7 omissions but misses ho5-t4 and t13 (warning under Requirements/Decisions); a wider carry overflows the slot (2026-11-22) | [phase7.md](phase7.md) |
+| R69 | Phase 8 S3 pilot: n3 keeps the warning (4/4 vs 3/4) and has no repeat with it lost; every arm repeated r2 ho5-t4 against a contradicting instruction with the warning held; a8 = a4-n3 under D126's post-hoc V-n2 (2026-11-23) | [phase7.md](phase7.md) |
