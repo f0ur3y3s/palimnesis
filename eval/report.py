@@ -47,10 +47,10 @@ ORDER = ["a4-base", "a3-base", "a2-base", "a4-q2", "a4-x2", "a4-a4", "a4-d43",
          "a5-A", "a5-B", "a5-C", "a5-D", "a5-d64"]
 # Histories x questions (D44.3, O-B1); heldout5 per D111.4; the heldout6 reserve has no needles.
 SET_SHAPE = {"heldout": (12, 10), "heldout2": (12, 10), "heldout3": (12, 10), "heldout4": (12, 10),
-             "heldout5": (18, 10), "heldout6": (0, 0)}
+             "heldout5": (18, 10), "heldout6": (0, 0), "heldout7": (30, 10)}
 NEEDLE_FOLDERS = {"development": "dev", "heldout": "heldout", "heldout2": "heldout2",
                   "heldout3": "heldout3", "heldout4": "heldout4", "heldout5": "heldout5",
-                  "heldout6": "heldout6"}
+                  "heldout6": "heldout6", "heldout7": "heldout7"}
 
 
 def shape_problems(set_name: str, expected: dict[str, list]) -> list[str]:

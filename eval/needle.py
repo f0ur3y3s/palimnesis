@@ -92,8 +92,11 @@ SETS = {"development": ("dev", "dev"), "heldout": ("heldout", "ho"), "heldout2":
         "heldout4": ("heldout4", "ho4"),
         # Phase 7 (D111.4): ho5's 180 needles, and the ho6 reserve (tasks only, no needles).
         # Unseen until unlocked (eval/heldout.py).
-        "heldout5": ("heldout5", "ho5"), "heldout6": ("heldout6", "ho6")}
-HELDOUT_SETS = ("heldout", "heldout2", "heldout3", "heldout4", "heldout5", "heldout6")
+        "heldout5": ("heldout5", "ho5"), "heldout6": ("heldout6", "ho6"),
+        # Phase 8 S12 (D136): ho7, 30 histories x 10 needles under the format rule.
+        "heldout7": ("heldout7", "ho7")}
+HELDOUT_SETS = ("heldout", "heldout2", "heldout3", "heldout4", "heldout5", "heldout6",
+                "heldout7")
 # Judged held-out sets, now development data (D69): they take any configuration, and keep
 # the other held-out rules (real OpenCode, every question, a clean tree, no resume).
 # Judged held-out sets, now development data: heldout2 and heldout3 (D69, D105.10) and

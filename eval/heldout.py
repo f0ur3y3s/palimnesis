@@ -41,8 +41,9 @@ from pathlib import Path
 from typing import Callable
 
 ROOT = Path(__file__).resolve().parents[1]
-UNSEEN_SETS = ("heldout4", "heldout5", "heldout6")
-PREFIX = {"heldout4": "ho4", "heldout5": "ho5", "heldout6": "ho6"}
+# heldout7 (Phase 8 S12, D136): 20 tasks and 30 needle histories, confirmatory with ho6.
+UNSEEN_SETS = ("heldout4", "heldout5", "heldout6", "heldout7")
+PREFIX = {"heldout4": "ho4", "heldout5": "ho5", "heldout6": "ho6", "heldout7": "ho7"}
 PROTOCOL_DECISION = "D115"
 UNLOCK_FILE = "eval/heldout_unlock.json"
 HASHES_FILE = "eval/heldout_hashes.json"
@@ -50,7 +51,8 @@ DECISIONS_DIR = "docs/decisions"
 # Task ids per unseen set (D96: ho4-t1..t5; D111.4: ho5-t1..t20 and the ho6 reserve).
 TASKS = {"heldout4": [f"ho4-t{i}" for i in range(1, 6)],
          "heldout5": [f"ho5-t{i}" for i in range(1, 21)],
-         "heldout6": [f"ho6-t{i}" for i in range(1, 11)]}
+         "heldout6": [f"ho6-t{i}" for i in range(1, 11)],
+         "heldout7": [f"ho7-t{i}" for i in range(1, 21)]}
 
 
 class Locked(ValueError):

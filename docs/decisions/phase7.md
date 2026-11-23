@@ -794,3 +794,41 @@ Three reviews at `b18b425`: protocol (both client protocols), cache audit, and p
 2. **Windows clean machine: deferred** (the user's choice, 2026-11-23). Windows Sandbox needs the feature enabled, a reboot, and a logged-in desktop session on Zeus. It is not yet verified; revisit before S15.
 3. **Guide fix.** README Requirements now lists git: the install starts with `git clone`, and a clean Windows has no git.
 4. **Pi's reaction to 507 and 413 stays unverified** (the user's choice; D132.6).
+
+## D136: S12 heldout7 authoring and seal (protocol fixed before authoring, 2026-11-23)
+
+1. **Size** (U3 option D): 20 tasks (`ho7-t1..t20`) under the full trap standard, and 30 needle histories (`ho7-h1..h30`), 300 needles under the format rule (D127). Registered as the unseen set `heldout7`, unseen by the lead until its unlock at S13.
+2. **Authors.** Four fresh author sessions (the user's choice: four in parallel), each in a new domain unlike every earlier set's themes and unlike each other's:
+
+   | Author | Domain | Tasks | Histories | Generator |
+   |---|---|---|---|---|
+   | A | ports, ships and fisheries | t1–t5 | h1–h8 | `eval/needle_gen_ho7_a.py` |
+   | B | theatre, concerts and live events | t6–t10 | h9–h16 | `eval/needle_gen_ho7_b.py` |
+   | C | textiles, crafts and studios | t11–t15 | h17–h23 | `eval/needle_gen_ho7_c.py` |
+   | D | railways and transit maintenance | t16–t20 | h24–h30 | `eval/needle_gen_ho7_d.py` |
+
+   - Each works in its own git worktree, so no author sees another's files.
+   - **What an author may read:** `eval/tasks/AUTHORING.md`, `eval/tasks/common.py`, the format examples (dev-t6..t10 and the retired ho5 tasks, generators and histories), the tools, and its own files.
+   - **What an author may not read:** ho4, ho6, other authors' ho7 files, `captures/` and `docs/results/`.
+3. **Author checks** (AUTHORING.md §4, all seven).
+   - **Probes** run against Zeus's Strata (`http://192.168.1.19:8080`, 0.1.58, 32K, one slot).
+   - **The bar:** a revised task or question must pass two consecutive probe runs (D113.10).
+   - **Independence** is checked against every earlier set (dev, ho, ho2, ho3, ho4, ho5, ho6), by counts only for the sealed ho4 and ho6.
+   - **Exempt wording:** the format rule's fixed sentences and the trap warning's prescribed runs.
+4. **Reports.** Pass/fail and counts only, in a fixed vocabulary of location words. No names, topics, values or quotes (D113.12). Any leak is recorded as an exposure.
+5. **Before the seal** the lead runs, on the copied files, seeing pass/fail and counts only:
+   - `--check-reference` for every task;
+   - each generator's `--check`;
+   - declared strata and coverage (at least 30 per level);
+   - the format lint;
+   - independence from the earlier sets;
+   - the cross-author check, which is reported, not gated (D113.11);
+   - a lead re-run of the shape probe and of the trap probe for any task that passed only once at 2/3.
+   
+   Then the lead runs `heldout.py seal` and commits the files and their hashes.
+6. **Code** (this entry):
+   - `heldout7` is registered in `heldout.py`, `needle.py`, `report.py` and `run.py`.
+   - `eval/independence.py` now checks against ho5 (readable) and ho6 (sealed, counts only).
+   - The format sentences are exempt wording.
+   - ho6 and ho7 unlock at S13 under that protocol's decision. `heldout.PROTOCOL_DECISION` becomes per-set there.
+7. The outcome is appended after the seal.

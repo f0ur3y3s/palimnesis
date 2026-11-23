@@ -38,10 +38,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ROOT / "eval" / "tasks"
 NEEDLES = ROOT / "eval" / "needles"
-SET_TASK_PREFIX = {"dev": "dev_t", "ho": "ho_t", "ho2": "ho2_t", "ho3": "ho3_t", "ho4": "ho4_t"}
+# Phase 8 S12 (D136): heldout7 is checked against every earlier set, retired ho5 included,
+# and sealed ho6 by counts only, like ho4.
+SET_TASK_PREFIX = {"dev": "dev_t", "ho": "ho_t", "ho2": "ho2_t", "ho3": "ho3_t", "ho4": "ho4_t",
+                   "ho5": "ho5_t", "ho6": "ho6_t"}
 SET_NEEDLE_DIR = {"dev": "dev", "ho": "heldout", "ho2": "heldout2", "ho3": "heldout3",
-                  "ho4": "heldout4"}
-SEALED = {"ho4"}
+                  "ho4": "heldout4", "ho5": "heldout5", "ho6": "heldout6"}
+SEALED = {"ho4", "ho6"}
 FIXED_TURNS = (1, 3, 5, 7)
 FORMAT_TASKS = [f"dev_t{n}" for n in range(6, 11)]
 
@@ -238,6 +241,11 @@ def default_exempt() -> set:
     """The wording authors are told to reuse in the requests and trap warning."""
     texts = prose_of_module((TASKS / "common.py").read_text(encoding="utf-8"))
     texts.extend(("Also, we already tried", "and it failed because"))
+    # The answer-format rule's fixed sentences (D127): every new question ends with one.
+    import needle_format
+    texts.extend(needle_format._SINGLE.values())
+    for sep in needle_format.SEPARATORS:
+        texts.append(needle_format.sentence({"kind": "list", "n": 3, "sep": sep}))
     sys.path.insert(0, str(TASKS))
     try:
         for m in FORMAT_TASKS:
@@ -252,7 +260,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("files", nargs="+", type=Path)
     p.add_argument("--against", default=",".join(SET_TASK_PREFIX),
-                   help="earlier sets (dev,ho,ho2,ho3,ho4)")
+                   help="earlier sets (dev,ho,ho2,ho3,ho4,ho5,ho6)")
     p.add_argument("--also", nargs="*", type=Path, default=[],
                    help="more files to compare with, treated as sealed (other authors' files)")
     p.add_argument("--explain", action="store_true",

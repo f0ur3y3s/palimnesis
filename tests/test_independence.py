@@ -141,10 +141,12 @@ def test_cli_prints_pass_or_fail_per_file(tmp_path):
 
 def test_default_sets_cover_earlier_task_modules_and_needles():
     sets = independence.default_sets()
-    assert {"dev", "ho", "ho2", "ho3", "ho4"} <= set(sets)
+    # heldout7 (D136) is checked against every earlier set: retired ho5, sealed ho4 and ho6.
+    assert {"dev", "ho", "ho2", "ho3", "ho4", "ho5", "ho6"} <= set(sets)
+    assert independence.SEALED == {"ho4", "ho6"}
     names = {p.name for paths in sets.values() for p in paths}
-    assert "dev_t6.py" in names and "dev-h1.json" in names
-    assert not any(n.startswith(("ho5", "ho6")) for n in names)
+    assert "dev_t6.py" in names and "dev-h1.json" in names and "ho5-h1.json" in names
+    assert not any(n.startswith("ho7") for n in names)
 
 
 def test_runs_and_identifiers_in_two_earlier_sets_are_generic(tmp_path):

@@ -39,9 +39,9 @@ def _unlock_root(tmp_path: Path, unlocked, heading: str | None = "## D115: the p
 
 
 @pytest.mark.parametrize("set_name, task_id", [("heldout4", "ho4-t1"), ("heldout5", "ho5-t7"),
-                                               ("heldout6", "ho6-t10")])
+                                               ("heldout6", "ho6-t10"), ("heldout7", "ho7-t20")])
 def test_unseen_sets_refused_without_unlock(tmp_path, set_name, task_id):
-    assert heldout.UNSEEN_SETS == ("heldout4", "heldout5", "heldout6")
+    assert heldout.UNSEEN_SETS == ("heldout4", "heldout5", "heldout6", "heldout7")
     assert state_eval.REFUSED_SETS == heldout.UNSEEN_SETS
     assert heldout.set_of_task(task_id) == set_name
     assert heldout.set_of_task("ho3-t1") is None and heldout.set_of_task("dev-t1") is None
