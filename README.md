@@ -49,7 +49,7 @@ Open problems: the local model sometimes cuts an answer short ("1" for "1.25s"),
 
 ## Requirements
 
-- Python 3.12 and [uv](https://docs.astral.sh/uv/).
+- Python 3.12, [uv](https://docs.astral.sh/uv/) and git.
 - A **Strata** server reachable over HTTP. Palimnesis counts tokens the way Strata does, with its own copy of the chat template and tokenizer. At startup it asks the server to count a few sample conversations and compares the answers with its own.
   - When they match, bounded views are on, whatever the Strata version. Tested with 0.1.48, 0.1.54 and 0.1.58 ([R55](docs/results/phase4b.md#r55-strata-0158-on-pythia-accepted-by-its-counts-counts-unchanged-faster-cancellation-2026-11-07)), and the counting and wire format of 0.1.57 ([R50](docs/results/phase4b.md#r50-strata-0157-counts-exactly-as-the-pin-2026-11-06), [R51](docs/results/phase4b.md#r51-wire-shapes-of-strata-0157-and-lm-studio-behind-the-proxy-2026-11-06)).
   - When a new release changes the chat template, Palimnesis tries the server's template and switches to it if the counts then match.

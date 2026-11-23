@@ -779,3 +779,18 @@ Three reviews at `b18b425`: protocol (both client protocols), cache audit, and p
    - **Gap closed:** a test now asserts the accounting: a replay records no upstream call, and a fork's first call is `first_call`.
    - **Noted:** an `upstream_call` write lost to a full disk can mislabel the next call after a restart (pre-existing, low).
 3. **Paper fidelity: pass.** Two documentation clauses were added to the n3 docstring and `docs/papers.md`: when Dead ends stays whole (D123.2, D122.4), and the n3 prompt's role (D121.1).
+
+## D135: S10 clean-machine guides (U10, U11; 2026-11-23)
+
+1. **Linux, verified.** Per U11 (the user's choice), the test ran on WSL2 on Zeus, in a fresh Ubuntu 24.04 distribution made for it (`palimnesis-clean`).
+   - **Method.** A new non-root user followed README "Requirements" and "Install" exactly: the official uv installer, `git clone` over HTTPS (the repository is public), `uv sync`, `uv run palimnesis --help`, then `uv run pytest -q`.
+   - **The image already had** git 2.43, curl and Python 3.12.3. uv installed 0.13.9, and every step worked as written.
+   - **First suite run at `481aeee`:** 2294 passed, 6 skipped, 2 failed. Both failures were the crash matrix's `after_batch_1` external kill.
+     - On Linux the fake upstream's stream arrives in several reads, so the first batch holds partial output, and the keyed resend correctly gets `409 ambiguous_retry` (D130).
+     - On Windows it arrives in one read, so the turn is already complete.
+     - The test's expectation was wrong, not the proxy. It now decides from the archive's state at the kill (`79d7e61`).
+   - **At `79d7e61`** the matrix passes on Linux (25/25), so the Linux suite is green.
+   - The distribution is kept for S15's Linux suite at the release commit.
+2. **Windows clean machine: deferred** (the user's choice, 2026-11-23). Windows Sandbox needs the feature enabled, a reboot, and a logged-in desktop session on Zeus. It is not yet verified; revisit before S15.
+3. **Guide fix.** README Requirements now lists git: the install starts with `git clone`, and a clean Windows has no git.
+4. **Pi's reaction to 507 and 413 stays unverified** (the user's choice; D132.6).

@@ -214,3 +214,11 @@
   
   Authoring under the rule catches these: a question that fails the probe has its stem revised and needs two consecutive 3/3 passes (AUTHORING.md §4.7).
 - **What it means for heldout7 (S12):** every question is written to the rule and passes the probe before sealing. The needle gate then measures recall, not phrasing.
+
+## R72: Phase 8 S10 clean-machine guides (2026-11-23)
+
+- **Linux (Ubuntu 24.04.5, fresh WSL2 distribution on Zeus, new user, README steps only).**
+  - uv 0.13.9 installed, the HTTPS clone and `uv sync` worked, Python was 3.12.3, and `palimnesis --help` ran.
+  - **Full suite at `481aeee`:** 2294 passed, 6 skipped, 2 failed. The two failures were a crash-matrix test whose expectation assumed Windows read timing (D135).
+  - **At `79d7e61`** the crash matrix passes 25/25 on Linux.
+- **Windows clean machine:** deferred (D135.2), not verified.
