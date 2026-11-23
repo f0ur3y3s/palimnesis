@@ -493,3 +493,20 @@ Two reviews of `eee9146` (protocol review and cache audit; reviewers report, nev
 5. **Record corrections.**
    - D121.2 said lines past the cap "go to `dropped`". As built (D122.3, contracts §17), `dropped` lists the reply's own lines only.
    - The decision numbers the Phase 8 plan had reserved from D123 move up by one: the S3 candidate decision is now D124.
+
+## D124: S2h survival test, and the Strata startup task fix (2026-11-22)
+
+1. **First attempt failed (plan `phase8-s2h-4e12cc1/survival`).** Zeus was force-rebooted at 18:15:22 during step 1, turn 2.
+   - The runner's own boot task worked as specified. It started at boot, waited 3,600 s for `/props`, then wrote STOPPED ("server not up"), with no rerun and no lost record.
+   - Strata never came back. The "Palimnesis Strata" task ran at 18:16:07 and exited with 1, and its log got nothing. Started by hand, it failed the same way, so boot timing was not the cause.
+   - **Cause:** `cmd /c` strips the first and last quote of a command line holding more than two, which broke the program path and the `>>` redirect. **Fix:** `eval/zeus_strata_task.ps1` wraps the command in an outer pair of quotes (5e4eca2).
+2. **Gate gap.** `run_ready.py`'s `strata_task` check passed on "registered", and the task had never been started once. It now requires the task's state to be Running, so the server that is up is the one the boot task starts. A registered task that is not running fails (`tests/test_run_ready.py`). Plan gate item 3 says so.
+3. **Second attempt passed (plan `phase8-s2h-5e4eca2/survival`, SHA 97ef9e5766d8).**
+   - Readiness (`--short`) passed at 5e4eca2, including the suite on Zeus (2,182 passed, 3 skipped) and `strata_task: Running`.
+   - Zeus was force-rebooted at 19:37:19 during step 1, turn 2, after turn 1 had ended with exit 0 and all calls 200. Boot was at 19:37:57.
+   - ssh was back at +65 s and `/props` at +200 s, with `n_ctx` 32,768, 1.0 / 0.95 / 20, one slot, 0.1.58. The load was about 3 minutes, not the 16 seen before. That figure is recorded as seen; it is not relied on, since the runner waits up to an hour.
+   - The runner reran step 1 with `--reason host-restart` at 19:40:54. Attempt 2 finished `done` after 8 turns, all exit 0 and all calls 200. Step 2 finished. Status: done 2, reruns 1, nothing stopped.
+   - Attempt 1 stays `running` in `attempts.json` because the power cut kept it from writing its finish. `attempts.designate` picks attempt 2 and lists attempt 1 as superseded with reason `host-restart`, so the record is complete.
+   - The four tracebacks in `runner.log` all precede the rerun header. They are the proxy losing its upstream as the host went down.
+4. **Evidence.** `captures/phase8-s2h-5e4eca2/survival` on Zeus is the survival evidence for gate item 7. S2h's remaining gate evidence (rehearsal, report and so on) comes with S3.
+5. **Numbering.** The decision numbers the Phase 8 plan had reserved from D124 move up by one again: the S3 candidate decision is now D125.

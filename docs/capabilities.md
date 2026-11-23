@@ -126,7 +126,7 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 - **The notes slot is a fixed 2,048 tokens** (D78.5).
   - It was measured only at a 24,320-token input budget.
   - Admission and the startup floor reserve it (D79), so below about 8,000 input tokens it takes too much of the view; use `--notes 0` there.
-- **The notes can lose a user-reported failure under n1 and n2** (R65, R68). A rewrite may leave out the turn-1 "we already tried X" warning. In S11, 7 of 15 readable ho5 runs had lost it by the trap turn. `--notes-format n3` (D121) carries earlier Dead-ends lines forward, but only lines the model once filed under Dead ends. It is not the default until the S3 pilot (D124).
+- **The notes can lose a user-reported failure under n1 and n2** (R65, R68). A rewrite may leave out the turn-1 "we already tried X" warning. In S11, 7 of 15 readable ho5 runs had lost it by the trap turn. `--notes-format n3` (D121) carries earlier Dead-ends lines forward, but only lines the model once filed under Dead ends. It is not the default until the S3 pilot (D125).
 - **A second collapse inside one request sends no refresh.** A rebuild with the new notes or an excerpt block can, rarely, advance the collapse again; that move keeps the notes just written without another refresh call (R42).
 - **Some internal size estimates run a few tokens low.** Previews, the recent window and excerpt charges are sized on text with tags live (D46.4). The assembled request is counted exactly, so the budget holds.
 
