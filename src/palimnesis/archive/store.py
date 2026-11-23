@@ -467,6 +467,9 @@ def _connect(path: str, synchronous: str) -> sqlite3.Connection:
     conn.execute(f"PRAGMA synchronous = {synchronous}")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA recursive_triggers = ON")
+    pages = os.environ.get("PALIMNESIS_MAX_PAGE_COUNT")
+    if pages:  # test seam (D132): a full disk as SQLITE_FULL at a chosen archive size
+        conn.execute(f"PRAGMA max_page_count = {int(pages)}")
     actual = _pragmas(conn)
     expected = {"journal_mode": "wal", "synchronous": synchronous}
     for name, value in expected.items():

@@ -47,6 +47,13 @@ def _add_serve_arguments(serve: argparse.ArgumentParser) -> None:
     serve.add_argument("--view", choices=["on", "off"], default="on",
                        help="bounded views: 'on' masks over the watermark, 'off' only "
                             "enforces budgets")
+    serve.add_argument("--max-body-bytes", type=int, default=32 * 1024 * 1024, metavar="BYTES",
+                       help="refuse larger request bodies with 413 before archiving (default 32 MiB)")
+    serve.add_argument("--min-free-bytes", type=int, default=1024 ** 3, metavar="BYTES",
+                       help="refuse requests with 507 archive_full while the archive's disk has "
+                            "less free space (default 1 GiB)")
+    serve.add_argument("--slot-ceiling", type=float, default=60.0, metavar="SECONDS",
+                       help="mark the upstream unhealthy when other work holds its slot longer")
     serve.add_argument("--input-budget", type=int, metavar="TOKENS",
                        help="input budget cap (default 48000; never above capacity)")
     serve.add_argument("--query-policy", choices=["q1", "q2"], default="q1",
@@ -108,7 +115,9 @@ def _settings(args: argparse.Namespace) -> Settings:
                     retrieval=args.retrieval, notes_tokens=args.notes,
                     notes_format=args.notes_format, notes_header=args.notes_header,
                     transcripts=args.transcripts,
-                    transcripts_enabled=not args.no_transcripts)
+                    transcripts_enabled=not args.no_transcripts,
+                    max_body_bytes=args.max_body_bytes, min_free_bytes=args.min_free_bytes,
+                    slot_ceiling_s=args.slot_ceiling)
 
 
 def serve_settings(argv: list[str]) -> Settings:

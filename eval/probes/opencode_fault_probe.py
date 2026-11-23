@@ -57,6 +57,8 @@ RUNS: dict[str, dict] = {
     "s429": {"scenario": "s429"},
     "s429_noretry": {"scenario": "s429_noretry"},
     "s500_noretry": {"scenario": "s500_noretry"},
+    "s507_noretry": {"scenario": "s507_noretry"},
+    "s413_noretry": {"scenario": "s413_noretry"},
     "s400": {"scenario": "s400"},
     "role_only_eof": {"scenario": "role_only_eof"},
     "role_only_eof_noretry": {"scenario": "role_only_eof_noretry"},

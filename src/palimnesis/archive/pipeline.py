@@ -142,8 +142,13 @@ class ArchiveHandler:
                  forward_headers, views=None, deadline_s: float = 600.0,
                  on_change=None, addendum_for=None, hidden_tools=None, *,
                  queue_capacity: int = 8, header_wait_s: float = 10.0,
-                 keepalive_s: float = 15.0, retry_after_s: int = 15) -> None:
+                 keepalive_s: float = 15.0, retry_after_s: int = 15,
+                 slot_ceiling_s: float = 60.0) -> None:
         self.store = store
+        # Contracts §8 (D132): other work held the upstream's slot past the ceiling; new
+        # requests are refused until its /status shows it idle again.
+        self.slot_ceiling_s = slot_ceiling_s
+        self.unhealthy = False
         # Proxy admission (O4): one FIFO in front of the upstream's slots (contracts §8).
         self.admission = Admission(queue_capacity, self._slots)
         self.header_wait_s, self.keepalive_s = header_wait_s, keepalive_s
@@ -185,6 +190,12 @@ class ArchiveHandler:
             return
         except chat.InvalidBody as e:
             await error_response(api_path, 400, "invalid_body", str(e))(scope, receive, send)
+            return
+        if await self._still_unhealthy():
+            await error_response(
+                api_path, 503, "upstream_unhealthy",
+                "The upstream's slot has been busy with other work past the ceiling; nothing "
+                "was archived.", type_="api_error")(scope, receive, send)
             return
         prepared = None
         if self.views is not None and await self.views.ready(self.client):
@@ -298,7 +309,14 @@ class ArchiveHandler:
                 # Queue time counts against D (contracts §5): the slot is awaited inside it.
                 with anyio.move_on_after(max(0.0, expires - anyio.current_time())) as window:
                     await ticket.acquire()
-                    await self._guard()
+                    try:
+                        await self._guard()
+                    except UpstreamUnhealthy:
+                        ticket.release()
+                        await self._unhealthy(scope, receive, send, gen, api_path,
+                                              started or (gate is not None and gate.started))
+                        watchers.cancel_scope.cancel()
+                        return
                     if prepared is None or await self._bound(
                             scope, receive, tracked, req, gen, prepared, api_path, headers,
                             hidden=protocol.hidden_tools):
@@ -343,12 +361,48 @@ class ArchiveHandler:
 
     async def _guard(self) -> None:
         """Wait while the upstream's own status shows other clients' work (contracts §8).
-        With more than one slot the upstream is meant to be busy, so the guard is off."""
+        With more than one slot the upstream is meant to be busy, so the guard is off.
+        Past the slot ceiling the upstream is marked unhealthy (D132)."""
         probe = self.views.profile.slot_probe if self.views is not None else None
         if probe is None or self.admission.slots > 1:
             return
+        start = anyio.current_time()
         while await probe.idle(self.client) is False:
+            if anyio.current_time() - start > self.slot_ceiling_s:
+                self.unhealthy = True
+                log.error("the upstream's slot stayed busy with other work for over %.0f s; "
+                          "marked unhealthy until it is idle", self.slot_ceiling_s)
+                raise UpstreamUnhealthy()
             await anyio.sleep(GUARD_POLL_S)
+
+    async def _still_unhealthy(self) -> bool:
+        """While marked unhealthy, re-read the upstream's status: idle clears the mark."""
+        if not self.unhealthy:
+            return False
+        probe = self.views.profile.slot_probe if self.views is not None else None
+        if probe is None or await probe.idle(self.client) is not False:
+            self.unhealthy = False
+            log.warning("the upstream's slot is idle again; dispatch resumes")
+        return self.unhealthy
+
+    async def _unhealthy(self, scope, receive, send, gen, api_path: str, started: bool) -> None:
+        """The slot ceiling passed after acceptance: the attempt fails, nothing was sent."""
+        with anyio.CancelScope(shield=True):
+            try:
+                await self.store.write(lambda c: ledger.finish_attempt(
+                    c, gen, "attempt_failed", reason="upstream_unhealthy"))
+            except Exception:
+                log.exception("could not record the attempt the slot ceiling ended")
+        message = ("The upstream's slot has been busy with other work past the ceiling; "
+                   "Palimnesis stopped dispatching to it.")
+        with anyio.move_on_after(FINAL_SEND_S, shield=True):
+            if not started:
+                await error_response(api_path, 503, "upstream_unhealthy", message,
+                                     type_="api_error")(scope, receive, send)
+                return
+            await send({"type": "http.response.body", "more_body": True,
+                        "body": gen.emitter.error("upstream_unhealthy", message)})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def _hidden_tools_for(self, session: str, req) -> list | None:
         """The hidden tool schemas this request would carry once fixed: the session's fixed
@@ -1250,6 +1304,10 @@ class ArchiveHandler:
         for choice in chunk.get("choices") or []:
             if choice.get("finish_reason"):
                 state["finish"] = choice["finish_reason"]
+
+
+class UpstreamUnhealthy(Exception):
+    """The upstream's slot stayed busy with other work past the ceiling (D132)."""
 
 
 def _finish_of(data: bytes) -> str | None:

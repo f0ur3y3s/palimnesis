@@ -51,6 +51,7 @@ A failed or cut-short stream ends with an in-stream error event and `x-should-re
 - **Undo, redo, revert, `fork`, `timeline`, `/btw`:** each changes visible history. A divergent request in the same session is rejected with a defined error.
   - **To branch a conversation**, fork it explicitly (D129): `palimnesis session fork <session> --at <turn>` prints a new session's base URL. A client that sends the history through that turn to the new URL continues it as a prefix, with no import (tested at the HTTP seam). **Unverified:** how an OpenCode or Pi session is pointed at the new URL while keeping its history; no harness workflow has been probed.
 - **Manual `/compact`:** avoid it.
+- **507 `archive_full` and 413 `request_too_large`** (probed on Zeus with the fault server's `s507_noretry` and `s413_noretry` runs, D132; fault fixtures are git-ignored, like the earlier ones). OpenCode 2.1.4 sends the request once, with no retry, prints `Error:` and the error's message, and `opencode run` exits 1. Free disk space or shorten the session, then resend. Pi's reaction is **unverified**: Pi is not installed on Zeus, the only host in use.
 - **Background shell jobs (`background: true`):** they inject later notices; avoid them.
 - **The `question` tool:** it errors in non-interactive `opencode run`, but is harmless.
 

@@ -33,6 +33,16 @@ from palimnesis.archive.store import Store
 log = logging.getLogger(__name__)
 
 SESSION_PREFIX = b"/s/"
+def _free_bytes(db_path) -> int | None:
+    """Free bytes on the archive's volume (D132), or None when it cannot be read."""
+    import shutil
+
+    try:
+        return shutil.disk_usage(Path(db_path).resolve().parent).free
+    except OSError:
+        return None
+
+
 # The explicit fork (D129): a control route, served only in archive mode.
 _FORK_PATH = re.compile(r"/palimnesis/sessions/([^/]+)/fork")
 SESSION_HEADER = b"x-palimnesis-session"
@@ -185,6 +195,7 @@ class Proxy:
                         header_wait_s=self.settings.header_wait_s,
                         keepalive_s=self.settings.keepalive_s,
                         retry_after_s=self.settings.retry_after_s,
+                        slot_ceiling_s=self.settings.slot_ceiling_s,
                     )
                     for session in interrupted if self.projector else ():
                         self.projector.trigger(session)
@@ -313,12 +324,24 @@ class Proxy:
             await error_response(api_path, 400, e.code, e.message)(scope, receive, send)
             return
 
+        limit = self.settings.max_body_bytes if self.archive is not None else None
+        too_large = error_response(
+            api_path, 413, "request_too_large",
+            f"The request body exceeds {limit} bytes; nothing was archived.")
+        declared = next((v for k, v in headers if k.lower() == b"content-length"), None)
+        if (limit is not None and declared is not None and declared.isdigit()
+                and int(declared) > limit):
+            await too_large(scope, receive, send)
+            return
         body = bytearray()
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":
                 return
             body += message.get("body", b"")
+            if limit is not None and len(body) > limit:
+                await too_large(scope, receive, send)
+                return
             if not message.get("more_body", False):
                 break
 
@@ -389,6 +412,15 @@ class Proxy:
                               headers, body)
             return
         protocol = protocols.for_path(api_path)
+        if protocol is not None and self.settings.db_path is not None:
+            free = await asyncio.to_thread(_free_bytes, self.settings.db_path)
+            if free is not None and free < self.settings.min_free_bytes:
+                await error_response(
+                    api_path, 507, "archive_full",
+                    f"The archive's disk has {free} bytes free, under the "
+                    f"{self.settings.min_free_bytes} bytes Palimnesis keeps in reserve; "
+                    "nothing was archived.", type_="api_error")(scope, receive, send)
+                return
         query = scope.get("query_string", b"").decode("latin-1")
         if protocol is not None and protocol.queries is not None and query not in protocol.queries:
             response = error_response(

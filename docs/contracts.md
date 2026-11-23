@@ -144,6 +144,9 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | Repeated key for a stream completed before migration 8 | 409 `streaming_replay_unavailable` | `x-should-retry: false` | **[enforced]** |
 | `Last-Event-ID` (stream resume), before acceptance | 400 `resume_unsupported` | `x-should-retry: false` | **[enforced]** |
 | Archive cannot commit the input (D10.16) | 503 `archive_unavailable` | `retry-after: 2`, `x-should-retry: true` | **[enforced]** |
+| Request body over `--max-body-bytes` (default 32 MiB), before acceptance (D132) | 413 `request_too_large`, nothing archived | `x-should-retry: false` | **[enforced]** |
+| Archive volume under `--min-free-bytes` free (default 1 GiB), before acceptance (D132, U8) | 507 `archive_full`, nothing archived | `x-should-retry: false` | **[enforced]** |
+| Upstream slot held by other work past `--slot-ceiling` (default 60 s; D132) | 503 `upstream_unhealthy`: the waiting attempt fails, and later requests are refused before acceptance until the upstream's `/status` is idle | `x-should-retry: false` | **[enforced]** |
 | Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
 | Upstream non-200 after acceptance | relayed status; body relayed (Chat) or re-enveloped (Messages, §3) | `x-should-retry: false` | **[enforced]** |
 | Upstream unreachable in passthrough | 502 `upstream_unreachable` | `x-should-retry: true` | **[enforced]** |
@@ -200,7 +203,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - With one slot, the upstream's `/status` guards dispatch, because other clients share it: dispatch waits while it shows work running or queued. An upstream without the route never holds dispatch back.
 - **Slot ownership.** An active request holds the slot across all its upstream calls: the notes refresh, hidden continuations and the answer. It releases the slot on completion, failure, cancellation, or when it returns external tool calls.
 - **Background work.** Non-inference background work (transcript projection, stub warm-up) runs off the request path and never uses the upstream slot (D35, D25). Background inference, when a later phase adds it, starts only when no foreground request is active or queued. **[enforced for non-inference work]**
-- **Released** means the upstream no longer lists the request as active; the `/status` guard waits for it. The expected bound is under 1 s during decode and one prefill chunk at the measured prefill rate during prefill. **[defined]** Past a hard ceiling (default 60 s) the upstream would be marked unhealthy and dispatch stop; until that lands, the guard waits within each request's `D`.
+- **Released** means the upstream no longer lists the request as active; the `/status` guard waits for it. The expected bound is under 1 s during decode and one prefill chunk at the measured prefill rate during prefill. **[defined]** Past the ceiling (`--slot-ceiling`, default 60 s) the upstream is marked unhealthy: the waiting attempt fails with `upstream_unhealthy`, and dispatch stops until a probe shows the slot idle (D132). **[enforced]**
 
 ## 9. Reasoning carryover
 
@@ -234,6 +237,7 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - Each bounded output batch commits, with its transcript mapping, before it is forwarded.
   - Turn-completion markers are separate, so a crash leaves an explicit incomplete turn.
 - No write transaction is held across inference. Blocking database work runs off the event loop.
+- **A full disk** (D132, U8). Requests are refused before acceptance while the archive's volume has less free space than `--min-free-bytes`. SQLITE_FULL after acceptance takes the `archive_unavailable` paths: 503 before the stream, or the in-stream error and never success after. Accepted history stays intact. A full disk during transcript publication never fails a request; the publication is redone at the next start. Test seam: `PALIMNESIS_MAX_PAGE_COUNT`.
 - Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Immutable tables include `notes_versions`, `notes_outputs` and `notes_sources` (§17). Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
 - An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically. Output it archived before the crash is indexed then, as a terminal event would have indexed it (D131).
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.

@@ -681,3 +681,44 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
 1. **A completed keyed stream is replayed.** This covers one whose delivery was cut, since completion is the terminal commit, not delivery (D128). A completed keyed non-streaming request replays its prepared response, as before.
 2. **A partial keyed stream gets `409 ambiguous_retry`.** Some output was produced, but there is no terminal commit, and Palimnesis will not silently generate the turn again. Keyless requests are unchanged (§6).
 3. **No automatic resume.** The plan makes resume optional, and it is deferred. `Last-Event-ID` gets `400 resume_unsupported` (D128). The proxy never re-sends or continues a cut stream by itself, and a fork never sends anything upstream (D129).
+
+## D131: S7 crash and concurrency matrix (2026-11-23)
+
+1. **New crash points** (`pipeline.crash_point`):
+   - before and after the notes commit;
+   - after the view record, when the view moved;
+   - after the terminal commit, before forwarding, for the plain stream and for the hidden loop.
+   
+   `PALIMNESIS_PAUSE_AT` with `PALIMNESIS_PAUSE_FILE` stops the process at a point, so a test can kill it from outside.
+2. **Archive checker** (`palimnesis.archive.integrity.check`). It covers:
+   - SQLite `integrity_check` and `foreign_key_check`;
+   - no branch left active;
+   - exactly one terminal event per attempt;
+   - FTS equal to a rebuild of an in-memory copy, compared with `fts5vocab`: block instances, chunk rows and chunk map spans.
+   
+   S9 exposes it as `check --archive`.
+3. **Tests** (`tests/test_crash_matrix.py`):
+   - a process exit at each new point, with a second session's request waiting for the slot;
+   - an external kill (TerminateProcess or SIGKILL) at 10 boundaries for each client protocol: accept, notes before and after, view, excerpt, first batch, terminal, and three transcript-publication steps.
+   
+   After a restart, the checker passes, the committed rows are as expected, the interrupted attempt is abandoned, and the transcripts verify. The keyed resend gets the answer: a replay when the turn had completed.
+4. **Defects found and fixed**, each with a test that fails without its fix:
+   - **Hidden results indexed by a fork.** S6's fork indexed hidden-recall results. They are now skipped, as D60 requires.
+   - **Interrupted transcript publication.** A publication a kill cut short was not redone until the session's next change, and a keyed replay changes nothing. `publish` now writes a `.publishing` marker naming the session and removes it when done, and the projector republishes every marked session at start.
+   - **Unindexed partial output.** An attempt abandoned at restart left its partial output unindexed, so the index differed from a rebuild. `eval/kill_trials.py` found this within 4 trials. `_abandon` now indexes the attempt's generated occurrences.
+5. **`eval/kill_trials.py`**. Random-time external kills during a one-second stream, with the checks above after each restart. A partial-output state expects `409 ambiguous_retry` (D130). R71 is the N = 50 run.
+
+## D132: S8 failure modes and limits (U8, 2026-11-23)
+
+1. **413 `request_too_large`** before acceptance, for a body over `--max-body-bytes` (default 32 MiB). It is checked from `Content-Length` before reading, or as the body streams in. Nothing is archived or sent upstream. A body limit was planned in Phase 1 (`phase1.md:110`) but never built.
+2. **507 `archive_full`** before acceptance, while the archive's volume has less free space than `--min-free-bytes` (default 1 GiB).
+3. **SQLITE_FULL after acceptance** takes the existing `archive_unavailable` paths: 503 before the stream, or the in-stream error and never success after. Earlier history stays intact, and the checker passes. The test seam is `PALIMNESIS_MAX_PAGE_COUNT`, which sets `PRAGMA max_page_count` on every store connection.
+4. **ENOSPC during transcript publication.** The request still succeeds, the projector counts the failure, the `.publishing` marker stays, and the next start republishes (D131).
+5. **The slot ceiling** (contracts §8): `--slot-ceiling`, default 60 s.
+   - When the `/status` guard waits longer than the ceiling for other work, the upstream is marked unhealthy. The waiting attempt fails with `upstream_unhealthy`: a 503, or the in-stream error once the stream has started.
+   - While the mark stands, each new request re-reads `/status`. Still busy is 503 `upstream_unhealthy` before acceptance; idle clears the mark.
+6. **Harness reactions.**
+   - **OpenCode 2.1.4,** probed on Zeus with the fault server's new `s507_noretry` and `s413_noretry` scenarios (the fixtures are git-ignored, like the earlier fault fixtures; the result is recorded here): one request and no retry, `Error:` plus the error's message, exit 1.
+   - **Pi: unverified.** It is not installed on Zeus, the only host in use. Its protocol tests cover the Messages error shape.
+7. **Backup during a stream** is tested with S9's backup command (D133).
+8. **Tests:** `tests/test_limits_http.py`.

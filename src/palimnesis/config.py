@@ -60,6 +60,12 @@ class Settings:
     header_wait_s: float = 10.0
     keepalive_s: float = 15.0
     retry_after_s: int = 15
+    # Limits (Phase 8 S8, D132): a body larger than this is 413 before acceptance; less free
+    # space than this on the archive's volume is 507 before acceptance (U8); a slot other
+    # work holds longer than this marks the upstream unhealthy (contracts §8).
+    max_body_bytes: int = 32 * 1024 * 1024
+    min_free_bytes: int = 1024 ** 3
+    slot_ceiling_s: float = 60.0
     # Transcript files root (Phase 3); None means "transcripts" beside the archive.
     transcripts: Path | None = None
     # False: no transcript files are published.

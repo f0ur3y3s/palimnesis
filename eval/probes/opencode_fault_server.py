@@ -109,6 +109,15 @@ SCENARIOS: dict[str, tuple[str, list]] = {
         [Status(429, NO_RETRY, "rate limited")],
     ),
     "s500_noretry": ("HTTP 500 + x-should-retry: false.", [Status(500, NO_RETRY)]),
+    # Phase 8 S8 (D132): Palimnesis's own refusals before acceptance.
+    "s507_noretry": (
+        "HTTP 507 archive_full + x-should-retry: false.",
+        [Status(507, NO_RETRY, "palimnesis archive_full")],
+    ),
+    "s413_noretry": (
+        "HTTP 413 request_too_large + x-should-retry: false.",
+        [Status(413, NO_RETRY, "palimnesis request_too_large")],
+    ),
     "s400": (
         "HTTP 400 every attempt.",
         [Status(400, {}, "bad request from fault server")],
@@ -1028,11 +1037,13 @@ def _reason(status: int) -> str:
     return {
         200: "OK",
         400: "Bad Request",
+        413: "Content Too Large",
         404: "Not Found",
         429: "Too Many Requests",
         500: "Internal Server Error",
         502: "Bad Gateway",
         503: "Service Unavailable",
+        507: "Insufficient Storage",
     }.get(status, "Status")
 
 
