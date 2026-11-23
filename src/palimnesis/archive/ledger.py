@@ -1267,6 +1267,89 @@ def expire(conn: sqlite3.Connection, gen: Generation) -> None:
                        forwarded=gen.forwarded)
 
 
+def fork_session(conn: sqlite3.Connection, source: str, at_turn: int, session: str) -> int:
+    """Copy ``source``'s archived history through turn ``at_turn`` into the new session
+    ``session`` (D129, U6); return the number of occurrences copied.
+
+    Turn N runs from the N-th client user message to the next one. The history is the one
+    a request would reconcile against: superseded context versions replaced, and the
+    generated turns an earlier request left out (``partial_superseded``) omitted. Each copy
+    gets a new id, the fork's next seq and its own alias and index entries, and keeps its
+    role, view, source, envelope (without ``supersedes``), content hash and its pointers to
+    the source's immutable request and generation rows, so a hidden-loop turn still folds
+    into one visible message. ``fork_occurrences`` names the occurrence each copy came
+    from; ``forks`` names the source and turn. Nothing is sent upstream and the source is
+    not touched."""
+    row = conn.execute("SELECT association FROM sessions WHERE session_id = ?",
+                       (source,)).fetchone()
+    if row is None:
+        raise Rejection(400, "unknown_session", f"No archived session {source!r}.")
+    if conn.execute("SELECT 1 FROM sessions WHERE session_id = ?", (session,)).fetchone():
+        raise Rejection(409, "session_exists", f"Session {session!r} already exists.")
+    branch = branch_id_for(source)
+    if conn.execute("SELECT active_request_id FROM branch_heads WHERE branch_id = ?",
+                    (branch,)).fetchone()[0] is not None:
+        raise Rejection(409, "session_busy", "The source session has a request in progress.")
+    entries = [_entry(conn, r) for r in conn.execute(
+        f"SELECT {_OCC_COLUMNS} FROM occurrences WHERE branch_id = ? ORDER BY seq", (branch,))]
+    history: list[_Entry] = []
+    position: dict[str, int] = {}
+    for e in entries:
+        if e.supersedes in position:
+            i = position.pop(e.supersedes)
+            history[i] = e
+            position[e.archived.occ_id] = i
+        else:
+            position[e.archived.occ_id] = len(history)
+            history.append(e)
+    left_out = superseded_ids(conn, branch)
+    history = [e for e in history if e.archived.occ_id not in left_out]
+    users = [i for i, e in enumerate(history)
+             if e.archived.role == "user" and e.archived.source in ("client", "client_import")]
+    if not isinstance(at_turn, int) or isinstance(at_turn, bool) or not 1 <= at_turn <= len(users):
+        raise Rejection(400, "unknown_turn",
+                        f"Session {source!r} has {len(users)} turns; at_turn must be 1 to {len(users)}.")
+    cut = users[at_turn] if at_turn < len(users) else len(history)
+    new_branch = ensure_session(conn, session, row[0])
+    mapping: dict[str, str] = {}
+    block_map: dict[str, str] = {}
+    for seq, e in enumerate(history[:cut], start=1):
+        old = e.archived.occ_id
+        (parent, role, view, src_kind, request_id, generation_id, envelope, sha) = conn.execute(
+            "SELECT parent_occ_id, role, view, source, request_id, generation_id, envelope,"
+            " content_sha256 FROM occurrences WHERE occ_id = ?", (old,)).fetchone()
+        env = json.loads(envelope)
+        env.pop("supersedes", None)
+        new = new_id("occ")
+        mapping[old] = new
+        conn.execute("INSERT INTO occurrences VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     (new, new_branch, seq, mapping.get(parent), role, view, src_kind,
+                      request_id, generation_id, json.dumps(env, ensure_ascii=False), sha))
+        for block_id, idx, kind, encoding, meta in conn.execute(
+                "SELECT block_id, idx, kind, encoding, meta FROM blocks WHERE occ_id = ?"
+                " ORDER BY idx", (old,)).fetchall():
+            nb = new_id("blk")
+            block_map[block_id] = nb
+            conn.execute("INSERT INTO blocks VALUES (?, ?, ?, ?, ?, ?)",
+                         (nb, new, idx, kind, encoding, meta))
+            conn.execute("INSERT INTO segments SELECT ?, seq, bytes FROM segments"
+                         " WHERE block_id = ? ORDER BY seq", (nb, block_id))
+        conn.execute("INSERT INTO fork_occurrences VALUES (?, ?)", (new, old))
+        issue_alias(conn, session, new)
+        search.index_occurrence(conn, new)
+    for vis, off, ln, internal, ioff in conn.execute(
+            "SELECT v.visible_block_id, v.offset, v.len, v.internal_block_id, v.internal_offset"
+            " FROM visible_map v JOIN blocks b ON b.block_id = v.visible_block_id"
+            " JOIN occurrences o ON o.occ_id = b.occ_id WHERE o.branch_id = ?",
+            (branch,)).fetchall():
+        if vis in block_map and internal in block_map:
+            conn.execute("INSERT INTO visible_map VALUES (?, ?, ?, ?, ?)",
+                         (block_map[vis], off, ln, block_map[internal], ioff))
+    conn.execute("INSERT INTO forks VALUES (?, ?, ?, ?, ?)",
+                 (session, source, at_turn, cut, time.time()))
+    return cut
+
+
 def record_stream_terminal(conn: sqlite3.Connection, gen: Generation, *, identity: tuple | None,
                            finish_reason: str | None, usage: dict | None,
                            message_id: str | None) -> None:

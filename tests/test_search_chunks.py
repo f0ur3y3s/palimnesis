@@ -111,6 +111,8 @@ async def test_opening_a_version_4_archive_backfills_the_chunk_index(tmp_path):
     raw = sqlite3.connect(db)  # simulate an archive written before migration 5
     raw.execute("DROP TABLE fts_chunks")
     raw.execute("DROP TABLE chunk_map")
+    raw.execute("DROP TABLE fork_occurrences")  # migration 9 (D129)
+    raw.execute("DROP TABLE forks")
     raw.execute("DROP TABLE stream_terminals")  # migration 8 (D128)
     raw.execute("DROP TABLE notes_sources")  # migration 7 (D105.4)
     raw.execute("DROP TABLE notes_outputs")

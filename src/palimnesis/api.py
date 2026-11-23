@@ -9,7 +9,9 @@ headers, streaming) and closes the upstream request.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -25,12 +27,14 @@ from palimnesis.view.budget import BudgetError, check_floor
 from palimnesis.capture import CaptureRecorder
 from palimnesis.config import Settings
 from palimnesis.errors import error_response
-from palimnesis.sessions import SessionError, resolve_session
+from palimnesis.sessions import SessionError, new_session_id, resolve_session
 from palimnesis.archive.store import Store
 
 log = logging.getLogger(__name__)
 
 SESSION_PREFIX = b"/s/"
+# The explicit fork (D129): a control route, served only in archive mode.
+_FORK_PATH = re.compile(r"/palimnesis/sessions/([^/]+)/fork")
 SESSION_HEADER = b"x-palimnesis-session"
 
 # Hop-by-hop headers (RFC 9110 §7.6.1) plus framing the relay recomputes.
@@ -299,6 +303,10 @@ class Proxy:
         path_session, upstream_path = split_session_prefix(raw_path)
         api_path = upstream_path.decode("latin-1")
         headers = list(scope["headers"])
+        fork = _FORK_PATH.fullmatch(api_path) if path_session is None else None
+        if fork and scope["method"] == "POST" and self.archive is not None:
+            await self._fork(scope, receive, send, fork.group(1))
+            return
         try:
             session = resolve_session(path_session, _session_header(headers))
         except SessionError as e:
@@ -331,6 +339,47 @@ class Proxy:
                     scope, receive, send, session, upstream_path, headers, bytes(body)
                 )
             tg.cancel_scope.cancel()
+
+    async def _fork(self, scope, receive, send, source: str) -> None:
+        """``POST /palimnesis/sessions/<source>/fork`` (D129): copy the source's history
+        through ``at_turn`` into a new session, through the store's one writer."""
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            body += message.get("body", b"")
+            if not message.get("more_body", False):
+                break
+        path = "/palimnesis/fork"
+        try:
+            doc = json.loads(bytes(body) or b"{}")
+            at_turn = doc.get("at_turn") if isinstance(doc, dict) else None
+            if not isinstance(at_turn, int) or isinstance(at_turn, bool):
+                raise ValueError("at_turn must be an integer")
+            target = doc.get("session") or new_session_id()
+            if not isinstance(target, str):
+                raise ValueError("session must be a string")
+            resolve_session(source, None)
+            resolve_session(target, None)
+        except SessionError as e:
+            await error_response(path, 400, e.code, e.message)(scope, receive, send)
+            return
+        except ValueError as e:
+            await error_response(path, 400, "invalid_body", str(e))(scope, receive, send)
+            return
+        try:
+            copied = await self.archive.store.write(
+                lambda c: ledger.fork_session(c, source, at_turn, target))
+        except ledger.Rejection as e:
+            await error_response(path, e.status, e.code, e.message, retry=e.retry)(
+                scope, receive, send)
+            return
+        payload = json.dumps({"session": target, "source": source, "at_turn": at_turn,
+                              "copied": copied}).encode()
+        await send({"type": "http.response.start", "status": 200, "headers": [
+            (b"content-type", b"application/json"), (b"x-should-retry", b"false")]})
+        await send({"type": "http.response.body", "body": payload})
 
     async def _archive_route(
         self, scope, receive, send, session, path_session, api_path, headers, body

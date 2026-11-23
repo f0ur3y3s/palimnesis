@@ -611,14 +611,21 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
    - Its text is a stem plus exactly one fixed sentence for that format (`apply`), for example "Reply with the identifier alone, exactly as recorded, and nothing else."
    - The lint (`lint`) refuses a missing format, a text that doesn't end with its sentence, more than one fixed sentence, and an answer that doesn't fit its kind: not digits for a number, whitespace in an identifier or path, or the wrong parts or order for a list.
    - `infer_format` and `stem_of` exist only to validate the rule on heldout5 questions written before it. New questions declare their format.
+   - **`stem_of`, after review.** It drops a question's closing sentence only when that sentence is one of the old generators' format-only endings (`FORMAT_ONLY_ENDINGS`, read off the 180 questions). An ending that also carries content is kept, with the fixed sentence after it: "Name the check after `x`, omitting the result.", "Format: `bay|shelf|packet`.", "Ignore the rehearsal duplicates." Sentences split only before a capital letter, so dotted code doesn't break them. On heldout5, 124 questions drop a format-only ending, 24 one-sentence questions are kept whole, and 32 keep a content ending.
 2. **The shape probe** (`eval/needle_shape_probe.py`).
    - **Sending.** Each question goes straight to upstream with no proxy, tools or system message.
    - **What is in view.** The question appears with only its evidence: every earlier passage holding an evidence string, from the history, pastes, workspace files and scripted shell outputs. A passage longer than 3,000 characters is cut to ±1,500 around each string. A vague question also gets the previous question and its gold answer, so "its" has a referent.
    - **Scoring.** Replies are scored with the frozen `needle.score` `exact_loose`. A question passes on 3 of 3, and a revised question needs `--runs 2`.
    - **Output.** It prints and stores counts only, never model text or gold answers. A failed upstream call raises `UpstreamError` and is never counted as a miss.
+   - **What a miss is.** Mostly a reply in the wrong shape. A reply cut at the output limit with no answer also counts, and so does a refusal of an "Execute …" question, since no tools are offered; the command's scripted output is in view. Both affect the two variants alike.
+   - **`--reason`.** Accepted and recorded, so a headless rerun after a host restart (`--reason host-restart`) resumes instead of stopping.
 3. **Validation on retired heldout5 (R70)**, headless on Zeus with the full gate (`eval/s4_validation.py`).
    - **Runs.** 18 histories, 180 questions, 3 samples each. The original phrasing runs first, then the format variant (each question's stem plus the fixed sentence for its inferred kind). That is 1,080 calls, about 3 h.
    - **Expectation (plan §1.2).** The original phrasing flags generators a, c and d and passes b; under the format rule the questions pass.
+   - **Rehearsal and review before the run.**
+     - The first rehearsal (dbc9b61) stopped at step 1: the probe wrote `--out` into a directory that didn't exist yet. It now creates the directory.
+     - The independent review found that the probe rejected the runner's `--reason`, so a reboot would have stopped the run. It also found the first `stem_of` stripping content from 37 questions and missing sentences that end in dotted code.
+     - All three are fixed and tested before the validation run. The review also confirmed that no question has empty passages and that `infer_format` assigns no wrong kind.
    - The outcome is appended here after the run.
 
 ## D128: S5 streaming idempotent replay (U7, 2026-11-23)
@@ -639,3 +646,38 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
    - the earlier tests expecting `streaming_replay_unsupported` now expect the replay;
    - the migration-rollback tests drop the v8 table too.
    - Contracts §5 and §6 are updated.
+
+## D129: S6 explicit fork (U6, 2026-11-23)
+
+1. **What.** `POST /palimnesis/sessions/<source>/fork` with `{"at_turn": N[, "session": id]}` copies the source's history through turn N into a new session. `palimnesis session fork SOURCE --at N [--session ID]` calls it on the running proxy, which holds the archive's one writer.
+   - Turn N runs from the N-th client user message to the next one.
+   - The copy is the history a request reconciles against: context versions replaced, and `partial_superseded` turns omitted.
+2. **How.**
+   - **Copies.** Each copy is a new occurrence with the fork's next seq and copied blocks and segments, plus its own alias and FTS and chunk entries. Its envelope drops `supersedes`, since the copy is already in final order.
+   - **Shared pointers.** Copies keep the content hash and point at the source's immutable request and generation rows, so a hidden-loop turn still folds into one visible message and replays its attempt events.
+   - **Visible map.** `visible_map` rows are copied where both blocks were copied.
+   - **Records.** Migration 9 adds immutable `forks` (source, turn, copied count) and `fork_occurrences` (each copy's source occurrence).
+3. **Guarantees.**
+   - The source is not touched, and nothing is sent upstream.
+   - The new session continues as a prefix of the copy, with no import.
+   - Divergence inside one session is still 409, and no fork is made implicitly.
+   - Notes, views, excerpts and the transcript projection are not copied; the fork builds its own from its first request.
+4. **Errors before any write:**
+   - 400: `unknown_session`, `unknown_turn`, `invalid_body`, `invalid_session_id`;
+   - 409: `session_exists`, and `session_busy` while the source has a request in progress.
+5. **Rejected.** Copying the source's requests, raw bodies and attempts: much larger, with nothing gained for reconciliation. Also rejected: a CLI that writes the archive directly, because the archive lock belongs to the running proxy.
+6. **Harness workflow: unverified.** How an OpenCode or Pi session is pointed at the new URL while keeping its history has not been probed (`docs/harnesses.md`).
+7. **Tests:** `tests/test_fork_http.py` covers:
+   - the copy with provenance;
+   - continuation as a prefix;
+   - the parent unaffected;
+   - divergence still 409;
+   - every refusal writing nothing;
+   - the generated id;
+   - the CLI.
+
+## D130: S6 delivery recovery (2026-11-23)
+
+1. **A completed keyed stream is replayed.** This covers one whose delivery was cut, since completion is the terminal commit, not delivery (D128). A completed keyed non-streaming request replays its prepared response, as before.
+2. **A partial keyed stream gets `409 ambiguous_retry`.** Some output was produced, but there is no terminal commit, and Palimnesis will not silently generate the turn again. Keyless requests are unchanged (§6).
+3. **No automatic resume.** The plan makes resume optional, and it is deferred. `Last-Event-ID` gets `400 resume_unsupported` (D128). The proxy never re-sends or continues a cut stream by itself, and a fork never sends anything upstream (D129).

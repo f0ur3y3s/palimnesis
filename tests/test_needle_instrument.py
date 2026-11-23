@@ -105,6 +105,28 @@ def test_validation_helpers_infer_a_kind_and_strip_a_trailing_instruction():
     assert nf.stem_of("Transcribe the triplet in tray, marker, wallet order. "
                       "Separate inscriptions with a single vertical bar.") == \
         "Transcribe the triplet in tray, marker, wallet order."
+    # Dotted code does not end a sentence; a format-only ending is still dropped.
+    assert nf.stem_of("Execute `python -m pytest tests/test_maple_trial.py -q`. Leave the trial "
+                      "untouched and report the stamp. Stamp only.") == \
+        "Execute `python -m pytest tests/test_maple_trial.py -q`. Leave the trial untouched and report the stamp."
+    # An ending that carries content is kept: the question would lose its target.
+    q = "Consult the complete witness run. Name the check after `review_x_802319`, omitting the result."
+    assert nf.stem_of(q) == q
+    assert nf.stem_of("Reconstruct the route. Format: `bay|shelf|packet`.") == \
+        "Reconstruct the route. Format: `bay|shelf|packet`."
+
+
+def test_the_probe_accepts_a_rerun_reason_and_records_it(tmp_path):
+    f = tmp_path / "hx1.json"
+    f.write_text(json.dumps(HISTORY), encoding="utf-8")
+    fake = FakeUpstream()
+    for _ in range(2):
+        fake.respond_turn("FURROW@498364@SEAL")
+    out = tmp_path / "o.json"
+    with serve(fake.app()) as url:
+        assert probe.main([str(f), "--upstream", url, "--model", "m", "--samples", "1",
+                           "--out", str(out), "--reason", "host-restart"]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["reason"] == "host-restart"
 
 
 # --- shape probe ----------------------------------------------------------------------
@@ -192,7 +214,7 @@ def test_the_cli_prints_counts_only(tmp_path, capsys):
     fake = FakeUpstream()
     for _ in range(4):
         fake.respond_turn("SECRET-MODEL-TEXT FURROW@498364@SEAL")
-    out_json = tmp_path / "probe.json"
+    out_json = tmp_path / "not" / "yet" / "probe.json"  # a run's first step: no directory
     with serve(fake.app()) as url:
         rc = probe.main([str(f), "--upstream", url, "--model", "m", "--samples", "2",
                          "--out", str(out_json)])

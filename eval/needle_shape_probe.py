@@ -8,7 +8,10 @@ system message), with only its evidence in view, and the reply is scored with th
 loose scorer (``needle.score``'s ``exact_loose``). A question passes when every one of
 ``--samples`` samples (3) passes; ``--runs 2`` asks for two consecutive passing probes,
 as a revised question needs. The probe tests the question's phrasing, not recall: the
-model sees the fact, so a miss means the reply came back in the wrong shape.
+model sees the fact, so a miss is mostly a reply in the wrong shape. It is also counted
+when the reply is cut at the output limit with no answer, or when a question that says
+"Execute …" draws a refusal: no tools are offered (the command's scripted output is in
+view when it holds the evidence). Both affect the original and the format phrasing alike.
 
 **What is in view** (``probe_messages``):
 
@@ -192,9 +195,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--runs", type=int, default=1)
     p.add_argument("--variant", choices=["original", "format"], default="original")
     p.add_argument("--out", type=Path)
+    p.add_argument("--reason", default="initial",
+                   help="eval/headless.py passes it on a rerun (host-restart); recorded in --out")
     a = p.parse_args(argv)
+    if a.out:
+        a.out.parent.mkdir(parents=True, exist_ok=True)  # a headless step's first output
     call = make_call(a.upstream, a.model)
-    rec: dict = {"variant": a.variant, "samples": a.samples, "runs": a.runs, "questions": {}}
+    rec: dict = {"variant": a.variant, "samples": a.samples, "runs": a.runs, "reason": a.reason,
+                 "questions": {}}
     by_gen: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     total = [0, 0]
     for f in a.files:

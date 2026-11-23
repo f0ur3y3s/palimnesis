@@ -117,18 +117,35 @@ def infer_format(step: dict) -> dict:
     return {"kind": "identifier"}
 
 
-_SENT = re.compile(r"[^.?!]+[.?!]+(?:\s+|$)")
+# The pre-rule generators' closing sentences that only state the answer's form (R70): the
+# heldout5 generators draw them from fixed phrase banks. Endings that also carry content
+# ("Name the check after `x`, omitting the result.", "Format: `bay|shelf|packet`.",
+# "Ignore the rehearsal duplicates.", "Give the marker without the label.") are not listed.
+FORMAT_ONLY_ENDINGS = frozenset({
+    "Return its code.", "Cabinet code.", "Stamp only.", "Return only that reference.",
+    "Layout code only.", "Code only.", "Give the recorded token.", "Token only.",
+    "Version only.", "Alias only.", "Return the token.", "Code alone.", "Value only.",
+    "Provide that composite alone.", "Name only.", "Give that value alone.",
+    "Branch string only.", "Give its identifier.", "Return the mode by itself.",
+    "Supply the new name.", "Cite the mark alone.",
+    "Separate inscriptions with a single vertical bar.", "Give that marker.",
+    "Give its entire mark.", "Bare value, please.", "I need its literal checkout label.",
+    "Just its receipt.",
+})
+# A sentence ends at . ? or ! followed by whitespace and a capital: dotted code such as
+# `tests/test_maple_trial.py` or `tests.test_x` never splits.
+_SPLIT = re.compile(r"(?<=[.?!])\s+(?=[A-Z])")
 
 
 def stem_of(text: str) -> str:
-    """A pre-rule question without its last sentence, when it has more than one: the
-    old questions put their format instruction last. A one-sentence question is kept
-    whole."""
+    """A pre-rule question without its closing sentence when that sentence is one of
+    ``FORMAT_ONLY_ENDINGS``; otherwise the whole text (a one-sentence question, or an
+    ending that carries content, keeps it and gets the fixed sentence after it)."""
     t = text.strip()
-    sents = [m.group(0).strip() for m in _SENT.finditer(t)]
-    if len(sents) < 2 or "".join(sents).replace(" ", "") != t.replace(" ", ""):
-        return t
-    return " ".join(sents[:-1])
+    sents = _SPLIT.split(t)
+    if len(sents) > 1 and sents[-1] in FORMAT_ONLY_ENDINGS:
+        return " ".join(sents[:-1])
+    return t
 
 
 def main(argv: list[str] | None = None) -> int:

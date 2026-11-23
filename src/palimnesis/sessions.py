@@ -8,6 +8,8 @@ they must agree, so the proxy never silently picks one history over another.
 from __future__ import annotations
 
 import re
+import secrets
+from datetime import datetime
 
 MAX_SESSION_ID_LENGTH = 128
 
@@ -49,3 +51,8 @@ def resolve_session(path_id: str | None, header_id: str | None) -> str:
             )
         return path_id
     return _validate(path_id if path_id is not None else header_id)
+
+
+def new_session_id() -> str:
+    """A readable, sortable id, unguessable enough to avoid accidental reuse."""
+    return f"{datetime.now():%Y%m%d-%H%M%S}-{secrets.token_hex(4)}"

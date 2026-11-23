@@ -163,4 +163,4 @@ Run each of these and fix your files until they pass. **Report only per-task (an
    ```
    - It sends each question straight to the model with its evidence in view, three times, and scores the reply with the frozen loose scorer. It prints counts only.
    - A question passes on 3 of 3. A miss means the reply came back in the wrong shape: the question's wording, not the model's memory.
-   - Revise a failing question's stem (never the fixed sentence), then probe it with `--runs 2`: a revised question needs two consecutive passes.
+   - Revise a failing question's stem (never the fixed sentence), then probe its history file again with `--runs 2`: a revised question needs two consecutive passes. A miss is usually the wrong shape; a refusal of an "Execute …" question or a reply cut at the output limit also counts.

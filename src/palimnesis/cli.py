@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import argparse
 import os
-import secrets
 import sys
-from datetime import datetime
 from pathlib import Path
 
 from palimnesis.adapters import install
 from palimnesis.config import Settings
-from palimnesis.sessions import SessionError, resolve_session
+from palimnesis.sessions import SessionError, new_session_id, resolve_session
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9000
@@ -393,9 +391,35 @@ def _transcripts_verify(args: argparse.Namespace) -> int:
 
 
 def _session_new(args: argparse.Namespace) -> int:
-    # Readable, sortable, and unguessable enough to avoid accidental reuse.
-    session = f"{datetime.now():%Y%m%d-%H%M%S}-{secrets.token_hex(4)}"
-    _print_urls(session, args.host, args.port)
+    _print_urls(new_session_id(), args.host, args.port)
+    return 0
+
+
+def _session_fork(args: argparse.Namespace) -> int:
+    """Fork through the running proxy (D129): it holds the archive's one writer."""
+    import httpx
+
+    doc = {"at_turn": args.at}
+    if args.session:
+        doc["session"] = args.session
+    try:
+        r = httpx.post(f"http://{args.host}:{args.port}/palimnesis/sessions/{args.source}/fork",
+                       json=doc, timeout=60)
+    except httpx.HTTPError as e:
+        print(f"error: no proxy at {args.host}:{args.port} ({e}); start `palimnesis serve`",
+              file=sys.stderr)
+        return 2
+    if r.status_code != 200:
+        try:
+            err = r.json()["error"]
+            print(f"error: {err.get('code')}: {err.get('message')}", file=sys.stderr)
+        except ValueError:
+            print(f"error: {r.status_code} {r.text[:200]}", file=sys.stderr)
+        return 1
+    doc = r.json()
+    print(f"forked {doc['source']} at turn {doc['at_turn']} into {doc['session']}"
+          f" ({doc['copied']} messages copied)")
+    _print_urls(doc["session"], args.host, args.port)
     return 0
 
 
@@ -431,6 +455,14 @@ def main(argv: list[str] | None = None) -> int:
     url.add_argument("session")
     address(url)
     url.set_defaults(run=_session_url)
+    fork = session_commands.add_parser(
+        "fork", help="copy a session's history through one turn into a new session")
+    fork.add_argument("source")
+    fork.add_argument("--at", type=int, required=True, metavar="TURN",
+                      help="the last turn copied (1 = the first user message and its answer)")
+    fork.add_argument("--session", help="the new session's id (default: a new one)")
+    address(fork)
+    fork.set_defaults(run=_session_fork)
 
     inspect = commands.add_parser("catalog", help="print a session's catalog page")
     inspect.add_argument("session")

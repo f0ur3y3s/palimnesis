@@ -341,6 +341,24 @@ CREATE TABLE stream_terminals (
 ) STRICT;
 """
 
+# v9 (Phase 8 S6, D129): explicit forks. A fork session's occurrences are copies of its
+# source's history through one turn; each copy names the occurrence it was copied from.
+_FORK_KEYS = {"forks": [("session_id",)], "fork_occurrences": [("occ_id",)]}
+_FORKS = """
+CREATE TABLE forks (
+    session_id TEXT PRIMARY KEY REFERENCES sessions,
+    source_session_id TEXT NOT NULL REFERENCES sessions,
+    at_turn INTEGER NOT NULL,
+    copied INTEGER NOT NULL,
+    created_at REAL NOT NULL
+) STRICT;
+
+CREATE TABLE fork_occurrences (
+    occ_id TEXT PRIMARY KEY REFERENCES occurrences,
+    source_occ_id TEXT NOT NULL REFERENCES occurrences
+) STRICT;
+"""
+
 _NOTES_OUTPUT_KEYS = {"notes_outputs": [("notes_id",)], "notes_sources": [("notes_id", "idx")]}
 _NOTES_OUTPUTS = """
 CREATE TABLE notes_outputs (
@@ -386,6 +404,7 @@ MIGRATIONS: list[str | tuple[str, str]] = [
     _NOTES + _immutability_triggers(_NOTES_KEYS),
     _NOTES_OUTPUTS + _immutability_triggers(_NOTES_OUTPUT_KEYS),
     _STREAM_TERMINALS + _immutability_triggers(_STREAM_TERMINAL_KEYS),
+    _FORKS + _immutability_triggers(_FORK_KEYS),
 ]
 
 _DENIED_ACTIONS = frozenset(

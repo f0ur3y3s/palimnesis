@@ -161,6 +161,8 @@ def test_a_v6_archive_migrates_and_keeps_its_notes(tmp_path):
         fake.respond_counted("visible answer")
         assert post(url, _body(_messages())).status_code == 200
     raw = sqlite3.connect(s.db_path)  # an archive written before migration 7
+    raw.execute("DROP TABLE fork_occurrences")  # migration 9 (D129)
+    raw.execute("DROP TABLE forks")
     raw.execute("DROP TABLE stream_terminals")  # migration 8 (D128) reruns too
     raw.execute("DROP TABLE notes_sources")
     raw.execute("DROP TABLE notes_outputs")

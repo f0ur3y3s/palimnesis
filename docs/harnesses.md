@@ -48,7 +48,8 @@ A failed or cut-short stream ends with an in-stream error event and `x-should-re
 
 ### Unsupported while using Palimnesis (no config switch exists)
 
-- **Undo, redo, revert, `fork`, `timeline`, `/btw`:** each changes visible history. Phase 1 rejects the divergent request with a defined error.
+- **Undo, redo, revert, `fork`, `timeline`, `/btw`:** each changes visible history. A divergent request in the same session is rejected with a defined error.
+  - **To branch a conversation**, fork it explicitly (D129): `palimnesis session fork <session> --at <turn>` prints a new session's base URL. A client that sends the history through that turn to the new URL continues it as a prefix, with no import (tested at the HTTP seam). **Unverified:** how an OpenCode or Pi session is pointed at the new URL while keeping its history; no harness workflow has been probed.
 - **Manual `/compact`:** avoid it.
 - **Background shell jobs (`background: true`):** they inject later notices; avoid them.
 - **The `question` tool:** it errors in non-interactive `opencode run`, but is harmless.

@@ -103,6 +103,12 @@ All of the above are **[enforced]**.
 - Each harness adapter documents its association strategy in `harnesses.md`. Content hashes are lookup hints only, never identity. **[enforced for OpenCode: one OpenCode session ID is one Palimnesis session]**
 - **One protocol per session.** A session's first request fixes its client protocol. A request on another protocol's endpoint gets `400 session_protocol_mismatch` before acceptance. **[enforced]**
 - **Branches.** Phase 1 allows one serialized branch per session. Divergence, edits and concurrent conflicting requests get defined errors, never silent merges. **[enforced]**
+- **Explicit fork** (D129, U6). `POST /palimnesis/sessions/<source>/fork` with `{"at_turn": N}`, and optionally the new `session` id, copies the source's history through turn N into a new session. `palimnesis session fork SOURCE --at N` calls it on the running proxy. **[enforced]**
+  - Turn N runs from the N-th client user message to the next one. The copy is the history a request reconciles against: superseded context versions replaced, and generated turns an earlier request left out omitted.
+  - Each copy is a new occurrence with its own alias and index entries. `fork_occurrences` names its source occurrence, and `forks` names the source and turn (migration 9). Copies keep the content hash and the pointers to the source's immutable request and generation rows.
+  - Nothing is sent upstream and the source is not changed. The new session continues as a prefix of the copy, with no import. The fork has no notes or view state of its own until its first request.
+  - Errors, before any write: `400 unknown_session`, `400 unknown_turn`, `400 invalid_body`, `400 invalid_session_id`, `409 session_exists`, and `409 session_busy` while the source has a request in progress.
+  - Divergence inside one session is still 409: a fork is never made implicitly.
 - **Reconciliation** (D10.3–D10.5, `palimnesis.archive.transcript`). Each resend is compared position by position with the archived visible history:
   - Client messages match by content hash.
   - Generated turns match semantically: text, reasoning (optional but equal when present), and tool calls with JSON-equal arguments. Booleans never equal numbers. Any arguments also match the client's `{}`, OpenCode's resend of a call it did not run: arguments that never parsed (D68), or a call interrupted while it ran (D73). An edit that blanks arguments to `{}` is therefore not detected; the archive keeps the generated arguments.
