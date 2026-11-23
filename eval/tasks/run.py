@@ -377,9 +377,9 @@ def resolve_arm(arm: int, config: str | None, task_set: str) -> dict:
     if arm == 4:
         if config is None or config == "a4-d43":
             return {"arm": 4, "label": "a4", "config": "a4-d43", "cfg": needle.CONFIGS["a4-d43"]}
-        if held and config != needle.A4_HELDOUT3:
-            raise ValueError(f"held-out tasks run arm 4 only as a4-d43 or "
-                             f"{needle.A4_HELDOUT3} (D77), not {config}")
+        if held and config not in (needle.A4_HELDOUT3, needle.A8_CANDIDATE):
+            raise ValueError(f"held-out tasks run arm 4 only as a4-d43, {needle.A4_HELDOUT3} "
+                             f"(D77) or {needle.A8_CANDIDATE} (D138), not {config}")
         cfg = needle.config(config)
         if cfg.get("arm") != 4:
             raise ValueError(f"{config} is not a configuration of arm 4")

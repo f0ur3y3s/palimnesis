@@ -157,7 +157,9 @@ CONFIGS["a8"] = dict(CONFIGS["a4-n3"])
 # (R30), a5-D with pinned instructions.
 A5_HELDOUT = "a5-d64"
 A5_FROZEN: str | None = "a5-Dp"
-HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT, A4_HELDOUT3)  # the only configurations held-out sets run
+# Phase 8 (D126, D138): a8, frozen at F8, is the confirmatory candidate on ho6 and ho7.
+A8_CANDIDATE = "a8"
+HELDOUT_CONFIGS = ("a4-d43", A5_HELDOUT, A4_HELDOUT3, A8_CANDIDATE)  # the only configurations held-out sets run
 
 # Settings the proxy child passes to ``palimnesis.config.Settings`` when present.
 PROXY_KEYS = ("recall", "transcripts_enabled", "query_policy", "excerpt_renderer", "addendum",

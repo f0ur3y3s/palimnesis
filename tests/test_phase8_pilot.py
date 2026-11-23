@@ -285,3 +285,91 @@ def test_the_n3fix_pilot_report_checks_retention_length_and_duplicates(tmp_path)
     assert pilot_n3fix.evaluate(rows)["checks"]["shorter_than_r69"] is False
     empty = pilot_n3fix.collect(tmp_path / "none")
     assert len(pilot_n3fix.evaluate(empty)["missing"]) == 6
+
+
+# --- Phase 8 confirmatory spec and report (eval/confirm_p8.py) ---------------------------
+
+sys.path.insert(0, str(ROOT / "eval"))
+import confirm_p8  # noqa: E402
+
+sys.path.remove(str(ROOT / "eval"))
+
+
+def test_the_confirmatory_schedule_pairs_arms_per_task_per_attempt_then_needles():
+    s = confirm_p8.schedule(5)
+    tasks = [x for x in s if x[0] == "task"]
+    needles = [x for x in s if x[0] == "needle"]
+    assert len(tasks) == 30 * 2 * 3 and len(needles) == 30
+    assert s[-30:] == needles  # needles after every task attempt
+    for i in range(0, len(tasks), 2):  # both arms back to back, same task and attempt
+        (_, k1, t1, a1), (_, k2, t2, a2) = tasks[i], tasks[i + 1]
+        assert (k1, t1) == (k2, t2) and {a1, a2} == {"a8", "a1"}
+    assert [k for _, k, _, _ in tasks] == sorted(k for _, k, _, _ in tasks)
+    assert {t for _, _, t, _ in tasks} == set(confirm_p8.TASKS)
+    assert confirm_p8.schedule(5) == s and confirm_p8.schedule(6) != s
+
+
+def test_the_confirmatory_spec_argv():
+    spec = confirm_p8.make_spec(seed=5, python="py", root="r", ws_root="w", opencode="o")
+    assert spec["config"] == "p8-confirm-seed5" and len(spec["steps"]) == 210
+    t = next(st["argv"] for st in spec["steps"] if st["name"].endswith(" a8"))
+    assert t[t.index("--config") + 1] == "a8" and t[t.index("--arm") + 1] == "4"
+    b = next(st["argv"] for st in spec["steps"] if st["name"].endswith(" a1") and st["name"].startswith("k"))
+    assert b[b.index("--arm") + 1] == "1" and "--config" not in b
+    n = spec["steps"][-1]["argv"]
+    assert n[1:3] == ["eval/needle.py", "run"] and n[n.index("--set") + 1] == "heldout7"
+    reh = confirm_p8.make_spec(seed=5, python="py", root="r", ws_root="w", opencode="o",
+                               tasks=("ho5-t4", "ho5-t13"), histories=("ho5-h1",), needle_set="heldout5")
+    assert len(reh["steps"]) == 2 * 2 * 3 + 1 and reh["config"].endswith("-2t1h3k")
+
+
+def _res(ok=True, held=(True, True), repeat=False, inputs=True):
+    return {"check": {"success": ok, "constraints": {f"C{i}": h for i, h in enumerate(held)},
+                      "trap_tests": {"passed": not repeat}},
+            "state_eval": {"trap_hits": [{"kind": "code"}] if repeat else []},
+            "explain_gate": {"ok": inputs}, "verify": {"exit": 0}, "over_budget": {"ok": True},
+            "excerpt_scan": {"client": {"leaks": 0}, "transcripts": {"leaks": 0}}}
+
+
+def test_majority_of_three_and_the_report():
+    assert confirm_p8.majority([True, True, False]) and not confirm_p8.majority([True, None, False])
+    tasks = ("ho6-t1", "ho6-t9", "ho7-t1")
+    results = {k: {} for k in (1, 2, 3)}
+    for k in (1, 2, 3):
+        results[k][("ho6-t1", "a8")] = _res(ok=k != 3)          # 2/3: success
+        results[k][("ho6-t1", "a1")] = _res(ok=k == 1)          # 1/3: failure
+        results[k][("ho6-t9", "a8")] = _res()
+        results[k][("ho6-t9", "a1")] = _res(ok=False)
+        results[k][("ho7-t1", "a8")] = _res(repeat=k == 2)      # one attempt repeats the trap
+        if k != 3:
+            results[k][("ho7-t1", "a1")] = _res()               # k3 missing: still 2/3
+    rep = confirm_p8.confirm_report(results, tasks, resamples=200, seed=1)
+    p = rep["primary"]
+    assert (p["candidate"], p["baseline"], p["b"], p["c"]) == (3, 1, 2, 0) and p["gate"]
+    s = rep["sensitivity"]
+    assert (s["n"], s["b"]) == (2, 1)  # without ho6-t9
+    assert rep["traps"]["a8"]["repeats"] == ["ho7-t1"] and not rep["traps"]["a8"]["gate"]
+    assert rep["missing"] == ["k3:ho7-t1:a1"]
+    assert rep["constraints"]["a8"]["total"] == 18
+    text = "\n".join(confirm_p8.format_report(rep))
+    assert "missing attempts: k3:ho7-t1:a1" in text and "unscored a1:k3:ho7-t1" in text
+
+
+def test_a8_is_a_held_out_configuration_and_ho6_ho7_unlock_under_d138(tmp_path):
+    import heldout
+
+    assert "a8" in needle.HELDOUT_CONFIGS
+    assert task_run.resolve_arm(4, "a8", "heldout7")["label"] == "a8"
+    with pytest.raises(ValueError, match="a8"):
+        task_run.resolve_arm(4, "a4-n3", "heldout6")
+    assert heldout.PROTOCOL_DECISIONS == {"heldout4": "D115", "heldout5": "D115",
+                                          "heldout6": "D138", "heldout7": "D138"}
+    (tmp_path / "eval").mkdir()
+    (tmp_path / "docs" / "decisions").mkdir(parents=True)
+    (tmp_path / "eval" / "heldout_unlock.json").write_text(
+        '{"unlocked": {"heldout7": "D115"}}', encoding="utf-8")
+    (tmp_path / "docs" / "decisions" / "x.md").write_text("## D115: p7\n## D138: p8\n", encoding="utf-8")
+    assert "D138" in heldout.unlock_problem("heldout7", root=tmp_path, committed=True)
+    (tmp_path / "eval" / "heldout_unlock.json").write_text(
+        '{"unlocked": {"heldout7": "D138"}}', encoding="utf-8")
+    assert heldout.unlock_problem("heldout7", root=tmp_path, committed=True) is None

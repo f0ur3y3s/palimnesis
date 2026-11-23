@@ -44,7 +44,11 @@ ROOT = Path(__file__).resolve().parents[1]
 # heldout7 (Phase 8 S12, D136): 20 tasks and 30 needle histories, confirmatory with ho6.
 UNSEEN_SETS = ("heldout4", "heldout5", "heldout6", "heldout7")
 PREFIX = {"heldout4": "ho4", "heldout5": "ho5", "heldout6": "ho6", "heldout7": "ho7"}
-PROTOCOL_DECISION = "D115"
+PROTOCOL_DECISION = "D115"  # Phase 7 (ho4, ho5)
+# The frozen protocol each unseen set unlocks under: Phase 7's for ho4 and ho5, Phase 8's
+# (D138, plan §1.4) for ho6 and ho7.
+PROTOCOL_DECISIONS = {"heldout4": "D115", "heldout5": "D115", "heldout6": "D138",
+                      "heldout7": "D138"}
 UNLOCK_FILE = "eval/heldout_unlock.json"
 HASHES_FILE = "eval/heldout_hashes.json"
 DECISIONS_DIR = "docs/decisions"
@@ -92,8 +96,9 @@ def unlock_problem(set_name: str, *, root: Path = ROOT,
     ``committed`` replaces the git check (a bool, or a function of the file's path)."""
     if set_name not in UNSEEN_SETS:
         return None
+    decision = PROTOCOL_DECISIONS.get(set_name, PROTOCOL_DECISION)
     why = (f"{set_name} stays unseen until {UNLOCK_FILE}, committed, names it with "
-           f"{PROTOCOL_DECISION} (D96, plan §1.1)")
+           f"{decision} (D96, plan §1.1)")
     f = root / UNLOCK_FILE
     if not f.is_file():
         return f"{why}: no unlock file"
@@ -103,10 +108,10 @@ def unlock_problem(set_name: str, *, root: Path = ROOT,
         return f"{why}: the unlock file is not valid JSON"
     if not isinstance(unlocked, dict) or set_name not in unlocked:
         return f"{why}: the unlock file does not list {set_name}"
-    if unlocked[set_name] != PROTOCOL_DECISION:
+    if unlocked[set_name] != decision:
         return f"{why}: the unlock file names {unlocked[set_name]!r}"
-    if not decision_exists(PROTOCOL_DECISION, root):
-        return f"{why}: no '## {PROTOCOL_DECISION}:' heading in {DECISIONS_DIR}"
+    if not decision_exists(decision, root):
+        return f"{why}: no '## {decision}:' heading in {DECISIONS_DIR}"
     if committed is None:
         ok = git_committed(UNLOCK_FILE, root)
     elif callable(committed):
