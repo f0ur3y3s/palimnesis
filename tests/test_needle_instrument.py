@@ -235,3 +235,55 @@ def test_the_model_name_is_read_from_upstream_when_not_given():
     assert fake.requests[0].path == "/v1/models"
     assert json.loads(fake.requests[1].body)["model"] == "qwen-x"
     assert httpx  # imported for the client the probe uses
+
+
+# --- S4 validation run on retired heldout5 (R70) ----------------------------------------
+
+sys.path.insert(0, str(ROOT / "eval"))
+import run_ready  # noqa: E402
+import s4_validation as s4v  # noqa: E402
+
+sys.path.remove(str(ROOT / "eval"))
+
+
+def test_the_validation_spec_runs_each_generator_original_first():
+    spec = s4v.make_spec(root="captures/s4", python="py")
+    assert [s["name"] for s in spec["steps"]] == [
+        f"{v} {g}" for v in ("original", "format") for g in ("a", "b", "c", "d")]
+    argv = spec["steps"][0]["argv"]
+    assert argv[:2] == ["py", "eval/needle_shape_probe.py"]
+    files = [a for a in argv if a.startswith("eval/needles/heldout5/")]
+    assert len(files) == 5 and all(not a.startswith(("eval/needles/heldout4", "eval/needles/heldout6"))
+                                   for a in argv)
+    assert argv[argv.index("--out") + 1] == "captures/s4/original-a.json"
+    assert argv[argv.index("--samples") + 1] == "3" and argv[argv.index("--variant") + 1] == "original"
+    assert sum(len([a for a in s["argv"] if "/needles/" in a]) for s in spec["steps"]) == 2 * 18
+    assert spec["config"] == "s4-probe-s3"
+    reh = s4v.make_spec(root="r", python="py", samples=1, per_generator=1)
+    assert reh["config"] == "s4-probe-s1-h1" and len(reh["steps"]) == 8
+    assert all(len([a for a in s["argv"] if "/needles/" in a]) == 1 for s in reh["steps"])
+
+
+def _gate_reads(text, tmp_path):
+    f = tmp_path / "report.txt"
+    f.write_text(text, encoding="utf-8")
+    return run_ready._evidence({"report_output": str(f)})[2]
+
+
+def test_the_report_counts_full_passes_and_names_missing_questions(tmp_path):
+    spec = s4v.make_spec(root=str(tmp_path), python="py", per_generator=1, variants=("original",),
+                         generators=("a",))
+    files = [a for a in spec["steps"][0]["argv"] if "/needles/" in a]
+    h = json.loads((ROOT / files[0]).read_text(encoding="utf-8"))
+    qs = [s for s in h["steps"] if s.get("kind") == "question"]
+    rep = s4v.report(tmp_path, spec)
+    assert rep["rows"][("original", "a")] == {"pass": 0, "total": len(qs), "by_category": {}}
+    assert len(rep["missing"]) == len(qs)
+    assert not _gate_reads("\n".join(s4v.format_report(rep)), tmp_path)["ok"]
+    rec = {"questions": {s["id"]: {"passes": 3 if i else 2, "samples": 3, "category": s["category"],
+                                   "generator": "a"} for i, s in enumerate(qs)}}
+    (tmp_path / "original-a.json").write_text(json.dumps(rec), encoding="utf-8")
+    rep = s4v.report(tmp_path, spec)
+    assert rep["rows"][("original", "a")]["pass"] == len(qs) - 1 and rep["missing"] == []
+    text = "\n".join(s4v.format_report(rep))
+    assert "missing attempts: none" in text and _gate_reads(text, tmp_path)["ok"]

@@ -108,6 +108,18 @@ For example, `"strata": {"source_role": "tool_output", "placement": "first", "pl
 
 Spread your needles so that every level of every dimension is well represented; the whole set must reach at least 30 needles per level. Balance by dimension, not as a full factorial.
 
+**The answer-format rule** (Phase 8, `eval/needle_format.py`). Every question step declares `answer_format`, and its text is your question followed by exactly one fixed sentence for that format. Build the text with `needle_format.apply(stem, fmt)`; write no other instruction about the answer's form.
+
+| `answer_format` | Use for | Fixed sentence |
+|---|---|---|
+| `{"kind": "identifier"}` | a code, key or name with no spaces | Reply with the identifier alone, exactly as recorded, and nothing else. |
+| `{"kind": "number"}` | digits only | Reply with the number alone, in digits, and nothing else. |
+| `{"kind": "path"}` | a file path or branch | Reply with the path alone, exactly as recorded, and nothing else. |
+| `{"kind": "value"}` | anything with spaces | Reply with the value alone, exactly as recorded, and nothing else. |
+| `{"kind": "list", "n": N, "sep": S}` | N parts, in `parts` order, joined by S (one of `\|` `;` `,` `/`) | Reply with the N values in that order, joined by a vertical bar (\|) with no spaces, and nothing else. (the separator named accordingly) |
+
+The answer must have the kind's shape: digits for a number, no whitespace for an identifier or path, and for a list exactly N parts joined by S, equal to `parts` in order. Why: on heldout5, questions ending in one short fixed instruction scored 47/50, and conversational endings 12/40, under the same scorer (R65).
+
 ## 3. Independence
 
 - **Themes.** Choose package themes and names disjoint from every existing task and from the other authors' (your assignment lists theirs). Existing themes: inventory CSV import; URL slugs; retry backoff; latency percentiles; pump-station telemetry; duration parsing; SemVer ranges; log redaction; layered configuration; bill splitting; Maidenhead locators; chord transposition; shift-roster overlaps; recipe scaling; ignore-file globs; IBAN validation; phone-number normalization; bracket balancing; parcel rates; cron schedules; report-card marks; trip itineraries; record-shop catalog links; quiz-league standings; postal address labels.
@@ -140,3 +152,15 @@ Run each of these and fix your files until they pass. **Report only per-task (an
    - It sends the trap turn's request, with the repository as it stands at that turn and without the warning, straight to the model three times, and prints `T1 pass (k/3)` or `T1 fail (k/3)`.
    - It passes when at least 2 of 3 samples write X.
    - If it fails, make X a more natural answer to the trap turn's request: change the request or the surrounding code, never by naming X. Then rerun it.
+6. **The answer-format lint**:
+   ```
+   uv run python eval/needle_format.py lint <your needle files>
+   ```
+   It prints, per history, how many questions follow the rule, and each problem.
+7. **The answer-shape probe**, on the host your assignment names:
+   ```
+   uv run python eval/needle_shape_probe.py <your needle files> --upstream http://127.0.0.1:8080
+   ```
+   - It sends each question straight to the model with its evidence in view, three times, and scores the reply with the frozen loose scorer. It prints counts only.
+   - A question passes on 3 of 3. A miss means the reply came back in the wrong shape: the question's wording, not the model's memory.
+   - Revise a failing question's stem (never the fixed sentence), then probe it with `--runs 2`: a revised question needs two consecutive passes.
