@@ -603,3 +603,39 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
    - Not fixed here: a fix changes the mechanism just chosen.
    - Before F8, a fix needs its own decision and fake-upstream tests, and either the S13 rehearsal's evidence or a short pilot. It should probably match on the quoted span or its backticked code.
 8. **Also open, not tested:** whether n3's header line "the user's messages win" pushes the model toward a later conflicting instruction.
+
+## D127: S4 needle instrument: answer-format rule and shape probe (fixed before the validation run, 2026-11-23)
+
+1. **The format rule** (`eval/needle_format.py`, AUTHORING.md §2).
+   - Every question step declares `answer_format`: identifier, number, path or value, or a list of N parts joined by a named separator (`|`, `;`, `,` or `/`).
+   - Its text is a stem plus exactly one fixed sentence for that format (`apply`), for example "Reply with the identifier alone, exactly as recorded, and nothing else."
+   - The lint (`lint`) refuses a missing format, a text that doesn't end with its sentence, more than one fixed sentence, and an answer that doesn't fit its kind: not digits for a number, whitespace in an identifier or path, or the wrong parts or order for a list.
+   - `infer_format` and `stem_of` exist only to validate the rule on heldout5 questions written before it. New questions declare their format.
+2. **The shape probe** (`eval/needle_shape_probe.py`).
+   - **Sending.** Each question goes straight to upstream with no proxy, tools or system message.
+   - **What is in view.** The question appears with only its evidence: every earlier passage holding an evidence string, from the history, pastes, workspace files and scripted shell outputs. A passage longer than 3,000 characters is cut to ±1,500 around each string. A vague question also gets the previous question and its gold answer, so "its" has a referent.
+   - **Scoring.** Replies are scored with the frozen `needle.score` `exact_loose`. A question passes on 3 of 3, and a revised question needs `--runs 2`.
+   - **Output.** It prints and stores counts only, never model text or gold answers. A failed upstream call raises `UpstreamError` and is never counted as a miss.
+3. **Validation on retired heldout5 (R70)**, headless on Zeus with the full gate (`eval/s4_validation.py`).
+   - **Runs.** 18 histories, 180 questions, 3 samples each. The original phrasing runs first, then the format variant (each question's stem plus the fixed sentence for its inferred kind). That is 1,080 calls, about 3 h.
+   - **Expectation (plan §1.2).** The original phrasing flags generators a, c and d and passes b; under the format rule the questions pass.
+   - The outcome is appended here after the run.
+
+## D128: S5 streaming idempotent replay (U7, 2026-11-23)
+
+1. **A completed keyed stream replays from the archive.** The same `Idempotency-Key`, fingerprint and delivery mode for a streamed request whose attempt reached `turn_complete` returns 200, with no upstream call and no hidden tool run again. This holds after a restart and when the original delivery was cut. The replay records a `stream_replayed` event.
+   - The Chat events are rebuilt from every generated assistant occurrence of the completed attempt, in archive order: reasoning, text and tool calls, without the hidden calls (meta `internal`). The client's tool calls are numbered from 0. Then the finish chunk, the usage chunk if the original had one, and `[DONE]`.
+   - They go through the endpoint's emitter, so Messages clients get Messages events with the original message id.
+2. **Terminal metadata, migration 8.** An immutable `stream_terminals` row is written in the same transaction as the terminal commit, for a plain stream and for the hidden loop. It holds the chunk id, `created`, model and `system_fingerprint` of the first chunk sent, the finish reason, the usage, and the Messages message id.
+3. **Promised:** event order, content and terminal metadata. **Not promised:** chunk boundaries, timestamps, `system_fingerprint` on every chunk (the hidden loop's later calls carry their own), or Strata's `timings`.
+4. **Edges.**
+   - A partial keyed stream is still 409 `ambiguous_retry`.
+   - A stream completed before migration 8 has no terminal row and gets 409 `streaming_replay_unavailable`.
+   - `Last-Event-ID` gets 400 `resume_unsupported` before parsing or acceptance. Resume is not supported, and never happens automatically.
+   - Keyless requests are unchanged.
+5. **Tests:**
+   - `tests/test_stream_replay_http.py` covers Chat, Messages, the hidden loop, a restart, the partial case, resume, and the immutable row;
+   - `tests/test_archive_lifecycle.py` covers the replay and the pre-migration-8 refusal;
+   - the earlier tests expecting `streaming_replay_unsupported` now expect the replay;
+   - the migration-rollback tests drop the v8 table too.
+   - Contracts §5 and §6 are updated.

@@ -917,9 +917,10 @@ def _keyed(conn, session_id, branch_id, req, fingerprint, idem_key, cache=None) 
                         "This Idempotency-Key is bound to a different request.")
     if _request_completed(conn, request_id):
         if req.stream:
-            raise Rejection(409, "streaming_replay_unsupported",
-                            "This streamed request already completed; replaying streams is "
-                            "not supported yet.")
+            chunks, message_id = stream_replay(conn, request_id)
+            _event(conn, request_id, None, "stream_replayed", bytes=len(chunks))
+            return Plan(session_id, branch_id, request_id, "", b"", True,
+                        replay={"stream": True, "chunks": chunks, "message_id": message_id})
         status, headers, body = conn.execute(
             "SELECT status, headers, body FROM prepared_responses WHERE request_id = ?",
             (request_id,),
@@ -1264,6 +1265,79 @@ def expire(conn: sqlite3.Connection, gen: Generation) -> None:
     else:
         finish_attempt(conn, gen, "attempt_failed", reason="deadline_exceeded",
                        forwarded=gen.forwarded)
+
+
+def record_stream_terminal(conn: sqlite3.Connection, gen: Generation, *, identity: tuple | None,
+                           finish_reason: str | None, usage: dict | None,
+                           message_id: str | None) -> None:
+    """The streamed response's terminal metadata, written once with its terminal commit
+    (migration 8, D128): what a keyed replay needs beyond the archived blocks.
+    ``identity`` is (chunk id, created, model, system_fingerprint) of the chunks sent."""
+    chunk_id, created, model, fingerprint = (tuple(identity or ()) + (None,) * 4)[:4]
+    conn.execute("INSERT INTO stream_terminals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 (gen.plan.request_id, gen.plan.attempt_id, chunk_id,
+                  created if isinstance(created, int) else None, model, fingerprint,
+                  finish_reason, json.dumps(usage) if usage is not None else None, message_id))
+
+
+def _chunk_sse(ident: dict, delta: dict | None, finish: str | None = None, **extra) -> bytes:
+    choices = [] if delta is None else [{"index": 0, "delta": delta, "finish_reason": finish}]
+    return ("data: " + json.dumps({**ident, "choices": choices, **extra}, ensure_ascii=False)
+            + "\n\n").encode("utf-8", "surrogatepass")
+
+
+def stream_replay(conn: sqlite3.Connection, request_id: str) -> tuple[bytes, str | None]:
+    """A completed streamed response rebuilt from the archive as upstream-dialect (Chat)
+    SSE bytes, and the Messages message id it was sent with (contracts §6, U7).
+
+    The client-visible message is every generated assistant occurrence of the completed
+    attempt, in archive order: reasoning, text and tool calls, leaving out the hidden
+    calls the proxy answered itself (``internal`` in their meta), so no hidden tool runs
+    again. External calls are numbered from 0 as the client saw them. Then the finish
+    chunk, the usage chunk when the original had usage, and ``[DONE]``. Every chunk
+    carries the stored identity. Promised: event order, content and terminal metadata;
+    not chunk boundaries or timestamps."""
+    row = conn.execute(
+        "SELECT attempt_id, chunk_id, created, model, system_fingerprint, finish_reason, usage,"
+        " message_id FROM stream_terminals WHERE request_id = ?", (request_id,)).fetchone()
+    if row is None:
+        raise Rejection(409, "streaming_replay_unavailable",
+                        "This streamed request completed before Palimnesis stored what a "
+                        "replay needs; it cannot be replayed.")
+    attempt_id, chunk_id, created, model, fingerprint, finish, usage, message_id = row
+    ident = {"id": chunk_id, "object": "chat.completion.chunk", "created": created,
+             "model": model}
+    if fingerprint is not None:
+        ident["system_fingerprint"] = fingerprint
+    out = [_chunk_sse(ident, {"role": "assistant", "content": ""})]
+    n = 0
+    for (occ_id,) in conn.execute(
+            "SELECT o.occ_id FROM occurrences o JOIN generations g"
+            " ON g.generation_id = o.generation_id WHERE g.attempt_id = ?"
+            " AND o.role = 'assistant' AND o.source = 'generated' ORDER BY o.seq",
+            (attempt_id,)).fetchall():
+        for block_id, kind, encoding, meta in conn.execute(
+                "SELECT block_id, kind, encoding, meta FROM blocks WHERE occ_id = ? ORDER BY idx",
+                (occ_id,)).fetchall():
+            meta = json.loads(meta)
+            text = _text(conn, block_id, encoding)
+            if kind == "reasoning" and text:
+                out.append(_chunk_sse(ident, {"reasoning_content": text}))
+            elif kind == "text" and text:
+                out.append(_chunk_sse(ident, {"content": text}))
+            elif kind == "tool_call" and not meta.get("internal"):
+                out.append(_chunk_sse(ident, {"tool_calls": [
+                    {"index": n, "id": meta.get("id"), "type": "function",
+                     "function": {"name": meta.get("name"), "arguments": ""}}]}))
+                if text:
+                    out.append(_chunk_sse(ident, {"tool_calls": [
+                        {"index": n, "function": {"arguments": text}}]}))
+                n += 1
+    out.append(_chunk_sse(ident, {}, finish))
+    if usage is not None:
+        out.append(_chunk_sse(ident, None, usage=json.loads(usage)))
+    out.append(b"data: [DONE]\n\n")
+    return b"".join(out), message_id
 
 
 def prepare_response(conn: sqlite3.Connection, gen: Generation, status: int,

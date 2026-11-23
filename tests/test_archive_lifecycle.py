@@ -524,14 +524,34 @@ def test_same_key_in_other_session_is_independent(lc):
     assert len(history(lc, "ses_two")) == 2
 
 
-def test_repeated_streaming_key_409_streaming_replay_unsupported_no_upstream(lc):
+def test_repeated_streaming_key_replays_the_stream_without_upstream_d128(lc):
     lc.upstream.respond_sse(answer("A1"))
     payload = body([user("q")])
-    assert lc.post(SID, payload, headers={"Idempotency-Key": "k1"}).status_code == 200
+    first = lc.post(SID, payload, headers={"Idempotency-Key": "k1"})
+    assert first.status_code == 200
 
     r = lc.post(SID, payload, headers={"Idempotency-Key": "k1"})
 
-    assert_rejected(r, 409, "streaming_replay_unsupported")
+    assert r.status_code == 200 and r.headers["x-should-retry"] == "false"
+    assert [json.loads(d)["choices"][0]["delta"].get("content") for d in sse_data(r.content)
+            if d != "[DONE]" and json.loads(d)["choices"]] == [
+        "", "A1", None]  # role chunk, the text, the finish chunk
+    assert len(lc.upstream.requests) == 1
+
+
+def test_a_stream_completed_before_migration_8_cannot_be_replayed(lc):
+    lc.upstream.respond_sse(answer("A1"))
+    payload = body([user("q")])
+    assert lc.post(SID, payload, headers={"Idempotency-Key": "k1"}).status_code == 200
+    c = sqlite3.connect(lc.db_path)  # an archive whose stream predates migration 8
+    c.execute("DROP TRIGGER stream_terminals_no_delete")
+    c.execute("DELETE FROM stream_terminals")
+    c.commit()
+    c.close()
+
+    r = lc.post(SID, payload, headers={"Idempotency-Key": "k1"})
+
+    assert_rejected(r, 409, "streaming_replay_unavailable")
     assert len(lc.upstream.requests) == 1
 
 

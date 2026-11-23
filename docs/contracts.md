@@ -134,7 +134,9 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 | Matching request in progress | 409 `request_in_progress` | `x-should-retry: false` | **[enforced]** |
 | Matching request already answered (fully or partly), answer absent from resend | 409 `ambiguous_retry` | `x-should-retry: false` | **[enforced]** |
 | Idempotency key bound to another request | 409 `idempotency_conflict` | `x-should-retry: false` | **[enforced]** |
-| Repeated key for a completed stream | 409 `streaming_replay_unsupported` | `x-should-retry: false` | **[enforced]** until Ph8 |
+| Repeated key for a completed stream (D128) | 200 replay from the archive, no upstream call | `x-should-retry: false` | **[enforced]** |
+| Repeated key for a stream completed before migration 8 | 409 `streaming_replay_unavailable` | `x-should-retry: false` | **[enforced]** |
+| `Last-Event-ID` (stream resume), before acceptance | 400 `resume_unsupported` | `x-should-retry: false` | **[enforced]** |
 | Archive cannot commit the input (D10.16) | 503 `archive_unavailable` | `retry-after: 2`, `x-should-retry: true` | **[enforced]** |
 | Upstream unreachable or failed before a usable response, after acceptance | 502 `upstream_unreachable` or `upstream_failed` | `x-should-retry: false` | **[enforced]** |
 | Upstream non-200 after acceptance | relayed status; body relayed (Chat) or re-enveloped (Messages, §3) | `x-should-retry: false` | **[enforced]** |
@@ -156,7 +158,12 @@ Proxy-originated statuses, chosen so a harness never retries into a duplicate ge
 - **Delivery mode** (`stream`) is recorded with the binding. The same key with a different mode is a conflict.
 - **Same key, different fingerprint** is a conflict. It never returns another request's response.
 - **Completed non-streaming match** replays the committed result with no inference.
-- **Streaming match** gets the 409 recovery response until Phase 8.
+- **Completed streaming match** (D128, U7) replays from the archive through the endpoint's emitter, with no upstream call and no hidden tool run again, also after a restart and when the original delivery was cut.
+  - The visible message is rebuilt from every generated assistant occurrence of the completed attempt, in archive order: reasoning, text and tool calls, leaving out the hidden calls. The client's tool calls are numbered from 0 as sent. Then the finish chunk, the usage chunk when the original had usage, and the end of stream.
+  - **Promised:** event order, content and terminal metadata (finish reason, usage, `created`, the chunk id and model, and the Messages message id), stored at the terminal commit in the immutable `stream_terminals` table (migration 8). **Not promised:** chunk boundaries, timestamps, `system_fingerprint` on every chunk, or Strata's `timings`.
+  - A stream that completed before migration 8 has no stored terminal and gets 409 `streaming_replay_unavailable`.
+- **Partial streaming match** (output, but no terminal commit) gets `ambiguous_retry`, as below.
+- **Resume.** A request with `Last-Event-ID` gets 400 `resume_unsupported` before acceptance. Resuming a stream is not supported, and never happens automatically.
 - **Keyless requests** match on (session, visible parent, fingerprint):
   - Outstanding match: in-progress response.
   - Match whose attempts produced no output: a new attempt on the same logical request (no new occurrences).

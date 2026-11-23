@@ -174,7 +174,7 @@ def test_messages_nonstream_committed_before_delivery(tmp_path):
     assert len(fake.requests) == 1
 
 
-def test_idempotency_and_streaming_key_409_on_messages(tmp_path):
+def test_idempotency_conflict_409_and_streaming_key_replay_on_messages(tmp_path):
     payload = mbody([{"role": "user", "content": "hi"}])
     with stack(tmp_path) as (fake, url, s):
         fake.respond_sse(answer("A"))
@@ -183,7 +183,7 @@ def test_idempotency_and_streaming_key_409_on_messages(tmp_path):
         other = mpost(url, mbody([{"role": "user", "content": "other"}]),
                       headers={"Idempotency-Key": "k2"})
 
-    anthropic_error(streaming, 409, "streaming_replay_unsupported")
+    assert streaming.status_code == 200 and frames(streaming)  # replayed (D128)
     anthropic_error(other, 409, "idempotency_conflict")
     assert len(fake.requests) == 1
 

@@ -209,11 +209,17 @@ def gather_facts(plan: dict, *, run_suite: bool) -> dict:
     disks = _ps("Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -gt 0 } | "
                 "ForEach-Object { '{0}={1}' -f $_.Name, ($_.Free/1GB) }")
     facts["free_gb"] = {k: float(v) for k, v in (x.split("=") for x in (disks or "").split())}
-    chart = _out(["w32tm", "/stripchart", "/computer:time.windows.com", "/samples:1",
+    chart = _out(["w32tm", "/stripchart", "/computer:time.windows.com", "/samples:3",
                   "/dataonly"])
-    m = re.search(r"([+-]\d+\.\d+)s", chart or "")
-    facts["clock_offset_s"] = float(m.group(1)) if m else None
+    facts["clock_offset_s"] = clock_offset(chart)
     return facts
+
+
+def clock_offset(chart: str | None) -> float | None:
+    """The median offset of the ``w32tm /stripchart`` samples that answered; None when
+    none did. One sample can time out (0x800705B4) while the clock is in sync."""
+    got = sorted(float(x) for x in re.findall(r"([+-]\d+\.\d+)s", chart or ""))
+    return got[len(got) // 2] if got else None
 
 
 def main(argv: list[str] | None = None) -> int:

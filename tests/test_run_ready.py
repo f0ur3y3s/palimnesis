@@ -151,3 +151,13 @@ def test_ready_json_says_pass_only_when_every_check_passes(tmp_path):
                       evidence=None, pinned_template=rr.sha256_text("TEMPLATE"), min_free_gb=50)
     rr.write_ready(d, plan, bad)
     assert json.loads((d / "READY.json").read_text(encoding="utf-8"))["result"] == "FAIL"
+
+
+def test_the_clock_offset_is_the_median_of_the_samples_that_answered():
+    chart = "\n".join(["Tracking time.windows.com [168.61.215.74:123].", "Collecting 3 samples.",
+                       "08:29:00, -00.0083878s", "08:29:02, error: 0x800705B4",
+                       "08:29:04, +00.0120000s"])
+    assert rr.clock_offset(chart) == 0.012  # of two answers (-0.0084, +0.012), the upper
+    assert rr.clock_offset("08:29:02, error: 0x800705B4") is None
+    assert rr.clock_offset(None) is None
+    assert rr.clock_offset("a, -01.5000000s b, -00.2000000s c, +09.0000000s") == -0.2

@@ -161,6 +161,13 @@ class ArchiveHandler:
                        headers: list[tuple[bytes, bytes]], body: bytes, association: str,
                        protocol: protocols.ClientProtocol = protocols.CHAT) -> None:
         expires = anyio.current_time() + self.deadline_s
+        if any(k.lower() == b"last-event-id" for k, _ in headers):
+            # Resuming a stream is not supported (D128): nothing is accepted or sent upstream.
+            await error_response(
+                api_path, 400, "resume_unsupported",
+                "Palimnesis cannot resume a stream. Repeat the request with its "
+                "Idempotency-Key to replay a completed response.")(scope, receive, send)
+            return
         try:
             req = protocol.parse(body)
         except chat.Unsupported as e:
@@ -273,7 +280,7 @@ class ArchiveHandler:
             crash_point("after_accept")
             if plan.replay is not None:
                 ticket.release()
-                await self._send_replay(send, plan.replay)
+                await self._send_replay(send, plan.replay, gen.emitter)
                 return
             async with anyio.create_task_group() as watchers:
                 if gate is not None:
@@ -662,7 +669,19 @@ class ArchiveHandler:
                             "The request did not complete within its deadline.")})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    async def _send_replay(self, send, replay: dict) -> None:
+    async def _send_replay(self, send, replay: dict, emitter) -> None:
+        if replay.get("stream"):
+            # A completed keyed stream, rebuilt from the archive (D128): the endpoint's
+            # emitter turns the Chat events into the client's bytes, with the message id
+            # the original was sent with.
+            if replay.get("message_id") and hasattr(emitter, "message_id"):
+                emitter.message_id = replay["message_id"]
+            data = emitter.feed(replay["chunks"])
+            await send({"type": "http.response.start", "status": 200, "headers": [
+                (b"content-type", b"text/event-stream"), (b"cache-control", b"no-cache"),
+                (b"x-should-retry", b"false")]})
+            await send({"type": "http.response.body", "body": data, "more_body": False})
+            return
         headers = [(k.encode("latin-1"), v.encode("latin-1")) for k, v in replay["headers"]]
         await send({"type": "http.response.start", "status": replay["status"], "headers": headers})
         await send({"type": "http.response.body", "body": replay["body"], "more_body": False})
@@ -795,7 +814,8 @@ class ArchiveHandler:
         parser = SSEParser()
         pending: list = []  # events awaiting commit + forward
         held: list = []  # the finish chunk and anything after it, until [DONE]
-        state = {"finish": None, "usage": None, "usage_chunk": None, "done": False, "error": None}
+        state = {"finish": None, "usage": None, "usage_chunk": None, "done": False, "error": None,
+                 "ident": None}
         batches = {"n": 0}
 
         async def flush(terminal: bool = False) -> None:
@@ -813,6 +833,9 @@ class ArchiveHandler:
                 if terminal:
                     ledger.finish_attempt(c, gen, "turn_complete", finish_reason=state["finish"],
                                           usage=state["usage"])
+                    ledger.record_stream_terminal(
+                        c, gen, identity=state["ident"], finish_reason=state["finish"],
+                        usage=state["usage"], message_id=getattr(gen.emitter, "message_id", None))
 
             await self.store.write(commit)
             # Encoded only once committed: a stateful emitter must not have produced (and
@@ -1169,6 +1192,9 @@ class ArchiveHandler:
         def commit(c):
             ledger.finish_attempt(c, gen, "turn_complete", finish_reason=finish or asm.finish,
                                   usage=usage, calls=len(asm.call_usages))
+            ledger.record_stream_terminal(
+                c, gen, identity=asm.identity, finish_reason=_finish_of(data) or finish or asm.finish,
+                usage=usage, message_id=getattr(gen.emitter, "message_id", None))
 
         await self.store.write(commit)
         data = gen.emitter.feed(data)
@@ -1198,12 +1224,25 @@ class ArchiveHandler:
         if "error" in chunk:
             state["error"] = chunk["error"]
             return
+        if state.get("ident") is None:
+            state["ident"] = (chunk.get("id"), chunk.get("created"), chunk.get("model"),
+                              chunk.get("system_fingerprint"))
         if chunk.get("usage"):
             state["usage"] = chunk["usage"]
             state["usage_chunk"] = chunk
         for choice in chunk.get("choices") or []:
             if choice.get("finish_reason"):
                 state["finish"] = choice["finish_reason"]
+
+
+def _finish_of(data: bytes) -> str | None:
+    """The finish reason the terminal bytes carry (the hidden loop's one finish chunk)."""
+    for e in SSEParser().feed(data):
+        if e.data and e.data != "[DONE]":
+            for ch in json.loads(e.data).get("choices") or []:
+                if ch.get("finish_reason"):
+                    return ch["finish_reason"]
+    return None
 
 
 def _response_headers(upstream: httpx.Response) -> list[tuple[bytes, bytes]]:

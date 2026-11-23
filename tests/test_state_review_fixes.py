@@ -16,7 +16,7 @@ import sqlite3
 
 import pytest
 
-from palimnesis.archive import addresses, ledger
+from palimnesis.archive import addresses, ledger, store
 from palimnesis.archive.store import Store
 from palimnesis.cli import main
 from palimnesis.view.builder import notes_block
@@ -161,6 +161,7 @@ def test_a_v6_archive_migrates_and_keeps_its_notes(tmp_path):
         fake.respond_counted("visible answer")
         assert post(url, _body(_messages())).status_code == 200
     raw = sqlite3.connect(s.db_path)  # an archive written before migration 7
+    raw.execute("DROP TABLE stream_terminals")  # migration 8 (D128) reruns too
     raw.execute("DROP TABLE notes_sources")
     raw.execute("DROP TABLE notes_outputs")
     raw.execute("PRAGMA user_version = 6")
@@ -170,7 +171,7 @@ def test_a_v6_archive_migrates_and_keeps_its_notes(tmp_path):
     Store.open(s.db_path).close()
     conn = sqlite3.connect(s.db_path)
     try:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == len(store.MIGRATIONS)
         assert conn.execute("SELECT status, text FROM notes_versions").fetchall() == [("committed", NOTES)]
         assert conn.execute("SELECT count(*) FROM notes_outputs").fetchone()[0] == 0
     finally:

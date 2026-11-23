@@ -320,6 +320,27 @@ CREATE TABLE notes_versions (
 
 # v7: the whole output and provenance of every notes refresh that streamed, and the
 # archive addresses each committed state cites (D105.4).
+# v8 (Phase 8 S5, D128): what a replay of a completed streamed response needs beyond its
+# archived blocks, written once at the terminal commit. ``chunk_id``, ``created``, ``model``
+# and ``system_fingerprint`` are the identity of the upstream-dialect chunks the client was
+# sent (the hidden loop's first call's, as ``ChatAssembler`` rewrites later calls to it);
+# ``usage`` is the client-visible usage chunk's usage, JSON or NULL when the stream had none;
+# ``message_id`` is the Messages emitter's id, NULL for Chat.
+_STREAM_TERMINAL_KEYS = {"stream_terminals": [("request_id",)]}
+_STREAM_TERMINALS = """
+CREATE TABLE stream_terminals (
+    request_id TEXT PRIMARY KEY REFERENCES requests,
+    attempt_id TEXT NOT NULL REFERENCES attempts,
+    chunk_id TEXT,
+    created INTEGER,
+    model TEXT,
+    system_fingerprint TEXT,
+    finish_reason TEXT,
+    usage TEXT,
+    message_id TEXT
+) STRICT;
+"""
+
 _NOTES_OUTPUT_KEYS = {"notes_outputs": [("notes_id",)], "notes_sources": [("notes_id", "idx")]}
 _NOTES_OUTPUTS = """
 CREATE TABLE notes_outputs (
@@ -364,6 +385,7 @@ MIGRATIONS: list[str | tuple[str, str]] = [
      "palimnesis.recall.search:backfill_chunks"),
     _NOTES + _immutability_triggers(_NOTES_KEYS),
     _NOTES_OUTPUTS + _immutability_triggers(_NOTES_OUTPUT_KEYS),
+    _STREAM_TERMINALS + _immutability_triggers(_STREAM_TERMINAL_KEYS),
 ]
 
 _DENIED_ACTIONS = frozenset(
