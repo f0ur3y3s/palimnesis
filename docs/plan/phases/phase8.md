@@ -163,9 +163,9 @@ Seams: P pure · H fake-upstream HTTP · X subprocess · C CLI · E eval · L li
 | S10 | Guides tested on clean machines (U10) | — | D135; R72 |
 | S11 | Reviews: protocol (capability matrix), cache audit (n3 causes), paper fidelity (n3) | — | `capabilities.md` for the release; D134 |
 | S12 | heldout7 authoring and seal, after S4 | Authors' checks plus the shape probe | D136 |
-| S13 | Freeze F8 and dress rehearsal on retired ho5 (2 tasks × 2 arms × 3 attempts, plus 1 history) | — | D137 (U3–U5); unlock ho6 and ho7 |
+| S13 | Freeze F8 and dress rehearsal on retired ho5 (2 tasks × 2 arms × 3 attempts, plus 1 history) | — | D138 (U3–U5); unlock ho6 and ho7 |
 | S14 | Confirmatory runs: needles first, then the tasks | — (L) | R73 |
-| S15 | Final checks: full suite at the release commit (Zeus plus Linux), change-set report from F to F8 | — | R74 gate summary and limitations; D138 final decision; tag `phase-8` |
+| S15 | Final checks: full suite at the release commit (Zeus plus Linux), change-set report from F to F8 | — | R74 gate summary and limitations; D139 final decision; tag `phase-8` |
 
 **Order:**
 1. S0.

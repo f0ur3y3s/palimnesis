@@ -211,6 +211,19 @@ def _carry_key(line: str) -> str:
     return bare.rstrip(".").strip()
 
 
+_QUOTE = re.compile(r'"([^"]+)"|“([^”]+)”')
+QUOTE_MIN = 20  # characters: shorter quoted words are not a line's identity
+
+
+def _quote_key(line: str) -> str | None:
+    """The line's longest double-quoted span (whitespace and case aside), when it has one of
+    at least ``QUOTE_MIN`` characters: a user's own words that a rewrite keeps under a new
+    lead-in (D137)."""
+    spans = [_norm_line(a or b) for a, b in _QUOTE.findall(line)]
+    spans = [x for x in spans if len(x) >= QUOTE_MIN]
+    return max(spans, key=len) if spans else None
+
+
 def _dead_ends(text: str) -> list[str]:
     lines, inside = [], False
     for line in text.split("\n"):
@@ -247,6 +260,9 @@ def carry_dead_ends(history: list[str], reply: str, fits_carried: Callable[[list
     # Present means present in the reply's Dead ends: a warning moved to a section the cut
     # trims is carried back (cache audit of eee9146).
     have = {_carry_key(x) for x in _dead_ends(reply)}
+    # A line whose quoted words the reply's Dead ends already holds, under any lead-in, is
+    # present: carrying it again duplicated the warning (D126.7, fixed by D137).
+    quoted = {q for x in _dead_ends(reply) if (q := _quote_key(x)) is not None}
     first: dict[str, int] = {}
     for v, text in enumerate(history):
         for line in _dead_ends(text):
@@ -254,7 +270,7 @@ def carry_dead_ends(history: list[str], reply: str, fits_carried: Callable[[list
     wanted, seen = [], set()
     for pos, line in enumerate(_dead_ends(history[-1]) if history else ()):
         key = _carry_key(line)
-        if key in _PLACEHOLDERS or key in have or key in seen:
+        if key in _PLACEHOLDERS or key in have or key in seen or _quote_key(line) in quoted - {None}:
             continue
         seen.add(key)
         wanted.append((first.get(key, len(history)), pos, line.rstrip("\r")))

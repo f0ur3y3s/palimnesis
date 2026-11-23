@@ -832,3 +832,15 @@ Three reviews at `b18b425`: protocol (both client protocols), cache audit, and p
    - The format sentences are exempt wording.
    - ho6 and ho7 unlock at S13 under that protocol's decision. `heldout.PROTOCOL_DECISION` becomes per-set there.
 7. The outcome is appended after the seal.
+
+## D137: n3 carry no longer duplicates a quoted dead end (fixes D126.7; before F8, 2026-11-23)
+
+1. **The defect** (D126.7). A Dead-ends line counted as present only by exact match, with whitespace, case, a bullet and a trailing period set aside. When a rewrite kept the user's quoted words under a new lead-in ("User, in their own words:" against "User (their own words):"), the carry appended the old line as well. Warnings piled up to 4–5 copies, and n3 notes ran 12–17% longer (R69).
+2. **The fix (the user's choice: fix, with a short pilot).** A line is also present when the reply's Dead ends holds a line with the same double-quoted span of at least 20 characters, whitespace and case aside (`builder._quote_key`).
+   - It is deliberately narrow: a paraphrase that drops the quote never counts, so the verbatim warning is still carried, and short quoted words are not a line's identity.
+   - Red tests first, in `tests/test_notes_n3.py`.
+   - The contract text (§2, n3 carry) is updated.
+3. **Pilot.** Arm `a8` with the fix, on retired ho5-t2, t4 and t13 in two rounds: 6 attempts, headless on Zeus behind the gate.
+   - It runs after the heldout7 authors' probes are done, since they share Strata's one slot.
+   - **Passes when:** retention at the trap turn is kept in all 4 ho5-t4 and t13 attempts (V-n1, read by hand where the detector misses); the mean notes length is below R69's `a4-n3` (5,531 characters); and no warning appears twice in the notes in force.
+   - The outcome is appended here.

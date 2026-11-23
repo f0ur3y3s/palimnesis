@@ -310,3 +310,30 @@ def test_the_event_counts_carried_lines_left_out(tmp_path):
         s, "SELECT payload FROM events WHERE kind = 'notes_version' ORDER BY event_id")]
     assert all("carry_left_out" in e for e in events if e.get("status") == "committed")
     assert events[1]["carry_left_out"] == 0
+
+
+# --- D137: a reworded lead-in does not duplicate a quoted dead end -----------------------
+
+QUOTE = '"we already tried `round()` for each share, and it failed because the shares did not add up"'
+
+
+def test_a_quoted_dead_end_under_a_new_lead_in_is_not_carried_again():
+    previous = f"Dead ends\n- User, in their own words: {QUOTE}."
+    reply = f"Dead ends\n- User (their own words): {QUOTE}. Plain rounding is ruled out."
+    merged, _, carried, _ = carry_dead_ends([previous], reply, _all)
+    assert carried == 0 and merged == reply
+    assert merged.count("we already tried") == 1
+
+
+def test_a_quoted_dead_end_the_reply_left_out_is_still_carried():
+    previous = f"Dead ends\n- User, in their own words: {QUOTE}."
+    reply = "Dead ends\n- Plain `round()` is ruled out."  # a paraphrase never replaces the quote
+    merged, _, carried, _ = carry_dead_ends([previous], reply, _all)
+    assert carried == 1 and QUOTE in merged
+
+
+def test_short_quotes_and_unquoted_lines_still_match_whole():
+    previous = 'Dead ends\n- tried "fast" mode: it hung'
+    reply = 'Dead ends\n- the "fast" mode hung'  # a short quote is not a signature
+    merged, _, carried, _ = carry_dead_ends([previous], reply, _all)
+    assert carried == 1

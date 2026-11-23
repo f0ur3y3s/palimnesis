@@ -241,3 +241,47 @@ def test_a8_is_a4_n3_and_serve_ships_it(tmp_path):
     # a8 is a4-d77 (D78's default) with notes format n3 and nothing else.
     d77 = needle.CONFIGS["a4-d77"]
     assert {k for k in set(a8) | set(d77) if a8.get(k) != d77.get(k)} == {"notes_format"}
+
+
+# --- D137 pilot (eval/pilot_n3fix.py) ---------------------------------------------------
+
+sys.path.insert(0, str(ROOT / "eval"))
+import pilot_n3fix  # noqa: E402
+
+sys.path.remove(str(ROOT / "eval"))
+
+
+def test_the_n3fix_pilot_runs_a8_on_the_ho5_traps_in_two_rounds():
+    spec = pilot_n3fix.make_spec(python="py", root="r", ws_root="w", opencode="o")
+    assert [s["name"] for s in spec["steps"]] == [
+        f"{rd} {t} a8" for rd in ("r1", "r2") for t in ("ho5-t2", "ho5-t4", "ho5-t13")]
+    argv = spec["steps"][0]["argv"]
+    assert argv[argv.index("--config") + 1] == "a8" and argv[argv.index("--out") + 1] == "r/r1"
+    assert needle.CONFIGS["a8"]["notes_format"] == "n3"
+    reh = pilot_n3fix.make_spec(python="py", root="r", ws_root="w", opencode="o",
+                                tasks=("ho5-t13",), rounds=("r1",))
+    assert len(reh["steps"]) == 1 and reh["config"] == "n3fix-pilot-ho5-t13-r1"
+
+
+def _n3row(rd, t, at_need="kept", copies=1, chars=5000.0, review=None):
+    return {"round": rd, "task": t, "present": True, "usable": True, "copies": copies,
+            "notes": {"at_need": at_need, "notes_chars_mean": chars}, "retention_review": review}
+
+
+def test_the_n3fix_pilot_report_checks_retention_length_and_duplicates(tmp_path):
+    rows = [_n3row(rd, t) for rd in ("r1", "r2") for t in ("ho5-t2", "ho5-t4", "ho5-t13")]
+    ev = pilot_n3fix.evaluate(rows)
+    assert ev["pass"] and ev["retention"] == (4, 4)
+    text = "\n".join(pilot_n3fix.format_report(ev, rows))
+    assert "unscored none" in text and "missing attempts: none" in text
+    rows[1] = _n3row("r1", "ho5-t4", copies=3)
+    assert pilot_n3fix.evaluate(rows)["checks"]["no_duplicates"] is False
+    rows[1] = _n3row("r1", "ho5-t4", at_need="omitted")
+    ev = pilot_n3fix.evaluate(rows)
+    assert ev["retention_pending"] == ["r1:ho5-t4"] and not ev["pass"]
+    rows[1] = _n3row("r1", "ho5-t4", at_need="omitted", review=True)
+    assert pilot_n3fix.evaluate(rows)["pass"]
+    rows = [_n3row(rd, t, chars=6000.0) for rd in ("r1", "r2") for t in ("ho5-t2", "ho5-t4", "ho5-t13")]
+    assert pilot_n3fix.evaluate(rows)["checks"]["shorter_than_r69"] is False
+    empty = pilot_n3fix.collect(tmp_path / "none")
+    assert len(pilot_n3fix.evaluate(empty)["missing"]) == 6
