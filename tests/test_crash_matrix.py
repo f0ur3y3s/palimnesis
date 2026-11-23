@@ -278,12 +278,29 @@ def test_an_external_kill_at_each_boundary(point, protocol, tmp_path):
             t.join(timeout=30)
 
         assert _settled(db, up) == []
+        partial = _partial_output(db)
         with proxy(up, db) as (url, _):
             r = _post(url, A, protocol, _messages(), "ka")
             assert _verify_eventually(db, A)
-        assert r.status_code == 200, r.text[:300]
-        assert ANSWER in r.text
+        if partial:  # output archived without a terminal commit: never regenerated (D130)
+            assert r.status_code == 409 and "ambiguous_retry" in r.text, r.text[:300]
+        else:
+            assert r.status_code == 200, r.text[:300]
+            assert ANSWER in r.text
         assert _settled(db, up) == []
+
+
+def _partial_output(db) -> bool:
+    """The visible answer had archived output but no terminal commit when it died. Whether
+    a kill at ``after_batch_1`` finds a partial depends on how the stream's bytes arrived
+    (one read on Windows, several on Linux: S10)."""
+    rows = _rows(db, "SELECT o.occ_id FROM occurrences o JOIN generations g"
+                     " ON g.generation_id = o.generation_id WHERE o.source = 'generated'"
+                     " AND NOT EXISTS (SELECT 1 FROM events e WHERE e.attempt_id = g.attempt_id"
+                     " AND e.kind = 'turn_complete')"
+                     " AND EXISTS (SELECT 1 FROM blocks b JOIN segments s ON s.block_id = b.block_id"
+                     " WHERE b.occ_id = o.occ_id AND b.kind = 'text')")
+    return bool(rows)
 
 
 def _swallow(fn):
