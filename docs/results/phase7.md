@@ -165,3 +165,23 @@
   - n3 notes are 12–17% longer, partly because the carry repeats reworded Dead-ends lines (D126.7, open).
   - The two n3 task failures were r2 ho5-t2 (`a4-n3`) and dev-t9 (`a4-n3p`), one each, within the no-regression margin.
   - 2 ho5-t4 attempts per arm is a small sample. The confirmation is the sealed ho6 run (S14).
+
+## R71: Phase 8 S7 crash and kill matrix (2026-11-23)
+
+- **The matrix** (`tests/test_crash_matrix.py`, D131), in the suite:
+  - a process exit at each new point (before and after the notes commit, after the view record, after the terminal commit), with a second session's request waiting for the slot;
+  - an external kill (TerminateProcess) at 10 boundaries for each client protocol, Chat and Messages.
+  
+  After every restart the archive passes `integrity.check`, the transcripts verify, and the keyed resend gets the answer. All 24 pass.
+- **Kill trials** (`eval/kill_trials.py --n 50 --seed 1`, at `6f22728` from a pinned worktree, Windows, fake upstream, so no model). The kill came at a uniform 0–2 s into a one-second stream; the actual range was 0.004–1.985 s.
+
+  | Archive state at the kill | Trials | Outcome of the keyed resend after restart |
+  |---|---|---|
+  | partial output | 27 | `409 ambiguous_retry` (D130) |
+  | turn complete | 18 | the answer, replayed from the archive |
+  | accepted, no output | 4 | the answer, from a new attempt |
+  | nothing accepted | 1 | the answer |
+  
+  **Passed 50/50.** Every trial left a sound archive (integrity, foreign keys, one terminal event per attempt, FTS equal to a rebuild) and transcripts that verify.
+- **Found on the way and fixed** (D131): an attempt abandoned at restart left its partial output unindexed (the first 4-trial smoke run failed 3/4); a transcript publication cut short was never redone; a fork indexed hidden results. An earlier, interrupted run at `1ba5972` is not counted: from trial 30 on, it was running uncommitted code.
+- **Not covered:** power loss (U9), Linux (U11 pending), and kills inside SQLite's own commit, which the boundaries bracket but do not split.

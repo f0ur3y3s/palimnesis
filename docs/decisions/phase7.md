@@ -722,3 +722,35 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
    - **Pi: unverified.** It is not installed on Zeus, the only host in use. Its protocol tests cover the Messages error shape.
 7. **Backup during a stream** is tested with S9's backup command (D133).
 8. **Tests:** `tests/test_limits_http.py`.
+
+## D133: S9 archive operations (2026-11-23)
+
+1. **`export SESSION OUT`** writes JSONL:
+   - the session;
+   - every request with its client body reconstructed from the delta chain and checked against the stored SHA-256;
+   - every occurrence with its blocks as exact bytes (base64) and their SHA-256;
+   - the notes versions;
+   - the excerpt blocks with their items.
+   
+   It reads only. An unknown session fails.
+2. **`delete SESSION --yes`.**
+   - **Refused while a proxy holds the archive** (the store lock), without `--yes`, and while sessions forked from it exist (D129): their copies point at its rows, so delete the forks first.
+   - **In one transaction** it drops the `*_no_delete` triggers and deletes the session's rows, children first, from every table: FTS and chunk rows, segments, visible map, excerpts, notes, views, fork records, blocks, aliases, heads, stream terminals, prepared responses, events, generations, occurrences, bindings, attempts, requests, raw bodies, branches and the session.
+   - **Within that transaction** it checks `foreign_key_check` and re-creates the triggers, so a failure rolls everything back.
+   - **Then** it VACUUMs and removes the session's transcript directory.
+   - **Tested:** no table cell names the session's ids afterwards, the other session is unchanged, and the archive passes the checker.
+3. **`backup DEST`.** The online backup API from a read-only connection, safe while serving, then an integrity check of the copy.
+   - A copy taken mid-stream holds that request as in flight, as a crash would.
+4. **`restore SRC`.**
+   - **Refused while a proxy holds the archive.**
+   - **Validated before anything is replaced:** SQLite integrity, and a schema no newer than the code.
+   - **Then:**
+     - staged copy;
+     - migration;
+     - `ledger.recover`, which abandons the in-flight attempts and indexes their partial output, as at a restart;
+     - `integrity.check`;
+     - transcript rebuild and verify for every session.
+5. **Migration guard.** An archive whose `user_version` is above the code's is refused at open with "newer than this Palimnesis". A test migrates an archive written at each earlier schema version (1–8) to the current one.
+6. **`check --archive`** runs `integrity.check` (D131) read-only.
+7. **The README states the retention limits.** Deletion does not reach backups, `--capture-dir` copies, files the agent wrote, or the disk's free blocks. Restoring a backup brings back sessions deleted since.
+8. **Tests:** `tests/test_archive_ops.py`. Backup during a stream (D132.7) is one of them.

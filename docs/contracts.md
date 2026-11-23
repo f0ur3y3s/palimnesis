@@ -238,14 +238,15 @@ A visible response is one upstream call, or several when hidden recall tools ans
   - Turn-completion markers are separate, so a crash leaves an explicit incomplete turn.
 - No write transaction is held across inference. Blocking database work runs off the event loop.
 - **A full disk** (D132, U8). Requests are refused before acceptance while the archive's volume has less free space than `--min-free-bytes`. SQLITE_FULL after acceptance takes the `archive_unavailable` paths: 503 before the stream, or the in-stream error and never success after. Accepted history stays intact. A full disk during transcript publication never fails a request; the publication is redone at the next start. Test seam: `PALIMNESIS_MAX_PAGE_COUNT`.
-- Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion (Ph8) is the only exception. Immutable tables include `notes_versions`, `notes_outputs` and `notes_sources` (§17). Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
+- Archive rows are immutable, enforced by database triggers on any connection: UPDATE and DELETE abort, and unique-key insert guards block `INSERT OR REPLACE`. Store connections also deny DDL. User-invoked deletion is the only exception: `palimnesis delete SESSION --yes`, with the proxy stopped, drops the delete triggers, removes the session from every table, the full-text indexes and its transcript directory, re-creates the triggers in the same transaction, then VACUUMs (D133). It is refused while sessions forked from it exist. Immutable tables include `notes_versions`, `notes_outputs` and `notes_sources` (§17). Derived tables (`branch_heads`, `fts_blocks`) are mutable and rebuildable.
 - An interrupted attempt is marked abandoned on restart, or on the next request when its terminal event could not be written. It is never resumed automatically. Output it archived before the crash is indexed then, as a terminal event would have indexed it (D131).
 - Recall preserves role and provenance. Historical tool output is never promoted to system authority.
+- **Archive operations** (D133). `export` writes a session's exact bytes with SHA-256 (request bodies checked against their stored hashes). `backup` uses SQLite's online backup API and is safe while serving. `restore` is refused while serving, validates the source first (SQLite integrity, schema no newer than the code), then migrates it, abandons the attempts it held in flight as a restart does, checks it (`integrity.check`), and rebuilds and verifies the transcripts. An archive newer than the code is refused at open. `palimnesis check --archive` runs the integrity checker. **[enforced]**
 - **Excerpt blocks** (A1).
   - **Storage.** Blocks are immutable rows (`excerpt_blocks`, `excerpt_items`), one per genuine user instruction. Each is committed with its selection before inference, and retries and restarts reuse the stored rendering.
   - **Placement.** They appear only in the upstream copy of their host user message, never in the archive's copy of that message, the client response, the full-text index, or a system message.
   - **Delimiters.** Payloads are escaped so they cannot close a block or contain special tokens.
-  - **Deletion** (Ph8) must cascade to these tables.
+  - **Deletion** cascades to these tables (D133).
 
   **[enforced]**
 

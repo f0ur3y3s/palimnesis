@@ -484,6 +484,9 @@ def _connect(path: str, synchronous: str) -> sqlite3.Connection:
 
 def _migrate(conn: sqlite3.Connection) -> None:
     version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if version > len(MIGRATIONS):  # D133: never open an archive this code cannot read
+        raise StoreError(f"archive schema v{version} is newer than this Palimnesis "
+                         f"(v{len(MIGRATIONS)}); upgrade Palimnesis before opening it")
     for target, migration in enumerate(MIGRATIONS[version:], start=version + 1):
         script, backfill = migration if isinstance(migration, tuple) else (migration, None)
         conn.execute("BEGIN IMMEDIATE")

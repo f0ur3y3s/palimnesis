@@ -520,7 +520,32 @@ def main(argv: list[str] | None = None) -> int:
         address(sub)
         sub.set_defaults(run=_setup)
 
+    db_help = f"archive (default: {default_db_path()})"
+    exp = commands.add_parser("export", help="write a session's exact archived bytes as JSONL")
+    exp.add_argument("session")
+    exp.add_argument("out", type=Path)
+    exp.add_argument("--db", type=Path, help=db_help)
+    exp.set_defaults(run=_archive_cmd)
+    dele = commands.add_parser("delete", help="permanently delete a session (proxy stopped)")
+    dele.add_argument("session")
+    dele.add_argument("--yes", action="store_true", help="confirm: deletion cannot be undone")
+    dele.add_argument("--db", type=Path, help=db_help)
+    dele.add_argument("--root", type=Path, help="transcripts root (default: beside the archive)")
+    dele.set_defaults(run=_archive_cmd)
+    bak = commands.add_parser("backup", help="copy the archive consistently (safe while serving)")
+    bak.add_argument("dest", type=Path)
+    bak.add_argument("--db", type=Path, help=db_help)
+    bak.set_defaults(run=_archive_cmd)
+    res = commands.add_parser("restore", help="replace the archive with a backup (proxy stopped)")
+    res.add_argument("src", type=Path)
+    res.add_argument("--db", type=Path, help=db_help)
+    res.add_argument("--root", type=Path, help="transcripts root (default: beside the archive)")
+    res.set_defaults(run=_archive_cmd)
+
     check = commands.add_parser("check", help="check the upstream, the proxy and agent configs")
+    check.add_argument("--archive", action="store_true",
+                       help="check the archive's integrity instead (D131, D133)")
+    check.add_argument("--db", type=Path, help=db_help)
     check.add_argument("--upstream", default="http://127.0.0.1:8080",
                        help="the model server (default: http://127.0.0.1:8080)")
     for agent in install.AGENTS.values():
@@ -539,6 +564,54 @@ def _setup(args: argparse.Namespace) -> int:
                          f"http://{args.host}:{args.port}", dry_run=args.dry_run)
 
 
+def _archive_cmd(args: argparse.Namespace) -> int:
+    """export, delete, backup and restore (D133)."""
+    from palimnesis.archive import ops
+    from palimnesis.archive.store import StoreError
+    from palimnesis.transcripts.projector import default_root
+
+    db = args.db or default_db_path()
+    root = getattr(args, "root", None) or default_root(db)
+    try:
+        if args.command == "export":
+            n = ops.export_session(db, args.session, args.out)
+            print(f"exported {args.session}: {n} records -> {args.out}")
+        elif args.command == "delete":
+            if not args.yes:
+                print("error: deletion is permanent; repeat with --yes", file=sys.stderr)
+                return 2
+            counts = ops.delete_session(db, args.session, root)
+            print(f"deleted {args.session}: {sum(counts.values())} rows; transcripts removed")
+        elif args.command == "backup":
+            ops.backup(db, args.dest)
+            print(f"backup: {args.dest}")
+        elif args.command == "restore":
+            sessions = ops.restore(args.src, db, root=root)
+            failed = 0
+            for session in sessions:
+                ns = argparse.Namespace(session=session, db=db, root=root)
+                if _transcripts_rebuild(ns) or _transcripts_verify(ns):
+                    failed += 1
+            print(f"restored {args.src} -> {db}: {len(sessions)} sessions")
+            return 1 if failed else 0
+    except (ops.OpError, StoreError, OSError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def _check(args: argparse.Namespace) -> int:
+    if getattr(args, "archive", False):
+        from palimnesis.archive import integrity
+
+        conn = _read_only(args.db or default_db_path())
+        try:
+            problems = integrity.check(conn)
+        finally:
+            conn.close()
+        for p in problems:
+            print(p)
+        print("archive: ok" if not problems else f"archive: {len(problems)} problem(s)")
+        return 1 if problems else 0
     dirs = {name: getattr(args, f"{name}_dir") for name in install.AGENTS}
     return install.check(args.upstream, args.host, args.port, dirs)

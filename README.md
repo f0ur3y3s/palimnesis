@@ -135,6 +135,12 @@ The URL has the form `http://127.0.0.1:9000/s/<session>/v1`. A client that can't
 | `palimnesis excerpts SESSION` | List the recall excerpt blocks a session has received. |
 | `palimnesis transcripts verify SESSION` | Check a session's transcript files against the archive (SHA-256). |
 | `palimnesis transcripts rebuild SESSION` | Rebuild them from the archive, byte for byte. |
+| `palimnesis session fork SESSION --at TURN` | Copy a session through one turn into a new session (proxy running). |
+| `palimnesis export SESSION OUT` | Write a session's exact archived bytes, with SHA-256 hashes, as JSONL. |
+| `palimnesis backup DEST` | Copy the archive consistently; safe while the proxy runs. |
+| `palimnesis restore SRC` | Replace the archive with a backup after checking it (proxy stopped). |
+| `palimnesis delete SESSION --yes` | Permanently delete a session everywhere (proxy stopped). |
+| `palimnesis check --archive` | Check the archive's integrity and indexes. |
 
 Prefix each with `uv run`. The inspection commands are read-only and take `--db PATH` for a non-default archive.
 
@@ -153,6 +159,9 @@ Prefix each with `uv run`. The inspection commands are read-only and take `--db 
 | `--notes TOKENS` | `2048` | Working notes: before older messages leave the view, one extra upstream call has the model rewrite a notes block that stays in view. `0` turns them off. Do that when the input budget is under about 8,000 tokens, where the slot takes too much of the view. |
 | `--protect-turn` / `--no-protect-turn` | on | Collapse the current turn's own work last, so the model keeps sight of the steps it just took. |
 | `--capture-dir DIR` | off | Store raw request and response bodies, for debugging and replay. **This writes conversation content to disk.** |
+| `--min-free-bytes BYTES` | 1 GiB | Refuse requests with 507 `archive_full` while the archive's disk has less free space. |
+| `--max-body-bytes BYTES` | 32 MiB | Refuse larger request bodies with 413 `request_too_large`. |
+| `--slot-ceiling SECONDS` | 60 | Mark Strata unhealthy when other work holds its slot this long. |
 
 `--query-policy`, `--excerpt-renderer`, `--addendum`, `--retrieval`, `--notes-format` and `--notes-header` select variants for evaluation. Their defaults are the candidate configuration `a8` (D126): the one the held-out run R41 passed (D43, D78) with notes format n3. Leave them alone.
 
@@ -165,7 +174,10 @@ Prefix each with `uv run`. The inspection commands are read-only and take `--db 
 
 - **Privacy.** Operational logs never contain message content or credentials. Conversation content is stored only in the archive, the transcript files and, if you turn it on, `--capture-dir`.
 - **Transcript files are protected only by filesystem permissions,** which are per-user by default. The model reads them through the harness's own file tools.
-- **Deleting.** There is no delete command yet. To discard everything, stop the proxy and delete `palimnesis.db*` and the `transcripts` directory.
+- **Deleting a session.** Stop the proxy, then run `palimnesis delete SESSION --yes`. It removes the session from every table, from the search indexes and from the transcript files, then compacts the database. Sessions forked from it must be deleted first.
+- **What deletion does not reach.** Backups you made, copies in `--capture-dir`, files the agent itself wrote, and the free pages of the disk underneath. Deleted rows are overwritten by the compaction, but SSD wear levelling and filesystem snapshots may keep old blocks.
+- **Backups.** `palimnesis backup DEST` copies the archive at one consistent moment, even while the proxy serves. Restoring one brings back every session it holds, including ones deleted since.
+- **To discard everything,** stop the proxy and delete `palimnesis.db*` and the `transcripts` directory.
 
 ## Errors you may see
 
@@ -180,7 +192,10 @@ Errors come back in the client's own error format, with `x-should-retry: false` 
 | 400 `context_budget_exceeded` | The part that can't be masked (system prompt, tool schemas, the current message) doesn't fit. Nothing was archived. | Shorten the input or raise the server's context. |
 | 409 `history_divergence` | The client's history no longer matches the archive, after undo, revert, fork or a manual `/compact`. | Start a new chat. |
 | 502 `upstream_unreachable` / `upstream_failed` | Strata is down or returned an error. | Check the Strata server. |
+| 413 `request_too_large` | The request body is over `--max-body-bytes`. Nothing was archived. | Shorten the session or raise the limit. |
 | 503 `archive_unavailable` | The archive couldn't commit the request. | Check disk space and that no other proxy owns the database. |
+| 503 `upstream_unhealthy` | Other work has held Strata's slot past `--slot-ceiling`. Nothing more is sent until it is idle. | Check what else is using the Strata server. |
+| 507 `archive_full` | The archive's disk has less free space than `--min-free-bytes`. Nothing was archived. | Free disk space, then resend. |
 | 504 `deadline_exceeded` | The request ran past its overall time limit. | Retry. Long generations on slow hardware can hit it. |
 
 ## Project status
