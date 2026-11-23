@@ -188,7 +188,7 @@ Each check is listed with the Phase 7 mistake it prevents.
    - `n_ctx` 32,768 and one slot;
    - Strata 0.1.58;
    - chat template hash `12827f24`;
-   - the startup task registered with the `-t1` config.
+   - the startup task registered with the `-t1` config and Running, so the server that is up is the one the task starts at boot (D124).
 4. **Host:**
    - Windows Update paused past the run's estimated end, plus margin;
    - free disk at least 3 times the largest archive set so far;

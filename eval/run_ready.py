@@ -14,7 +14,9 @@ Checks (each fails when its fact cannot be read; nothing passes by default):
    HEAD is ``origin/main``.
 3. ``server``: ``/props`` is the plan's server (``headless.server_problem``);
    ``template``: the chat template's SHA-256 is the pinned one (docs/capabilities.md);
-   ``strata_task``: the Strata startup task is registered.
+   ``strata_task``: the Strata startup task is Running, so the server that is up is the
+   one the task starts at boot (registered alone passed in S2h while the task's command
+   line was broken and Strata never came back after the reboot).
 4. ``update_pause``: Windows Update is paused past the run's estimated end, with 50% plus a
    day of margin; ``reboot``: no reboot is pending; ``disk``: every listed drive has at
    least ``--min-free-gb``; ``clock``: within 5 s of a time server.
@@ -127,8 +129,8 @@ def evaluate(plan: dict, facts: dict, *, est_hours: float, short: bool, evidence
         checks.append(_check("server", problem is None, problem or "as planned"))
         sha = facts.get("template_sha")
         checks.append(_check("template", sha == pinned_template, f"sha256 {sha}"))
-    checks.append(_check("strata_task", facts.get("strata_task") is True,
-                         f"{STRATA_TASK!r} registered: {facts.get('strata_task')}"))
+    checks.append(_check("strata_task", facts.get("strata_task") == "Running",
+                         f"{STRATA_TASK!r} state: {facts.get('strata_task')}"))
     now, until = facts.get("now", time.time()), facts.get("update_pause_until")
     need = now + est_hours * 1.5 * 3600 + 86400
     checks.append(_check("update_pause", until is not None and until >= need,
@@ -190,9 +192,9 @@ def gather_facts(plan: dict, *, run_suite: bool) -> dict:
     facts["props"] = props
     if props is not None and isinstance(props.get("chat_template"), str):
         facts["template_sha"] = sha256_text(props["chat_template"])
-    task = _ps(f"if (Get-ScheduledTask -TaskName '{STRATA_TASK}' -ErrorAction SilentlyContinue)"
-               " { 'yes' } else { 'no' }")
-    facts["strata_task"] = None if task is None else task.strip() == "yes"
+    task = _ps(f"$t = Get-ScheduledTask -TaskName '{STRATA_TASK}' -ErrorAction SilentlyContinue;"
+               " if ($t) { [string]$t.State } else { 'missing' }")
+    facts["strata_task"] = None if task is None else task.strip()
     pause = _ps("(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings'"
                 ").PauseUpdatesExpiryTime")
     try:

@@ -30,7 +30,7 @@ def _facts(**over):
         "suite": "2173 passed, 3 skipped in 555.29s (0:09:15)",
         "head": "abc1234", "origin": "abc1234", "dirty": [],
         "props": PROPS, "template_sha": rr.sha256_text("TEMPLATE"),
-        "strata_task": True,
+        "strata_task": "Running",
         "update_pause_until": NOW + 30 * 86400, "reboot_pending": False,
         "free_gb": {"C": 200.0, "E": 300.0}, "clock_offset_s": 0.4,
         "now": NOW,
@@ -69,7 +69,7 @@ def test_each_problem_fails_its_own_check(tmp_path):
         "server": {"props": {**PROPS, "default_generation_settings": {"n_ctx": 32768, "params": {
             "temperature": 0.6, "top_p": 0.95, "top_k": 20}}}},
         "template": {"template_sha": "0" * 64},
-        "strata_task": {"strata_task": False},
+        "strata_task": {"strata_task": "Ready"},
         "update_pause": {"update_pause_until": NOW + 3600},
         "reboot": {"reboot_pending": True},
         "disk": {"free_gb": {"C": 20.0, "E": 300.0}},
@@ -83,6 +83,15 @@ def test_an_unreadable_fact_fails_rather_than_passes(tmp_path):
     assert _failed(_checks(tmp_path / "a", clock_offset_s=None)) == ["clock"]
     assert _failed(_checks(tmp_path / "b", props=None)) == ["server", "template"]
     assert _failed(_checks(tmp_path / "c", suite=None)) == ["suite"]
+    assert _failed(_checks(tmp_path / "d", strata_task=None)) == ["strata_task"]
+
+
+def test_a_registered_task_that_is_not_running_fails(tmp_path):
+    # S2h survival: the task was registered but its command line was broken, so it exited
+    # with 1 at boot and Strata never came back. Registered is not enough: the server that is
+    # up must be the task's, so the task must be Running.
+    for state in ("Ready", "Disabled", "Queued", "missing"):
+        assert _failed(_checks(tmp_path / state, strata_task=state)) == ["strata_task"], state
 
 
 def _evidence(tmp_path):

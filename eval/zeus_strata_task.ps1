@@ -20,7 +20,9 @@ foreach ($p in @($py, $config)) { if (-not (Test-Path $p)) { throw "missing $p" 
 $cfg = Get-Content $config -Raw | ConvertFrom-Json
 if ($cfg.sampling.temperature -ne 1.0) { throw "$config has temperature $($cfg.sampling.temperature), expected 1.0" }
 $cmd = "`"$py`" -m serve.server --engine strata --config `"$config`" --host 0.0.0.0 --port 8080 --parallel 1 --no-api-key >> `"$log`" 2>&1"
-$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c $cmd" -WorkingDirectory $dir
+# cmd /c strips the first and last quote of a line holding more than two, which broke the
+# program path and the redirect (exit 1, nothing logged); the outer pair is what it strips.
+$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$cmd`"" -WorkingDirectory $dir
 $t = New-ScheduledTaskTrigger -AtStartup
 $p = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Limited
 $s = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit 0 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
