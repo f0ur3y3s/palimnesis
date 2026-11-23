@@ -73,6 +73,7 @@ def test_an_oversized_body_is_413_before_acceptance_on_both_protocols(tmp_path):
     assert chat.status_code == 413 and chat.json()["error"]["code"] == "request_too_large"
     assert chat.headers["x-should-retry"] == "false"
     anthropic_error(msgs, 413, "request_too_large")
+    assert msgs.json()["error"]["type"] == "request_too_large"  # Anthropic's own type
     assert small.status_code == 200
     assert len(fake.requests) == 1  # only the small one
     assert _rows(s.db_path, "SELECT count(*) FROM requests") == [(1,)]

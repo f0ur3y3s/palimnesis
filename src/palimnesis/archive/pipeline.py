@@ -1256,8 +1256,9 @@ class ArchiveHandler:
     async def _hidden_terminal(self, send, gen, asm, finish: str | None) -> None:
         """Commit the response's end, then send its one finish chunk and ``[DONE]``."""
         data = asm.terminal(finish)
-        usage = next((json.loads(e.data).get("usage") for e in SSEParser().feed(data)
-                      if e.data and e.data != "[DONE]"), None)
+        usage = next((json.loads(e.data)["usage"] for e in SSEParser().feed(data)
+                      if e.data and e.data != "[DONE]" and json.loads(e.data).get("usage")),
+                     None)  # the chunk carrying usage, wherever it falls (S11 review)
 
         def commit(c):
             ledger.finish_attempt(c, gen, "turn_complete", finish_reason=finish or asm.finish,

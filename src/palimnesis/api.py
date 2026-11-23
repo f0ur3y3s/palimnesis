@@ -26,7 +26,7 @@ from palimnesis.archive.pipeline import ArchiveHandler
 from palimnesis.view.budget import BudgetError, check_floor
 from palimnesis.capture import CaptureRecorder
 from palimnesis.config import Settings
-from palimnesis.errors import error_response
+from palimnesis.errors import error_response, is_anthropic_path
 from palimnesis.sessions import SessionError, new_session_id, resolve_session
 from palimnesis.archive.store import Store
 
@@ -327,7 +327,8 @@ class Proxy:
         limit = self.settings.max_body_bytes if self.archive is not None else None
         too_large = error_response(
             api_path, 413, "request_too_large",
-            f"The request body exceeds {limit} bytes; nothing was archived.")
+            f"The request body exceeds {limit} bytes; nothing was archived.",
+            type_="request_too_large" if is_anthropic_path(api_path) else "invalid_request_error")
         declared = next((v for k, v in headers if k.lower() == b"content-length"), None)
         if (limit is not None and declared is not None and declared.isdigit()
                 and int(declared) > limit):
@@ -366,23 +367,29 @@ class Proxy:
     async def _fork(self, scope, receive, send, source: str) -> None:
         """``POST /palimnesis/sessions/<source>/fork`` (D129): copy the source's history
         through ``at_turn`` into a new session, through the store's one writer."""
+        path = "/palimnesis/fork"
         body = bytearray()
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":
                 return
             body += message.get("body", b"")
+            if len(body) > self.settings.max_body_bytes:
+                await error_response(path, 413, "request_too_large",
+                                     "The fork request body is too large.")(scope, receive, send)
+                return
             if not message.get("more_body", False):
                 break
-        path = "/palimnesis/fork"
         try:
             doc = json.loads(bytes(body) or b"{}")
             at_turn = doc.get("at_turn") if isinstance(doc, dict) else None
             if not isinstance(at_turn, int) or isinstance(at_turn, bool):
                 raise ValueError("at_turn must be an integer")
-            target = doc.get("session") or new_session_id()
-            if not isinstance(target, str):
-                raise ValueError("session must be a string")
+            target = doc.get("session", None)
+            if target is None:
+                target = new_session_id()
+            elif not isinstance(target, str) or not target:
+                raise ValueError("session must be a non-empty string")
             resolve_session(source, None)
             resolve_session(target, None)
         except SessionError as e:

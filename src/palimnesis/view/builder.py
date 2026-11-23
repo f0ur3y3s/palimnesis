@@ -48,7 +48,10 @@ Mechanisms (docs/papers.md):
   note-taking of the context-engineering cookbook (docs/papers.md), whose notes persist
   across resets. The adaptation: the model still rewrites its notes, so
   ``carry_dead_ends`` deterministically carries forward the earlier Dead-ends lines a
-  rewrite leaves out (capped at S/3, earliest kept), and ``fit_notes`` keeps Dead ends whole.
+  rewrite leaves out (capped at S/3, earliest kept), and ``fit_notes`` keeps Dead ends whole
+  when the carry can be cut to make room (D123.2); when even that does not fit, n2's cut
+  applies to every section, Dead ends included (D122.4). n3's prompt also asks the model to
+  record user-stated failures under Dead ends in the user's words (D121.1).
 - **Hysteresis watermarks** (adaptation of the per-turn rolling window). The
   view changes only when it would exceed ``H = F + h·C``; it then masks
   oldest-first until ``I ≤ T = F + t·C``. Here ``C`` is the maskable

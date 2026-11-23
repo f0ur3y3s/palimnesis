@@ -160,12 +160,12 @@ Seams: P pure · H fake-upstream HTTP · X subprocess · C CLI · E eval · L li
 | S7 | Crash and concurrency matrix: new points before and after the notes commit, after the view record and after the terminal commit, with a concurrent second session; after restart, integrity, foreign keys, committed rows, abandoned attempt, FTS = rebuild, transcripts verify; **20 forced external kills** (10 boundaries × 2 protocols), plus `eval/kill_trials.py` with N = 50 | X | §11; R71; D131 |
 | S8 | Failure modes and limits: accepted history kept under disk full, busy, timeout and malformed streams; disk admission (507); projection ENOSPC; 413 before acceptance; slot past ceiling marks the server unhealthy; backup during a stream | H/P; probe how OpenCode and Pi react to 507 and 413 | §5, §8; D132 (U8) |
 | S9 | Export, delete, backup, restore, migration guard, `check --archive` | C/P: exact-bytes round trip; delete cascades; delete refused while serving; restore validates; newer schema refused; each historical migration | §11, §14, README retention limits; D133 |
-| S10 | Guides tested on clean machines (U10) | — | D134; R72 |
-| S11 | Reviews: protocol (capability matrix), cache audit (n3 causes), paper fidelity (n3) | — | `capabilities.md` for the release |
-| S12 | heldout7 authoring and seal, after S4 | Authors' checks plus the shape probe | D135 |
-| S13 | Freeze F8 and dress rehearsal on retired ho5 (2 tasks × 2 arms × 3 attempts, plus 1 history) | — | D136 (U3–U5); unlock ho6 and ho7 |
+| S10 | Guides tested on clean machines (U10) | — | D135; R72 |
+| S11 | Reviews: protocol (capability matrix), cache audit (n3 causes), paper fidelity (n3) | — | `capabilities.md` for the release; D134 |
+| S12 | heldout7 authoring and seal, after S4 | Authors' checks plus the shape probe | D136 |
+| S13 | Freeze F8 and dress rehearsal on retired ho5 (2 tasks × 2 arms × 3 attempts, plus 1 history) | — | D137 (U3–U5); unlock ho6 and ho7 |
 | S14 | Confirmatory runs: needles first, then the tasks | — (L) | R73 |
-| S15 | Final checks: full suite at the release commit (Zeus plus Linux), change-set report from F to F8 | — | R74 gate summary and limitations; D137 final decision; tag `phase-8` |
+| S15 | Final checks: full suite at the release commit (Zeus plus Linux), change-set report from F to F8 | — | R74 gate summary and limitations; D138 final decision; tag `phase-8` |
 
 **Order:**
 1. S0.

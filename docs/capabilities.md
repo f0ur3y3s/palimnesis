@@ -29,6 +29,7 @@ Modes: archive mode (`palimnesis serve`, the default, with `--db`) archives and 
 | `POST /v1/chat/completions` (stream) | relayed | **supported (Ph1)** | first-harness path; live-verified with OpenCode |
 | `POST /v1/chat/completions` (non-stream) | relayed | **supported (Ph1)** | no first-harness traffic; fake-upstream tests only |
 | `POST /v1/messages` (+ `count_tokens`) | relayed | archived (Ph4B S4, D87): the Messages subset of contracts §16, upstream always Chat; `count_tokens` relayed unarchived; supported for Pi (R43) | Strata's own errors lack Anthropic's envelope (archive mode adds it, D88); final `usage.input_tokens` is 1 |
+| `POST /palimnesis/sessions/<id>/fork` | not served | the explicit fork (D129): copies a session through one turn into a new one | a control route; errors in the OpenAI shape |
 | `POST /v1/responses` and any other `POST` | relayed | rejected, `unsupported_feature` | upstream is stateless |
 | `GET`/`HEAD`/`OPTIONS` (`/v1/models`, `/props`, `/health`) | relayed | relayed | metadata |
 
@@ -84,9 +85,9 @@ The subset and its mapping are contracts §16; in short:
 | Title generation | must be disabled | `harnesses.md` |
 | `subagent` tool | must be denied | `harnesses.md` |
 | Native compaction | must be disabled | `compaction.auto: false` |
-| Undo, revert, fork, `/btw` | rejected (Ph1) | divergence error; no config switch exists |
+| Undo, revert, the harness's own fork, `/btw` | rejected (Ph1) | divergence error inside a session; to branch, use `palimnesis session fork` (D129) |
 | Continue-after-partial resend | supported (Ph1) | rewritten streams end failures with an in-stream error event plus `x-should-retry: false`; when OpenCode still resends a flattened partial plus "Continue…", it is reconciled against the archived partial (D10.3) |
-| Streaming idempotent replay | planned (Ph8) | 409 recovery response until then |
+| Streaming idempotent replay | supported (Ph8, D128) | a repeated `Idempotency-Key` for a completed stream is answered from the archive with no upstream call; `Last-Event-ID` gets `400 resume_unsupported` |
 
 ## Known limits
 
@@ -100,17 +101,18 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 ### Sessions and the archive
 
 - **One serialized branch per session.**
-  - Edits, undo, revert, fork and rewind get `409 history_divergence`; start a new session.
+  - Edits, undo, revert, a harness's own fork and rewind get `409 history_divergence`. Start a new session, or branch explicitly with `palimnesis session fork SESSION --at TURN` (D129); how a harness is pointed at the fork is unverified.
   - Concurrent requests get `409 session_busy` or `409 request_in_progress`.
 - **Interrupted turns are never resumed automatically.**
   - After a crash or a failed stream, a resend that repeats an already-answered request gets `409 ambiguous_retry`.
   - OpenCode's own resend of a flattened partial is accepted (D10.3).
   - A reply interrupted from the client side may be dropped by the next request (D13.1).
-- **Idempotent replay** covers completed non-streaming results only. Repeated streaming keys get `409 streaming_replay_unsupported` (Ph8).
-- **Archive growth is unbounded.**
-  - There is no deletion, export or disk budget yet (Ph8). Measured growth is in results R6 and R8.
-  - To delete, remove `palimnesis.db*` and `transcripts` with the proxy stopped.
-- **Durability.** Process crashes are tested; power-loss durability is not claimed (Ph8).
+- **Idempotent replay** (`Idempotency-Key`, contracts §6) covers completed non-streaming results (the stored bytes) and, since D128, completed streams, rebuilt from the archive with the same event order, content and terminal metadata. Chunk boundaries differ: usage comes in its own chunk with empty `choices`. A stream completed before migration 8 gets `409 streaming_replay_unavailable`. Refusals before acceptance (413, 429, 503 `upstream_unhealthy`, 507, 400 `context_budget_exceeded`) apply to a keyed resend too.
+- **Archive growth is unbounded,** but bounded by the disk: below `--min-free-bytes` (1 GiB) free, requests get `507 archive_full` before acceptance (D132). Measured growth is in results R6 and R8.
+  - `palimnesis delete SESSION --yes`, `export`, `backup` and `restore` (D133); deletion does not reach backups or `--capture-dir` copies (README).
+- **Request size.** Bodies over `--max-body-bytes` (32 MiB) get `413 request_too_large` before acceptance, on every route in archive mode (D132).
+- **A stuck upstream slot.** Other work holding Strata's slot past `--slot-ceiling` (60 s) marks it unhealthy: `503 upstream_unhealthy`, or an in-stream error once a streaming response has started (D132).
+- **Durability.** Process crashes and external kills are tested at every commit boundary on both protocols, plus 50 random-time kills (R71, D131). Power-loss durability is not claimed (U9).
 - **Per-request cost grows with history.** Accept reloads the whole branch (R8: TTFB p50 rises from 8 to 16 ms over 50 turns).
 
 ### Bounded view and its cost
@@ -160,4 +162,4 @@ Every limit below is rejected or documented, never silent. Resolved limits of ea
 - **Phase 4B:** Pi's fault, restart and cancellation runs through the proxy, development needles and tasks (plan §6, S14).
 - **Backlog:** Claude Code (`backlog.md`, D92).
 - **Phase 3B, not built:** continuation accounting across internal calls, and RE2 regex search.
-- **Phase 8:** streaming replay, deletion and export, and power-loss durability.
+- **Phase 8:** power-loss durability (U9) and automatic resume of an interrupted stream (D130).

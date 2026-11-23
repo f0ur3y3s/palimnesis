@@ -114,6 +114,8 @@ def test_divergence_inside_the_source_session_is_still_409(lc):
     (SRC, {"at_turn": "2"}, 400, "invalid_body"),
     (SRC, {"at_turn": 1, "session": "bad..id"}, 400, "invalid_session_id"),
     (SRC, {"at_turn": 1, "session": SRC}, 409, "session_exists"),
+    (SRC, {"at_turn": 1, "session": ""}, 400, "invalid_body"),
+    (SRC, {"at_turn": 1, "session": 0}, 400, "invalid_body"),
 ])
 def test_bad_forks_are_refused_and_write_nothing(lc, source, doc, status, code):
     three_turns(lc)
@@ -165,3 +167,45 @@ def test_a_hidden_loop_turn_still_folds_into_one_message_in_the_fork(tmp_path):
     assert len(turns) == 2  # the imported history's first message, then the question
     assert [(a.role, a.content_sha256, a.text, a.tool_calls) for a in new] ==         [(a.role, a.content_sha256, a.text, a.tool_calls) for a in src]
     assert new[-1].text == "Checking. It is in read 3." and not new[-1].tool_calls
+
+
+def test_accounting_replay_and_fork_add_no_unexplained_calls(tmp_path):
+    """S11 cache audit: a keyed replay records no upstream call; a fork's first call is
+    ``first_call`` on its own branch; refusals before acceptance record nothing."""
+    from .test_view_http import SID as VIEW_SID, body as vbody, history, post, view_stack
+
+    with view_stack(tmp_path, input_budget=8000) as (fake, url, settings):
+        msgs = history(3) + [{"role": "user", "content": "go on"}]
+        fake.respond_counted("done")
+        payload = vbody(msgs, max_completion_tokens=8192)
+        r1 = httpx.post(f"{url}/s/{VIEW_SID}/v1/chat/completions", content=payload,
+                        headers={"Idempotency-Key": "kk"}, timeout=60)
+        r2 = httpx.post(f"{url}/s/{VIEW_SID}/v1/chat/completions", content=payload,
+                        headers={"Idempotency-Key": "kk"}, timeout=60)
+        assert r1.status_code == r2.status_code == 200
+        before = rows_db(settings.db_path, "SELECT count(*) FROM events WHERE kind = 'upstream_call'")
+        assert before == [(1,)]  # the replay made no call and recorded none
+        assert httpx.post(f"{url}/palimnesis/sessions/{VIEW_SID}/fork",
+                          json={"at_turn": 1, "session": "ses_acct"}, timeout=30).status_code == 200
+        fork_msgs = msgs[:-1] + [{"role": "assistant", "content": "done"}]
+        users = [i for i, m in enumerate(msgs) if m["role"] == "user"]
+        fake.respond_counted("forked")
+        branch = msgs[:users[1]] if len(users) > 1 else msgs
+        r3 = httpx.post(f"{url}/s/ses_acct/v1/chat/completions",
+                        content=vbody(branch + [{"role": "user", "content": "branch"}],
+                                      max_completion_tokens=8192), timeout=60)
+        assert r3.status_code == 200, r3.text[:300]
+        assert fork_msgs
+    calls = rows_db(settings.db_path,
+                    "SELECT json_extract(payload, '$.branch_id'), json_extract(payload, '$.cause')"
+                    " FROM events WHERE kind = 'upstream_call' ORDER BY event_id")
+    assert calls[-1] == (branch_id_for("ses_acct"), "first_call")
+    assert all(c[1] != "unexplained" for c in calls)
+
+
+def rows_db(db, sql):
+    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        return c.execute(sql).fetchall()
+    finally:
+        c.close()

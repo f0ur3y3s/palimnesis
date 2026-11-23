@@ -626,7 +626,8 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
      - The first rehearsal (dbc9b61) stopped at step 1: the probe wrote `--out` into a directory that didn't exist yet. It now creates the directory.
      - The independent review found that the probe rejected the runner's `--reason`, so a reboot would have stopped the run. It also found the first `stem_of` stripping content from 37 questions and missing sentences that end in dotted code.
      - All three are fixed and tested before the validation run. The review also confirmed that no question has empty passages and that `infer_format` assigns no wrong kind.
-   - The outcome is appended here after the run.
+   - **Outcome (R70).** 145/180 questions pass as written, and 172/180 under the format rule. The original phrasing flags generators a, c and d and passes b, as expected, and every generator rises under the rule.
+   - **Adopted.** The rule and the probe are the authoring gate for heldout7 (S12): every question declares its format, passes the lint, and passes the probe 3/3 twice before sealing.
 
 ## D128: S5 streaming idempotent replay (U7, 2026-11-23)
 
@@ -754,3 +755,27 @@ The S3 pilot ran headless on Zeus at `8b4da2f`: 33 of 33 steps, 6.3 h, no reruns
 6. **`check --archive`** runs `integrity.check` (D131) read-only.
 7. **The README states the retention limits.** Deletion does not reach backups, `--capture-dir` copies, files the agent wrote, or the disk's free blocks. Restoring a backup brings back sessions deleted since.
 8. **Tests:** `tests/test_archive_ops.py`. Backup during a stream (D132.7) is one of them.
+
+## D134: S11 reviews and their resolution (2026-11-23)
+
+Three reviews at `b18b425`: protocol (both client protocols), cache audit, and paper fidelity. **None found a blocker.**
+
+1. **Protocol review: three should-fix items.**
+   - **Stale capability matrix.** `docs/capabilities.md` still said streaming replay was planned, named a code that doesn't exist, and claimed no deletion, export or disk limit. It is updated for D128–D133.
+   - **Contract §3** said every other `POST` gets `unsupported_feature`. It now names the fork control route.
+   - **Pre-acceptance refusals pre-empt a keyed replay** (413, 507, 429, 503, 400 budget). This is documented as the precedence (contracts §6) rather than reordered: replay is a request, and checking it first would need the archive read before admission.
+   
+   **Notes fixed:**
+   - The Messages 413 now has Anthropic's `request_too_large` type.
+   - The hidden loop's stored usage now comes from the chunk that carries it.
+   - The fork route enforces `--max-body-bytes` and refuses an empty or non-string `session` (`invalid_body`).
+   - Contracts now state: the streaming 503 usually arrives in-stream; the 413 applies to every route in archive mode; a fork's first request fixes its protocol.
+   
+   **Noted, unchanged:** a replay puts usage in its own chunk with empty `choices` (chunk boundaries are not promised; capabilities says so).
+2. **Cache audit: pass.**
+   - The audit found no unexplained changes from n3, replay, fork or the limits.
+   - The D126.7 duplicates cost notes-slot tokens but never cause an unlabeled change.
+   - The fork carries no view state, so its first call is `first_call`.
+   - **Gap closed:** a test now asserts the accounting: a replay records no upstream call, and a fork's first call is `first_call`.
+   - **Noted:** an `upstream_call` write lost to a full disk can mislabel the next call after a restart (pre-existing, low).
+3. **Paper fidelity: pass.** Two documentation clauses were added to the n3 docstring and `docs/papers.md`: when Dead ends stays whole (D123.2, D122.4), and the n3 prompt's role (D121.1).

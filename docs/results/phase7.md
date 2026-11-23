@@ -185,3 +185,32 @@
   **Passed 50/50.** Every trial left a sound archive (integrity, foreign keys, one terminal event per attempt, FTS equal to a rebuild) and transcripts that verify.
 - **Found on the way and fixed** (D131): an attempt abandoned at restart left its partial output unindexed (the first 4-trial smoke run failed 3/4); a transcript publication cut short was never redone; a fork indexed hidden results. An earlier, interrupted run at `1ba5972` is not counted: from trial 30 on, it was running uncommitted code.
 - **Not covered:** power loss (U9), Linux (U11 pending), and kills inside SQLite's own commit, which the boundaries bracket but do not split.
+
+## R70: Phase 8 S4 needle instrument on retired heldout5 (2026-11-23)
+
+- **What ran:** `eval/s4_validation.py`, headless on Zeus at `3e3f810` behind the full readiness gate (`captures/phase8-s4-3e3f810/validation-run`), 8 of 8 steps, no reruns, about 2.7 h.
+  - 18 histories, 180 questions, 3 samples per question, each sent straight to Strata with its evidence in view and scored with the frozen loose scorer.
+  - A question passes on 3 of 3.
+  - "Original" is the question as written; "format" is its stem plus the fixed sentence for its kind (D127).
+- **Questions passing (3/3):**
+
+  | generator | original | format |
+  |---|---|---|
+  | a | 39/50 | 46/50 |
+  | b | 48/50 | 49/50 |
+  | c | 26/40 | 37/40 |
+  | d | 32/40 | 40/40 |
+  | **all** | **145/180 (80.6%)** | **172/180 (95.6%)** |
+
+- **The expectation holds.** The original phrasing flags a, c and d, and passes b. b's fixed short endings were already near the rule, matching its 47/50 in R65. Under the format rule every generator rises.
+- **Where the originals failed:**
+  - a's `irrelevant_matches` (0/5; "Cabinet code.");
+  - c's `mid_task` (0/4) and `superseded` (3/8);
+  - d's `irrelevant_matches` (0/4).
+- **What the format rule fixed:** a and d's `irrelevant_matches` (5/5, 4/4), c's `mid_task` (4/4), a's `multi_fact` (5/5), and c's `vague` (8/8).
+- **Residual misses under the format rule:** 8, concentrated in two places.
+  - a's `oversized_read` (2/5): the kept content ending "Give the marker without the label." conflicts with "exactly as recorded".
+  - c's `superseded` (5/8): branch strings typed as identifiers.
+  
+  Authoring under the rule catches these: a question that fails the probe has its stem revised and needs two consecutive 3/3 passes (AUTHORING.md §4.7).
+- **What it means for heldout7 (S12):** every question is written to the rule and passes the probe before sealing. The needle gate then measures recall, not phrasing.
